@@ -1009,7 +1009,7 @@ int __isolate_lru_page(struct page *page, isolate_mode_t mode)
 	if (!PageLRU(page))
 		return ret;
 
-	/* Compaction can't handle unevictable pages but CMA can do */
+	/* Compaction should not handle unevictable pages but CMA can do so */
 	if (PageUnevictable(page) && !(mode & ISOLATE_UNEVICTABLE))
 		return ret;
 
