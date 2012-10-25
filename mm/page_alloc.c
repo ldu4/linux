@@ -5878,7 +5878,7 @@ int alloc_contig_range(unsigned long start, unsigned long end,
 				       pfn_max_align_up(end), migratetype,
 				       false);
 	if (ret)
-		goto done;
+		return ret;
 
 	ret = __alloc_contig_migrate_range(start, end);
 	if (ret)
