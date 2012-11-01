@@ -106,10 +106,10 @@ struct page *kmap_to_page(void *vaddr)
 	return virt_to_page(addr);
 }
 
-static int flush_all_zero_pkmaps(void)
+static unsigned int flush_all_zero_pkmaps(void)
 {
 	int i;
-	int index = PKMAP_INDEX_INVAL;
+	unsigned int index = PKMAP_INVALID_INDEX;
 
 	flush_cache_kmaps();
 
@@ -141,9 +141,10 @@ static int flush_all_zero_pkmaps(void)
 			  &pkmap_page_table[i]);
 
 		set_page_address(page, NULL);
-		index = i;
+		if (index == PKMAP_INVALID_INDEX)
+			index = i;
 	}
-	if (index != PKMAP_INDEX_INVAL)
+	if (index != PKMAP_INVALID_INDEX)
 		flush_tlb_kernel_range(PKMAP_ADDR(0), PKMAP_ADDR(LAST_PKMAP));
 
 	return index;
@@ -154,15 +155,19 @@ static int flush_all_zero_pkmaps(void)
  */
 void kmap_flush_unused(void)
 {
+	unsigned int index;
+
 	lock_kmap();
-	flush_all_zero_pkmaps();
+	index = flush_all_zero_pkmaps();
+	if (index != PKMAP_INVALID_INDEX && (index < last_pkmap_nr))
+		last_pkmap_nr = index;
 	unlock_kmap();
 }
 
 static inline unsigned long map_new_virtual(struct page *page)
 {
 	unsigned long vaddr;
-	int index = PKMAP_INDEX_INVAL;
+	unsigned int index = PKMAP_INVALID_INDEX;
 	int count;
 
 start:
@@ -172,8 +177,7 @@ start:
 		last_pkmap_nr = (last_pkmap_nr + 1) & LAST_PKMAP_MASK;
 		if (!last_pkmap_nr) {
 			index = flush_all_zero_pkmaps();
-			if (index != PKMAP_INDEX_INVAL)
-				break; /* Found a usable entry */
+			break;
 		}
 		if (!pkmap_count[last_pkmap_nr]) {
 			index = last_pkmap_nr;
@@ -186,7 +190,7 @@ start:
 	/*
 	 * Sleep for somebody else to unmap their entries
 	 */
-	if (index == PKMAP_INDEX_INVAL) {
+	if (index == PKMAP_INVALID_INDEX) {
 		DECLARE_WAITQUEUE(wait, current);
 
 		__set_current_state(TASK_UNINTERRUPTIBLE);
@@ -210,6 +214,7 @@ start:
 		   &(pkmap_page_table[index]), mk_pte(page, kmap_prot));
 
 	pkmap_count[index] = 1;
+	last_pkmap_nr = index;
 	set_page_address(page, (void *)vaddr);
 
 	return vaddr;
@@ -331,6 +336,7 @@ struct page_address_map {
 	void *virtual;
 	struct list_head list;
 };
+
 static struct page_address_map page_address_maps[LAST_PKMAP];
 
 /*
