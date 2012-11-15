@@ -240,7 +240,7 @@ void balloon_page_putback(struct page *page)
 		put_page(page);
 		balloon_event_count(COMPACTBALLOONRETURNED);
 	} else {
-		__WARN();
+		WARN_ON(1);
 		dump_page(page);
 	}
 	unlock_page(page);
