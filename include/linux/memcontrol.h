@@ -467,7 +467,7 @@ void kmem_cache_destroy_memcg_children(struct kmem_cache *s);
  * We return true automatically if this allocation is not to be accounted to
  * any memcg.
  */
-static __always_inline bool
+static inline bool
 memcg_kmem_newpage_charge(gfp_t gfp, struct mem_cgroup **memcg, int order)
 {
 	if (!memcg_kmem_enabled())
@@ -499,7 +499,7 @@ memcg_kmem_newpage_charge(gfp_t gfp, struct mem_cgroup **memcg, int order)
  *
  * there is no need to specify memcg here, since it is embedded in page_cgroup
  */
-static __always_inline void
+static inline void
 memcg_kmem_uncharge_pages(struct page *page, int order)
 {
 	if (memcg_kmem_enabled())
@@ -517,7 +517,7 @@ memcg_kmem_uncharge_pages(struct page *page, int order)
  * charges. Otherwise, it will commit the memcg given by @memcg to the
  * corresponding page_cgroup.
  */
-static __always_inline void
+static inline void
 memcg_kmem_commit_charge(struct page *page, struct mem_cgroup *memcg, int order)
 {
 	if (memcg_kmem_enabled() && memcg)
