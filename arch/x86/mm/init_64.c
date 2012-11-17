@@ -1031,6 +1031,16 @@ int __ref arch_remove_memory(u64 start, u64 size)
 
 static struct kcore_list kcore_vsyscall;
 
+static void __init register_page_bootmem_info(void)
+{
+#ifdef CONFIG_NUMA
+	int i;
+
+	for_each_online_node(i)
+		register_page_bootmem_info_node(NODE_DATA(i));
+#endif
+}
+
 void __init mem_init(void)
 {
 	long codesize, reservedpages, datasize, initsize;
@@ -1043,11 +1053,8 @@ void __init mem_init(void)
 	reservedpages = 0;
 
 	/* this will put all low memory onto the freelists */
-#ifdef CONFIG_NUMA
-	totalram_pages = numa_free_all_bootmem();
-#else
+	register_page_bootmem_info();
 	totalram_pages = free_all_bootmem();
-#endif
 
 	absent_pages = absent_pages_in_range(0, max_pfn);
 	reservedpages = max_pfn - totalram_pages - absent_pages;
