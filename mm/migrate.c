@@ -1039,12 +1039,15 @@ int migrate_pages(struct list_head *from,
 			}
 		}
 	}
-	rc = nr_failed + retry;
+	rc = 0;
 out:
 	if (!swapwrite)
 		current->flags &= ~PF_SWAPWRITE;
 
-	return rc;
+	if (rc != MIGRATEPAGE_SUCCESS)
+		return rc;
+
+	return nr_failed + retry;
 }
 
 int migrate_huge_page(struct page *hpage, new_page_t get_new_page,
