@@ -783,7 +783,7 @@ int do_huge_pmd_anonymous_page(struct mm_struct *mm, struct vm_area_struct *vma,
 			unsigned long zero_pfn;
 			pgtable = pte_alloc_one(mm, haddr);
 			if (unlikely(!pgtable))
-				goto out;
+				return VM_FAULT_OOM;
 			zero_pfn = get_huge_zero_page();
 			if (unlikely(!zero_pfn)) {
 				pte_free(mm, pgtable);
