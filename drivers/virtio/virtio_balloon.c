@@ -141,7 +141,7 @@ static void fill_balloon(struct virtio_balloon *vb, size_t num)
 		if (!page) {
 			if (printk_ratelimit())
 				dev_printk(KERN_INFO, &vb->vdev->dev,
-					   "Out of puff! Can't get %zu pages\n",
+					   "Out of puff! Can't get %u pages\n",
 					    VIRTIO_BALLOON_PAGES_PER_PAGE);
 			/* Sleep for at least 1/5 of a second before retry. */
 			msleep(200);
