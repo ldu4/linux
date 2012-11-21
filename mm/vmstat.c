@@ -781,15 +781,7 @@ const char * const vmstat_text[] = {
 	"compact_stall",
 	"compact_fail",
 	"compact_success",
-
-#ifdef CONFIG_BALLOON_COMPACTION
-	"compact_balloon_isolated",
-	"compact_balloon_migrated",
-	"compact_balloon_released",
-	"compact_balloon_returned",
-#endif /* CONFIG_BALLOON_COMPACTION */
-
-#endif /* CONFIG_COMPACTION */
+#endif
 
 #ifdef CONFIG_HUGETLB_PAGE
 	"htlb_buddy_alloc_success",

@@ -405,7 +405,6 @@ int virtballoon_migratepage(struct address_space *mapping,
 	tell_host(vb, vb->deflate_vq);
 
 	mutex_unlock(&vb->balloon_lock);
-	balloon_event_count(COMPACTBALLOONMIGRATED);
 
 	return MIGRATEPAGE_BALLOON_SUCCESS;
 }
