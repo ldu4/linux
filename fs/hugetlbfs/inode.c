@@ -582,11 +582,11 @@ static int hugetlbfs_migrate_page(struct address_space *mapping,
 	int rc;
 
 	rc = migrate_huge_page_move_mapping(mapping, newpage, page);
-	if (rc != MIGRATEPAGE_SUCCESS)
+	if (rc)
 		return rc;
 	migrate_page_copy(newpage, page);
 
-	return MIGRATEPAGE_SUCCESS;
+	return 0;
 }
 
 static int hugetlbfs_statfs(struct dentry *dentry, struct kstatfs *buf)

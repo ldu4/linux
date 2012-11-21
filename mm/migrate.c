@@ -296,7 +296,7 @@ static int migrate_page_move_mapping(struct address_space *mapping,
 		/* Anonymous page without mapping */
 		if (page_count(page) != 1)
 			return -EAGAIN;
-		return MIGRATEPAGE_SUCCESS;
+		return 0;
 	}
 
 	spin_lock_irq(&mapping->tree_lock);
@@ -366,7 +366,7 @@ static int migrate_page_move_mapping(struct address_space *mapping,
 	}
 	spin_unlock_irq(&mapping->tree_lock);
 
-	return MIGRATEPAGE_SUCCESS;
+	return 0;
 }
 
 /*
@@ -382,7 +382,7 @@ int migrate_huge_page_move_mapping(struct address_space *mapping,
 	if (!mapping) {
 		if (page_count(page) != 1)
 			return -EAGAIN;
-		return MIGRATEPAGE_SUCCESS;
+		return 0;
 	}
 
 	spin_lock_irq(&mapping->tree_lock);
@@ -409,7 +409,7 @@ int migrate_huge_page_move_mapping(struct address_space *mapping,
 	page_unfreeze_refs(page, expected_count - 1);
 
 	spin_unlock_irq(&mapping->tree_lock);
-	return MIGRATEPAGE_SUCCESS;
+	return 0;
 }
 
 /*
@@ -496,11 +496,11 @@ int migrate_page(struct address_space *mapping,
 
 	rc = migrate_page_move_mapping(mapping, newpage, page, NULL, mode);
 
-	if (rc != MIGRATEPAGE_SUCCESS)
+	if (rc)
 		return rc;
 
 	migrate_page_copy(newpage, page);
-	return MIGRATEPAGE_SUCCESS;
+	return 0;
 }
 EXPORT_SYMBOL(migrate_page);
 
@@ -523,7 +523,7 @@ int buffer_migrate_page(struct address_space *mapping,
 
 	rc = migrate_page_move_mapping(mapping, newpage, page, head, mode);
 
-	if (rc != MIGRATEPAGE_SUCCESS)
+	if (rc)
 		return rc;
 
 	/*
@@ -559,7 +559,7 @@ int buffer_migrate_page(struct address_space *mapping,
 
 	} while (bh != head);
 
-	return MIGRATEPAGE_SUCCESS;
+	return 0;
 }
 EXPORT_SYMBOL(buffer_migrate_page);
 #endif
@@ -675,7 +675,7 @@ static int move_to_new_page(struct page *newpage, struct page *page,
 	else
 		rc = fallback_migrate_page(mapping, newpage, page, mode);
 
-	if (rc != MIGRATEPAGE_SUCCESS) {
+	if (rc) {
 		newpage->mapping = NULL;
 	} else {
 		if (remap_swapcache)
@@ -824,7 +824,7 @@ skip_unmap:
 		put_anon_vma(anon_vma);
 
 uncharge:
-	mem_cgroup_end_migration(mem, page, newpage, rc == MIGRATEPAGE_SUCCESS);
+	mem_cgroup_end_migration(mem, page, newpage, rc == 0);
 unlock:
 	unlock_page(page);
 out:
@@ -997,7 +997,7 @@ int migrate_pages(struct list_head *from,
 			case -EAGAIN:
 				retry++;
 				break;
-			case MIGRATEPAGE_SUCCESS:
+			case 0:
 				break;
 			default:
 				/* Permanent failure */
@@ -1011,7 +1011,7 @@ out:
 	if (!swapwrite)
 		current->flags &= ~PF_SWAPWRITE;
 
-	if (rc != MIGRATEPAGE_SUCCESS)
+	if (rc)
 		return rc;
 
 	return nr_failed + retry;
@@ -1034,7 +1034,7 @@ int migrate_huge_page(struct page *hpage, new_page_t get_new_page,
 			/* try again */
 			cond_resched();
 			break;
-		case MIGRATEPAGE_SUCCESS:
+		case 0:
 			goto out;
 		default:
 			rc = -EIO;
