@@ -207,8 +207,10 @@ static inline gfp_t balloon_mapping_gfp_mask(void)
 	return GFP_HIGHUSER;
 }
 
-/* A macro, to avoid generating references to the undefined COMPACTBALLOON* */
-#define balloon_event_count(item) do { } while (0)
+static inline void balloon_event_count(enum vm_event_item item)
+{
+	return;
+}
 
 static inline bool balloon_compaction_check(void)
 {
