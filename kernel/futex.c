@@ -840,10 +840,8 @@ static void wake_futex(struct futex_q *q)
 {
 	struct task_struct *p = q->task;
 
-	if (q->pi_state || q->rt_waiter) {
-		WARN(1, "%s: refusing to wake PI futex\n", __FUNCTION__);
+	if (WARN(q->pi_state || q->rt_waiter, "refusing to wake PI futex\n"))
 		return;
-	}
 
 	/*
 	 * We set q->lock_ptr = NULL _before_ we wake up the task. If
