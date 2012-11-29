@@ -151,12 +151,8 @@ static void flush_all_zero_pkmaps(void)
  */
 void kmap_flush_unused(void)
 {
-	unsigned int index;
-
 	lock_kmap();
-	index = flush_all_zero_pkmaps();
-	if (index != PKMAP_INVALID_INDEX && (index < last_pkmap_nr))
-		last_pkmap_nr = index;
+	flush_all_zero_pkmaps();
 	unlock_kmap();
 }
 
