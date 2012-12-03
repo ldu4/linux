@@ -1090,6 +1090,7 @@ static int do_huge_pmd_wp_page_fallback(struct mm_struct *mm,
 	pmd_populate(mm, pmd, pgtable);
 	page_remove_rmap(page);
 	spin_unlock(&mm->page_table_lock);
+	inc_mm_counter(mm, MM_ANONPAGES);
 
 	mmu_notifier_invalidate_range_end(mm, mmun_start, mmun_end);
 
