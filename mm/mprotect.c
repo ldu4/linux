@@ -114,7 +114,7 @@ static unsigned long change_pte_range(struct vm_area_struct *vma, pmd_t *pmd,
 
 #ifdef CONFIG_NUMA_BALANCING
 static inline void change_pmd_protnuma(struct mm_struct *mm, unsigned long addr,
-		pmd_t *pmd)
+				       pmd_t *pmd)
 {
 	spin_lock(&mm->page_table_lock);
 	set_pmd_at(mm, addr & PMD_MASK, pmd, pmd_mknuma(*pmd));
@@ -122,7 +122,7 @@ static inline void change_pmd_protnuma(struct mm_struct *mm, unsigned long addr,
 }
 #else
 static inline void change_pmd_protnuma(struct mm_struct *mm, unsigned long addr,
-		pmd_t *pmd)
+				       pmd_t *pmd)
 {
 	BUG();
 }
@@ -379,7 +379,7 @@ SYSCALL_DEFINE3(mprotect, unsigned long, start, size_t, len,
 	for (nstart = start ; ; ) {
 		unsigned long newflags;
 
-		/* Here we know that  vma->vm_start <= nstart < vma->vm_end. */
+		/* Here we know that vma->vm_start <= nstart < vma->vm_end. */
 
 		newflags = vm_flags;
 		newflags |= (vma->vm_flags & ~(VM_READ | VM_WRITE | VM_EXEC));
