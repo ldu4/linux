@@ -1041,7 +1041,7 @@ static struct page **__iommu_alloc_buffer(struct device *dev, size_t size, gfp_t
 	struct page **pages;
 	unsigned int count = size >> PAGE_SHIFT;
 	unsigned int array_size = count * sizeof(struct page *);
-	unsigned int i = 0;
+	unsigned int idx = 0;
 
 	if (array_size <= PAGE_SIZE)
 		pages = kzalloc(array_size, gfp);
@@ -1051,31 +1051,32 @@ static struct page **__iommu_alloc_buffer(struct device *dev, size_t size, gfp_t
 		return NULL;
 
 	while (count) {
-		int j, order = __fls(count);
+		unsigned int j;
+		unsigned int order = __fls(count);
 
-		pages[i] = alloc_pages(gfp | __GFP_NOWARN, order);
-		while (!pages[i] && order)
-			pages[i] = alloc_pages(gfp | __GFP_NOWARN, --order);
-		if (!pages[i])
+		pages[idx] = alloc_pages(gfp | __GFP_NOWARN, order);
+		while (!pages[idx] && order)
+			pages[idx] = alloc_pages(gfp | __GFP_NOWARN, --order);
+		if (!pages[idx])
 			goto error;
 
 		if (order) {
-			split_page(pages[i], order);
+			split_page(pages[idx], order);
 			j = 1 << order;
 			while (--j)
-				pages[i + j] = pages[i] + j;
+				pages[idx + j] = pages[idx] + j;
 		}
 
-		__dma_clear_buffer(pages[i], PAGE_SIZE << order);
-		i += 1 << order;
+		__dma_clear_buffer(pages[idx], PAGE_SIZE << order);
+		idx += 1 << order;
 		count -= 1 << order;
 	}
 
 	return pages;
 error:
-	while (i--)
-		if (pages[i])
-			__free_pages(pages[i], 0);
+	while (idx--)
+		if (pages[idx])
+			__free_pages(pages[idx], 0);
 	if (array_size <= PAGE_SIZE)
 		kfree(pages);
 	else
@@ -1087,10 +1088,10 @@ static int __iommu_free_buffer(struct device *dev, struct page **pages, size_t s
 {
 	unsigned int count = size >> PAGE_SHIFT;
 	unsigned int array_size = count * sizeof(struct page *);
-	unsigned int i;
-	for (i = 0; i < count; i++)
-		if (pages[i])
-			__free_pages(pages[i], 0);
+	unsigned int idx;
+	for (idx = 0; idx < count; idx++)
+		if (pages[idx])
+			__free_pages(pages[idx], 0);
 	if (array_size <= PAGE_SIZE)
 		kfree(pages);
 	else
