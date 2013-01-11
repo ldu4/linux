@@ -194,8 +194,7 @@ __rb_insert(struct rb_node *node, struct rb_root *root,
 	}
 }
 
-__always_inline void
-__rb_erase_color(struct rb_node *parent, struct rb_root *root,
+void __rb_erase_color(struct rb_node *parent, struct rb_root *root,
 	void (*augment_rotate)(struct rb_node *old, struct rb_node *new))
 {
 	struct rb_node *node = NULL, *sibling, *tmp1, *tmp2;
