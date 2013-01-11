@@ -1690,8 +1690,11 @@ int migrate_misplaced_transhuge_page(struct mm_struct *mm,
 	if (!isolated || page_count(page) != 2) {
 		count_vm_events(PGMIGRATE_FAIL, HPAGE_PMD_NR);
 		put_page(new_page);
-		if (isolated)
+		if (isolated) {
 			putback_lru_page(page);
+			isolated = 0;
+			goto out;
+		}
 		goto out_keep_locked;
 	}
 
