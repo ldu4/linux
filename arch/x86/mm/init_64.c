@@ -1317,6 +1317,7 @@ void __ref vmemmap_free(struct page *memmap, unsigned long nr_pages)
 	remove_pagetable(start, end, false);
 }
 
+#ifdef CONFIG_MEMORY_HOTPLUG_SPARSE
 void register_page_bootmem_memmap(unsigned long section_nr,
 				  struct page *start_page, unsigned long size)
 {
@@ -1374,6 +1375,7 @@ void register_page_bootmem_memmap(unsigned long section_nr,
 		}
 	}
 }
+#endif
 
 void __meminit vmemmap_populate_print_last(void)
 {
