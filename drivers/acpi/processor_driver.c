@@ -52,6 +52,7 @@
 #include <asm/processor.h>
 #include <asm/smp.h>
 #include <asm/acpi.h>
+#include <linux/memory_hotplug.h>
 
 #include <acpi/acpi_bus.h>
 #include <acpi/acpi_drivers.h>
@@ -634,6 +635,7 @@ static int acpi_processor_remove(struct acpi_device *device, int type)
 
 	per_cpu(processors, pr->id) = NULL;
 	per_cpu(processor_device_array, pr->id) = NULL;
+	try_offline_node(cpu_to_node(pr->id));
 
 free:
 	free_cpumask_var(pr->throttling.shared_cpu_map);
