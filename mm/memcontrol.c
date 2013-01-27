@@ -180,7 +180,7 @@ struct mem_cgroup_per_node {
 };
 
 struct mem_cgroup_lru_info {
-	struct mem_cgroup_per_node *nodeinfo[MAX_NUMNODES];
+	struct mem_cgroup_per_node *nodeinfo[0];
 };
 
 /*
@@ -284,17 +284,6 @@ struct mem_cgroup {
 	 */
 	struct res_counter kmem;
 	/*
-	 * Per cgroup active and inactive list, similar to the
-	 * per zone LRU lists.
-	 */
-	struct mem_cgroup_lru_info info;
-	int last_scanned_node;
-#if MAX_NUMNODES > 1
-	nodemask_t	scan_nodes;
-	atomic_t	numainfo_events;
-	atomic_t	numainfo_updating;
-#endif
-	/*
 	 * Should the accounting and control be hierarchical, per subtree?
 	 */
 	bool use_hierarchy;
@@ -374,7 +363,28 @@ struct mem_cgroup {
         /* Index in the kmem_cache->memcg_params->memcg_caches array */
 	int kmemcg_id;
 #endif
+
+	int last_scanned_node;
+#if MAX_NUMNODES > 1
+	nodemask_t	scan_nodes;
+	atomic_t	numainfo_events;
+	atomic_t	numainfo_updating;
+#endif
+	/*
+	 * Per cgroup active and inactive list, similar to the
+	 * per zone LRU lists.
+	 *
+	 * WARNING: This has to be the last element of the struct. Don't
+	 * add new fields after this point.
+	 */
+	struct mem_cgroup_lru_info info;
 };
+
+static inline size_t memcg_size(void)
+{
+	return sizeof(struct mem_cgroup) +
+		nr_node_ids * sizeof(struct mem_cgroup_per_node);
+}
 
 #ifdef CONFIG_MEMCG_DEBUG_ASYNC_DESTROY
 static LIST_HEAD(dangling_memcgs);
@@ -6098,9 +6108,9 @@ static void free_mem_cgroup_per_zone_info(struct mem_cgroup *memcg, int node)
 static struct mem_cgroup *mem_cgroup_alloc(void)
 {
 	struct mem_cgroup *memcg;
-	int size = sizeof(struct mem_cgroup);
+	size_t size = memcg_size();
 
-	/* Can be very big if MAX_NUMNODES is very big */
+	/* Can be very big if nr_node_ids is very big */
 	if (size < PAGE_SIZE)
 		memcg = kzalloc(size, GFP_KERNEL);
 	else
@@ -6137,7 +6147,7 @@ out_free:
 static void __mem_cgroup_free(struct mem_cgroup *memcg)
 {
 	int node;
-	int size = sizeof(struct mem_cgroup);
+	size_t size = memcg_size();
 
 	mem_cgroup_remove_from_trees(memcg);
 	free_css_id(&mem_cgroup_subsys, &memcg->css);
