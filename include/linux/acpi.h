@@ -83,7 +83,6 @@ int acpi_boot_init (void);
 void acpi_boot_table_init (void);
 int acpi_mps_check (void);
 int acpi_numa_init (void);
-void __init early_parse_srat(void);
 
 int acpi_table_init (void);
 int acpi_table_parse (char *id, acpi_table_handler handler);
@@ -420,6 +419,14 @@ static inline int acpi_nvs_for_each_region(int (*func)(__u64, __u64, void *),
 }
 
 #endif	/* !CONFIG_ACPI */
+
+#ifdef CONFIG_ACPI_NUMA
+void __init early_parse_srat(void);
+#else
+static inline void early_parse_srat(void)
+{
+}
+#endif
 
 #ifdef CONFIG_ACPI
 void acpi_os_set_prepare_sleep(int (*func)(u8 sleep_state,
