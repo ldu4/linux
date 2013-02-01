@@ -1039,7 +1039,14 @@ int memory_failure(unsigned long pfn, int trapno, int flags)
 		return 0;
 	}
 
-	nr_pages = 1 << compound_trans_order(hpage);
+	/*
+	 * If a thp is hit by a memory failure, it's supposed to be split.
+	 * So we should add only one to num_poisoned_pages for that case.
+	 */
+	if (PageHuge(p))
+		nr_pages = 1 << compound_trans_order(hpage);
+	else /* normal page or thp */
+		nr_pages = 1;
 	atomic_long_add(nr_pages, &num_poisoned_pages);
 
 	/*
