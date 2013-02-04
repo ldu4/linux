@@ -301,7 +301,7 @@ void mmu_notifier_unregister(struct mmu_notifier *mn, struct mm_struct *mm)
 		goto released;
 
 	/*
-	 * SRCU here will force exit_mmap to wait ->release to finish
+	 * SRCU here will force exit_mmap() to wait for ->release to finish
 	 * before freeing the pages.
 	 */
 	id = srcu_read_lock(&srcu);
