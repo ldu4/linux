@@ -55,6 +55,7 @@ void __mmu_notifier_release(struct mm_struct *mm)
 		 */
 		if (mn->ops->release)
 			mn->ops->release(mn, mm);
+	srcu_read_unlock(&srcu, id);
 
 	spin_lock(&mm->mmu_notifier_mm->lock);
 	while (unlikely(!hlist_empty(&mm->mmu_notifier_mm->list))) {
@@ -70,8 +71,6 @@ void __mmu_notifier_release(struct mm_struct *mm)
 		hlist_del_init_rcu(&mn->hlist);
 	}
 	spin_unlock(&mm->mmu_notifier_mm->lock);
-
-	srcu_read_unlock(&srcu, id);
 
 	/*
 	 * synchronize_srcu here prevents mmu_notifier_release to
@@ -293,24 +292,16 @@ void __mmu_notifier_mm_destroy(struct mm_struct *mm)
  */
 void mmu_notifier_unregister(struct mmu_notifier *mn, struct mm_struct *mm)
 {
-	int id;
-
 	BUG_ON(atomic_read(&mm->mm_count) <= 0);
 
-	if (hlist_unhashed(&mn->hlist))
-		goto released;
-
-	/*
-	 * SRCU here will force exit_mmap() to wait for ->release to finish
-	 * before freeing the pages.
-	 */
-	id = srcu_read_lock(&srcu);
-
-	spin_lock(&mm->mmu_notifier_mm->lock);
 	if (!hlist_unhashed(&mn->hlist)) {
-		hlist_del_rcu(&mn->hlist);
-		spin_unlock(&mm->mmu_notifier_mm->lock);
+		/*
+		 * SRCU here will force exit_mmap to wait ->release to finish
+		 * before freeing the pages.
+		 */
+		int id;
 
+		id = srcu_read_lock(&srcu);
 		/*
 		 * exit_mmap will block in mmu_notifier_release to
 		 * guarantee ->release is called before freeing the
@@ -318,16 +309,16 @@ void mmu_notifier_unregister(struct mmu_notifier *mn, struct mm_struct *mm)
 		 */
 		if (mn->ops->release)
 			mn->ops->release(mn, mm);
+		srcu_read_unlock(&srcu, id);
 
-	} else
+		spin_lock(&mm->mmu_notifier_mm->lock);
+		hlist_del_rcu(&mn->hlist);
 		spin_unlock(&mm->mmu_notifier_mm->lock);
+	}
 
-	srcu_read_unlock(&srcu, id);
-
-released:
 	/*
 	 * Wait any running method to finish, of course including
-	 * ->release if it was run by __mmu_notifier_release instead of us.
+	 * ->release if it was run by mmu_notifier_relase instead of us.
 	 */
 	synchronize_srcu(&srcu);
 
