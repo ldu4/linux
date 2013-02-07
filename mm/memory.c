@@ -1681,12 +1681,12 @@ static inline int stack_guard_page(struct vm_area_struct *vma, unsigned long add
  * instead of __get_user_pages. __get_user_pages should be used only if
  * you need some special @gup_flags.
  */
-long __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
-		unsigned long start, long nr_pages, unsigned int gup_flags,
-		struct page **pages, struct vm_area_struct **vmas,
-		int *nonblocking)
+int __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
+		     unsigned long start, int nr_pages, unsigned int gup_flags,
+		     struct page **pages, struct vm_area_struct **vmas,
+		     int *nonblocking)
 {
-	long i;
+	int i;
 	unsigned long vm_flags;
 	unsigned int page_mask;
 
@@ -1995,8 +1995,8 @@ int fixup_user_fault(struct task_struct *tsk, struct mm_struct *mm,
  *
  * See also get_user_pages_fast, for performance critical applications.
  */
-long get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
-		unsigned long start, long nr_pages, int write, int force,
+int get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
+		unsigned long start, int nr_pages, int write, int force,
 		struct page **pages, struct vm_area_struct **vmas)
 {
 	int flags = FOLL_TOUCH;
