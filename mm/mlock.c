@@ -489,11 +489,10 @@ SYSCALL_DEFINE2(munlock, unsigned long, start, size_t, len)
 static int do_mlockall(int flags)
 {
 	struct vm_area_struct * vma, * prev = NULL;
-	unsigned int def_flags;
+	unsigned int def_flags = 0;
 
-	def_flags = current->mm->def_flags & ~(VM_LOCKED | VM_POPULATE);
 	if (flags & MCL_FUTURE)
-		def_flags |= (VM_LOCKED | VM_POPULATE);
+		def_flags = (VM_LOCKED | VM_POPULATE);
 	current->mm->def_flags = def_flags;
 	if (flags == MCL_FUTURE)
 		goto out;
