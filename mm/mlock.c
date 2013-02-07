@@ -102,14 +102,13 @@ void mlock_vma_page(struct page *page)
  * can't isolate the page, we leave it for putback_lru_page() and vmscan
  * [page_referenced()/try_to_unmap()] to deal with.
  */
-unsigned int munlock_vma_page(struct page *page)
+void munlock_vma_page(struct page *page)
 {
-	unsigned int nr_pages = hpage_nr_pages(page);
-
 	BUG_ON(!PageLocked(page));
 
 	if (TestClearPageMlocked(page)) {
-		mod_zone_page_state(page_zone(page), NR_MLOCK, -nr_pages);
+		mod_zone_page_state(page_zone(page), NR_MLOCK,
+				    -hpage_nr_pages(page));
 		if (!isolate_lru_page(page)) {
 			int ret = SWAP_AGAIN;
 
@@ -142,8 +141,6 @@ unsigned int munlock_vma_page(struct page *page)
 				count_vm_event(UNEVICTABLE_PGMUNLOCKED);
 		}
 	}
-
-	return nr_pages;
 }
 
 /**
@@ -228,12 +225,13 @@ static int __mlock_posix_error_return(long retval)
 void munlock_vma_pages_range(struct vm_area_struct *vma,
 			     unsigned long start, unsigned long end)
 {
+	unsigned long addr;
+
+	lru_add_drain();
 	vma->vm_flags &= ~VM_LOCKED;
 
-	while (start < end) {
+	for (addr = start; addr < end; addr += PAGE_SIZE) {
 		struct page *page;
-		unsigned int page_mask, page_increm;
-
 		/*
 		 * Although FOLL_DUMP is intended for get_dump_page(),
 		 * it just so happens that its special treatment of the
@@ -241,22 +239,13 @@ void munlock_vma_pages_range(struct vm_area_struct *vma,
 		 * suits munlock very well (and if somehow an abnormal page
 		 * has sneaked into the range, we won't oops here: great).
 		 */
-		page = follow_page_mask(vma, start, FOLL_GET | FOLL_DUMP,
-					&page_mask);
+		page = follow_page(vma, addr, FOLL_GET | FOLL_DUMP);
 		if (page && !IS_ERR(page)) {
 			lock_page(page);
-			lru_add_drain();
-			/*
-			 * Any THP page found by follow_page_mask() may have
-			 * gotten split before reaching munlock_vma_page(),
-			 * so we need to recompute the page_mask here.
-			 */
-			page_mask = munlock_vma_page(page);
+			munlock_vma_page(page);
 			unlock_page(page);
 			put_page(page);
 		}
-		page_increm = 1 + (~(start >> PAGE_SHIFT) & page_mask);
-		start += page_increm * PAGE_SIZE;
 		cond_resched();
 	}
 }
