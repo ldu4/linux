@@ -1366,6 +1366,7 @@ struct movablemem_entry {
 };
 
 struct movablemem_map {
+	bool acpi;	/* true if using SRAT info */
 	int nr_map;
 	struct movablemem_entry map[MOVABLEMEM_MAP_MAX];
 	nodemask_t numa_nodes_hotplug;	/* on which nodes we specify memory */
