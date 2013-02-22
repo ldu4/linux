@@ -166,6 +166,9 @@ handle_movablemem(int node, u64 start, u64 end, u32 hotpluggable)
 	 * for other purposes, such as for kernel image. We cannot prevent
 	 * kernel from using these memory, so we need to exclude these memory
 	 * even if it is hotpluggable.
+	 * Furthermore, to ensure the kernel has enough memory to boot, we make
+	 * all the memory on the node which the kernel resides in
+	 * un-hotpluggable.
 	 */
 	if (hotpluggable && movablemem_map.acpi) {
 		/* Exclude ranges reserved by memblock. */
@@ -176,8 +179,22 @@ handle_movablemem(int node, u64 start, u64 end, u32 hotpluggable)
 			    start >= rgn->regions[i].base +
 			    rgn->regions[i].size)
 				continue;
+
+			/*
+			 * If the memory range overlaps the memory reserved by
+			 * memblock, then the kernel resides in this node.
+			 */
+			node_set(node, movablemem_map.numa_nodes_kernel);
+
 			goto out;
 		}
+
+		/*
+		 * If the kernel resides in this node, then the whole node
+		 * should not be hotpluggable.
+		 */
+		if (node_isset(node, movablemem_map.numa_nodes_kernel))
+			goto out;
 
 		insert_movablemem_map(start_pfn, end_pfn);
 
