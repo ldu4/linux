@@ -46,8 +46,6 @@ static unsigned long get_unshared_area(unsigned long addr, unsigned long len)
 	return vm_unmapped_area(&info);
 }
 
-#define DCACHE_ALIGN(addr) (((addr) + (SHMLBA - 1)) &~ (SHMLBA - 1))
-
 /*
  * We need to know the offset to use.  Old scheme was to look for
  * existing mapping and use the same offset.  New scheme is to use the
