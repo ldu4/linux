@@ -1919,9 +1919,9 @@ static struct frontswap_ops zcache_frontswap_ops = {
 	.init = zcache_frontswap_init
 };
 
-struct frontswap_ops zcache_frontswap_register_ops(void)
+struct frontswap_ops *zcache_frontswap_register_ops(void)
 {
-	struct frontswap_ops old_ops =
+	struct frontswap_ops *old_ops =
 		frontswap_register_ops(&zcache_frontswap_ops);
 
 	return old_ops;
@@ -2048,25 +2048,25 @@ static int __init zcache_init(void)
 
 #ifdef CONFIG_CLEANCACHE
 	if (zcache_enabled && use_cleancache) {
-		struct cleancache_ops old_ops;
+		struct cleancache_ops *old_ops;
 
 		zbud_init();
 		register_shrinker(&zcache_shrinker);
 		old_ops = zcache_cleancache_register_ops();
 		pr_info("zcache: cleancache enabled using kernel "
 			"transcendent memory and compression buddies\n");
-		if (old_ops.init_fs != NULL)
+		if (old_ops != NULL)
 			pr_warning("zcache: cleancache_ops overridden");
 	}
 #endif
 #ifdef CONFIG_FRONTSWAP
 	if (zcache_enabled && use_frontswap) {
-		struct frontswap_ops old_ops;
+		struct frontswap_ops *old_ops;
 
 		old_ops = zcache_frontswap_register_ops();
 		pr_info("zcache: frontswap enabled using kernel "
 			"transcendent memory and zsmalloc\n");
-		if (old_ops.init != NULL)
+		if (old_ops != NULL)
 			pr_warning("zcache: frontswap_ops overridden");
 	}
 #endif
