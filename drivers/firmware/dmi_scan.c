@@ -460,7 +460,7 @@ static int __init smbios_present(const char __iomem *p)
 			dmi_ver = 0x0206;
 			break;
 		}
-		return memcmp(q + 16, "_DMI_", 5) || dmi_present(p + 16);
+		return memcmp(p + 16, "_DMI_", 5) || dmi_present(p + 16);
 	}
 	return 1;
 }
