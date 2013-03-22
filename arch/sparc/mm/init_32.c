@@ -366,14 +366,45 @@ void __init mem_init(void)
 
 void free_initmem (void)
 {
-	num_physpages += free_initmem_default(POISON_FREE_INITMEM);
+	unsigned long addr;
+	unsigned long freed;
+
+	addr = (unsigned long)(&__init_begin);
+	freed = (unsigned long)(&__init_end) - addr;
+	for (; addr < (unsigned long)(&__init_end); addr += PAGE_SIZE) {
+		struct page *p;
+
+		memset((void *)addr, POISON_FREE_INITMEM, PAGE_SIZE);
+		p = virt_to_page(addr);
+
+		ClearPageReserved(p);
+		init_page_count(p);
+		__free_page(p);
+		totalram_pages++;
+		num_physpages++;
+	}
+	printk(KERN_INFO "Freeing unused kernel memory: %ldk freed\n",
+		freed >> 10);
 }
 
 #ifdef CONFIG_BLK_DEV_INITRD
 void free_initrd_mem(unsigned long start, unsigned long end)
 {
-	num_physpages += free_reserved_area(start, end, POISON_FREE_INITMEM,
-					    "initrd");
+	if (start < end)
+		printk(KERN_INFO "Freeing initrd memory: %ldk freed\n",
+			(end - start) >> 10);
+	for (; start < end; start += PAGE_SIZE) {
+		struct page *p;
+
+		memset((void *)start, POISON_FREE_INITMEM, PAGE_SIZE);
+		p = virt_to_page(start);
+
+		ClearPageReserved(p);
+		init_page_count(p);
+		__free_page(p);
+		totalram_pages++;
+		num_physpages++;
+	}
 }
 #endif
 

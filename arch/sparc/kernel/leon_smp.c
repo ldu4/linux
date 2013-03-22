@@ -268,15 +268,24 @@ void __init leon_smp_done(void)
 
 	/* Free unneeded trap tables */
 	if (!cpu_present(1)) {
-		free_reserved_page(virt_to_page(&trapbase_cpu1));
+		ClearPageReserved(virt_to_page(&trapbase_cpu1));
+		init_page_count(virt_to_page(&trapbase_cpu1));
+		free_page((unsigned long)&trapbase_cpu1);
+		totalram_pages++;
 		num_physpages++;
 	}
 	if (!cpu_present(2)) {
-		free_reserved_page(virt_to_page(&trapbase_cpu2));
+		ClearPageReserved(virt_to_page(&trapbase_cpu2));
+		init_page_count(virt_to_page(&trapbase_cpu2));
+		free_page((unsigned long)&trapbase_cpu2);
+		totalram_pages++;
 		num_physpages++;
 	}
 	if (!cpu_present(3)) {
-		free_reserved_page(virt_to_page(&trapbase_cpu3));
+		ClearPageReserved(virt_to_page(&trapbase_cpu3));
+		init_page_count(virt_to_page(&trapbase_cpu3));
+		free_page((unsigned long)&trapbase_cpu3);
+		totalram_pages++;
 		num_physpages++;
 	}
 	/* Ok, they are spinning and ready to go. */
