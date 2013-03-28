@@ -185,8 +185,8 @@ int __vm_enough_memory(struct mm_struct *mm, long pages, int cap_sys_admin)
 	allowed += total_swap_pages;
 
 	/*
- 	 * Don't let a single process grow so big a user can't recover
-         */
+	 * Don't let a single process grow so big a user can't recover
+	 */
 	if (mm) {
 		reserve = sysctl_user_reserve_kbytes >> (PAGE_SHIFT - 10);
 		allowed -= min(mm->total_vm / 32, reserve);
@@ -3048,7 +3048,8 @@ void __init mmap_init(void)
  * Initialise sysctl_user_reserve_kbytes.
  *
  * This is intended to prevent a user from starting a single memory hogging
- * process, such that they cannot recover (kill the hog) in OVERCOMMIT_NEVER mode.
+ * process, such that they cannot recover (kill the hog) in OVERCOMMIT_NEVER
+ * mode.
  *
  * The default value is min(3% of free memory, 128MB)
  * 128MB is enough to recover with sshd/login, bash, and top/kill.
