@@ -167,7 +167,7 @@ int __vm_enough_memory(struct mm_struct *mm, long pages, int cap_sys_admin)
 		 * Reserve some for root
 		 */
 		if (!cap_sys_admin)
-			free -= sysctl_admin_reserve_kbytes  >> (PAGE_SHIFT - 10);
+			free -= sysctl_admin_reserve_kbytes >> (PAGE_SHIFT - 10);
 
 		if (free > pages)
 			return 0;
