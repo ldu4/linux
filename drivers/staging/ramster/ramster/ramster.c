@@ -850,7 +850,7 @@ static void selfshrink_process(struct work_struct *work);
 static DECLARE_DELAYED_WORK(selfshrink_worker, selfshrink_process);
 
 /* Enable/disable with kernel boot option. */
-static bool use_frontswap_selfshrink __initdata = true;
+static bool use_frontswap_selfshrink = true;
 
 /*
  * The default values for the following parameters were deemed reasonable
