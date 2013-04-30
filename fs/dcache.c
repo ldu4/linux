@@ -1272,8 +1272,10 @@ void shrink_dcache_parent(struct dentry * parent)
 {
 	LIST_HEAD(dispose);
 
-	while (select_parent(parent, &dispose))
+	while (select_parent(parent, &dispose)) {
 		shrink_dentry_list(&dispose);
+		cond_resched();
+	}
 }
 EXPORT_SYMBOL(shrink_dcache_parent);
 
