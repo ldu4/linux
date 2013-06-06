@@ -32,24 +32,6 @@ void hugepage_put_subpool(struct hugepage_subpool *spool);
 
 int PageHuge(struct page *page);
 
-#if USE_SPLIT_PTLOCKS
-#define huge_pte_lockptr(mm, ptep) ({__pte_lockptr(virt_to_page(ptep)); })
-#else	/* !USE_SPLIT_PTLOCKS */
-#define huge_pte_lockptr(mm, ptep) ({&(mm)->page_table_lock; })
-#endif	/* USE_SPLIT_PTLOCKS */
-
-#define huge_pte_offset_lock(mm, address, ptlp)		\
-({							\
-	pte_t *__pte = huge_pte_offset(mm, address);	\
-	spinlock_t *__ptl = NULL;			\
-	if (__pte) {					\
-		__ptl = huge_pte_lockptr(mm, __pte);	\
-		*(ptlp) = __ptl;			\
-		spin_lock(__ptl);			\
-	}						\
-	__pte;						\
-})
-
 void reset_vma_resv_huge_pages(struct vm_area_struct *vma);
 int hugetlb_sysctl_handler(struct ctl_table *, int, void __user *, size_t *, loff_t *);
 int hugetlb_overcommit_handler(struct ctl_table *, int, void __user *, size_t *, loff_t *);
