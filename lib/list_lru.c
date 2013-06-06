@@ -50,13 +50,16 @@ lru_node_of_index(struct list_lru *lru, int index, int nid)
 	rcu_read_lock();
 	rmb();
 	/*
-	 * The array exist, but the particular memcg does not. That is an
-	 * impossible situation: it would mean we are trying to add to a list
-	 * belonging to a memcg that does not exist. Either wasn't created or
-	 * has been already freed. In both cases it should no longer have
-	 * objects. BUG_ON to avoid a NULL dereference.
+	 * The array exist, but the particular memcg does not. This cannot
+	 * happen when we are called from memcg_kmem_lru_of_page with a
+	 * definite memcg, but it can happen when we are iterating over all
+	 * memcgs (for instance, when disposing all lists.
 	 */
-	BUG_ON(!lru->memcg_lrus[index]);
+	if (!lru->memcg_lrus[index]) {
+		rcu_read_unlock();
+		return NULL;
+	}
+
 	nlru = &lru->memcg_lrus[index]->node[nid];
 	rcu_read_unlock();
 	return nlru;
@@ -79,6 +82,23 @@ memcg_kmem_lru_of_page(struct list_lru *lru, struct page *page)
 	memcg_id = memcg_cache_id(memcg);
 	return lru_node_of_index(lru, memcg_id, nid);
 }
+
+/*
+ * This helper will loop through all node-data in the LRU, either global or
+ * per-memcg.  If memcg is either not present or not used,
+ * memcg_limited_groups_array_size will be 0. _idx starts at -1, and it will
+ * still be allowed to execute once.
+ *
+ * We convention that for _idx = -1, the global node info should be used.
+ * After that, we will go through each of the memcgs, starting at 0.
+ *
+ * We don't need any kind of locking for the loop because
+ * memcg_limited_groups_array_size can only grow, gaining new fields at the
+ * end. The old ones are just copied, and any interesting manipulation happen
+ * in the node list itself, and we already lock the list.
+ */
+#define for_each_memcg_lru_index(_idx)	\
+	for ((_idx) = -1; ((_idx) < memcg_limited_groups_array_size); (_idx)++)
 
 int
 list_lru_add(
@@ -139,10 +159,19 @@ list_lru_del(
 EXPORT_SYMBOL_GPL(list_lru_del);
 
 unsigned long
-list_lru_count_node(struct list_lru *lru, int nid)
+list_lru_count_node_memcg(struct list_lru *lru, int nid,
+			  struct mem_cgroup *memcg)
 {
 	long count = 0;
-	struct list_lru_node *nlru = &lru->node[nid];
+	int memcg_id = -1;
+	struct list_lru_node *nlru;
+
+	if (memcg && memcg_kmem_is_active(memcg))
+		memcg_id = memcg_cache_id(memcg);
+
+	nlru = lru_node_of_index(lru, memcg_id, nid);
+	if (!nlru)
+		return 0;
 
 	spin_lock(&nlru->lock);
 	BUG_ON(nlru->nr_items < 0);
@@ -151,19 +180,28 @@ list_lru_count_node(struct list_lru *lru, int nid)
 
 	return count;
 }
-EXPORT_SYMBOL_GPL(list_lru_count_node);
+EXPORT_SYMBOL_GPL(list_lru_count_node_memcg);
 
 unsigned long
-list_lru_walk_node(
+list_lru_walk_node_memcg(
 	struct list_lru		*lru,
 	int			nid,
 	list_lru_walk_cb	isolate,
 	void			*cb_arg,
-	unsigned long		*nr_to_walk)
+	unsigned long		*nr_to_walk,
+	struct mem_cgroup	*memcg)
 {
-	struct list_lru_node	*nlru = &lru->node[nid];
 	struct list_head *item, *n;
 	unsigned long isolated = 0;
+	struct list_lru_node *nlru;
+	int memcg_id = -1;
+
+	if (memcg && memcg_kmem_is_active(memcg))
+		memcg_id = memcg_cache_id(memcg);
+
+	nlru = lru_node_of_index(lru, memcg_id, nid);
+	if (!nlru)
+		return 0;
 
 	spin_lock(&nlru->lock);
 	list_for_each_safe(item, n, &nlru->list) {
@@ -200,7 +238,7 @@ restart:
 	spin_unlock(&nlru->lock);
 	return isolated;
 }
-EXPORT_SYMBOL_GPL(list_lru_walk_node);
+EXPORT_SYMBOL_GPL(list_lru_walk_node_memcg);
 
 static unsigned long
 list_lru_dispose_all_node(
@@ -208,23 +246,34 @@ list_lru_dispose_all_node(
 	int			nid,
 	list_lru_dispose_cb	dispose)
 {
-	struct list_lru_node	*nlru = &lru->node[nid];
+	struct list_lru_node *nlru;
 	LIST_HEAD(dispose_list);
 	unsigned long disposed = 0;
+	int idx;
 
-	spin_lock(&nlru->lock);
-	while (!list_empty(&nlru->list)) {
-		list_splice_init(&nlru->list, &dispose_list);
-		disposed += nlru->nr_items;
-		nlru->nr_items = 0;
-		node_clear(nid, lru->active_nodes);
-		spin_unlock(&nlru->lock);
-
-		dispose(&dispose_list);
+	for_each_memcg_lru_index(idx) {
+		nlru = lru_node_of_index(lru, idx, nid);
+		if (!nlru)
+			continue;
 
 		spin_lock(&nlru->lock);
+		while (!list_empty(&nlru->list)) {
+			list_splice_init(&nlru->list, &dispose_list);
+
+			if (atomic_long_sub_and_test(nlru->nr_items,
+							&lru->node_totals[nid]))
+				node_clear(nid, lru->active_nodes);
+			disposed += nlru->nr_items;
+			nlru->nr_items = 0;
+			spin_unlock(&nlru->lock);
+
+			dispose(&dispose_list);
+
+			spin_lock(&nlru->lock);
+		}
+		spin_unlock(&nlru->lock);
 	}
-	spin_unlock(&nlru->lock);
+
 	return disposed;
 }
 
