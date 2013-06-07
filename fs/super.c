@@ -77,13 +77,14 @@ static long super_cache_scan(struct shrinker *shrink, struct shrink_control *sc)
 	if (sb->s_op && sb->s_op->nr_cached_objects)
 		fs_objects = sb->s_op->nr_cached_objects(sb);
 
-	inodes = list_lru_count(&sb->s_inode_lru);
-	total_objects = sb->s_nr_dentry_unused + inodes + fs_objects + 1;
+	total_objects = sb->s_nr_dentry_unused +
+			sb->s_nr_inodes_unused + fs_objects + 1;
 
 	/* proportion the scan between the caches */
 	dentries = mult_frac(sc->nr_to_scan, sb->s_nr_dentry_unused,
 								total_objects);
-	inodes = mult_frac(sc->nr_to_scan, inodes, total_objects);
+	inodes = mult_frac(sc->nr_to_scan, sb->s_nr_inodes_unused,
+								total_objects);
 
 	/*
 	 * prune the dcache first as the icache is pinned by it, then
@@ -116,7 +117,7 @@ static long super_cache_count(struct shrinker *shrink, struct shrink_control *sc
 		total_objects = sb->s_op->nr_cached_objects(sb);
 
 	total_objects += sb->s_nr_dentry_unused;
-	total_objects += list_lru_count(&sb->s_inode_lru);
+	total_objects += sb->s_nr_inodes_unused;
 
 	total_objects = vfs_pressure_ratio(total_objects);
 	drop_super(sb);
@@ -197,7 +198,8 @@ static struct super_block *alloc_super(struct file_system_type *type, int flags)
 		INIT_LIST_HEAD(&s->s_inodes);
 		INIT_LIST_HEAD(&s->s_dentry_lru);
 		spin_lock_init(&s->s_dentry_lru_lock);
-		list_lru_init(&s->s_inode_lru);
+		INIT_LIST_HEAD(&s->s_inode_lru);
+		spin_lock_init(&s->s_inode_lru_lock);
 		INIT_LIST_HEAD(&s->s_mounts);
 		init_rwsem(&s->s_umount);
 		lockdep_set_class(&s->s_umount, &type->s_umount_key);
