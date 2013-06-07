@@ -441,7 +441,6 @@ static inline bool memcg_kmem_enabled(void)
 	return static_key_false(&memcg_kmem_enabled_key);
 }
 
-bool memcg_kmem_should_reclaim(struct mem_cgroup *memcg);
 bool memcg_kmem_is_active(struct mem_cgroup *memcg);
 
 /*
@@ -585,11 +584,6 @@ memcg_kmem_get_cache(struct kmem_cache *cachep, gfp_t gfp)
 	return __memcg_kmem_get_cache(cachep, gfp);
 }
 #else
-
-static inline bool memcg_kmem_should_reclaim(struct mem_cgroup *memcg)
-{
-	return false;
-}
 
 static inline bool memcg_kmem_is_active(struct mem_cgroup *memcg)
 {
