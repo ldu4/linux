@@ -4186,12 +4186,12 @@ restart:
 	spin_unlock(&kvm->mmu_lock);
 }
 
-static long
+static unsigned long
 mmu_shrink_scan(struct shrinker *shrink, struct shrink_control *sc)
 {
 	struct kvm *kvm;
 	int nr_to_scan = sc->nr_to_scan;
-	long freed = 0;
+	unsigned long freed = 0;
 
 	raw_spin_lock(&kvm_lock);
 
@@ -4219,7 +4219,8 @@ mmu_shrink_scan(struct shrinker *shrink, struct shrink_control *sc)
 		idx = srcu_read_lock(&kvm->srcu);
 		spin_lock(&kvm->mmu_lock);
 
-		freed += prepare_zap_oldest_mmu_page(kvm, &invalid_list);
+		if (prepare_zap_oldest_mmu_page(kvm, &invalid_list))
+			freed++;
 		kvm_mmu_commit_zap_page(kvm, &invalid_list);
 
 		spin_unlock(&kvm->mmu_lock);
@@ -4239,7 +4240,7 @@ mmu_shrink_scan(struct shrinker *shrink, struct shrink_control *sc)
 
 }
 
-static long
+static unsigned long
 mmu_shrink_count(struct shrinker *shrink, struct shrink_control *sc)
 {
 	return percpu_counter_read_positive(&kvm_total_used_mmu_pages);
