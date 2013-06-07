@@ -16,7 +16,6 @@ struct file_system_type;
 struct linux_binprm;
 struct path;
 struct mount;
-struct mem_cgroup;
 
 /*
  * block_dev.c
@@ -112,7 +111,7 @@ extern int open_check_o_direct(struct file *f);
  */
 extern spinlock_t inode_sb_list_lock;
 extern long prune_icache_sb(struct super_block *sb, unsigned long nr_to_scan,
-			    int nid, struct mem_cgroup *memcg);
+			    int nid);
 extern void inode_add_lru(struct inode *inode);
 
 /*
@@ -129,7 +128,7 @@ extern int invalidate_inodes(struct super_block *, bool);
  */
 extern struct dentry *__d_alloc(struct super_block *, const struct qstr *);
 extern long prune_dcache_sb(struct super_block *sb, unsigned long nr_to_scan,
-			    int nid, struct mem_cgroup *memcg);
+			    int nid);
 
 /*
  * read_write.c
