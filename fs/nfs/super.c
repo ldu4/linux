@@ -359,8 +359,7 @@ static void unregister_nfs4_fs(void)
 #endif
 
 static struct shrinker acl_shrinker = {
-	.count_objects	= nfs_access_cache_count,
-	.scan_objects	= nfs_access_cache_scan,
+	.shrink		= nfs_access_cache_shrinker,
 	.seeks		= DEFAULT_SEEKS,
 };
 

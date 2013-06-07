@@ -49,8 +49,7 @@ struct kmem_cache *ubifs_inode_slab;
 
 /* UBIFS TNC shrinker description */
 static struct shrinker ubifs_shrinker_info = {
-	.scan_objects = ubifs_shrink_scan,
-	.count_objects = ubifs_shrink_count,
+	.shrink = ubifs_shrinker,
 	.seeks = DEFAULT_SEEKS,
 };
 
