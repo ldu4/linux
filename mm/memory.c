@@ -267,9 +267,6 @@ void tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long e
 	/* keep the page table cache within bounds */
 	check_pgt_cache();
 
-	if (tlb_fast_mode(tlb))
-		return;
-
 	for (batch = tlb->local.next; batch; batch = next) {
 		next = batch->next;
 		free_pages((unsigned long)batch, 0);
