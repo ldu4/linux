@@ -902,7 +902,9 @@ relock:
  * still on the LRU if we try to kill them from ascending the parent chain in
  * try_prune_one_dentry() rather than directly from the dispose list.
  */
-static void shrink_dcache_list(struct list_head *dispose)
+static void
+shrink_dcache_list(
+	struct list_head *dispose)
 {
 	struct dentry *dentry;
 
