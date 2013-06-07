@@ -38,10 +38,10 @@ static inline u32 request_hash(u32 xid)
 
 static int	nfsd_cache_append(struct svc_rqst *rqstp, struct kvec *vec);
 static void	cache_cleaner_func(struct work_struct *unused);
-static long	nfsd_reply_cache_count(struct shrinker *shrink,
-				       struct shrink_control *sc);
-static long	nfsd_reply_cache_scan(struct shrinker *shrink,
-				      struct shrink_control *sc);
+static unsigned long nfsd_reply_cache_count(struct shrinker *shrink,
+					    struct shrink_control *sc);
+static unsigned long nfsd_reply_cache_scan(struct shrinker *shrink,
+					   struct shrink_control *sc);
 
 struct shrinker nfsd_reply_cache_shrinker = {
 	.scan_objects = nfsd_reply_cache_scan,
@@ -232,10 +232,10 @@ cache_cleaner_func(struct work_struct *unused)
 	spin_unlock(&cache_lock);
 }
 
-static long
+static unsigned long
 nfsd_reply_cache_count(struct shrinker *shrink, struct shrink_control *sc)
 {
-	long num;
+	unsigned long num;
 
 	spin_lock(&cache_lock);
 	num = num_drc_entries;
@@ -244,10 +244,11 @@ nfsd_reply_cache_count(struct shrinker *shrink, struct shrink_control *sc)
 	return num;
 }
 
-static long
+static unsigned long
 nfsd_reply_cache_scan(struct shrinker *shrink, struct shrink_control *sc)
 {
-	long freed;
+	unsigned long freed;
+
 	spin_lock(&cache_lock);
 	freed = prune_cache_entries();
 	spin_unlock(&cache_lock);
