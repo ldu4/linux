@@ -872,11 +872,6 @@ static inline int is_highmem_idx(enum zone_type idx)
 #endif
 }
 
-static inline int is_normal_idx(enum zone_type idx)
-{
-	return (idx == ZONE_NORMAL);
-}
-
 /**
  * is_highmem - helper function to quickly check if a struct zone is a 
  *              highmem zone or not.  This is an attempt to keep references
@@ -886,29 +881,6 @@ static inline int is_normal_idx(enum zone_type idx)
 static inline int is_highmem(struct zone *zone)
 {
 	return is_highmem_idx(zone_idx(zone));
-}
-
-static inline int is_normal(struct zone *zone)
-{
-	return zone_idx(zone) == ZONE_NORMAL;
-}
-
-static inline int is_dma32(struct zone *zone)
-{
-#ifdef CONFIG_ZONE_DMA32
-	return zone_idx(zone) == ZONE_DMA32;
-#else
-	return 0;
-#endif
-}
-
-static inline int is_dma(struct zone *zone)
-{
-#ifdef CONFIG_ZONE_DMA
-	return zone_idx(zone) == ZONE_DMA;
-#else
-	return 0;
-#endif
 }
 
 /* These two functions are used to setup the per zone pages min values */
