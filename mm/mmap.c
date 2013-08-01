@@ -1326,9 +1326,6 @@ unsigned long do_mmap_pgoff(struct file *file, unsigned long addr,
 		}
 	}
 
-	/* Only MAP_PRIVATE|MAP_ANONYMOUS can use MAP_GROWS */
-	if ((vm_flags & VM_MAYSHARE) && (vm_flags & (VM_GROWSDOWN|VM_GROWSUP)))
-		return -EINVAL;
 	/*
 	 * Set 'VM_NORESERVE' if we should not account for the
 	 * memory use of this mapping.
@@ -1544,7 +1541,11 @@ munmap_back:
 	vma->vm_pgoff = pgoff;
 	INIT_LIST_HEAD(&vma->anon_vma_chain);
 
+	error = -EINVAL;	/* when rejecting VM_GROWSDOWN|VM_GROWSUP */
+
 	if (file) {
+		if (vm_flags & (VM_GROWSDOWN|VM_GROWSUP))
+			goto free_vma;
 		if (vm_flags & VM_DENYWRITE) {
 			error = deny_write_access(file);
 			if (error)
@@ -1568,6 +1569,8 @@ munmap_back:
 		pgoff = vma->vm_pgoff;
 		vm_flags = vma->vm_flags;
 	} else if (vm_flags & VM_SHARED) {
+		if (unlikely(vm_flags & (VM_GROWSDOWN|VM_GROWSUP)))
+			goto free_vma;
 		error = shmem_zero_setup(vma);
 		if (error)
 			goto free_vma;
