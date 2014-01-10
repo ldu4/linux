@@ -387,7 +387,7 @@ struct address_space *page_mapping(struct page *page)
 {
 	struct address_space *mapping = page->mapping;
 
-	VM_BUG_ON_PAGE(PageSlab(page), page);
+	VM_BUG_ON(PageSlab(page));
 	if (unlikely(PageSwapCache(page))) {
 		swp_entry_t entry;
 
