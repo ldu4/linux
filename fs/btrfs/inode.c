@@ -4480,7 +4480,7 @@ void btrfs_evict_inode(struct inode *inode)
 
 	trace_btrfs_inode_evict(inode);
 
-	truncate_inode_pages(&inode->i_data, 0);
+	truncate_inode_pages_final(&inode->i_data);
 	if (inode->i_nlink &&
 	    ((btrfs_root_refs(&root->root_item) != 0 &&
 	      root->root_key.objectid != BTRFS_ROOT_TREE_OBJECTID) ||
