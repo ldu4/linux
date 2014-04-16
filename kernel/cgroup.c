@@ -3676,7 +3676,7 @@ static int create_css(struct cgroup *cgrp, struct cgroup_subsys *ss)
 	return 0;
 
 err_clear_dir:
-	cgroup_clear_dir(css->cgroup, 1 << css->ss->subsys_id);
+	cgroup_clear_dir(css->cgroup, 1 << css->ss->id);
 err_free_percpu_ref:
 	percpu_ref_cancel_init(&css->refcnt);
 err_free_css:
