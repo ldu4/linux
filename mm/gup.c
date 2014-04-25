@@ -5,7 +5,6 @@
 
 #include <linux/hugetlb.h>
 #include <linux/mm.h>
-#include <linux/pagemap.h>
 #include <linux/rmap.h>
 #include <linux/swap.h>
 #include <linux/swapops.h>
