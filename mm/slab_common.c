@@ -326,6 +326,12 @@ static int kmem_cache_destroy_memcg_children(struct kmem_cache *s)
 }
 #endif /* CONFIG_MEMCG_KMEM */
 
+void slab_kmem_cache_release(struct kmem_cache *s)
+{
+	kfree(s->name);
+	kmem_cache_free(kmem_cache, s);
+}
+
 void kmem_cache_destroy(struct kmem_cache *s)
 {
 	get_online_cpus();
@@ -354,8 +360,11 @@ void kmem_cache_destroy(struct kmem_cache *s)
 		rcu_barrier();
 
 	memcg_free_cache_params(s);
-	kfree(s->name);
-	kmem_cache_free(kmem_cache, s);
+#ifdef SLAB_SUPPORTS_SYSFS
+	sysfs_slab_remove(s);
+#else
+	slab_kmem_cache_release(s);
+#endif
 	goto out;
 
 out_unlock:
