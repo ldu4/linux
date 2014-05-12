@@ -1809,6 +1809,8 @@ void __init kmemleak_init(void)
 	int i;
 	unsigned long flags;
 
+	kmemleak_early_log = 0;
+
 #ifdef CONFIG_DEBUG_KMEMLEAK_DEFAULT_OFF
 	if (!kmemleak_skip_disable) {
 		kmemleak_disable();
@@ -1831,9 +1833,8 @@ void __init kmemleak_init(void)
 	if (kmemleak_error) {
 		local_irq_restore(flags);
 		return;
-	}
-	kmemleak_early_log = 0;
-	kmemleak_enabled = 1;
+	} else
+		kmemleak_enabled = 1;
 	local_irq_restore(flags);
 
 	/*
