@@ -242,13 +242,8 @@ global VM. Cgroups can get reclaimed basically under two conditions
    proportionally wrt. their LRU size in a round robin fashion
  - when a cgroup or its hierarchical parent (see 6. Hierarchical support)
    hits hard limit. If the reclaim is unsuccessful, an OOM routine is invoked
-   to select and kill the bulkiest task in the cgroup. (See 10. OOM Control
+   to select and kill the bulkiest task in the hierarchy. (See 10. OOM Control
    below.)
-
-Global and hard-limit reclaims share the same code the only difference
-is the objective of the reclaim. The global reclaim aims at balancing
-zones' watermarks while the limit reclaim frees some memory to allow new
-charges.
 
 Groups might be also protected from both global and limit reclaim by
 low_limit_in_bytes knob. If the limit is non-zero the reclaim logic
@@ -257,9 +252,6 @@ which are bellow the low limit if there is other eligible cgroup in the
 reclaimed hierarchy. If all groups which participate reclaim are under
 their low limits then all of them are reclaimed and the low limit is
 ignored.
-
-NOTE: Hard limit reclaim does not work for the root cgroup, since we cannot set
-any limits on the root cgroup.
 
 Note2: When panic_on_oom is set to "2", the whole system will panic.
 
