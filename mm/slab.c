@@ -3853,7 +3853,7 @@ static int do_tune_cpucache(struct kmem_cache *cachep, int limit,
 }
 
 /* Called with slab_mutex held always */
-static int enable_cpucache(struct kmem_cache *cachep, gfp_t gfp)
+static int __init enable_cpucache(struct kmem_cache *cachep, gfp_t gfp)
 {
 	int err;
 	int limit = 0;
