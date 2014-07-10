@@ -31,7 +31,6 @@
 
 #include <linux/io.h>
 #include <linux/hugetlb.h>
-#include <linux/hugetlb_inline.h>
 #include <linux/hugetlb_cgroup.h>
 #include <linux/node.h>
 #include "internal.h"
@@ -981,9 +980,9 @@ pgoff_t __basepage_index(struct page *page)
 	return (index << compound_order(page_head)) + compound_idx;
 }
 
-unsigned int huge_page_size_order(struct page *page)
+pgoff_t hugepage_pgoff(struct page *page)
 {
-	return huge_page_order(page_hstate(page));
+	return page->index << huge_page_order(page_hstate(page));
 }
 
 static struct page *alloc_fresh_huge_page_node(struct hstate *h, int nid)
