@@ -3370,20 +3370,12 @@ int __kmem_cache_shrink(struct kmem_cache *s)
 	struct page *page;
 	struct page *t;
 	int objects = oo_objects(s->max);
-	struct list_head empty_slabs;
 	struct list_head *slabs_by_inuse =
 		kmalloc(sizeof(struct list_head) * objects, GFP_KERNEL);
 	unsigned long flags;
 
-	if (!slabs_by_inuse) {
-		/*
-		 * Do not fail shrinking empty slabs if allocation of the
-		 * temporary array failed. Just skip the slab placement
-		 * optimization then.
-		 */
-		slabs_by_inuse = &empty_slabs;
-		objects = 1;
-	}
+	if (!slabs_by_inuse)
+		return -ENOMEM;
 
 	flush_all(s);
 	for_each_kmem_cache_node(s, node, n) {
@@ -3402,9 +3394,7 @@ int __kmem_cache_shrink(struct kmem_cache *s)
 		 * list_lock. page->inuse here is the upper limit.
 		 */
 		list_for_each_entry_safe(page, t, &n->partial, lru) {
-			if (page->inuse < objects)
-				list_move(&page->lru,
-					  slabs_by_inuse + page->inuse);
+			list_move(&page->lru, slabs_by_inuse + page->inuse);
 			if (!page->inuse)
 				n->nr_partial--;
 		}
@@ -3423,8 +3413,7 @@ int __kmem_cache_shrink(struct kmem_cache *s)
 			discard_slab(s, page);
 	}
 
-	if (slabs_by_inuse != &empty_slabs)
-		kfree(slabs_by_inuse);
+	kfree(slabs_by_inuse);
 	return 0;
 }
 
