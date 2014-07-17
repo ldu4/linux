@@ -2643,17 +2643,18 @@ static __always_inline void slab_free(struct kmem_cache *s,
 
 	slab_free_hook(s, x);
 
+redo:
 	/*
-	 * We could make this function fully preemptable, but then we wouldn't
-	 * have a method to wait for all currently executing kfree's to finish,
-	 * which is necessary to avoid use-after-free on per memcg cache
-	 * destruction.
+	 * Determine the currently cpus per cpu slab.
+	 * The cpu may change afterward. However that does not matter since
+	 * data is retrieved via this pointer. If we are on the same cpu
+	 * during the cmpxchg then the free will succedd.
 	 */
 	preempt_disable();
-redo:
 	c = this_cpu_ptr(s->cpu_slab);
 
 	tid = c->tid;
+	preempt_enable();
 
 	if (likely(page == c->page)) {
 		set_freepointer(s, object, c->freelist);
@@ -2670,7 +2671,6 @@ redo:
 	} else
 		__slab_free(s, page, x, addr);
 
-	preempt_enable();
 }
 
 void kmem_cache_free(struct kmem_cache *s, void *x)
