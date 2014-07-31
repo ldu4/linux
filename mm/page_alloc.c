@@ -6070,11 +6070,10 @@ static inline int pfn_to_bitidx(struct zone *zone, unsigned long pfn)
 }
 
 /**
- * get_pfnblock_flags_mask - Return the requested group of flags for the pageblock_nr_pages block of pages
+ * get_pageblock_flags_group - Return the requested group of flags for the pageblock_nr_pages block of pages
  * @page: The page within the block of interest
- * @pfn: Page Number of the page
+ * @start_bitidx: The first bit of interest to retrieve
  * @end_bitidx: The last bit of interest
- * @mask: The mask for flags
  * returns pageblock_bits flags
  */
 unsigned long get_pfnblock_flags_mask(struct page *page, unsigned long pfn,
@@ -6100,10 +6099,9 @@ unsigned long get_pfnblock_flags_mask(struct page *page, unsigned long pfn,
 /**
  * set_pfnblock_flags_mask - Set the requested group of flags for a pageblock_nr_pages block of pages
  * @page: The page within the block of interest
- * @flags: The flags to set
- * @pfn: Page Number of the page
+ * @start_bitidx: The first bit of interest
  * @end_bitidx: The last bit of interest
- * @mask: The mask for flags
+ * @flags: The flags to set
  */
 void set_pfnblock_flags_mask(struct page *page, unsigned long flags,
 					unsigned long pfn,
