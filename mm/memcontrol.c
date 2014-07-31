@@ -2928,10 +2928,6 @@ int memcg_update_cache_size(struct kmem_cache *s, int num_groups)
 			return -ENOMEM;
 
 		new_params->is_root_cache = true;
-		INIT_LIST_HEAD(&new_params->children);
-		if (cur_params)
-			list_replace(&cur_params->children,
-				     &new_params->children);
 
 		/*
 		 * There is the chance it will be bigger than
@@ -2988,10 +2984,8 @@ int memcg_alloc_cache_params(struct mem_cgroup *memcg, struct kmem_cache *s,
 		s->memcg_params->memcg = memcg;
 		s->memcg_params->root_cache = root_cache;
 		css_get(&memcg->css);
-	} else {
+	} else
 		s->memcg_params->is_root_cache = true;
-		INIT_LIST_HEAD(&s->memcg_params->children);
-	}
 
 	return 0;
 }
@@ -3110,15 +3104,24 @@ static inline void memcg_resume_kmem_account(void)
 	current->memcg_kmem_skip_account--;
 }
 
-void __memcg_cleanup_cache_params(struct kmem_cache *s)
+int __memcg_cleanup_cache_params(struct kmem_cache *s)
 {
-	struct memcg_cache_params *params, *tmp;
+	struct kmem_cache *c;
+	int i, failed = 0;
 
 	mutex_lock(&memcg_slab_mutex);
-	list_for_each_entry_safe(params, tmp,
-			&s->memcg_params->children, siblings)
-		memcg_unregister_cache(params->cachep);
+	for_each_memcg_cache_index(i) {
+		c = cache_from_memcg_idx(s, i);
+		if (!c)
+			continue;
+
+		memcg_unregister_cache(c);
+
+		if (cache_from_memcg_idx(s, i))
+			failed++;
+	}
 	mutex_unlock(&memcg_slab_mutex);
+	return failed;
 }
 
 static void memcg_unregister_all_caches(struct mem_cgroup *memcg)

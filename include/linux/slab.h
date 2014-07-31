@@ -527,7 +527,6 @@ static __always_inline void *kmalloc_node(size_t size, gfp_t flags, int node)
  * @memcg: pointer to the memcg this cache belongs to
  * @list: list_head for the list of all caches in this memcg
  * @root_cache: pointer to the global, root cache, this cache was derived from
- * @siblings: list_head for the list of all child caches of the root_cache
  * @nr_pages: number of pages that belongs to this cache.
  */
 struct memcg_cache_params {
@@ -535,7 +534,6 @@ struct memcg_cache_params {
 	union {
 		struct {
 			struct rcu_head rcu_head;
-			struct list_head children;
 			struct kmem_cache *memcg_caches[0];
 		};
 		struct {
@@ -543,7 +541,6 @@ struct memcg_cache_params {
 			struct mem_cgroup *memcg;
 			struct list_head list;
 			struct kmem_cache *root_cache;
-			struct list_head siblings;
 			atomic_t nr_pages;
 		};
 	};
