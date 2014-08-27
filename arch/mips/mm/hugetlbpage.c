@@ -86,7 +86,7 @@ int pud_huge(pud_t pud)
 
 struct page *
 follow_huge_pmd(struct mm_struct *mm, unsigned long address,
-		pmd_t *pmd)
+		pmd_t *pmd, int write)
 {
 	struct page *page;
 

@@ -3660,7 +3660,8 @@ pte_t *huge_pte_offset(struct mm_struct *mm, unsigned long addr)
 }
 
 struct page *
-follow_huge_pmd(struct mm_struct *mm, unsigned long address, pmd_t *pmd)
+follow_huge_pmd(struct mm_struct *mm, unsigned long address,
+		pmd_t *pmd, int write)
 {
 	struct page *page;
 
@@ -3671,7 +3672,8 @@ follow_huge_pmd(struct mm_struct *mm, unsigned long address, pmd_t *pmd)
 }
 
 struct page *
-follow_huge_pud(struct mm_struct *mm, unsigned long address, pud_t *pud)
+follow_huge_pud(struct mm_struct *mm, unsigned long address,
+		pud_t *pud, int write)
 {
 	struct page *page;
 
@@ -3685,7 +3687,8 @@ follow_huge_pud(struct mm_struct *mm, unsigned long address, pud_t *pud)
 
 /* Can be overriden by architectures */
 struct page * __weak
-follow_huge_pud(struct mm_struct *mm, unsigned long address, pud_t *pud)
+follow_huge_pud(struct mm_struct *mm, unsigned long address,
+	       pud_t *pud, int write)
 {
 	BUG();
 	return NULL;
@@ -3702,7 +3705,7 @@ struct page *follow_huge_pmd_lock(struct vm_area_struct *vma,
 	if (flags & FOLL_GET)
 		ptl = huge_pte_lock(hstate_vma(vma), vma->vm_mm, (pte_t *)pmd);
 
-	page = follow_huge_pmd(vma->vm_mm, address, pmd);
+	page = follow_huge_pmd(vma->vm_mm, address, pmd, flags & FOLL_WRITE);
 
 	if (flags & FOLL_GET) {
 		/*
