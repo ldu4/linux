@@ -1150,16 +1150,21 @@ static void * __init memblock_virt_alloc_internal(
 	if (WARN_ON_ONCE(slab_is_available()))
 		return kzalloc_node(size, GFP_NOWAIT, nid);
 
+	if (!align)
+		align = SMP_CACHE_BYTES;
+
 	if (max_addr > memblock.current_limit)
 		max_addr = memblock.current_limit;
 
 again:
-	alloc = memblock_alloc_range_nid(size, align, min_addr, max_addr, nid);
+	alloc = memblock_find_in_range_node(size, align, min_addr, max_addr,
+					    nid);
 	if (alloc)
 		goto done;
 
 	if (nid != NUMA_NO_NODE) {
-		alloc = memblock_alloc_range(size, align, min_addr, max_addr);
+		alloc = memblock_find_in_range_node(size, align, min_addr,
+						    max_addr,  NUMA_NO_NODE);
 		if (alloc)
 			goto done;
 	}
@@ -1172,6 +1177,7 @@ again:
 	}
 
 done:
+	memblock_reserve(alloc, size);
 	ptr = phys_to_virt(alloc);
 	memset(ptr, 0, size);
 
