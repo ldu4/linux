@@ -146,7 +146,7 @@ static inline void
 balloon_page_insert(struct balloon_dev_info *balloon, struct page *page)
 {
 	__SetPageBalloon(page);
-	list_add(&page->lru, &balloon->pages);
+	list_add(&page->lru, head);
 }
 
 static inline void balloon_page_delete(struct page *page, bool isolated)
