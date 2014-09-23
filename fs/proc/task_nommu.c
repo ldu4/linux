@@ -289,8 +289,9 @@ static const struct seq_operations proc_tid_maps_ops = {
 static int maps_open(struct inode *inode, struct file *file,
 		     const struct seq_operations *ops)
 {
-	struct proc_maps_private *priv = __seq_open_private(file, ops,
-					 sizeof(struct proc_maps_private));
+	struct proc_maps_private *priv;
+	
+	priv = __seq_open_private(file, ops, sizeof(*priv));
 	if (!priv)
 		return -ENOMEM;
 
@@ -298,6 +299,7 @@ static int maps_open(struct inode *inode, struct file *file,
 	priv->mm = proc_mem_open(inode, PTRACE_MODE_READ);
 	if (IS_ERR(priv->mm)) {
 		int err = PTR_ERR(priv->mm);
+
 		seq_release_private(inode, file);
 		return err;
 	}
