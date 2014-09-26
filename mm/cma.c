@@ -217,11 +217,7 @@ int __init cma_declare_contiguous(phys_addr_t base,
 		goto err;
 	}
 
-	/*
-	 * Reserve memory, and the reserved memory are marked as reserved by
-	 * memblock driver, remember to clear the reserved status when free
-	 * these cma pages, see init_cma_reserved_pageblock()
-	 */
+	/* Reserve memory */
 	if (base && fixed) {
 		if (memblock_is_region_reserved(base, size) ||
 		    memblock_reserve(base, size) < 0) {
