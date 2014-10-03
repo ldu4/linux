@@ -208,6 +208,13 @@ static inline pmd_t *pmd_offset(pud_t *pud, unsigned long addr)
 #define pte_mkhuge(pte)		(__pte(pte_val(pte) & ~PTE_TABLE_BIT))
 
 #define pmd_young(pmd)		(pmd_val(pmd) & PMD_SECT_AF)
+#define pte_special(pte)	(pte_val(pte) & L_PTE_SPECIAL)
+static inline pte_t pte_mkspecial(pte_t pte)
+{
+	pte_val(pte) |= L_PTE_SPECIAL;
+	return pte;
+}
+#define	__HAVE_ARCH_PTE_SPECIAL
 
 #define __HAVE_ARCH_PMD_WRITE
 #define pmd_write(pmd)		(!(pmd_val(pmd) & PMD_SECT_RDONLY))
