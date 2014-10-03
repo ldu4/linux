@@ -3689,34 +3689,26 @@ pte_t *huge_pte_offset(struct mm_struct *mm, unsigned long addr)
 
 struct page *
 follow_huge_pmd(struct mm_struct *mm, unsigned long address,
-		pmd_t *pmd, int flags)
+		pmd_t *pmd, int write)
 {
-	struct page *page = NULL;
-	spinlock_t *ptl;
+	struct page *page;
 
-	ptl = pmd_lockptr(mm, pmd);
-	spin_lock(ptl);
-
-	if (!pmd_huge(*pmd))
-		goto out;
-
-	page = pte_page(*(pte_t *)pmd) + ((address & ~PMD_MASK) >> PAGE_SHIFT);
-
-	if (flags & FOLL_GET)
-		get_page(page);
-out:
-	spin_unlock(ptl);
+	page = pte_page(*(pte_t *)pmd);
+	if (page)
+		page += ((address & ~PMD_MASK) >> PAGE_SHIFT);
 	return page;
 }
 
 struct page *
 follow_huge_pud(struct mm_struct *mm, unsigned long address,
-		pud_t *pud, int flags)
+		pud_t *pud, int write)
 {
-	if (flags & FOLL_GET)
-		return NULL;
+	struct page *page;
 
-	return pte_page(*(pte_t *)pud) + ((address & ~PUD_MASK) >> PAGE_SHIFT);
+	page = pte_page(*(pte_t *)pud);
+	if (page)
+		page += ((address & ~PUD_MASK) >> PAGE_SHIFT);
+	return page;
 }
 
 #else /* !CONFIG_ARCH_WANT_GENERAL_HUGETLB */
