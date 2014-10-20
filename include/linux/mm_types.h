@@ -349,6 +349,7 @@ struct vm_area_struct {
 #ifdef __HAVE_ARCH_CALL_SPF
 	seqcount_t vm_sequence;
 #endif
+	struct rcu_head vm_rcu_head;
 } __randomize_layout;
 
 struct core_thread {
@@ -366,6 +367,7 @@ struct kioctx_table;
 struct mm_struct {
 	struct vm_area_struct *mmap;		/* list of VMAs */
 	struct rb_root mm_rb;
+	seqlock_t mm_seq;
 	u32 vmacache_seqnum;                   /* per-thread vmacache */
 #ifdef CONFIG_MMU
 	unsigned long (*get_unmapped_area) (struct file *filp,
