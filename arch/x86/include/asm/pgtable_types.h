@@ -234,6 +234,13 @@ enum page_cache_mode {
 #define PGD_IDENT_ATTR	 0x001		/* PRESENT (no other attributes) */
 #endif
 
+/*
+ * Advertise that we call the Speculative Page Fault handler.
+ */
+#ifdef CONFIG_X86_64
+#define __HAVE_ARCH_CALL_SPF
+#endif
+
 #ifdef CONFIG_X86_32
 # include <asm/pgtable_32_types.h>
 #else
