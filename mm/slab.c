@@ -2961,6 +2961,8 @@ out:
 	return objp;
 }
 
+static __always_inline void slab_free(struct kmem_cache *cachep, void *objp);
+
 #ifdef CONFIG_NUMA
 /*
  * Try allocating on another node if PFA_SPREAD_SLAB is a mempolicy is set.
@@ -3132,8 +3134,6 @@ must_grow:
 done:
 	return obj;
 }
-
-static __always_inline void slab_free(struct kmem_cache *cachep, void *objp);
 
 static __always_inline void *
 slab_alloc_node(struct kmem_cache *cachep, gfp_t flags, int nodeid,
