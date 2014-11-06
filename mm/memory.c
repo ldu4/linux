@@ -41,7 +41,6 @@
 #include <linux/kernel_stat.h>
 #include <linux/mm.h>
 #include <linux/hugetlb.h>
-#include <linux/huge_mm.h>
 #include <linux/mman.h>
 #include <linux/swap.h>
 #include <linux/highmem.h>
@@ -788,9 +787,6 @@ check_pfn:
 		print_bad_pte(vma, addr, pte, NULL);
 		return NULL;
 	}
-
-	if (is_huge_zero_pfn(pfn))
-		return NULL;
 
 	/*
 	 * NOTE! We still have PageReserved() pages in the page tables.
