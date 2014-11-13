@@ -659,7 +659,7 @@ static inline unsigned long pmd_large(pmd_t pmd)
 }
 
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
-static inline pmd_t pmd_dirty(pmd_t pmd)
+static inline unsigned long pmd_dirty(pmd_t pmd)
 {
 	pte_t pte = __pte(pmd_val(pmd));
 
