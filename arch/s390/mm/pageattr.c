@@ -103,7 +103,7 @@ int set_memory_x(unsigned long addr, int numpages)
 }
 
 #ifdef CONFIG_DEBUG_PAGEALLOC
-void kernel_map_pages(struct page *page, int numpages, int enable)
+void __kernel_map_pages(struct page *page, int numpages, int enable)
 {
 	unsigned long address;
 	pgd_t *pgd;
