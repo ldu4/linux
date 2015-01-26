@@ -5253,7 +5253,7 @@ static int memory_low_show(struct seq_file *m, void *v)
 	unsigned long low = ACCESS_ONCE(memcg->low);
 
 	if (low == 0)
-		seq_puts(m, "none\n");
+		seq_printf(m, "none\n");
 	else
 		seq_printf(m, "%llu\n", (u64)low * PAGE_SIZE);
 
@@ -5287,7 +5287,7 @@ static int memory_high_show(struct seq_file *m, void *v)
 	unsigned long high = ACCESS_ONCE(memcg->high);
 
 	if (high == PAGE_COUNTER_MAX)
-		seq_puts(m, "none\n");
+		seq_printf(m, "none\n");
 	else
 		seq_printf(m, "%llu\n", (u64)high * PAGE_SIZE);
 
@@ -5321,7 +5321,7 @@ static int memory_max_show(struct seq_file *m, void *v)
 	unsigned long max = ACCESS_ONCE(memcg->memory.limit);
 
 	if (max == PAGE_COUNTER_MAX)
-		seq_puts(m, "none\n");
+		seq_printf(m, "none\n");
 	else
 		seq_printf(m, "%llu\n", (u64)max * PAGE_SIZE);
 
