@@ -279,13 +279,9 @@ static ssize_t hugetlb_cgroup_write(struct kernfs_open_file *of,
 		return -EINVAL;
 
 	buf = strstrip(buf);
-	if (!strcmp(buf, "-1")) {
-		nr_pages = PAGE_COUNTER_MAX;
-	} else {
-		ret = page_counter_memparse(buf, &nr_pages);
-		if (ret)
-			return ret;
-	}
+	ret = page_counter_memparse(buf, &nr_pages);
+	if (ret)
+		return ret;
 
 	idx = MEMFILE_IDX(of_cft(of)->private);
 
