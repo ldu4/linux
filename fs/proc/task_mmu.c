@@ -1091,7 +1091,7 @@ static int pagemap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
 	struct vm_area_struct *vma = walk->vma;
 	struct pagemapread *pm = walk->private;
 	spinlock_t *ptl;
-	pte_t *pte;
+	pte_t *pte, *orig_pte;
 	int err = 0;
 
 	if (pmd_trans_huge_lock(pmd, vma, &ptl) == 1) {
@@ -1124,16 +1124,16 @@ static int pagemap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
 	 * We can assume that @vma always points to a valid one and @end never
 	 * goes beyond vma->vm_end.
 	 */
-	for (; addr < end; addr += PAGE_SIZE) {
+	orig_pte = pte = pte_offset_map_lock(walk->mm, pmd, addr, &ptl);
+	for (; addr < end; pte++, addr += PAGE_SIZE) {
 		pagemap_entry_t pme;
 
-		pte = pte_offset_map(pmd, addr);
 		pte_to_pagemap_entry(&pme, pm, vma, addr, *pte);
-		pte_unmap(pte);
 		err = add_to_pagemap(addr, &pme, pm);
 		if (err)
-			return err;
+			break;
 	}
+	pte_unmap_unlock(orig_pte, ptl);
 
 	cond_resched();
 
