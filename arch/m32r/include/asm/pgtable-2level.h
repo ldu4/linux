@@ -13,7 +13,6 @@
  * the M32R is two-level, so we don't really have any
  * PMD directory physically.
  */
-#define __PAGETABLE_PMD_FOLDED
 #define PMD_SHIFT	22
 #define PTRS_PER_PMD	1
 
