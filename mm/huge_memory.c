@@ -1129,8 +1129,7 @@ alloc:
 		goto out;
 	}
 
-	if (unlikely(mem_cgroup_try_charge(new_page, mm,
-					   huge_gfp, &memcg))) {
+	if (unlikely(mem_cgroup_try_charge(new_page, mm, huge_gfp, &memcg))) {
 		put_page(new_page);
 		if (page) {
 			split_huge_page(page);
@@ -2357,8 +2356,8 @@ static bool khugepaged_prealloc_page(struct page **hpage, bool *wait)
 	return true;
 }
 
-static struct page
-*khugepaged_alloc_page(struct page **hpage, gfp_t *gfp, struct mm_struct *mm,
+static struct page *
+khugepaged_alloc_page(struct page **hpage, gfp_t *gfp, struct mm_struct *mm,
 		       struct vm_area_struct *vma, unsigned long address,
 		       int node)
 {
@@ -2429,8 +2428,8 @@ static bool khugepaged_prealloc_page(struct page **hpage, bool *wait)
 	return true;
 }
 
-static struct page
-*khugepaged_alloc_page(struct page **hpage, gfp_t *gfp, struct mm_struct *mm,
+static struct page *
+khugepaged_alloc_page(struct page **hpage, gfp_t *gfp, struct mm_struct *mm,
 		       struct vm_area_struct *vma, unsigned long address,
 		       int node)
 {
