@@ -4993,8 +4993,6 @@ static void __paginginit free_area_init_core(struct pglist_data *pgdat,
 
 static void __init_refok alloc_node_mem_map(struct pglist_data *pgdat)
 {
-	unsigned long __maybe_unused offset = 0;
-
 	/* Skip empty nodes */
 	if (!pgdat->node_spanned_pages)
 		return;
@@ -5011,7 +5009,6 @@ static void __init_refok alloc_node_mem_map(struct pglist_data *pgdat)
 		 * for the buddy allocator to function correctly.
 		 */
 		start = pgdat->node_start_pfn & ~(MAX_ORDER_NR_PAGES - 1);
-		offset = pgdat->node_start_pfn - start;
 		end = pgdat_end_pfn(pgdat);
 		end = ALIGN(end, MAX_ORDER_NR_PAGES);
 		size =  (end - start) * sizeof(struct page);
@@ -5019,7 +5016,7 @@ static void __init_refok alloc_node_mem_map(struct pglist_data *pgdat)
 		if (!map)
 			map = memblock_virt_alloc_node_nopanic(size,
 							       pgdat->node_id);
-		pgdat->node_mem_map = map + offset;
+		pgdat->node_mem_map = map + (pgdat->node_start_pfn - start);
 	}
 #ifndef CONFIG_NEED_MULTIPLE_NODES
 	/*
@@ -5027,12 +5024,10 @@ static void __init_refok alloc_node_mem_map(struct pglist_data *pgdat)
 	 */
 	if (pgdat == NODE_DATA(0)) {
 		mem_map = NODE_DATA(0)->node_mem_map;
-#if defined(CONFIG_HAVE_MEMBLOCK_NODE_MAP) || defined(CONFIG_FLATMEM)
-		if (page_to_pfn(mem_map) != pgdat->node_start_pfn) {
-			mem_map -= offset;
-			VM_BUG_ON(page_to_pfn(mem_map) != pgdat->node_start_pfn);
-		}
-#endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP || CONFIG_FLATMEM */
+#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
+		if (page_to_pfn(mem_map) != pgdat->node_start_pfn)
+			mem_map -= (pgdat->node_start_pfn - ARCH_PFN_OFFSET);
+#endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
 	}
 #endif
 #endif /* CONFIG_FLAT_NODE_MEM_MAP */
