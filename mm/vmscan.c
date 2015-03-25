@@ -1062,7 +1062,7 @@ unmap:
 				VM_BUG_ON_PAGE(PageSwapCache(page), page);
 				if (!page_freeze_refs(page, 1))
 					goto keep_locked;
-				__clear_page_locked(page);
+				__ClearPageLocked(page);
 				count_vm_event(PGLAZYFREED);
 				goto free_it;
 			}
