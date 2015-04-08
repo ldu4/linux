@@ -537,7 +537,8 @@ void migrate_page_copy(struct page *newpage, struct page *page)
 	 * Please do not reorder this without considering how mm/ksm.c's
 	 * get_ksm_page() depends upon ksm_migrate_page() and PageSwapCache().
 	 */
-	ClearPageSwapCache(page);
+	if (PageSwapCache(page))
+		ClearPageSwapCache(page);
 	ClearPagePrivate(page);
 	set_page_private(page, 0);
 
@@ -901,10 +902,10 @@ out:
 }
 
 /*
- * gcc-4.7.3 on arm gets an ICE when inlining unmap_and_move().  Work around
- * it.
+ * gcc 4.7 and 4.8 on arm get an ICEs when inlining unmap_and_move().  Work
+ * around it.
  */
-#if GCC_VERSION == 40703 && defined(CONFIG_ARM)
+#if (GCC_VERSION >= 40700 && GCC_VERSION < 40900) && defined(CONFIG_ARM)
 #define ICE_noinline noinline
 #else
 #define ICE_noinline

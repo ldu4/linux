@@ -110,10 +110,6 @@ static int set_recommended_min_free_kbytes(void)
 	int nr_zones = 0;
 	unsigned long recommended_min;
 
-	/* khugepaged thread has stopped to failed to start */
-	if (!khugepaged_thread)
-		return 0;
-
 	for_each_populated_zone(zone)
 		nr_zones++;
 
@@ -145,9 +141,8 @@ static int set_recommended_min_free_kbytes(void)
 	setup_per_zone_wmarks();
 	return 0;
 }
-late_initcall(set_recommended_min_free_kbytes);
 
-static int start_khugepaged(void)
+static int start_stop_khugepaged(void)
 {
 	int err = 0;
 	if (khugepaged_enabled()) {
@@ -158,6 +153,7 @@ static int start_khugepaged(void)
 			pr_err("khugepaged: kthread_run(khugepaged) failed\n");
 			err = PTR_ERR(khugepaged_thread);
 			khugepaged_thread = NULL;
+			goto fail;
 		}
 
 		if (!list_empty(&khugepaged_scan.mm_head))
@@ -168,7 +164,7 @@ static int start_khugepaged(void)
 		kthread_stop(khugepaged_thread);
 		khugepaged_thread = NULL;
 	}
-
+fail:
 	return err;
 }
 
@@ -302,7 +298,7 @@ static ssize_t enabled_store(struct kobject *kobj,
 		int err;
 
 		mutex_lock(&khugepaged_mutex);
-		err = start_khugepaged();
+		err = start_stop_khugepaged();
 		mutex_unlock(&khugepaged_mutex);
 
 		if (err)
@@ -651,10 +647,12 @@ static int __init hugepage_init(void)
 	 * where the extra memory used could hurt more than TLB overhead
 	 * is likely to save.  The admin can still enable it through /sys.
 	 */
-	if (totalram_pages < (512 << (20 - PAGE_SHIFT)))
+	if (totalram_pages < (512 << (20 - PAGE_SHIFT))) {
 		transparent_hugepage_flags = 0;
+		return 0;
+	}
 
-	err = start_khugepaged();
+	err = start_stop_khugepaged();
 	if (err)
 		goto err_khugepaged;
 
@@ -2373,15 +2371,11 @@ static bool khugepaged_prealloc_page(struct page **hpage, bool *wait)
 }
 
 static struct page *
-khugepaged_alloc_page(struct page **hpage, gfp_t *gfp, struct mm_struct *mm,
+khugepaged_alloc_page(struct page **hpage, gfp_t gfp, struct mm_struct *mm,
 		       struct vm_area_struct *vma, unsigned long address,
 		       int node)
 {
 	VM_BUG_ON_PAGE(*hpage, *hpage);
-
-	/* Only allocate from the target node */
-	*gfp = alloc_hugepage_gfpmask(khugepaged_defrag(), __GFP_OTHER_NODE) |
-	        __GFP_THISNODE;
 
 	/*
 	 * Before allocating the hugepage, release the mmap_sem read lock.
@@ -2391,7 +2385,7 @@ khugepaged_alloc_page(struct page **hpage, gfp_t *gfp, struct mm_struct *mm,
 	 */
 	up_read(&mm->mmap_sem);
 
-	*hpage = alloc_pages_exact_node(node, *gfp, HPAGE_PMD_ORDER);
+	*hpage = alloc_pages_exact_node(node, gfp, HPAGE_PMD_ORDER);
 	if (unlikely(!*hpage)) {
 		count_vm_event(THP_COLLAPSE_ALLOC_FAILED);
 		*hpage = ERR_PTR(-ENOMEM);
@@ -2445,18 +2439,13 @@ static bool khugepaged_prealloc_page(struct page **hpage, bool *wait)
 }
 
 static struct page *
-khugepaged_alloc_page(struct page **hpage, gfp_t *gfp, struct mm_struct *mm,
+khugepaged_alloc_page(struct page **hpage, gfp_t gfp, struct mm_struct *mm,
 		       struct vm_area_struct *vma, unsigned long address,
 		       int node)
 {
 	up_read(&mm->mmap_sem);
 	VM_BUG_ON(!*hpage);
 
-	/*
-	 * khugepaged_alloc_hugepage is doing the preallocation, use the same
-	 * gfp flags here.
-	 */
-	*gfp = alloc_hugepage_gfpmask(khugepaged_defrag(), 0);
 	return  *hpage;
 }
 #endif
@@ -2495,8 +2484,12 @@ static void collapse_huge_page(struct mm_struct *mm,
 
 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
 
+	/* Only allocate from the target node */
+	gfp = alloc_hugepage_gfpmask(khugepaged_defrag(), __GFP_OTHER_NODE) |
+		__GFP_THISNODE;
+
 	/* release the mmap_sem read lock. */
-	new_page = khugepaged_alloc_page(hpage, &gfp, mm, vma, address, node);
+	new_page = khugepaged_alloc_page(hpage, gfp, mm, vma, address, node);
 	if (!new_page)
 		return;
 
