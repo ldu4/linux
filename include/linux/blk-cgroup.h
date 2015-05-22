@@ -46,6 +46,10 @@ struct blkcg {
 	struct hlist_head		blkg_list;
 
 	struct blkcg_policy_data	*pd[BLKCG_MAX_POLS];
+
+#ifdef CONFIG_CGROUP_WRITEBACK
+	struct list_head		cgwb_list;
+#endif
 };
 
 struct blkg_stat {
