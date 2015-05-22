@@ -33,6 +33,8 @@ static DEFINE_MUTEX(blkcg_pol_mutex);
 struct blkcg blkcg_root;
 EXPORT_SYMBOL_GPL(blkcg_root);
 
+struct cgroup_subsys_state * const blkcg_root_css = &blkcg_root.css;
+
 static struct blkcg_policy *blkcg_policy[BLKCG_MAX_POLS];
 
 static bool blkcg_policy_enabled(struct request_queue *q,
