@@ -10,6 +10,8 @@
 #define _LINUX_USERFAULTFD_H
 
 #include <linux/compiler.h>
+#include <linux/types.h>
+
 
 #define UFFD_API ((__u64)0xAA)
 /*
