@@ -757,7 +757,7 @@ static int page_referenced_one(struct page *page, struct vm_area_struct *vma,
 		/*
 		 * Use pmd_freeable instead of raw pmd_dirty because in some
 		 * of architecture, pmd_dirty is not defined unless
-		 * CONFIG_TRANSPARENT_HUGEPAGE is enabled
+		 * CONFIG_TRANSPARNTE_HUGE is enabled
 		 */
 		if (!pmd_freeable(*pmd))
 			dirty++;
