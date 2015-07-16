@@ -1091,7 +1091,7 @@ static unsigned long shrink_page_list(struct list_head *page_list,
 				VM_BUG_ON_PAGE(PageSwapCache(page), page);
 				if (!page_freeze_refs(page, 1))
 					goto keep_locked;
-				__ClearPageLocked(page);
+				__clear_page_locked(page);
 				count_vm_event(PGLAZYFREED);
 				goto free_it;
 			}
