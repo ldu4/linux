@@ -877,9 +877,8 @@ void deactivate_file_page(struct page *page)
  * deactivate_page - deactivate a page
  * @page: page to deactivate
  *
- * deactivate_page() moves @page to the inactive list if @page was on the active
- * list and was not an unevictable page.  This is done to accelerate the reclaim
- * of @page.
+ * This function moves @page to inactive list if @page was on active list and
+ * was not unevictable page to accelerate to reclaim @page.
  */
 void deactivate_page(struct page *page)
 {
