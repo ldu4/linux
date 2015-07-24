@@ -554,8 +554,7 @@ out:
 	return ret;
 }
 
-static int apply_vma_flags(unsigned long start, size_t len,
-			   vm_flags_t flags, bool add_flags)
+static int do_mlock(unsigned long start, size_t len, int on)
 {
 	unsigned long nstart, end, tmp;
 	struct vm_area_struct * vma, * prev;
@@ -581,11 +580,9 @@ static int apply_vma_flags(unsigned long start, size_t len,
 
 		/* Here we know that  vma->vm_start <= nstart < vma->vm_end. */
 
-		newflags = vma->vm_flags;
-		if (add_flags)
-			newflags |= flags;
-		else
-			newflags &= ~flags;
+		newflags = vma->vm_flags & ~VM_LOCKED;
+		if (on)
+			newflags |= VM_LOCKED;
 
 		tmp = vma->vm_end;
 		if (tmp > end)
@@ -608,7 +605,7 @@ static int apply_vma_flags(unsigned long start, size_t len,
 	return error;
 }
 
-static int do_mlock(unsigned long start, size_t len, vm_flags_t flags)
+SYSCALL_DEFINE2(mlock, unsigned long, start, size_t, len)
 {
 	unsigned long locked;
 	unsigned long lock_limit;
@@ -632,7 +629,7 @@ static int do_mlock(unsigned long start, size_t len, vm_flags_t flags)
 
 	/* check against resource limits */
 	if ((locked <= lock_limit) || capable(CAP_IPC_LOCK))
-		error = apply_vma_flags(start, len, flags, true);
+		error = do_mlock(start, len, 1);
 
 	up_write(&current->mm->mmap_sem);
 	if (error)
@@ -644,12 +641,7 @@ static int do_mlock(unsigned long start, size_t len, vm_flags_t flags)
 	return 0;
 }
 
-SYSCALL_DEFINE2(mlock, unsigned long, start, size_t, len)
-{
-	return do_mlock(start, len, VM_LOCKED);
-}
-
-static int do_munlock(unsigned long start, size_t len, vm_flags_t flags)
+SYSCALL_DEFINE2(munlock, unsigned long, start, size_t, len)
 {
 	int ret;
 
@@ -657,15 +649,10 @@ static int do_munlock(unsigned long start, size_t len, vm_flags_t flags)
 	start &= PAGE_MASK;
 
 	down_write(&current->mm->mmap_sem);
-	ret = apply_vma_flags(start, len, flags, false);
+	ret = do_mlock(start, len, 0);
 	up_write(&current->mm->mmap_sem);
 
 	return ret;
-}
-
-SYSCALL_DEFINE2(munlock, unsigned long, start, size_t, len)
-{
-	return do_munlock(start, len, VM_LOCKED);
 }
 
 static int do_mlockall(int flags)
@@ -674,6 +661,8 @@ static int do_mlockall(int flags)
 
 	if (flags & MCL_FUTURE)
 		current->mm->def_flags |= VM_LOCKED;
+	else
+		current->mm->def_flags &= ~VM_LOCKED;
 	if (flags == MCL_FUTURE)
 		goto out;
 
@@ -723,36 +712,12 @@ out:
 	return ret;
 }
 
-static int do_munlockall(int flags)
-{
-	struct vm_area_struct * vma, * prev = NULL;
-
-	if (flags & MCL_FUTURE)
-		current->mm->def_flags &= ~VM_LOCKED;
-	if (flags == MCL_FUTURE)
-		goto out;
-
-	for (vma = current->mm->mmap; vma ; vma = prev->vm_next) {
-		vm_flags_t newflags;
-
-		newflags = vma->vm_flags;
-		if (flags & MCL_CURRENT)
-			newflags &= ~VM_LOCKED;
-
-		/* Ignore errors */
-		mlock_fixup(vma, &prev, vma->vm_start, vma->vm_end, newflags);
-		cond_resched_rcu_qs();
-	}
-out:
-	return 0;
-}
-
 SYSCALL_DEFINE0(munlockall)
 {
 	int ret;
 
 	down_write(&current->mm->mmap_sem);
-	ret = do_munlockall(MCL_CURRENT | MCL_FUTURE);
+	ret = do_mlockall(0);
 	up_write(&current->mm->mmap_sem);
 	return ret;
 }
