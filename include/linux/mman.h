@@ -86,8 +86,7 @@ calc_vm_flag_bits(unsigned long flags)
 {
 	return _calc_vm_trans(flags, MAP_GROWSDOWN,  VM_GROWSDOWN ) |
 	       _calc_vm_trans(flags, MAP_DENYWRITE,  VM_DENYWRITE ) |
-	       _calc_vm_trans(flags, MAP_LOCKED,     VM_LOCKED    ) |
-	       _calc_vm_trans(flags, MAP_LOCKONFAULT,VM_LOCKONFAULT);
+	       _calc_vm_trans(flags, MAP_LOCKED,     VM_LOCKED    );
 }
 
 unsigned long vm_commit_limit(void);
