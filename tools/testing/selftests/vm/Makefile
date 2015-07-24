@@ -3,6 +3,7 @@
 CFLAGS = -Wall
 BINARIES = hugepage-mmap hugepage-shm map_hugetlb thuge-gen hugetlbfstest
 BINARIES += lock-on-fault
+BINARIES += mlock2-tests
 BINARIES += on-fault-limit
 BINARIES += transhuge-stress
 BINARIES += userfaultfd
