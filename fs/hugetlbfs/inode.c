@@ -575,9 +575,11 @@ static long hugetlbfs_fallocate(struct file *file, int mode, loff_t offset,
 		}
 
 		/* Get policy based on index */
+#ifdef CONFIG_NUMA
 		pseudo_vma.vm_policy =
 			mpol_shared_policy_lookup(&HUGETLBFS_I(inode)->policy,
 							index);
+#endif
 
 		/* addr is the offset within the file (zero based) */
 		addr = index * hpage_size;
@@ -592,13 +594,17 @@ static long hugetlbfs_fallocate(struct file *file, int mode, loff_t offset,
 		if (page) {
 			put_page(page);
 			mutex_unlock(&hugetlb_fault_mutex_table[hash]);
+#ifdef CONFIG_NUMA
 			mpol_cond_put(pseudo_vma.vm_policy);
+#endif
 			continue;
 		}
 
 		/* Allocate page and add to page cache */
 		page = alloc_huge_page(&pseudo_vma, addr, avoid_reserve);
+#ifdef CONFIG_NUMA
 		mpol_cond_put(pseudo_vma.vm_policy);
+#endif
 		if (IS_ERR(page)) {
 			mutex_unlock(&hugetlb_fault_mutex_table[hash]);
 			error = PTR_ERR(page);
