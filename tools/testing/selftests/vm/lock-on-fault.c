@@ -4,7 +4,6 @@
 #include <string.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-#include <errno.h>
 
 struct vm_boundaries {
 	unsigned long start;
@@ -145,7 +144,7 @@ static int test_mmap(int flags)
 	}
 
 	/* page1_flags should be present */
-	if ((page1_flags & PRESENT_BIT) == 0) {
+	if (page1_flags & PRESENT_BIT == 0) {
 		printf("page map says 0x%lx\n", page1_flags);
 		printf("present is    0x%lx\n", PRESENT_BIT);
 		return 1;
@@ -155,7 +154,7 @@ static int test_mmap(int flags)
 
 	/* page1_flags now contains the entry from kpageflags for the first
 	 * page, the unevictable bit should be set */
-	if ((page1_flags & UNEVICTABLE_BIT) == 0) {
+	if (page1_flags & UNEVICTABLE_BIT == 0) {
 		printf("kpageflags says 0x%lx\n", page1_flags);
 		printf("unevictable is  0x%lx\n", UNEVICTABLE_BIT);
 		return 1;
@@ -341,4 +340,3 @@ int main(int argc, char **argv)
 	ret += test_mlockall(test_vma_management);
 	return ret;
 }
-
