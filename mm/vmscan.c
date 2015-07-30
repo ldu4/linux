@@ -808,7 +808,7 @@ static enum page_references page_check_references(struct page *page,
 	 * Mlock lost the isolation race with us.  Let try_to_unmap()
 	 * move the page to the unevictable list.
 	 */
-	if (vm_flags & (VM_LOCKED | VM_LOCKONFAULT))
+	if (vm_flags & VM_LOCKED)
 		return PAGEREF_RECLAIM;
 
 	if (referenced_ptes) {

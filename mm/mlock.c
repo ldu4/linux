@@ -406,22 +406,23 @@ static unsigned long __munlock_pagevec_fill(struct pagevec *pvec,
  * @vma - vma containing range to be munlock()ed.
  * @start - start address in @vma of the range
  * @end - end of range in @vma.
- * @to_drop - the VMA flags we want to drop from the specified range
  *
- *  For mremap(), munmap(), munlock(), and exit().
+ *  For mremap(), munmap() and exit().
  *
- * Returns with specified flags cleared.  Callers must be prepared to
+ * Called with @vma VM_LOCKED.
+ *
+ * Returns with VM_LOCKED cleared.  Callers must be prepared to
  * deal with this.
  *
- * We don't save and restore specified flags here because pages are
+ * We don't save and restore VM_LOCKED here because pages are
  * still on lru.  In unmap path, pages might be scanned by reclaim
  * and re-mlocked by try_to_{munlock|unmap} before we unmap and
  * free them.  This will result in freeing mlocked pages.
  */
-void munlock_vma_pages_range(struct vm_area_struct *vma, unsigned long start,
-			     unsigned long end, vm_flags_t to_drop)
+void munlock_vma_pages_range(struct vm_area_struct *vma,
+			     unsigned long start, unsigned long end)
 {
-	vma->vm_flags &= ~to_drop;
+	vma->vm_flags &= ~VM_LOCKED;
 
 	while (start < end) {
 		struct page *page = NULL;
@@ -547,11 +548,7 @@ success:
 	if (lock)
 		vma->vm_flags = newflags;
 	else
-		/*
-		 * We need to tell which VM_LOCK* flag(s) we are clearing here
-		 */
-		munlock_vma_pages_range(vma, start, end,
-					(vma->vm_flags & ~(newflags)));
+		munlock_vma_pages_range(vma, start, end);
 
 out:
 	*prev = vma;
@@ -644,11 +641,8 @@ static int do_mlock(unsigned long start, size_t len, vm_flags_t flags)
 	if (error)
 		return error;
 
-	if (flags & (VM_LOCKED | VM_LOCKONFAULT)) {
-		if (flags & VM_LOCKED)
-			error = __mm_populate(start, len, 0);
-		else
-			error = mm_lock_present(start, len);
+	if (flags & VM_LOCKED) {
+		error = __mm_populate(start, len, 0);
 		if (error)
 			return __mlock_posix_error_return(error);
 	}
@@ -689,7 +683,7 @@ static int do_munlock(unsigned long start, size_t len, vm_flags_t flags)
 
 SYSCALL_DEFINE2(munlock, unsigned long, start, size_t, len)
 {
-	return do_munlock(start, len, VM_LOCKED | VM_LOCKONFAULT);
+	return do_munlock(start, len, VM_LOCKED);
 }
 
 SYSCALL_DEFINE3(munlock2, unsigned long, start, size_t, len, int, flags)

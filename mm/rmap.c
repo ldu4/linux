@@ -847,9 +847,9 @@ static int page_referenced_one(struct page *page, struct vm_area_struct *vma,
 		if (!pmd)
 			return SWAP_AGAIN;
 
-		if (vma->vm_flags & (VM_LOCKED | VM_LOCKONFAULT)) {
+		if (vma->vm_flags & VM_LOCKED) {
 			spin_unlock(ptl);
-			pra->vm_flags |= (vma->vm_flags & (VM_LOCKED | VM_LOCKONFAULT));
+			pra->vm_flags |= VM_LOCKED;
 			return SWAP_FAIL; /* To break the loop */
 		}
 
@@ -877,9 +877,9 @@ static int page_referenced_one(struct page *page, struct vm_area_struct *vma,
 		if (!pte)
 			return SWAP_AGAIN;
 
-		if (vma->vm_flags & (VM_LOCKED | VM_LOCKONFAULT)) {
+		if (vma->vm_flags & VM_LOCKED) {
 			pte_unmap_unlock(pte, ptl);
-			pra->vm_flags |= (vma->vm_flags & (VM_LOCKED | VM_LOCKONFAULT));
+			pra->vm_flags |= VM_LOCKED;
 			return SWAP_FAIL; /* To break the loop */
 		}
 
@@ -1340,7 +1340,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
 	 * skipped over this mm) then we should reactivate it.
 	 */
 	if (!(flags & TTU_IGNORE_MLOCK)) {
-		if (vma->vm_flags & (VM_LOCKED | VM_LOCKONFAULT))
+		if (vma->vm_flags & VM_LOCKED)
 			goto out_mlock;
 
 		if (flags & TTU_MUNLOCK)
@@ -1478,7 +1478,7 @@ out_mlock:
 	 * page is actually mlocked.
 	 */
 	if (down_read_trylock(&vma->vm_mm->mmap_sem)) {
-		if (vma->vm_flags & (VM_LOCKED | VM_LOCKONFAULT)) {
+		if (vma->vm_flags & VM_LOCKED) {
 			mlock_vma_page(page);
 			ret = SWAP_MLOCK;
 		}
