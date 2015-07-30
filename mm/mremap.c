@@ -346,7 +346,6 @@ static struct vm_area_struct *vma_to_resize(unsigned long addr,
 {
 	struct mm_struct *mm = current->mm;
 	struct vm_area_struct *vma = find_vma(mm, addr);
-	unsigned long pgoff;
 
 	if (!vma || vma->vm_start > addr)
 		return ERR_PTR(-EFAULT);
@@ -358,17 +357,17 @@ static struct vm_area_struct *vma_to_resize(unsigned long addr,
 	if (old_len > vma->vm_end - addr)
 		return ERR_PTR(-EFAULT);
 
-	if (new_len == old_len)
-		return vma;
-
 	/* Need to be careful about a growing mapping */
-	pgoff = (addr - vma->vm_start) >> PAGE_SHIFT;
-	pgoff += vma->vm_pgoff;
-	if (pgoff + (new_len >> PAGE_SHIFT) < pgoff)
-		return ERR_PTR(-EINVAL);
+	if (new_len > old_len) {
+		unsigned long pgoff;
 
-	if (vma->vm_flags & (VM_DONTEXPAND | VM_PFNMAP))
-		return ERR_PTR(-EFAULT);
+		if (vma->vm_flags & (VM_DONTEXPAND | VM_PFNMAP))
+			return ERR_PTR(-EFAULT);
+		pgoff = (addr - vma->vm_start) >> PAGE_SHIFT;
+		pgoff += vma->vm_pgoff;
+		if (pgoff + (new_len >> PAGE_SHIFT) < pgoff)
+			return ERR_PTR(-EINVAL);
+	}
 
 	if (vma->vm_flags & VM_LOCKED) {
 		unsigned long locked, lock_limit;
