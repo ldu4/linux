@@ -1400,7 +1400,7 @@ static struct page *allocate_slab(struct kmem_cache *s, gfp_t flags, int node)
 	order = compound_order(page);
 	page->slab_cache = s;
 	__SetPageSlab(page);
-	if (page->pfmemalloc)
+	if (page_is_pfmemalloc)
 		SetPageSlabPfmemalloc(page);
 
 	start = page_address(page);
