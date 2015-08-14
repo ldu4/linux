@@ -22,7 +22,6 @@
 #include <linux/ctype.h>
 #include <linux/projid.h>
 #include <linux/fs_struct.h>
-#include <linux/sched.h>
 
 static struct kmem_cache *user_ns_cachep __read_mostly;
 static DEFINE_MUTEX(userns_state_mutex);
@@ -978,7 +977,7 @@ static int userns_install(struct nsproxy *nsproxy, struct ns_common *ns)
 		return -EINVAL;
 
 	/* Threaded processes may not enter a different user namespace */
-	if (!current_is_single_threaded())
+	if (atomic_read(&current->mm->mm_users) > 1)
 		return -EINVAL;
 
 	if (current->fs->users != 1)
