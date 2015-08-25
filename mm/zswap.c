@@ -120,12 +120,12 @@ module_param_named(max_pool_percent, zswap_max_pool_percent, uint, 0644);
 
 struct zswap_pool {
 	struct zpool *zpool;
+	struct crypto_comp * __percpu *tfm;
 	struct kref kref;
 	struct list_head list;
 	struct rcu_head rcu_head;
 	struct notifier_block notifier;
 	char tfm_name[CRYPTO_MAX_ALG_NAME];
-	struct crypto_comp * __percpu *tfm;
 };
 
 /*
