@@ -334,7 +334,7 @@ PAGEFLAG_FALSE(HighMem)
 #endif
 
 #ifdef CONFIG_SWAP
-PAGEFLAG(SwapCache, swapcache, NO_COMPOUND)
+PAGEFLAG(SwapCache, swapcache, ANY)
 #else
 PAGEFLAG_FALSE(SwapCache)
 #endif
