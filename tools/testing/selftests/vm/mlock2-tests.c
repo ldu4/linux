@@ -1,5 +1,4 @@
 #include <sys/mman.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -83,10 +82,10 @@ out:
 	return ret;
 }
 
-static uint64_t get_pageflags(unsigned long addr)
+static unsigned long get_pageflags(unsigned long addr)
 {
 	FILE *file;
-	uint64_t pfn;
+	unsigned long pfn;
 	unsigned long offset;
 
 	file = fopen("/proc/self/pagemap", "r");
@@ -95,14 +94,13 @@ static uint64_t get_pageflags(unsigned long addr)
 		_exit(1);
 	}
 
-	offset = addr / getpagesize() * sizeof(pfn);
-
+	offset = addr / getpagesize() * sizeof(unsigned long);
 	if (fseek(file, offset, SEEK_SET)) {
 		perror("fseek pagemap");
 		_exit(1);
 	}
 
-	if (fread(&pfn, sizeof(pfn), 1, file) != 1) {
+	if (fread(&pfn, sizeof(unsigned long), 1, file) != 1) {
 		perror("fread pagemap");
 		_exit(1);
 	}
@@ -113,7 +111,7 @@ static uint64_t get_pageflags(unsigned long addr)
 
 static unsigned long get_kpageflags(unsigned long pfn)
 {
-	uint64_t flags;
+	unsigned long flags;
 	FILE *file;
 
 	file = fopen("/proc/kpageflags", "r");
@@ -122,12 +120,12 @@ static unsigned long get_kpageflags(unsigned long pfn)
 		_exit(1);
 	}
 
-	if (fseek(file, pfn * sizeof(flags), SEEK_SET)) {
+	if (fseek(file, pfn * sizeof(unsigned long), SEEK_SET)) {
 		perror("fseek kpageflags");
 		_exit(1);
 	}
 
-	if (fread(&flags, sizeof(flags), 1, file) != 1) {
+	if (fread(&flags, sizeof(unsigned long), 1, file) != 1) {
 		perror("fread kpageflags");
 		_exit(1);
 	}
@@ -213,8 +211,9 @@ out:
 
 static int lock_check(char *map)
 {
+	unsigned long page1_flags;
+	unsigned long page2_flags;
 	unsigned long page_size = getpagesize();
-	uint64_t page1_flags, page2_flags;
 
 	page1_flags = get_pageflags((unsigned long)map);
 	page2_flags = get_pageflags((unsigned long)map + page_size);
@@ -247,8 +246,9 @@ static int lock_check(char *map)
 
 static int unlock_lock_check(char *map)
 {
+	unsigned long page1_flags;
+	unsigned long page2_flags;
 	unsigned long page_size = getpagesize();
-	uint64_t page1_flags, page2_flags;
 
 	page1_flags = get_pageflags((unsigned long)map);
 	page2_flags = get_pageflags((unsigned long)map + page_size);
@@ -310,8 +310,9 @@ out:
 
 static int onfault_check(char *map)
 {
+	unsigned long page1_flags;
+	unsigned long page2_flags;
 	unsigned long page_size = getpagesize();
-	uint64_t page1_flags, page2_flags;
 
 	page1_flags = get_pageflags((unsigned long)map);
 	page2_flags = get_pageflags((unsigned long)map + page_size);
@@ -354,8 +355,9 @@ static int onfault_check(char *map)
 
 static int unlock_onfault_check(char *map)
 {
+	unsigned long page1_flags;
+	unsigned long page2_flags;
 	unsigned long page_size = getpagesize();
-	uint64_t page1_flags;
 
 	page1_flags = get_pageflags((unsigned long)map);
 	page1_flags = get_kpageflags(page1_flags & PFN_MASK);
@@ -420,8 +422,9 @@ static int test_lock_onfault_of_present()
 {
 	char *map;
 	int ret = 1;
+	unsigned long page1_flags;
+	unsigned long page2_flags;
 	unsigned long page_size = getpagesize();
-	uint64_t page1_flags, page2_flags;
 
 	map = mmap(NULL, 2 * page_size, PROT_READ | PROT_WRITE,
 		   MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
@@ -468,6 +471,8 @@ static int test_munlockall()
 {
 	char *map;
 	int ret = 1;
+	unsigned long page1_flags;
+	unsigned long page2_flags;
 	unsigned long page_size = getpagesize();
 
 	map = mmap(NULL, 2 * page_size, PROT_READ | PROT_WRITE,
