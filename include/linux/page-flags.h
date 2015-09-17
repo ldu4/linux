@@ -353,7 +353,7 @@ PAGEFLAG_FALSE(Mlocked) __CLEARPAGEFLAG_NOOP(Mlocked)
 #endif
 
 #ifdef CONFIG_ARCH_USES_PG_UNCACHED
-PAGEFLAG(Uncached, uncached, NO_COMPOUND)
+PAGEFLAG(Uncached, uncached, ANY)
 #else
 PAGEFLAG_FALSE(Uncached)
 #endif
