@@ -389,7 +389,9 @@ struct mm_rss_stat {
 };
 
 #ifdef CONFIG_HUGETLB_PAGE
-struct hugetlb_usage;
+struct hugetlb_usage {
+	atomic_long_t count[HUGE_MAX_HSTATE];
+};
 #endif
 
 struct kioctx_table;
@@ -512,8 +514,9 @@ struct mm_struct {
 	/* address of the bounds directory */
 	void __user *bd_addr;
 #endif
+
 #ifdef CONFIG_HUGETLB_PAGE
-	struct hugetlb_usage *hugetlb_usage;
+	struct hugetlb_usage hugetlb_usage;
 #endif
 };
 

@@ -139,13 +139,6 @@ static int hugetlbfs_file_mmap(struct file *file, struct vm_area_struct *vma)
 	if (vma->vm_pgoff & (~huge_page_mask(h) >> PAGE_SHIFT))
 		return -EINVAL;
 
-	if (!vma->vm_mm->hugetlb_usage) {
-		vma->vm_mm->hugetlb_usage = kzalloc(sizeof(struct hugetlb_usage),
-							GFP_KERNEL);
-		if (!vma->vm_mm->hugetlb_usage)
-			return -ENOMEM;
-	}
-
 	vma_len = (loff_t)(vma->vm_end - vma->vm_start);
 
 	mutex_lock(&inode->i_mutex);
@@ -167,11 +160,6 @@ out:
 	mutex_unlock(&inode->i_mutex);
 
 	return ret;
-}
-
-void exit_hugetlb_mmap(struct mm_struct *mm)
-{
-	kfree(mm->hugetlb_usage);
 }
 
 /*
