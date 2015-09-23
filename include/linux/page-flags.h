@@ -227,7 +227,7 @@ static inline int __TestClearPage##uname(struct page *page) { return 0; }
 struct page;
 static inline int PageCompound(struct page *page);
 static inline int PageTail(struct page *page);
-static struct page *compound_head(struct page *page);
+static inline struct page *compound_head(struct page *page);
 
 __PAGEFLAG(Locked, locked, PF_NO_TAIL)
 PAGEFLAG(Error, error, PF_NO_COMPOUND) TESTCLEARFLAG(Error, error, PF_NO_COMPOUND)
