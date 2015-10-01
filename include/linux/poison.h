@@ -32,10 +32,6 @@
 /********** mm/debug-pagealloc.c **********/
 #define PAGE_POISON 0xaa
 
-/********** mm/page_alloc.c ************/
-
-#define TAIL_MAPPING	((void *) 0x01014A11 + POISON_POINTER_DELTA)
-
 /********** mm/slab.c **********/
 /*
  * Magic nums for obj red zoning.
