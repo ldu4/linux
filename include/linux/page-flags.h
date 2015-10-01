@@ -229,7 +229,7 @@ static inline int PageCompound(struct page *page);
 static inline int PageTail(struct page *page);
 static inline struct page *compound_head(struct page *page);
 
-__PAGEFLAG(Locked, locked, NO_TAIL)
+TESTPAGEFLAG(Locked, locked, ANY)
 PAGEFLAG(Error, error, ANY) TESTCLEARFLAG(Error, error, ANY)
 PAGEFLAG(Referenced, referenced, ANY) TESTCLEARFLAG(Referenced, referenced, ANY)
 	__SETPAGEFLAG(Referenced, referenced, ANY)
