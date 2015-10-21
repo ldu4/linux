@@ -26,7 +26,6 @@
 #include <linux/page_counter.h>
 #include <linux/vmpressure.h>
 #include <linux/eventfd.h>
-#include <linux/mm.h>
 #include <linux/mmzone.h>
 #include <linux/writeback.h>
 
