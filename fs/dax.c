@@ -581,6 +581,10 @@ int __dax_pmd_fault(struct vm_area_struct *vma, unsigned long address,
 	sector_t block;
 	int result = 0;
 
+	/* dax pmd mappings are broken wrt gup and fork */
+	if (!IS_ENABLED(CONFIG_FS_DAX_PMD))
+		return VM_FAULT_FALLBACK;
+
 	/* Fall back to PTEs if we're going to COW */
 	if (write && !(vma->vm_flags & VM_SHARED)) {
 		split_huge_pmd(vma, pmd, address);
