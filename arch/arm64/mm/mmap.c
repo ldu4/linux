@@ -51,10 +51,8 @@ unsigned long arch_mmap_rnd(void)
 {
 	unsigned long rnd;
 
-	if (test_thread_flag(TIF_32BIT))
-		rnd = (unsigned long)get_random_int() % (1 << mmap_rnd_compat_bits);
-	else
-		rnd = (unsigned long)get_random_int() % (1 << mmap_rnd_bits);
+	rnd = (unsigned long)get_random_int() & STACK_RND_MASK;
+
 	return rnd << PAGE_SHIFT;
 }
 
