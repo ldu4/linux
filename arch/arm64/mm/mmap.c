@@ -51,11 +51,9 @@ unsigned long arch_mmap_rnd(void)
 {
 	unsigned long rnd;
 
-ifdef CONFIG_COMPAT
 	if (test_thread_flag(TIF_32BIT))
 		rnd = (unsigned long)get_random_int() % (1 << mmap_rnd_compat_bits);
 	else
-#endif
 		rnd = (unsigned long)get_random_int() % (1 << mmap_rnd_bits);
 	return rnd << PAGE_SHIFT;
 }
