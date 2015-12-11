@@ -249,9 +249,7 @@ struct mem_cgroup {
 	struct wb_domain cgwb_domain;
 #endif
 
-#ifdef CONFIG_INET
 	unsigned long		socket_pressure;
-#endif
 
 	/* List of events which userspace want to receive */
 	struct list_head event_list;

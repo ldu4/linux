@@ -4196,9 +4196,7 @@ mem_cgroup_css_alloc(struct cgroup_subsys_state *parent_css)
 #ifdef CONFIG_CGROUP_WRITEBACK
 	INIT_LIST_HEAD(&memcg->cgwb_list);
 #endif
-#ifdef CONFIG_INET
 	memcg->socket_pressure = jiffies;
-#endif
 	return &memcg->css;
 
 free_out:
