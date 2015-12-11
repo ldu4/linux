@@ -493,16 +493,12 @@ static void __init_memblock memblock_insert_region(struct memblock_type *type,
 	struct memblock_region *rgn = &type->regions[idx];
 
 	BUG_ON(type->cnt >= type->max);
-	/* special case for empty array */
-	if (idx)
-	{
-		memmove(rgn + 1, rgn, (type->cnt - idx) * sizeof(*rgn));
-		type->cnt++;
-	}
+	memmove(rgn + 1, rgn, (type->cnt - idx) * sizeof(*rgn));
 	rgn->base = base;
 	rgn->size = size;
 	rgn->flags = flags;
 	memblock_set_region_node(rgn, nid);
+	type->cnt++;
 	type->total_size += size;
 }
 
@@ -538,7 +534,11 @@ int __init_memblock memblock_add_range(struct memblock_type *type,
 	/* special case for empty array */
 	if (type->regions[0].size == 0) {
 		WARN_ON(type->cnt != 1 || type->total_size);
-		memblock_insert_region(type, 0, base, size, nid, flags);
+		type->regions[0].base = base;
+		type->regions[0].size = size;
+		type->regions[0].flags = flags;
+		memblock_set_region_node(&type->regions[0], nid);
+		type->total_size = size;
 		return 0;
 	}
 repeat:
