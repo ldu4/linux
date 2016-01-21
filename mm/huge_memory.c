@@ -1590,8 +1590,9 @@ int madvise_free_huge_pmd(struct mmu_gather *tlb, struct vm_area_struct *vma,
 	struct mm_struct *mm = tlb->mm;
 	int ret = 0;
 
-	if (!pmd_trans_huge_lock(pmd, vma, &ptl))
-		goto out;
+	ptl = pmd_trans_huge_lock(pmd, vma);
+	if (!ptl)
+		goto out_unlocked;
 
 	orig_pmd = *pmd;
 	if (is_huge_zero_pmd(orig_pmd)) {
@@ -1657,7 +1658,8 @@ int zap_huge_pmd(struct mmu_gather *tlb, struct vm_area_struct *vma,
 	pmd_t orig_pmd;
 	spinlock_t *ptl;
 
-	if (!__pmd_trans_huge_lock(pmd, vma, &ptl))
+	ptl = __pmd_trans_huge_lock(pmd, vma);
+	if (!ptl)
 		return 0;
 	/*
 	 * For architectures like ppc64 we look at deposited pgtable
@@ -1720,7 +1722,8 @@ bool move_huge_pmd(struct vm_area_struct *vma, struct vm_area_struct *new_vma,
 	 * We don't have to worry about the ordering of src and dst
 	 * ptlocks because exclusive mmap_sem prevents deadlock.
 	 */
-	if (__pmd_trans_huge_lock(old_pmd, vma, &old_ptl)) {
+	old_ptl = __pmd_trans_huge_lock(old_pmd, vma);
+	if (old_ptl) {
 		new_ptl = pmd_lockptr(mm, new_pmd);
 		if (new_ptl != old_ptl)
 			spin_lock_nested(new_ptl, SINGLE_DEPTH_NESTING);
@@ -1754,7 +1757,8 @@ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
 	spinlock_t *ptl;
 	int ret = 0;
 
-	if (__pmd_trans_huge_lock(pmd, vma, &ptl)) {
+	ptl = __pmd_trans_huge_lock(pmd, vma);
+	if (ptl) {
 		pmd_t entry;
 		bool preserve_write = prot_numa && pmd_write(*pmd);
 		ret = 1;
@@ -1790,14 +1794,14 @@ int change_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
  * Note that if it returns true, this routine returns without unlocking page
  * table lock. So callers must unlock it.
  */
-bool __pmd_trans_huge_lock(pmd_t *pmd, struct vm_area_struct *vma,
-		spinlock_t **ptl)
+spinlock_t *__pmd_trans_huge_lock(pmd_t *pmd, struct vm_area_struct *vma)
 {
-	*ptl = pmd_lock(vma->vm_mm, pmd);
+	spinlock_t *ptl;
+	ptl = pmd_lock(vma->vm_mm, pmd);
 	if (likely(pmd_trans_huge(*pmd) || pmd_devmap(*pmd)))
-		return true;
-	spin_unlock(*ptl);
-	return false;
+		return ptl;
+	spin_unlock(ptl);
+	return NULL;
 }
 
 #define VM_NO_THP (VM_SPECIAL | VM_HUGETLB | VM_SHARED | VM_MAYSHARE)
