@@ -3124,7 +3124,15 @@ static void freeze_page_vma(struct vm_area_struct *vma, struct page *page,
 	pud_t *pud;
 	pmd_t *pmd;
 	pte_t *pte;
-	int i;
+	int i, nr = HPAGE_PMD_NR;
+
+	/* Skip pages which doesn't belong to the VMA */
+	if (address < vma->vm_start) {
+		int off = (vma->vm_start - address) >> PAGE_SHIFT;
+		page += off;
+		nr -= off;
+		address = vma->vm_start;
+	}
 
 	pgd = pgd_offset(vma->vm_mm, address);
 	if (!pgd_present(*pgd))
@@ -3147,7 +3155,7 @@ static void freeze_page_vma(struct vm_area_struct *vma, struct page *page,
 	spin_unlock(ptl);
 
 	pte = pte_offset_map_lock(vma->vm_mm, pmd, address, &ptl);
-	for (i = 0; i < HPAGE_PMD_NR; i++, address += PAGE_SIZE, page++) {
+	for (i = 0; i < nr; i++, address += PAGE_SIZE, page++) {
 		pte_t entry, swp_pte;
 		swp_entry_t swp_entry;
 
@@ -3197,13 +3205,21 @@ static void unfreeze_page_vma(struct vm_area_struct *vma, struct page *page,
 	pmd_t *pmd;
 	pte_t *pte, entry;
 	swp_entry_t swp_entry;
-	int i;
+	int i, nr = HPAGE_PMD_NR;
+
+	/* Skip pages which doesn't belong to the VMA */
+	if (address < vma->vm_start) {
+		int off = (vma->vm_start - address) >> PAGE_SHIFT;
+		page += off;
+		nr -= off;
+		address = vma->vm_start;
+	}
 
 	pmd = mm_find_pmd(vma->vm_mm, address);
 	if (!pmd)
 		return;
 	pte = pte_offset_map_lock(vma->vm_mm, pmd, address, &ptl);
-	for (i = 0; i < HPAGE_PMD_NR; i++, address += PAGE_SIZE, page++) {
+	for (i = 0; i < nr; i++, address += PAGE_SIZE, page++) {
 		if (!is_swap_pte(pte[i]))
 			continue;
 
