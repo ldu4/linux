@@ -43,7 +43,7 @@ config DEBUG_PAGEALLOC_ENABLE_DEFAULT
 	  If unsure say no.
 
 config PAGE_POISONING
-	bool "Poisson pages after freeing"
+	bool "Poison pages after freeing"
 	select PAGE_EXTENSION
 	select PAGE_POISONING_NO_SANITY if HIBERNATION
 	---help---
