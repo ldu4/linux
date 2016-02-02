@@ -1780,18 +1780,14 @@ static const struct vm_operations_struct blkdev_default_vm_ops = {
 static int blkdev_mmap(struct file *file, struct vm_area_struct *vma)
 {
 	struct inode *bd_inode = bdev_file_inode(file);
-	struct block_device *bdev = I_BDEV(bd_inode);
 
 	file_accessed(file);
-	inode_lock(bd_inode);
-	bdev->bd_map_count++;
 	if (IS_DAX(bd_inode)) {
 		vma->vm_ops = &blkdev_dax_vm_ops;
 		vma->vm_flags |= VM_MIXEDMAP | VM_HUGEPAGE;
 	} else {
 		vma->vm_ops = &blkdev_default_vm_ops;
 	}
-	inode_unlock(bd_inode);
 
 	return 0;
 }
