@@ -1742,37 +1742,13 @@ static int blkdev_dax_pmd_fault(struct vm_area_struct *vma, unsigned long addr,
 	return __dax_pmd_fault(vma, addr, pmd, flags, blkdev_get_block, NULL);
 }
 
-static void blkdev_vm_open(struct vm_area_struct *vma)
-{
-	struct inode *bd_inode = bdev_file_inode(vma->vm_file);
-	struct block_device *bdev = I_BDEV(bd_inode);
-
-	inode_lock(bd_inode);
-	bdev->bd_map_count++;
-	inode_unlock(bd_inode);
-}
-
-static void blkdev_vm_close(struct vm_area_struct *vma)
-{
-	struct inode *bd_inode = bdev_file_inode(vma->vm_file);
-	struct block_device *bdev = I_BDEV(bd_inode);
-
-	inode_lock(bd_inode);
-	bdev->bd_map_count--;
-	inode_unlock(bd_inode);
-}
-
 static const struct vm_operations_struct blkdev_dax_vm_ops = {
-	.open		= blkdev_vm_open,
-	.close		= blkdev_vm_close,
 	.fault		= blkdev_dax_fault,
 	.pmd_fault	= blkdev_dax_pmd_fault,
 	.pfn_mkwrite	= blkdev_dax_pfn_mkwrite,
 };
 
 static const struct vm_operations_struct blkdev_default_vm_ops = {
-	.open		= blkdev_vm_open,
-	.close		= blkdev_vm_close,
 	.fault		= filemap_fault,
 	.map_pages	= filemap_map_pages,
 };
