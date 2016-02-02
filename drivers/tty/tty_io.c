@@ -2110,59 +2110,14 @@ retry_open:
 		return -ENOMEM;
 
 	tty = tty_open_current_tty(device, filp);
-<<<<<<< HEAD
-	if (!tty) {
-		mutex_lock(&tty_mutex);
-		driver = tty_lookup_driver(device, filp, &noctty, &index);
-		if (IS_ERR(driver)) {
-			retval = PTR_ERR(driver);
-			goto err_unlock;
-		}
-
-		/* check whether we're reopening an existing tty */
-		tty = tty_driver_lookup_tty(driver, inode, index);
-		if (IS_ERR(tty)) {
-			retval = PTR_ERR(tty);
-			goto err_unlock;
-		}
-
-		if (tty) {
-			mutex_unlock(&tty_mutex);
-			retval = tty_lock_interruptible(tty);
-			if (retval) {
-				if (retval == -EINTR)
-					retval = -ERESTARTSYS;
-				goto err_unref;
-			}
-			/* safe to drop the kref from tty_driver_lookup_tty() */
-			tty_kref_put(tty);
-			retval = tty_reopen(tty);
-			if (retval < 0) {
-				tty_unlock(tty);
-				tty = ERR_PTR(retval);
-			}
-		} else { /* Returns with the tty_lock held for now */
-			tty = tty_init_dev(driver, index);
-			mutex_unlock(&tty_mutex);
-		}
-
-		tty_driver_kref_put(driver);
-	}
-=======
 	if (!tty)
 		tty = tty_open_by_driver(device, inode, filp);
->>>>>>> linux-next/akpm-base
 
 	if (IS_ERR(tty)) {
 		tty_free_file(filp);
 		retval = PTR_ERR(tty);
 		if (retval != -EAGAIN || signal_pending(current))
-<<<<<<< HEAD
-			goto err_file;
-		tty_free_file(filp);
-=======
 			return retval;
->>>>>>> linux-next/akpm-base
 		schedule();
 		goto retry_open;
 	}
@@ -2233,18 +2188,6 @@ retry_open:
 	read_unlock(&tasklist_lock);
 	tty_unlock(tty);
 	return 0;
-<<<<<<< HEAD
-err_unlock:
-	mutex_unlock(&tty_mutex);
-err_unref:
-	/* after locks to avoid deadlock */
-	if (!IS_ERR_OR_NULL(driver))
-		tty_driver_kref_put(driver);
-err_file:
-	tty_free_file(filp);
-	return retval;
-=======
->>>>>>> linux-next/akpm-base
 }
 
 
@@ -2749,11 +2692,8 @@ static int tiocgetd(struct tty_struct *tty, int __user *p)
 	int ret;
 
 	ld = tty_ldisc_ref_wait(tty);
-<<<<<<< HEAD
-=======
 	if (!ld)
 		return -EIO;
->>>>>>> linux-next/akpm-base
 	ret = put_user(ld->ops->num, p);
 	tty_ldisc_deref(ld);
 	return ret;

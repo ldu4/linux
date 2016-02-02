@@ -27,11 +27,7 @@ int tty_lock_interruptible(struct tty_struct *tty)
 	return mutex_lock_interruptible(&tty->legacy_mutex);
 }
 
-<<<<<<< HEAD
-void __lockfunc tty_unlock(struct tty_struct *tty)
-=======
 void tty_unlock(struct tty_struct *tty)
->>>>>>> linux-next/akpm-base
 {
 	if (WARN(tty->magic != TTY_MAGIC, "U Bad %p\n", tty))
 		return;
