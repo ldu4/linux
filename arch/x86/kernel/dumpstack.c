@@ -265,8 +265,9 @@ int __die(const char *str, struct pt_regs *regs, long err)
 #ifdef CONFIG_SMP
 	printk("SMP ");
 #endif
-	if (debug_pagealloc_enabled())
-		printk("DEBUG_PAGEALLOC ");
+#ifdef CONFIG_DEBUG_PAGEALLOC
+	printk("DEBUG_PAGEALLOC ");
+#endif
 #ifdef CONFIG_KASAN
 	printk("KASAN");
 #endif
