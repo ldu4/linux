@@ -270,13 +270,8 @@ void *devm_memremap_pages(struct device *dev, struct resource *res,
 		struct percpu_ref *ref, struct vmem_altmap *altmap)
 {
 	int is_ram = region_intersects(res->start, resource_size(res),
-<<<<<<< HEAD
-			"System RAM");
-	resource_size_t key, align_start, align_size, align_end;
-=======
 				       IORESOURCE_SYSTEM_RAM, IORES_DESC_NONE);
 	resource_size_t key, align_start, align_size;
->>>>>>> linux-next/akpm-base
 	struct dev_pagemap *pgmap;
 	struct page_map *page_map;
 	unsigned long pfn;
