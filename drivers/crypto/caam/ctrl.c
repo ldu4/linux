@@ -534,7 +534,11 @@ static int caam_probe(struct platform_device *pdev)
 	 * long pointers in master configuration register
 	 */
 	clrsetbits_32(&ctrl->mcr, MCFGR_AWCACHE_MASK, MCFGR_AWCACHE_CACH |
+<<<<<<< HEAD
 		      MCFGR_AWCACHE_BUFF | MCFGR_WDENABLE |
+=======
+		      MCFGR_AWCACHE_BUFF | MCFGR_WDENABLE | MCFGR_LARGE_BURST |
+>>>>>>> linux-next/akpm-base
 		      (sizeof(dma_addr_t) == sizeof(u64) ? MCFGR_LONG_PTR : 0));
 
 	/*
