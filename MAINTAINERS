@@ -836,6 +836,12 @@ S:	Maintained
 F:	drivers/net/arcnet/
 F:	include/uapi/linux/if_arcnet.h
 
+ARM HDLCD DRM DRIVER
+M:	Liviu Dudau <liviu.dudau@arm.com>
+S:	Supported
+F:	drivers/gpu/drm/arm/
+F:	Documentation/devicetree/bindings/display/arm,hdlcd.txt
+
 ARM MFM AND FLOPPY DRIVERS
 M:	Ian Molton <spyro@f2s.com>
 S:	Maintained
@@ -1435,7 +1441,12 @@ F:	arch/arm/boot/dts/qcom-*.dts
 F:	arch/arm/boot/dts/qcom-*.dtsi
 F:	arch/arm/mach-qcom/
 F:	arch/arm64/boot/dts/qcom/*
+<<<<<<< HEAD
+=======
+F:	drivers/i2c/busses/i2c-qup.c
+>>>>>>> linux-next/akpm-base
 F:	drivers/soc/qcom/
+F:	drivers/spi/spi-qup.c
 F:	drivers/tty/serial/msm_serial.h
 F:	drivers/tty/serial/msm_serial.c
 F:	drivers/*/pm8???-*
@@ -1505,6 +1516,7 @@ F:	arch/arm/mach-s5p*/
 F:	arch/arm/mach-exynos*/
 F:	drivers/*/*s3c2410*
 F:	drivers/*/*/*s3c2410*
+F:	drivers/soc/samsung/*
 F:	drivers/spi/spi-s3c*
 F:	sound/soc/samsung/*
 F:	Documentation/arm/Samsung/
@@ -1957,6 +1969,12 @@ ATMEL AT91 / AT32 SERIAL DRIVER
 M:	Nicolas Ferre <nicolas.ferre@atmel.com>
 S:	Supported
 F:	drivers/tty/serial/atmel_serial.c
+
+ATMEL SAMA5D2 ADC DRIVER
+M:	Ludovic Desroches <ludovic.desroches@atmel.com>
+L:	linux-iio@vger.kernel.org
+S:	Supported
+F:	drivers/iio/adc/at91-sama5d2_adc.c
 
 ATMEL Audio ALSA driver
 M:	Nicolas Ferre <nicolas.ferre@atmel.com>
@@ -3551,13 +3569,6 @@ M:	Mark Hounschell <markh@compro.net>
 L:	driverdev-devel@linuxdriverproject.org
 S:	Maintained
 F:	drivers/staging/dgnc/
-
-DIGI EPCA PCI PRODUCTS
-M:	Lidza Louina <lidza.louina@gmail.com>
-M:	Daeseok Youn <daeseok.youn@gmail.com>
-L:	driverdev-devel@linuxdriverproject.org
-S:	Maintained
-F:	drivers/staging/dgap/
 
 DIOLAN U2C-12 I2C DRIVER
 M:	Guenter Roeck <linux@roeck-us.net>
@@ -8141,6 +8152,14 @@ S:	Supported
 F:	fs/overlayfs/
 F:	Documentation/filesystems/overlayfs.txt
 
+ORANGEFS FILESYSTEM
+M:	Mike Marshall <hubcap@omnibond.com>
+L:	pvfs2-developers@beowulf-underground.org
+T:	git git://git.kernel.org/pub/scm/linux/kernel/git/hubcap/linux.git
+S:	Supported
+F:	fs/orangefs/
+F:	Documentation/filesystems/orangefs.txt
+
 P54 WIRELESS DRIVER
 M:	Christian Lamparter <chunkeey@googlemail.com>
 L:	linux-wireless@vger.kernel.org
@@ -8431,6 +8450,13 @@ L:     linux-pci@vger.kernel.org
 L:     linux-arm-msm@vger.kernel.org
 S:     Maintained
 F:     drivers/pci/host/*qcom*
+
+PCI DRIVER FOR SYNOPSYS PROTOTYPING DEVICE
+M:	Joao Pinto <jpinto@synopsys.com>
+L:	linux-pci@vger.kernel.org
+S:	Maintained
+F:	Documentation/devicetree/bindings/pci/pcie-synopsys.txt
+F:	drivers/pci/host/pcie-synopsys.c
 
 PCMCIA SUBSYSTEM
 P:	Linux PCMCIA Team
@@ -10174,6 +10200,7 @@ S:	Supported
 F:	drivers/media/pci/solo6x10/
 
 SOFTWARE RAID (Multiple Disks) SUPPORT
+M:	Shaohua Li <shli@kernel.org>
 L:	linux-raid@vger.kernel.org
 T:	git git://neil.brown.name/md
 S:	Supported
@@ -10409,16 +10436,8 @@ L:	linux-tegra@vger.kernel.org
 S:	Maintained
 F:	drivers/staging/nvec/
 
-STAGING - OLPC SECONDARY DISPLAY CONTROLLER (DCON)
-M:	Jens Frederich <jfrederich@gmail.com>
-M:	Daniel Drake <dsd@laptop.org>
-M:	Jon Nettleton <jon.nettleton@gmail.com>
-W:	http://wiki.laptop.org/go/DCON
-S:	Maintained
-F:	drivers/staging/olpc_dcon/
-
 STAGING - PARALLEL LCD/KEYPAD PANEL DRIVER
-M:	Willy Tarreau <willy@meta-x.org>
+M:	Willy Tarreau <willy@haproxy.com>
 S:	Odd Fixes
 F:	drivers/staging/panel/
 
@@ -10869,6 +10888,14 @@ L:	linux-pm@vger.kernel.org
 L:	linux-omap@vger.kernel.org
 S:	Maintained
 F:	drivers/thermal/ti-soc-thermal/
+
+TI VPE/CAL DRIVERS
+M:	Benoit Parrot <bparrot@ti.com>
+L:	linux-media@vger.kernel.org
+W:	http://linuxtv.org/
+Q:	http://patchwork.linuxtv.org/project/linux-media/list/
+S:	Maintained
+F:	drivers/media/platform/ti-vpe/
 
 TI CDCE706 CLOCK DRIVER
 M:	Max Filippov <jcmvbkbc@gmail.com>
