@@ -1441,10 +1441,7 @@ F:	arch/arm/boot/dts/qcom-*.dts
 F:	arch/arm/boot/dts/qcom-*.dtsi
 F:	arch/arm/mach-qcom/
 F:	arch/arm64/boot/dts/qcom/*
-<<<<<<< HEAD
-=======
 F:	drivers/i2c/busses/i2c-qup.c
->>>>>>> linux-next/akpm-base
 F:	drivers/soc/qcom/
 F:	drivers/spi/spi-qup.c
 F:	drivers/tty/serial/msm_serial.h
