@@ -97,9 +97,12 @@ kallsyms()
 	local aflags="${KBUILD_AFLAGS} ${KBUILD_AFLAGS_KERNEL}               \
 		      ${NOSTDINC_FLAGS} ${LINUXINCLUDE} ${KBUILD_CPPFLAGS}"
 
-	${NM} -n ${1} | \
-		scripts/kallsyms ${kallsymopt} | \
-		${CC} ${aflags} -c -o ${2} -x assembler-with-cpp -
+	# capture the return code of scripts/kallsyms in $RC
+	local RC=`(${NM} -n ${1} | \
+		(scripts/kallsyms ${kallsymopt}; echo $? 1>&3) | \
+		${CC} ${aflags} -c -o ${2} -x assembler-with-cpp -) 3>&1`
+
+	[ $RC -eq 0 ]
 }
 
 # Create map file with all symbols from ${1}
