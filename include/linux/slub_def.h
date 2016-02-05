@@ -106,7 +106,7 @@ struct kmem_cache {
 int sysfs_slab_remove(struct kmem_cache *);
 void sysfs_slab_remove_cancel(struct kmem_cache *s);
 #else
-void sysfs_slab_remove_cancel(struct kmem_cache *s)
+static inline void sysfs_slab_remove_cancel(struct kmem_cache *s)
 {
 }
 #endif
