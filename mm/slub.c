@@ -5429,14 +5429,14 @@ out_del_kobj:
 	goto out;
 }
 
-void sysfs_slab_remove(struct kmem_cache *s)
+int sysfs_slab_remove(struct kmem_cache *s)
 {
 	if (slab_state < FULL)
 		/*
 		 * Sysfs has not been setup yet so no need to remove the
 		 * cache from sysfs.
 		 */
-		return;
+		return 0;
 
 #ifdef CONFIG_MEMCG
 	kset_unregister(s->memcg_kset);
@@ -5444,6 +5444,24 @@ void sysfs_slab_remove(struct kmem_cache *s)
 	kobject_uevent(&s->kobj, KOBJ_REMOVE);
 	kobject_del(&s->kobj);
 	kobject_put(&s->kobj);
+	return 0;
+}
+
+void sysfs_slab_remove_cancel(struct kmem_cache *s)
+{
+	int ret;
+
+	if (slab_state < FULL)
+		return;
+
+	/* tricky */
+	kobject_get(&s->kobj);
+	ret = kobject_add(&s->kobj, NULL, "%s", s->name);
+	kobject_uevent(&s->kobj, KOBJ_ADD);
+
+#ifdef CONFIG_MEMCG
+	s->memcg_kset = kset_create_and_add("cgroup", NULL, &s->kobj);
+#endif
 }
 
 /*

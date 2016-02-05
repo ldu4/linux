@@ -103,9 +103,10 @@ struct kmem_cache {
 
 #ifdef CONFIG_SYSFS
 #define SLAB_SUPPORTS_SYSFS
-void sysfs_slab_remove(struct kmem_cache *);
+int sysfs_slab_remove(struct kmem_cache *);
+void sysfs_slab_remove_cancel(struct kmem_cache *s);
 #else
-static inline void sysfs_slab_remove(struct kmem_cache *s)
+void sysfs_slab_remove_cancel(struct kmem_cache *s)
 {
 }
 #endif
