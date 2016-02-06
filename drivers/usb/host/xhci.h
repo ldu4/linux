@@ -343,6 +343,7 @@ struct xhci_op_regs {
 #define	SLOT_SPEED_LS		(XDEV_LS << 10)
 #define	SLOT_SPEED_HS		(XDEV_HS << 10)
 #define	SLOT_SPEED_SS		(XDEV_SS << 10)
+#define	SLOT_SPEED_SSP		(XDEV_SSP << 10)
 /* Port Indicator Control */
 #define PORT_LED_OFF	(0 << 14)
 #define PORT_LED_AMBER	(1 << 14)
@@ -1631,6 +1632,7 @@ struct xhci_hcd {
 #define XHCI_BROKEN_STREAMS	(1 << 19)
 #define XHCI_PME_STUCK_QUIRK	(1 << 20)
 #define XHCI_MTK_HOST		(1 << 21)
+#define XHCI_SSIC_PORT_UNUSED	(1 << 22)
 	unsigned int		num_active_eps;
 	unsigned int		limit_active_eps;
 	/* There are two roothubs to keep track of bus suspend info for */
