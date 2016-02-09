@@ -131,36 +131,7 @@ static int regmap_mmio_write(void *context, unsigned int reg, unsigned int val)
 			return ret;
 	}
 
-<<<<<<< HEAD
-	offset = regmap_mmio_get_offset(reg, reg_size);
-
-	while (val_size) {
-		switch (ctx->val_bytes) {
-		case 1:
-			writeb(*(u8 *)val, ctx->regs + offset);
-			break;
-		case 2:
-			writew(*(u16 *)val, ctx->regs + offset);
-			break;
-		case 4:
-			writel(*(u32 *)val, ctx->regs + offset);
-			break;
-#ifdef CONFIG_64BIT
-		case 8:
-			writeq(*(u64 *)val, ctx->regs + offset);
-			break;
-#endif
-		default:
-			/* Should be caught by regmap_mmio_check_config */
-			BUG();
-		}
-		val_size -= ctx->val_bytes;
-		val += ctx->val_bytes;
-		offset += ctx->val_bytes;
-	}
-=======
 	ctx->reg_write(ctx, reg, val);
->>>>>>> linux-next/akpm-base
 
 	if (!IS_ERR(ctx->clk))
 		clk_disable(ctx->clk);
@@ -217,36 +188,7 @@ static int regmap_mmio_read(void *context, unsigned int reg, unsigned int *val)
 			return ret;
 	}
 
-<<<<<<< HEAD
-	offset = regmap_mmio_get_offset(reg, reg_size);
-
-	while (val_size) {
-		switch (ctx->val_bytes) {
-		case 1:
-			*(u8 *)val = readb(ctx->regs + offset);
-			break;
-		case 2:
-			*(u16 *)val = readw(ctx->regs + offset);
-			break;
-		case 4:
-			*(u32 *)val = readl(ctx->regs + offset);
-			break;
-#ifdef CONFIG_64BIT
-		case 8:
-			*(u64 *)val = readq(ctx->regs + offset);
-			break;
-#endif
-		default:
-			/* Should be caught by regmap_mmio_check_config */
-			BUG();
-		}
-		val_size -= ctx->val_bytes;
-		val += ctx->val_bytes;
-		offset += ctx->val_bytes;
-	}
-=======
 	*val = ctx->reg_read(ctx, reg);
->>>>>>> linux-next/akpm-base
 
 	if (!IS_ERR(ctx->clk))
 		clk_disable(ctx->clk);
