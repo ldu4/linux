@@ -576,7 +576,7 @@ int rio_del_mport_pw_handler(struct rio_mport *mport, void *context,
 	struct rio_pwrite *pwrite;
 
 	mutex_lock(&mport->lock);
-	list_for_each_entry(pwrite, &mport->pwrites, node) {
+	list_for_each_entry_safe(pwrite, &mport->pwrites, node) {
 		if (pwrite->pwcback == pwcback && pwrite->context == context) {
 			list_del(&pwrite->node);
 			kfree(pwrite);
