@@ -138,7 +138,7 @@ config ATH79
 	select SYS_SUPPORTS_32BIT_KERNEL
 	select SYS_SUPPORTS_BIG_ENDIAN
 	select SYS_SUPPORTS_MIPS16
-	select SYS_SUPPORTS_ZBOOT
+	select SYS_SUPPORTS_ZBOOT_UART_PROM
 	select USE_OF
 	help
 	  Support for the Atheros AR71XX/AR724X/AR913X SoCs.
@@ -152,6 +152,7 @@ config BMIPS_GENERIC
 	select CSRC_R4K
 	select SYNC_R4K
 	select COMMON_CLK
+	select BCM6345_L1_IRQ
 	select BCM7038_L1_IRQ
 	select BCM7120_L2_IRQ
 	select BRCMSTB_L2_IRQ
