@@ -682,6 +682,18 @@ void __iomem *devm_ioremap_resource(struct device *dev, struct resource *res);
 int devm_add_action(struct device *dev, void (*action)(void *), void *data);
 void devm_remove_action(struct device *dev, void (*action)(void *), void *data);
 
+static inline int devm_add_action_or_reset(struct device *dev,
+					   void (*action)(void *), void *data)
+{
+	int ret;
+
+	ret = devm_add_action(dev, action, data);
+	if (ret)
+		action(data);
+
+	return ret;
+}
+
 struct device_dma_parameters {
 	/*
 	 * a low level driver may set these to teach IOMMU code about
@@ -956,6 +968,11 @@ static inline void dev_pm_syscore_device(struct device *dev, bool val)
 static inline void device_lock(struct device *dev)
 {
 	mutex_lock(&dev->mutex);
+}
+
+static inline int device_lock_interruptible(struct device *dev)
+{
+	return mutex_lock_interruptible(&dev->mutex);
 }
 
 static inline int device_trylock(struct device *dev)
@@ -1291,8 +1308,9 @@ do {									\
  * dev_WARN*() acts like dev_printk(), but with the key difference of
  * using WARN/WARN_ONCE to include file/line information and a backtrace.
  */
-#define dev_WARN(dev, format, arg...) \
-	WARN(1, "%s %s: " format, dev_driver_string(dev), dev_name(dev), ## arg);
+#define dev_WARN(dev, condition, format, arg...)		\
+	WARN(condition, "%s %s: " format,			\
+			dev_driver_string(dev), dev_name(dev), ## arg)
 
 #define dev_WARN_ONCE(dev, condition, format, arg...) \
 	WARN_ONCE(condition, "%s %s: " format, \
