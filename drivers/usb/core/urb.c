@@ -401,7 +401,7 @@ int usb_submit_urb(struct urb *urb, gfp_t mem_flags)
 		/* SuperSpeed isoc endpoints have up to 16 bursts of up to
 		 * 3 packets each
 		 */
-		if (dev->speed == USB_SPEED_SUPER) {
+		if (dev->speed >= USB_SPEED_SUPER) {
 			int     burst = 1 + ep->ss_ep_comp.bMaxBurst;
 			int     mult = USB_SS_MULT(ep->ss_ep_comp.bmAttributes);
 			max *= burst;
@@ -444,8 +444,8 @@ int usb_submit_urb(struct urb *urb, gfp_t mem_flags)
 	 */
 
 	/* Check that the pipe's type matches the endpoint's type */
-	if (usb_pipetype(urb->pipe) != pipetypes[xfertype])
-		dev_WARN(&dev->dev, "BOGUS urb xfer, pipe %x != type %x\n",
+	dev_WARN(&dev->dev, usb_pipetype(urb->pipe) != pipetypes[xfertype],
+			"BOGUS urb xfer, pipe %x != type %x\n",
 			usb_pipetype(urb->pipe), pipetypes[xfertype]);
 
 	/* Check against a simple/standard policy */
@@ -471,8 +471,8 @@ int usb_submit_urb(struct urb *urb, gfp_t mem_flags)
 	allowed &= urb->transfer_flags;
 
 	/* warn if submitter gave bogus flags */
-	if (allowed != urb->transfer_flags)
-		dev_WARN(&dev->dev, "BOGUS urb flags, %x --> %x\n",
+	dev_WARN(&dev->dev, allowed != urb->transfer_flags,
+			"BOGUS urb flags, %x --> %x\n",
 			urb->transfer_flags, allowed);
 
 	/*
@@ -499,6 +499,7 @@ int usb_submit_urb(struct urb *urb, gfp_t mem_flags)
 		}
 		/* too big? */
 		switch (dev->speed) {
+		case USB_SPEED_SUPER_PLUS:
 		case USB_SPEED_SUPER:	/* units are 125us */
 			/* Handle up to 2^(16-1) microframes */
 			if (urb->interval > (1 << 15))
