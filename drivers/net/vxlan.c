@@ -2322,20 +2322,6 @@ static int __vxlan_change_mtu(struct net_device *dev,
 }
 
 static int vxlan_change_mtu(struct net_device *dev, int new_mtu)
-<<<<<<< HEAD
-{
-	struct vxlan_dev *vxlan = netdev_priv(dev);
-	struct vxlan_rdst *dst = &vxlan->default_dst;
-	struct net_device *lowerdev = __dev_get_by_index(vxlan->net,
-							 dst->remote_ifindex);
-	return __vxlan_change_mtu(dev, lowerdev, dst, new_mtu, true);
-}
-
-static int egress_ipv4_tun_info(struct net_device *dev, struct sk_buff *skb,
-				struct ip_tunnel_info *info,
-				__be16 sport, __be16 dport)
-=======
->>>>>>> linux-next/akpm-base
 {
 	struct vxlan_dev *vxlan = netdev_priv(dev);
 	struct vxlan_rdst *dst = &vxlan->default_dst;
