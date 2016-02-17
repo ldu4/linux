@@ -777,7 +777,6 @@ struct signal_struct {
 #endif
 #ifdef CONFIG_AUDIT
 	unsigned audit_tty;
-	unsigned audit_tty_log_passwd;
 	struct tty_audit_buf *tty_audit_buf;
 #endif
 
@@ -921,6 +920,10 @@ static inline int sched_info_on(void)
 	return 0;
 #endif
 }
+
+#ifdef CONFIG_SCHEDSTATS
+void force_schedstat_enabled(void);
+#endif
 
 enum cpu_idle_type {
 	CPU_IDLE,
@@ -1652,6 +1655,11 @@ struct task_struct {
 
 /* journalling filesystem info */
 	void *journal_info;
+
+/* threaded aio info */
+#if IS_ENABLED(CONFIG_AIO)
+	struct kiocb *kiocb;
+#endif
 
 /* stacked block device info */
 	struct bio_list *bio_list;
@@ -2536,6 +2544,7 @@ extern __must_check bool do_notify_parent(struct task_struct *, int);
 extern void __wake_up_parent(struct task_struct *p, struct task_struct *parent);
 extern void force_sig(int, struct task_struct *);
 extern int send_sig(int, struct task_struct *, int);
+extern int io_send_sig(int signal);
 extern int zap_other_threads(struct task_struct *p);
 extern struct sigqueue *sigqueue_alloc(void);
 extern void sigqueue_free(struct sigqueue *);
