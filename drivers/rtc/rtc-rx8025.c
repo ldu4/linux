@@ -7,7 +7,7 @@
  * All rights reserved.
  *
  * Modified by fengjh at rising.com.cn
- * <http://lists.lm-sensors.org/mailman/listinfo/lm-sensors>
+ * <lm-sensors@lm-sensors.org>
  * 2006.11
  *
  * Code cleanup by Sergei Poselenov, <sposelenov@emcraft.com>
@@ -65,7 +65,6 @@
 
 static const struct i2c_device_id rx8025_id[] = {
 	{ "rx8025", 0 },
-	{ "rv8803", 1 },
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, rx8025_id);

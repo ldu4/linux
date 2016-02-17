@@ -23,11 +23,9 @@
  * The usage of AES-XTS should conform to recommendations in NIST
  * Special Publication 800-38E and IEEE P1619/D16.
  */
-#include <crypto/hash.h>
-#include <crypto/sha.h>
+#include <crypto/skcipher.h>
 #include <keys/user-type.h>
 #include <keys/encrypted-type.h>
-#include <linux/crypto.h>
 #include <linux/ecryptfs.h>
 #include <linux/gfp.h>
 #include <linux/kernel.h>
@@ -156,7 +154,7 @@ static void completion_pages(struct work_struct *work)
 
 	bio_for_each_segment_all(bv, bio, i) {
 		struct page *page = bv->bv_page;
-		int ret = f2fs_decrypt(ctx, page);
+		int ret = f2fs_decrypt(page);
 
 		if (ret) {
 			WARN_ON_ONCE(1);
@@ -320,29 +318,28 @@ typedef enum {
 	F2FS_ENCRYPT,
 } f2fs_direction_t;
 
-static int f2fs_page_crypto(struct f2fs_crypto_ctx *ctx,
-				struct inode *inode,
+static int f2fs_page_crypto(struct inode *inode,
 				f2fs_direction_t rw,
 				pgoff_t index,
 				struct page *src_page,
 				struct page *dest_page)
 {
 	u8 xts_tweak[F2FS_XTS_TWEAK_SIZE];
-	struct ablkcipher_request *req = NULL;
+	struct skcipher_request *req = NULL;
 	DECLARE_F2FS_COMPLETION_RESULT(ecr);
 	struct scatterlist dst, src;
 	struct f2fs_crypt_info *ci = F2FS_I(inode)->i_crypt_info;
-	struct crypto_ablkcipher *tfm = ci->ci_ctfm;
+	struct crypto_skcipher *tfm = ci->ci_ctfm;
 	int res = 0;
 
-	req = ablkcipher_request_alloc(tfm, GFP_NOFS);
+	req = skcipher_request_alloc(tfm, GFP_NOFS);
 	if (!req) {
 		printk_ratelimited(KERN_ERR
 				"%s: crypto_request_alloc() failed\n",
 				__func__);
 		return -ENOMEM;
 	}
-	ablkcipher_request_set_callback(
+	skcipher_request_set_callback(
 		req, CRYPTO_TFM_REQ_MAY_BACKLOG | CRYPTO_TFM_REQ_MAY_SLEEP,
 		f2fs_crypt_complete, &ecr);
 
@@ -355,21 +352,20 @@ static int f2fs_page_crypto(struct f2fs_crypto_ctx *ctx,
 	sg_set_page(&dst, dest_page, PAGE_CACHE_SIZE, 0);
 	sg_init_table(&src, 1);
 	sg_set_page(&src, src_page, PAGE_CACHE_SIZE, 0);
-	ablkcipher_request_set_crypt(req, &src, &dst, PAGE_CACHE_SIZE,
-					xts_tweak);
+	skcipher_request_set_crypt(req, &src, &dst, PAGE_CACHE_SIZE,
+				   xts_tweak);
 	if (rw == F2FS_DECRYPT)
-		res = crypto_ablkcipher_decrypt(req);
+		res = crypto_skcipher_decrypt(req);
 	else
-		res = crypto_ablkcipher_encrypt(req);
+		res = crypto_skcipher_encrypt(req);
 	if (res == -EINPROGRESS || res == -EBUSY) {
-		BUG_ON(req->base.data != &ecr);
 		wait_for_completion(&ecr.completion);
 		res = ecr.res;
 	}
-	ablkcipher_request_free(req);
+	skcipher_request_free(req);
 	if (res) {
 		printk_ratelimited(KERN_ERR
-			"%s: crypto_ablkcipher_encrypt() returned %d\n",
+			"%s: crypto_skcipher_encrypt() returned %d\n",
 			__func__, res);
 		return res;
 	}
@@ -419,7 +415,7 @@ struct page *f2fs_encrypt(struct inode *inode,
 		goto err_out;
 
 	ctx->w.control_page = plaintext_page;
-	err = f2fs_page_crypto(ctx, inode, F2FS_ENCRYPT, plaintext_page->index,
+	err = f2fs_page_crypto(inode, F2FS_ENCRYPT, plaintext_page->index,
 					plaintext_page, ciphertext_page);
 	if (err) {
 		ciphertext_page = ERR_PTR(err);
@@ -447,28 +443,12 @@ err_out:
  *
  * Return: Zero on success, non-zero otherwise.
  */
-int f2fs_decrypt(struct f2fs_crypto_ctx *ctx, struct page *page)
+int f2fs_decrypt(struct page *page)
 {
 	BUG_ON(!PageLocked(page));
 
-	return f2fs_page_crypto(ctx, page->mapping->host,
+	return f2fs_page_crypto(page->mapping->host,
 				F2FS_DECRYPT, page->index, page, page);
-}
-
-/*
- * Convenience function which takes care of allocating and
- * deallocating the encryption context
- */
-int f2fs_decrypt_one(struct inode *inode, struct page *page)
-{
-	struct f2fs_crypto_ctx *ctx = f2fs_get_crypto_ctx(inode);
-	int ret;
-
-	if (IS_ERR(ctx))
-		return PTR_ERR(ctx);
-	ret = f2fs_decrypt(ctx, page);
-	f2fs_release_crypto_ctx(ctx);
-	return ret;
 }
 
 bool f2fs_valid_contents_enc_mode(uint32_t mode)
