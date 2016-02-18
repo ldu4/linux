@@ -1586,12 +1586,18 @@ static inline void add_partial(struct kmem_cache_node *n,
 	__add_partial(n, page, tail);
 }
 
+static inline void
+__remove_partial(struct kmem_cache_node *n, struct page *page)
+{
+	list_del(&page->lru);
+	n->nr_partial--;
+}
+
 static inline void remove_partial(struct kmem_cache_node *n,
 					struct page *page)
 {
 	lockdep_assert_held(&n->list_lock);
-	list_del(&page->lru);
-	n->nr_partial--;
+	__remove_partial(n, page);
 }
 
 /*
@@ -3176,21 +3182,16 @@ static void early_kmem_cache_node_alloc(int node)
 	__add_partial(n, page, DEACTIVATE_TO_HEAD);
 }
 
-static void free_kmem_cache_nodes(struct kmem_cache *s)
+void __kmem_cache_release(struct kmem_cache *s)
 {
 	int node;
 	struct kmem_cache_node *n;
 
+	free_percpu(s->cpu_slab);
 	for_each_kmem_cache_node(s, node, n) {
 		kmem_cache_free(kmem_cache_node, n);
 		s->node[node] = NULL;
 	}
-}
-
-void __kmem_cache_release(struct kmem_cache *s)
-{
-	free_percpu(s->cpu_slab);
-	free_kmem_cache_nodes(s);
 }
 
 static int init_kmem_cache_nodes(struct kmem_cache *s)
@@ -3208,7 +3209,7 @@ static int init_kmem_cache_nodes(struct kmem_cache *s)
 						GFP_KERNEL, node);
 
 		if (!n) {
-			free_kmem_cache_nodes(s);
+			__kmem_cache_release(s);
 			return 0;
 		}
 
@@ -3424,7 +3425,7 @@ static int kmem_cache_open(struct kmem_cache *s, unsigned long flags)
 	if (alloc_kmem_cache_cpus(s))
 		return 0;
 
-	free_kmem_cache_nodes(s);
+	__kmem_cache_release(s);
 error:
 	if (flags & SLAB_PANIC)
 		panic("Cannot create slab %s size=%lu realsize=%u "
@@ -3464,25 +3465,22 @@ static void list_slab_objects(struct kmem_cache *s, struct page *page,
 
 /*
  * Attempt to free all partial slabs on a node.
- * This is called from __kmem_cache_shutdown(). We must take list_lock
- * because sysfs file might still access partial list after the shutdowning.
+ * This is called from __kmem_cache_shutdown(). We must be the last thread
+ * using the cache and therefore we do not need to lock anymore.
  */
 static void free_partial(struct kmem_cache *s, struct kmem_cache_node *n)
 {
 	struct page *page, *h;
 
-	BUG_ON(irqs_disabled());
-	spin_lock_irq(&n->list_lock);
 	list_for_each_entry_safe(page, h, &n->partial, lru) {
 		if (!page->inuse) {
-			remove_partial(n, page);
+			__remove_partial(n, page);
 			discard_slab(s, page);
 		} else {
 			list_slab_objects(s, page,
 			"Objects remaining in %s on __kmem_cache_shutdown()");
 		}
 	}
-	spin_unlock_irq(&n->list_lock);
 }
 
 /*
@@ -3996,8 +3994,10 @@ int __kmem_cache_create(struct kmem_cache *s, unsigned long flags)
 
 	memcg_propagate_slab_attrs(s);
 	err = sysfs_slab_add(s);
-	if (err)
+	if (err) {
+		__kmem_cache_shutdown(s);
 		__kmem_cache_release(s);
+	}
 
 	return err;
 }
