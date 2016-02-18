@@ -715,9 +715,11 @@ __SYSCALL(__NR_userfaultfd, sys_userfaultfd)
 __SYSCALL(__NR_membarrier, sys_membarrier)
 #define __NR_mlock2 284
 __SYSCALL(__NR_mlock2, sys_mlock2)
+#define __NR_madvisev 286
+__SC_COMP(__NR_madvisev, sys_madvisev, compat_sys_madvisev)
 
 #undef __NR_syscalls
-#define __NR_syscalls 285
+#define __NR_syscalls 287
 
 /*
  * All syscalls below here should go away really,

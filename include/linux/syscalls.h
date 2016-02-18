@@ -889,4 +889,7 @@ asmlinkage long sys_membarrier(int cmd, int flags);
 
 asmlinkage long sys_mlock2(unsigned long start, size_t len, int flags);
 
+asmlinkage long sys_madvisev(const struct iovec __user *uvector,
+		unsigned long nr_segs, int behavior);
+
 #endif
