@@ -3182,12 +3182,11 @@ static void early_kmem_cache_node_alloc(int node)
 	__add_partial(n, page, DEACTIVATE_TO_HEAD);
 }
 
-void __kmem_cache_release(struct kmem_cache *s)
+static void free_kmem_cache_nodes(struct kmem_cache *s)
 {
 	int node;
 	struct kmem_cache_node *n;
 
-	free_percpu(s->cpu_slab);
 	for_each_kmem_cache_node(s, node, n) {
 		kmem_cache_free(kmem_cache_node, n);
 		s->node[node] = NULL;
@@ -3209,7 +3208,7 @@ static int init_kmem_cache_nodes(struct kmem_cache *s)
 						GFP_KERNEL, node);
 
 		if (!n) {
-			__kmem_cache_release(s);
+			free_kmem_cache_nodes(s);
 			return 0;
 		}
 
@@ -3425,7 +3424,7 @@ static int kmem_cache_open(struct kmem_cache *s, unsigned long flags)
 	if (alloc_kmem_cache_cpus(s))
 		return 0;
 
-	__kmem_cache_release(s);
+	free_kmem_cache_nodes(s);
 error:
 	if (flags & SLAB_PANIC)
 		panic("Cannot create slab %s size=%lu realsize=%u "
@@ -3465,7 +3464,7 @@ static void list_slab_objects(struct kmem_cache *s, struct page *page,
 
 /*
  * Attempt to free all partial slabs on a node.
- * This is called from __kmem_cache_shutdown(). We must be the last thread
+ * This is called from kmem_cache_close(). We must be the last thread
  * using the cache and therefore we do not need to lock anymore.
  */
 static void free_partial(struct kmem_cache *s, struct kmem_cache_node *n)
@@ -3478,7 +3477,7 @@ static void free_partial(struct kmem_cache *s, struct kmem_cache_node *n)
 			discard_slab(s, page);
 		} else {
 			list_slab_objects(s, page,
-			"Objects remaining in %s on __kmem_cache_shutdown()");
+			"Objects remaining in %s on kmem_cache_close()");
 		}
 	}
 }
@@ -3486,7 +3485,7 @@ static void free_partial(struct kmem_cache *s, struct kmem_cache_node *n)
 /*
  * Release all resources used by a slab cache.
  */
-int __kmem_cache_shutdown(struct kmem_cache *s)
+static inline int kmem_cache_close(struct kmem_cache *s)
 {
 	int node;
 	struct kmem_cache_node *n;
@@ -3498,7 +3497,14 @@ int __kmem_cache_shutdown(struct kmem_cache *s)
 		if (n->nr_partial || slabs_node(s, node))
 			return 1;
 	}
+	free_percpu(s->cpu_slab);
+	free_kmem_cache_nodes(s);
 	return 0;
+}
+
+int __kmem_cache_shutdown(struct kmem_cache *s)
+{
+	return kmem_cache_close(s);
 }
 
 /********************************************************************
@@ -3994,10 +4000,8 @@ int __kmem_cache_create(struct kmem_cache *s, unsigned long flags)
 
 	memcg_propagate_slab_attrs(s);
 	err = sysfs_slab_add(s);
-	if (err) {
-		__kmem_cache_shutdown(s);
-		__kmem_cache_release(s);
-	}
+	if (err)
+		kmem_cache_close(s);
 
 	return err;
 }
