@@ -63,6 +63,13 @@ static bool etm4_arch_supported(u8 arch)
 	return true;
 }
 
+static int etm4_cpu_id(struct coresight_device *csdev)
+{
+	struct etmv4_drvdata *drvdata = dev_get_drvdata(csdev->dev.parent);
+
+	return drvdata->cpu;
+}
+
 static int etm4_trace_id(struct coresight_device *csdev)
 {
 	struct etmv4_drvdata *drvdata = dev_get_drvdata(csdev->dev.parent);
@@ -262,6 +269,7 @@ static void etm4_disable(struct coresight_device *csdev)
 }
 
 static const struct coresight_ops_source etm4_source_ops = {
+	.cpu_id		= etm4_cpu_id,
 	.trace_id	= etm4_trace_id,
 	.enable		= etm4_enable,
 	.disable	= etm4_disable,
@@ -2219,7 +2227,7 @@ static ssize_t name##_show(struct device *_dev,				\
 	return scnprintf(buf, PAGE_SIZE, "0x%x\n",			\
 			 readl_relaxed(drvdata->base + offset));	\
 }									\
-DEVICE_ATTR_RO(name)
+static DEVICE_ATTR_RO(name)
 
 coresight_simple_func(trcoslsr, TRCOSLSR);
 coresight_simple_func(trcpdcr, TRCPDCR);
@@ -2684,17 +2692,6 @@ err_coresight_register:
 	return ret;
 }
 
-static int etm4_remove(struct amba_device *adev)
-{
-	struct etmv4_drvdata *drvdata = amba_get_drvdata(adev);
-
-	coresight_unregister(drvdata->csdev);
-	if (--etm4_count == 0)
-		unregister_hotcpu_notifier(&etm4_cpu_notifier);
-
-	return 0;
-}
-
 static struct amba_id etm4_ids[] = {
 	{       /* ETM 4.0 - Qualcomm */
 		.id	= 0x0003b95d,
@@ -2712,9 +2709,9 @@ static struct amba_id etm4_ids[] = {
 static struct amba_driver etm4x_driver = {
 	.drv = {
 		.name   = "coresight-etm4x",
+		.suppress_bind_attrs = true,
 	},
 	.probe		= etm4_probe,
-	.remove		= etm4_remove,
 	.id_table	= etm4_ids,
 };
 

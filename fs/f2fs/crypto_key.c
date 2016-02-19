@@ -14,7 +14,7 @@
 #include <linux/random.h>
 #include <linux/scatterlist.h>
 #include <uapi/linux/keyctl.h>
-#include <crypto/hash.h>
+#include <crypto/skcipher.h>
 #include <linux/f2fs_fs.h>
 
 #include "f2fs.h"
@@ -33,7 +33,7 @@ static void derive_crypt_complete(struct crypto_async_request *req, int rc)
 
 /**
  * f2fs_derive_key_aes() - Derive a key using AES-128-ECB
- * @deriving_key: Encryption key used for derivatio.
+ * @deriving_key: Encryption key used for derivation.
  * @source_key:   Source key to which to apply derivation.
  * @derived_key:  Derived key.
  *
@@ -44,46 +44,42 @@ static int f2fs_derive_key_aes(char deriving_key[F2FS_AES_128_ECB_KEY_SIZE],
 				char derived_key[F2FS_AES_256_XTS_KEY_SIZE])
 {
 	int res = 0;
-	struct ablkcipher_request *req = NULL;
+	struct skcipher_request *req = NULL;
 	DECLARE_F2FS_COMPLETION_RESULT(ecr);
 	struct scatterlist src_sg, dst_sg;
-	struct crypto_ablkcipher *tfm = crypto_alloc_ablkcipher("ecb(aes)", 0,
-								0);
+	struct crypto_skcipher *tfm = crypto_alloc_skcipher("ecb(aes)", 0, 0);
 
 	if (IS_ERR(tfm)) {
 		res = PTR_ERR(tfm);
 		tfm = NULL;
 		goto out;
 	}
-	crypto_ablkcipher_set_flags(tfm, CRYPTO_TFM_REQ_WEAK_KEY);
-	req = ablkcipher_request_alloc(tfm, GFP_NOFS);
+	crypto_skcipher_set_flags(tfm, CRYPTO_TFM_REQ_WEAK_KEY);
+	req = skcipher_request_alloc(tfm, GFP_NOFS);
 	if (!req) {
 		res = -ENOMEM;
 		goto out;
 	}
-	ablkcipher_request_set_callback(req,
+	skcipher_request_set_callback(req,
 			CRYPTO_TFM_REQ_MAY_BACKLOG | CRYPTO_TFM_REQ_MAY_SLEEP,
 			derive_crypt_complete, &ecr);
-	res = crypto_ablkcipher_setkey(tfm, deriving_key,
+	res = crypto_skcipher_setkey(tfm, deriving_key,
 				F2FS_AES_128_ECB_KEY_SIZE);
 	if (res < 0)
 		goto out;
 
 	sg_init_one(&src_sg, source_key, F2FS_AES_256_XTS_KEY_SIZE);
 	sg_init_one(&dst_sg, derived_key, F2FS_AES_256_XTS_KEY_SIZE);
-	ablkcipher_request_set_crypt(req, &src_sg, &dst_sg,
+	skcipher_request_set_crypt(req, &src_sg, &dst_sg,
 					F2FS_AES_256_XTS_KEY_SIZE, NULL);
-	res = crypto_ablkcipher_encrypt(req);
+	res = crypto_skcipher_encrypt(req);
 	if (res == -EINPROGRESS || res == -EBUSY) {
-		BUG_ON(req->base.data != &ecr);
 		wait_for_completion(&ecr.completion);
 		res = ecr.res;
 	}
 out:
-	if (req)
-		ablkcipher_request_free(req);
-	if (tfm)
-		crypto_free_ablkcipher(tfm);
+	skcipher_request_free(req);
+	crypto_free_skcipher(tfm);
 	return res;
 }
 
@@ -93,7 +89,7 @@ static void f2fs_free_crypt_info(struct f2fs_crypt_info *ci)
 		return;
 
 	key_put(ci->ci_keyring_key);
-	crypto_free_ablkcipher(ci->ci_ctfm);
+	crypto_free_skcipher(ci->ci_ctfm);
 	kmem_cache_free(f2fs_crypt_info_cachep, ci);
 }
 
@@ -123,7 +119,7 @@ int _f2fs_get_encryption_info(struct inode *inode)
 	struct f2fs_encryption_key *master_key;
 	struct f2fs_encryption_context ctx;
 	const struct user_key_payload *ukp;
-	struct crypto_ablkcipher *ctfm;
+	struct crypto_skcipher *ctfm;
 	const char *cipher_str;
 	char raw_key[F2FS_MAX_KEY_SIZE];
 	char mode;
@@ -198,22 +194,36 @@ retry:
 		goto out;
 	}
 	crypt_info->ci_keyring_key = keyring_key;
-	BUG_ON(keyring_key->type != &key_type_logon);
+	if (keyring_key->type != &key_type_logon) {
+		printk_once(KERN_WARNING "f2fs: key type must be logon\n");
+		res = -ENOKEY;
+		goto out;
+	}
+	down_read(&keyring_key->sem);
 	ukp = user_key_payload(keyring_key);
 	if (ukp->datalen != sizeof(struct f2fs_encryption_key)) {
 		res = -EINVAL;
+		up_read(&keyring_key->sem);
 		goto out;
 	}
 	master_key = (struct f2fs_encryption_key *)ukp->data;
 	BUILD_BUG_ON(F2FS_AES_128_ECB_KEY_SIZE !=
 				F2FS_KEY_DERIVATION_NONCE_SIZE);
-	BUG_ON(master_key->size != F2FS_AES_256_XTS_KEY_SIZE);
+	if (master_key->size != F2FS_AES_256_XTS_KEY_SIZE) {
+		printk_once(KERN_WARNING
+				"f2fs: key size incorrect: %d\n",
+				master_key->size);
+		res = -ENOKEY;
+		up_read(&keyring_key->sem);
+		goto out;
+	}
 	res = f2fs_derive_key_aes(ctx.nonce, master_key->raw,
 				  raw_key);
+	up_read(&keyring_key->sem);
 	if (res)
 		goto out;
 
-	ctfm = crypto_alloc_ablkcipher(cipher_str, 0, 0);
+	ctfm = crypto_alloc_skcipher(cipher_str, 0, 0);
 	if (!ctfm || IS_ERR(ctfm)) {
 		res = ctfm ? PTR_ERR(ctfm) : -ENOMEM;
 		printk(KERN_DEBUG
@@ -222,11 +232,10 @@ retry:
 		goto out;
 	}
 	crypt_info->ci_ctfm = ctfm;
-	crypto_ablkcipher_clear_flags(ctfm, ~0);
-	crypto_tfm_set_flags(crypto_ablkcipher_tfm(ctfm),
-			     CRYPTO_TFM_REQ_WEAK_KEY);
-	res = crypto_ablkcipher_setkey(ctfm, raw_key,
-					f2fs_encryption_key_size(mode));
+	crypto_skcipher_clear_flags(ctfm, ~0);
+	crypto_skcipher_set_flags(ctfm, CRYPTO_TFM_REQ_WEAK_KEY);
+	res = crypto_skcipher_setkey(ctfm, raw_key,
+				     f2fs_encryption_key_size(mode));
 	if (res)
 		goto out;
 
