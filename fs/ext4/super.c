@@ -844,7 +844,6 @@ static void ext4_put_super(struct super_block *sb)
 	ext4_release_system_zone(sb);
 	ext4_mb_release(sb);
 	ext4_ext_release(sb);
-	ext4_xattr_put_super(sb);
 
 	if (!(sb->s_flags & MS_RDONLY)) {
 		ext4_clear_feature_journal_needs_recovery(sb);
@@ -1132,6 +1131,7 @@ static const struct dquot_operations ext4_quota_operations = {
 	.alloc_dquot	= dquot_alloc,
 	.destroy_dquot	= dquot_destroy,
 	.get_projid	= ext4_get_projid,
+	.get_next_id	= dquot_get_next_id,
 };
 
 static const struct quotactl_ops ext4_qctl_operations = {
@@ -1141,7 +1141,8 @@ static const struct quotactl_ops ext4_qctl_operations = {
 	.get_state	= dquot_get_state,
 	.set_info	= dquot_set_dqinfo,
 	.get_dqblk	= dquot_get_dqblk,
-	.set_dqblk	= dquot_set_dqblk
+	.set_dqblk	= dquot_set_dqblk,
+	.get_nextdqblk	= dquot_get_next_dqblk,
 };
 #endif
 
@@ -3797,7 +3798,7 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
 
 no_journal:
 	if (ext4_mballoc_ready) {
-		sbi->s_mb_cache = ext4_xattr_create_cache(sb->s_id);
+		sbi->s_mb_cache = ext4_xattr_create_cache();
 		if (!sbi->s_mb_cache) {
 			ext4_msg(sb, KERN_ERR, "Failed to create an mb_cache");
 			goto failed_mount_wq;
@@ -4027,6 +4028,10 @@ failed_mount4:
 	if (EXT4_SB(sb)->rsv_conversion_wq)
 		destroy_workqueue(EXT4_SB(sb)->rsv_conversion_wq);
 failed_mount_wq:
+	if (sbi->s_mb_cache) {
+		ext4_xattr_destroy_cache(sbi->s_mb_cache);
+		sbi->s_mb_cache = NULL;
+	}
 	if (sbi->s_journal) {
 		jbd2_journal_destroy(sbi->s_journal);
 		sbi->s_journal = NULL;
