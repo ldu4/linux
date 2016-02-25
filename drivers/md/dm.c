@@ -1220,11 +1220,7 @@ static void dm_unprep_request(struct request *rq)
 	if (clone)
 		free_rq_clone(clone);
 	else if (!tio->md->queue->mq_ops)
-<<<<<<< HEAD
-		free_rq_tio(tio);
-=======
 		free_old_rq_tio(tio);
->>>>>>> linux-next/akpm-base
 }
 
 /*
