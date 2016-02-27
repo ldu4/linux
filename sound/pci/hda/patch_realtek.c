@@ -4758,10 +4758,6 @@ enum {
 	ALC233_FIXUP_LENOVO_LINE2_MIC_HOTKEY,
 	ALC255_FIXUP_DELL_SPK_NOISE,
 	ALC225_FIXUP_DELL1_MIC_NO_PRESENCE,
-<<<<<<< HEAD
-	ALC280_FIXUP_HP_HEADSET_MIC,
-=======
->>>>>>> linux-next/akpm-base
 };
 
 static const struct hda_fixup alc269_fixups[] = {
@@ -5398,15 +5394,6 @@ static const struct hda_fixup alc269_fixups[] = {
 		.chained = true,
 		.chain_id = ALC269_FIXUP_DELL1_MIC_NO_PRESENCE
 	},
-<<<<<<< HEAD
-	[ALC280_FIXUP_HP_HEADSET_MIC] = {
-		.type = HDA_FIXUP_FUNC,
-		.v.func = alc_fixup_disable_aamix,
-		.chained = true,
-		.chain_id = ALC269_FIXUP_HEADSET_MIC,
-	},
-=======
->>>>>>> linux-next/akpm-base
 };
 
 static const struct snd_pci_quirk alc269_fixup_tbl[] = {

@@ -2002,7 +2002,6 @@ bool intel_ddi_get_hw_state(struct intel_encoder *encoder,
 		}
 
 		ret = true;
-<<<<<<< HEAD
 
 		goto out;
 	}
@@ -2010,15 +2009,6 @@ bool intel_ddi_get_hw_state(struct intel_encoder *encoder,
 	for (i = TRANSCODER_A; i <= TRANSCODER_C; i++) {
 		tmp = I915_READ(TRANS_DDI_FUNC_CTL(i));
 
-=======
-
-		goto out;
-	}
-
-	for (i = TRANSCODER_A; i <= TRANSCODER_C; i++) {
-		tmp = I915_READ(TRANS_DDI_FUNC_CTL(i));
-
->>>>>>> linux-next/akpm-base
 		if ((tmp & TRANS_DDI_PORT_MASK) == TRANS_DDI_SELECT_PORT(port)) {
 			if ((tmp & TRANS_DDI_MODE_SELECT_MASK) ==
 			    TRANS_DDI_MODE_SELECT_DP_MST)

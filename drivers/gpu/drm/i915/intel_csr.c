@@ -245,11 +245,8 @@ bool intel_csr_load_program(struct drm_i915_private *dev_priv)
 	}
 
 	dev_priv->csr.dc_state = 0;
-<<<<<<< HEAD
-=======
 
 	return true;
->>>>>>> linux-next/akpm-base
 }
 
 static uint32_t *parse_csr_fw(struct drm_i915_private *dev_priv,
