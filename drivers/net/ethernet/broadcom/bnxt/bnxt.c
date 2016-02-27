@@ -248,7 +248,8 @@ static netdev_tx_t bnxt_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		tx_push1->tx_bd_cfa_meta = cpu_to_le32(vlan_tag_flags);
 		tx_push1->tx_bd_cfa_action = cpu_to_le32(cfa_action);
 
-		end = PTR_ALIGN(pdata + length + 1, 8) - 1;
+		end = pdata + length;
+		end = PTR_ALIGN(end, 8) - 1;
 		*end = 0;
 
 		skb_copy_from_linear_data(skb, pdata, len);
@@ -5377,9 +5378,16 @@ static int bnxt_change_mtu(struct net_device *dev, int new_mtu)
 	return 0;
 }
 
-static int bnxt_setup_tc(struct net_device *dev, u8 tc)
+static int bnxt_setup_tc(struct net_device *dev, u32 handle, __be16 proto,
+			 struct tc_to_netdev *ntc)
 {
 	struct bnxt *bp = netdev_priv(dev);
+	u8 tc;
+
+	if (handle != TC_H_ROOT || ntc->type != TC_SETUP_MQPRIO)
+		return -EINVAL;
+
+	tc = ntc->tc;
 
 	if (tc > bp->max_tc) {
 		netdev_err(dev, "too many traffic classes requested: %d Max supported is %d\n",

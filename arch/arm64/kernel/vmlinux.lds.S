@@ -87,15 +87,16 @@ SECTIONS
 		EXIT_CALL
 		*(.discard)
 		*(.discard.*)
+		*(.interp .dynamic)
 	}
 
-	. = PAGE_OFFSET + TEXT_OFFSET;
+	. = KIMAGE_VADDR + TEXT_OFFSET;
 
 	.head.text : {
 		_text = .;
 		HEAD_TEXT
 	}
-	ALIGN_DEBUG_RO
+	ALIGN_DEBUG_RO_MIN(PAGE_SIZE)
 	.text : {			/* Real text segment		*/
 		_stext = .;		/* Text and read-only data	*/
 			__exception_text_start = .;
@@ -116,10 +117,9 @@ SECTIONS
 	RO_DATA(PAGE_SIZE)
 	EXCEPTION_TABLE(8)
 	NOTES
-	ALIGN_DEBUG_RO
-	_etext = .;			/* End of text and rodata section */
 
 	ALIGN_DEBUG_RO_MIN(PAGE_SIZE)
+	_etext = .;			/* End of text and rodata section */
 	__init_begin = .;
 
 	INIT_TEXT_SECTION(8)
@@ -134,6 +134,7 @@ SECTIONS
 		CON_INITCALL
 		SECURITY_INITCALL
 		INIT_RAM_FS
+		*(.init.rodata.* .init.bss)	/* from the EFI stub */
 	}
 	.exit.data : {
 		ARM_EXIT_KEEP(EXIT_DATA)
@@ -149,6 +150,21 @@ SECTIONS
 	}
 	.altinstr_replacement : {
 		*(.altinstr_replacement)
+	}
+	.rela : ALIGN(8) {
+		__reloc_start = .;
+		*(.rela .rela*)
+		__reloc_end = .;
+	}
+	.dynsym : ALIGN(8) {
+		__dynsym_start = .;
+		*(.dynsym)
+	}
+	.dynstr : {
+		*(.dynstr)
+	}
+	.hash : {
+		*(.hash)
 	}
 
 	. = ALIGN(PAGE_SIZE);
@@ -187,4 +203,4 @@ ASSERT(__idmap_text_end - (__idmap_text_start & ~(SZ_4K - 1)) <= SZ_4K,
 /*
  * If padding is applied before .head.text, virt<->phys conversions will fail.
  */
-ASSERT(_text == (PAGE_OFFSET + TEXT_OFFSET), "HEAD is misaligned")
+ASSERT(_text == (KIMAGE_VADDR + TEXT_OFFSET), "HEAD is misaligned")

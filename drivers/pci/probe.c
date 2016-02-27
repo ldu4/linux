@@ -15,7 +15,7 @@
 #include <linux/pci-aspm.h>
 #include <linux/aer.h>
 #include <linux/acpi.h>
-#include <asm-generic/pci-bridge.h>
+#include <linux/irqdomain.h>
 #include "pci.h"
 
 #define CARDBUS_LATENCY_TIMER	176	/* secondary latency timer */
@@ -674,6 +674,20 @@ static struct irq_domain *pci_host_bridge_msi_domain(struct pci_bus *bus)
 	d = pci_host_bridge_of_msi_domain(bus);
 	if (!d)
 		d = pci_host_bridge_acpi_msi_domain(bus);
+
+#ifdef CONFIG_PCI_MSI_IRQ_DOMAIN
+	/*
+	 * If no IRQ domain was found via the OF tree, try looking it up
+	 * directly through the fwnode_handle.
+	 */
+	if (!d) {
+		struct fwnode_handle *fwnode = pci_root_bus_fwnode(bus);
+
+		if (fwnode)
+			d = irq_find_matching_fwnode(fwnode,
+						     DOMAIN_BUS_PCI_MSI);
+	}
+#endif
 
 	return d;
 }
@@ -1803,6 +1817,13 @@ static int only_one_child(struct pci_bus *bus)
 		return 0;
 	if (pci_pcie_type(parent) == PCI_EXP_TYPE_ROOT_PORT)
 		return 1;
+
+	/*
+	 * PCIe downstream ports are bridges that normally lead to only a
+	 * device 0, but if PCI_SCAN_ALL_PCIE_DEVS is set, scan all
+	 * possible devices, not just device 0.  See PCIe spec r3.0,
+	 * sec 7.3.1.
+	 */
 	if (parent->has_secondary_link &&
 	    !pci_has_flag(PCI_SCAN_ALL_PCIE_DEVS))
 		return 1;

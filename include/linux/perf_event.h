@@ -397,6 +397,7 @@ struct pmu {
  * enum perf_event_active_state - the states of a event
  */
 enum perf_event_active_state {
+	PERF_EVENT_STATE_DEAD		= -4,
 	PERF_EVENT_STATE_EXIT		= -3,
 	PERF_EVENT_STATE_ERROR		= -2,
 	PERF_EVENT_STATE_OFF		= -1,
@@ -905,7 +906,7 @@ perf_sw_event_sched(u32 event_id, u64 nr, u64 addr)
 	}
 }
 
-extern struct static_key_deferred perf_sched_events;
+extern struct static_key_false perf_sched_events;
 
 static __always_inline bool
 perf_sw_migrate_enabled(void)
@@ -924,7 +925,7 @@ static inline void perf_event_task_migrate(struct task_struct *task)
 static inline void perf_event_task_sched_in(struct task_struct *prev,
 					    struct task_struct *task)
 {
-	if (static_key_false(&perf_sched_events.key))
+	if (static_branch_unlikely(&perf_sched_events))
 		__perf_event_task_sched_in(prev, task);
 
 	if (perf_sw_migrate_enabled() && task->sched_migrated) {
@@ -941,7 +942,7 @@ static inline void perf_event_task_sched_out(struct task_struct *prev,
 {
 	perf_sw_event_sched(PERF_COUNT_SW_CONTEXT_SWITCHES, 1, 0);
 
-	if (static_key_false(&perf_sched_events.key))
+	if (static_branch_unlikely(&perf_sched_events))
 		__perf_event_task_sched_out(prev, next);
 }
 
@@ -964,11 +965,20 @@ DECLARE_PER_CPU(struct perf_callchain_entry, perf_callchain_entry);
 
 extern void perf_callchain_user(struct perf_callchain_entry *entry, struct pt_regs *regs);
 extern void perf_callchain_kernel(struct perf_callchain_entry *entry, struct pt_regs *regs);
+extern struct perf_callchain_entry *
+get_perf_callchain(struct pt_regs *regs, u32 init_nr, bool kernel, bool user,
+		   bool crosstask, bool add_mark);
+extern int get_callchain_buffers(void);
+extern void put_callchain_buffers(void);
 
-static inline void perf_callchain_store(struct perf_callchain_entry *entry, u64 ip)
+static inline int perf_callchain_store(struct perf_callchain_entry *entry, u64 ip)
 {
-	if (entry->nr < PERF_MAX_STACK_DEPTH)
+	if (entry->nr < PERF_MAX_STACK_DEPTH) {
 		entry->ip[entry->nr++] = ip;
+		return 0;
+	} else {
+		return -1; /* no more room, stop walking the stack */
+	}
 }
 
 extern int sysctl_perf_event_paranoid;
