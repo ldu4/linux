@@ -372,11 +372,13 @@ static unsigned long init_altmap_base(resource_size_t base)
 
 static unsigned long init_altmap_reserve(resource_size_t base)
 {
-	unsigned long base_pfn = __phys_to_pfn(base);
 	unsigned long reserve = __phys_to_pfn(SZ_8K);
 
 #ifdef CONFIG_SPARSEMEM
-	reserve += base_pfn - SECTION_ALIGN_DOWN(base_pfn);
+	{
+		unsigned long base_pfn = __phys_to_pfn(base);
+		reserve += base_pfn - SECTION_ALIGN_DOWN(base_pfn);
+	}
 #endif
 	return reserve;
 }
