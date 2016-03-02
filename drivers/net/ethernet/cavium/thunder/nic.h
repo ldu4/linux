@@ -116,6 +116,15 @@
 #define NIC_PF_INTR_ID_MBOX0		8
 #define NIC_PF_INTR_ID_MBOX1		9
 
+/* Minimum FIFO level before all packets for the CQ are dropped
+ *
+ * This value ensures that once a packet has been "accepted"
+ * for reception it will not get dropped due to non-availability
+ * of CQ descriptor. An errata in HW mandates this value to be
+ * atleast 0x100.
+ */
+#define NICPF_CQM_MIN_DROP_LEVEL       0x100
+
 /* Global timer for CQ timer thresh interrupts
  * Calculated for SCLK of 700Mhz
  * value written should be a 1/16th of what is expected
@@ -248,10 +257,13 @@ struct nicvf_drv_stats {
 	u64 rx_frames_jumbo;
 	u64 rx_drops;
 
+	u64 rcv_buffer_alloc_failures;
+
 	/* Tx */
 	u64 tx_frames_ok;
 	u64 tx_drops;
 	u64 tx_tso;
+	u64 tx_timeout;
 	u64 txq_stop;
 	u64 txq_wake;
 };
@@ -306,6 +318,7 @@ struct nicvf {
 	struct msix_entry	msix_entries[NIC_VF_MSIX_VECTORS];
 	char			irq_name[NIC_VF_MSIX_VECTORS][20];
 	bool			irq_allocated[NIC_VF_MSIX_VECTORS];
+	cpumask_var_t		affinity_mask[NIC_VF_MSIX_VECTORS];
 
 	/* VF <-> PF mailbox communication */
 	bool			pf_acked;
