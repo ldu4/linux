@@ -256,12 +256,6 @@ struct hv_monitor_page {
 	u8 rsvdz4[1984];
 };
 
-/* Declare the various hypercall operations. */
-enum hv_call_code {
-	HVCALL_POST_MESSAGE	= 0x005c,
-	HVCALL_SIGNAL_EVENT	= 0x005d,
-};
-
 /* Definition of the hv_post_message hypercall input structure. */
 struct hv_input_post_message {
 	union hv_connection_id connectionid;
@@ -501,8 +495,6 @@ extern int hv_post_message(union hv_connection_id connection_id,
 			 enum hv_message_type message_type,
 			 void *payload, size_t payload_size);
 
-extern int hv_signal_event(void *con_id);
-
 extern int hv_synic_alloc(void);
 
 extern void hv_synic_free(void);
@@ -531,7 +523,7 @@ void hv_ringbuffer_cleanup(struct hv_ring_buffer_info *ring_info);
 
 int hv_ringbuffer_write(struct hv_ring_buffer_info *ring_info,
 		    struct kvec *kv_list,
-		    u32 kv_count, bool *signal);
+		    u32 kv_count, bool *signal, bool lock);
 
 int hv_ringbuffer_read(struct hv_ring_buffer_info *inring_info,
 		       void *buffer, u32 buflen, u32 *buffer_actual_len,
@@ -650,7 +642,7 @@ void vmbus_disconnect(void);
 
 int vmbus_post_msg(void *buffer, size_t buflen);
 
-int vmbus_set_event(struct vmbus_channel *channel);
+void vmbus_set_event(struct vmbus_channel *channel);
 
 void vmbus_on_event(unsigned long data);
 
