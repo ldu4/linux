@@ -273,7 +273,8 @@ void *devm_memremap_pages(struct device *dev, struct resource *res,
 {
 	resource_size_t align_start = res->start & ~(SECTION_SIZE - 1);
 	resource_size_t align_size = ALIGN(resource_size(res), SECTION_SIZE);
-	int is_ram = region_intersects(align_start, align_size, "System RAM");
+	int is_ram = region_intersects(align_start, align_size,
+				       IORESOURCE_SYSTEM_RAM, IORES_DESC_NONE);
 	resource_size_t key, align_end;
 	struct dev_pagemap *pgmap;
 	struct page_map *page_map;
