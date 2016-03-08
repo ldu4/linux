@@ -211,7 +211,6 @@ static bool of_mdiobus_child_is_phy(struct device_node *child)
 int of_mdiobus_register(struct mii_bus *mdio, struct device_node *np)
 {
 	struct device_node *child;
-	const __be32 *paddr;
 	bool scanphys = false;
 	int addr, rc;
 
@@ -246,8 +245,7 @@ int of_mdiobus_register(struct mii_bus *mdio, struct device_node *np)
 	/* auto scan for PHYs with empty reg property */
 	for_each_available_child_of_node(np, child) {
 		/* Skip PHYs with reg property set */
-		paddr = of_get_property(child, "reg", NULL);
-		if (paddr)
+		if (of_find_property(child, "reg", NULL))
 			continue;
 
 		for (addr = 0; addr < PHY_MAX_ADDR; addr++) {
@@ -305,6 +303,7 @@ EXPORT_SYMBOL(of_phy_find_device);
  * @dev: pointer to net_device claiming the phy
  * @phy_np: Pointer to device tree node for the PHY
  * @hndlr: Link state callback for the network device
+ * @flags: flags to pass to the PHY
  * @iface: PHY data interface type
  *
  * If successful, returns a pointer to the phy_device with the embedded
