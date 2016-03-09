@@ -48,10 +48,7 @@ obj-$(CONFIG_SPARSEMEM_VMEMMAP) += sparse-vmemmap.o
 obj-$(CONFIG_SLOB) += slob.o
 obj-$(CONFIG_MMU_NOTIFIER) += mmu_notifier.o
 obj-$(CONFIG_KSM) += ksm.o
-ifndef CONFIG_ARCH_SUPPORTS_DEBUG_PAGEALLOC
-	obj-$(CONFIG_DEBUG_PAGEALLOC) += debug-pagealloc.o
-endif
-obj-$(CONFIG_PAGE_POISONING) += page_poison.o
+obj-$(CONFIG_PAGE_POISONING) += debug-pagealloc.o
 obj-$(CONFIG_SLAB) += slab.o
 obj-$(CONFIG_SLUB) += slub.o
 obj-$(CONFIG_KMEMCHECK) += kmemcheck.o
