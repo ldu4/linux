@@ -2246,8 +2246,6 @@ void mlx5e_build_default_indir_rqt(u32 *indirection_rqt, int len,
 		indirection_rqt[i] = i % num_channels;
 }
 
-<<<<<<< HEAD
-=======
 #ifdef CONFIG_MLX5_CORE_EN_DCB
 static void mlx5e_ets_init(struct mlx5e_priv *priv)
 {
@@ -2266,7 +2264,6 @@ static void mlx5e_ets_init(struct mlx5e_priv *priv)
 }
 #endif
 
->>>>>>> linux-next/akpm-base
 static void mlx5e_build_netdev_priv(struct mlx5_core_dev *mdev,
 				    struct net_device *netdev,
 				    int num_channels)

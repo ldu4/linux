@@ -286,12 +286,7 @@ struct mlx5e_sq_stats {
 	u64 stopped;
 	u64 wake;
 	u64 dropped;
-<<<<<<< HEAD
-	u64 nop;
-#define NUM_SQ_STATS 9
-=======
 #define NUM_SQ_STATS 11
->>>>>>> linux-next/akpm-base
 };
 
 struct mlx5e_stats {
