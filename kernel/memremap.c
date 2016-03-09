@@ -265,9 +265,10 @@ struct dev_pagemap *find_dev_pagemap(resource_size_t phys)
 void *devm_memremap_pages(struct device *dev, struct resource *res,
 		struct percpu_ref *ref, struct vmem_altmap *altmap)
 {
-	int is_ram = region_intersects(res->start, resource_size(res),
-			"System RAM");
-	resource_size_t key, align_start, align_size;
+	resource_size_t align_start = res->start & ~(SECTION_SIZE - 1);
+	resource_size_t align_size = ALIGN(resource_size(res), SECTION_SIZE);
+	int is_ram = region_intersects(align_start, align_size, "System RAM");
+	resource_size_t key, align_end;
 	struct dev_pagemap *pgmap;
 	struct page_map *page_map;
 	unsigned long pfn;
@@ -336,8 +337,6 @@ void *devm_memremap_pages(struct device *dev, struct resource *res,
 	if (nid < 0)
 		nid = numa_mem_id();
 
-	align_start = res->start & ~(SECTION_SIZE - 1);
-	align_size = ALIGN(resource_size(res), SECTION_SIZE);
 	error = arch_add_memory(nid, align_start, align_size, true);
 	if (error)
 		goto err_add_memory;
