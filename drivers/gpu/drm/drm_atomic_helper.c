@@ -125,6 +125,47 @@ get_current_crtc_for_encoder(struct drm_device *dev,
 	return NULL;
 }
 
+static void
+set_best_encoder(struct drm_atomic_state *state,
+		 struct drm_connector_state *conn_state,
+		 struct drm_encoder *encoder)
+{
+	struct drm_crtc_state *crtc_state;
+	struct drm_crtc *crtc;
+
+	if (conn_state->best_encoder) {
+		/* Unset the encoder_mask in the old crtc state. */
+		crtc = conn_state->connector->state->crtc;
+
+		/* A NULL crtc is an error here because we should have
+		 *  duplicated a NULL best_encoder when crtc was NULL.
+		 * As an exception restoring duplicated atomic state
+		 * during resume is allowed, so don't warn when
+		 * best_encoder is equal to encoder we intend to set.
+		 */
+		WARN_ON(!crtc && encoder != conn_state->best_encoder);
+		if (crtc) {
+			crtc_state = drm_atomic_get_existing_crtc_state(state, crtc);
+
+			crtc_state->encoder_mask &=
+				~(1 << drm_encoder_index(conn_state->best_encoder));
+		}
+	}
+
+	if (encoder) {
+		crtc = conn_state->crtc;
+		WARN_ON(!crtc);
+		if (crtc) {
+			crtc_state = drm_atomic_get_existing_crtc_state(state, crtc);
+
+			crtc_state->encoder_mask |=
+				1 << drm_encoder_index(encoder);
+		}
+	}
+
+	conn_state->best_encoder = encoder;
+}
+
 static int
 steal_encoder(struct drm_atomic_state *state,
 	      struct drm_encoder *encoder,
@@ -134,7 +175,6 @@ steal_encoder(struct drm_atomic_state *state,
 	struct drm_crtc_state *crtc_state;
 	struct drm_connector *connector;
 	struct drm_connector_state *connector_state;
-	int ret;
 
 	/*
 	 * We can only steal an encoder coming from a connector, which means we
@@ -165,31 +205,25 @@ steal_encoder(struct drm_atomic_state *state,
 		if (IS_ERR(connector_state))
 			return PTR_ERR(connector_state);
 
-		ret = drm_atomic_set_crtc_for_connector(connector_state, NULL);
-		if (ret)
-			return ret;
-		connector_state->best_encoder = NULL;
+		if (connector_state->best_encoder != encoder)
+			continue;
+
+		set_best_encoder(state, connector_state, NULL);
 	}
 
 	return 0;
 }
 
 static int
-update_connector_routing(struct drm_atomic_state *state, int conn_idx)
+update_connector_routing(struct drm_atomic_state *state,
+			 struct drm_connector *connector,
+			 struct drm_connector_state *connector_state)
 {
 	const struct drm_connector_helper_funcs *funcs;
 	struct drm_encoder *new_encoder;
 	struct drm_crtc *encoder_crtc;
-	struct drm_connector *connector;
-	struct drm_connector_state *connector_state;
 	struct drm_crtc_state *crtc_state;
 	int idx, ret;
-
-	connector = state->connectors[conn_idx];
-	connector_state = state->connector_states[conn_idx];
-
-	if (!connector)
-		return 0;
 
 	DRM_DEBUG_ATOMIC("Updating routing for [CONNECTOR:%d:%s]\n",
 			 connector->base.id,
@@ -216,7 +250,7 @@ update_connector_routing(struct drm_atomic_state *state, int conn_idx)
 				connector->base.id,
 				connector->name);
 
-		connector_state->best_encoder = NULL;
+		set_best_encoder(state, connector_state, NULL);
 
 		return 0;
 	}
@@ -245,6 +279,8 @@ update_connector_routing(struct drm_atomic_state *state, int conn_idx)
 	}
 
 	if (new_encoder == connector_state->best_encoder) {
+		set_best_encoder(state, connector_state, new_encoder);
+
 		DRM_DEBUG_ATOMIC("[CONNECTOR:%d:%s] keeps [ENCODER:%d:%s], now on [CRTC:%d:%s]\n",
 				 connector->base.id,
 				 connector->name,
@@ -279,7 +315,8 @@ update_connector_routing(struct drm_atomic_state *state, int conn_idx)
 	if (WARN_ON(!connector_state->crtc))
 		return -EINVAL;
 
-	connector_state->best_encoder = new_encoder;
+	set_best_encoder(state, connector_state, new_encoder);
+
 	idx = drm_crtc_index(connector_state->crtc);
 
 	crtc_state = state->crtc_states[idx];
@@ -451,7 +488,8 @@ drm_atomic_helper_check_modeset(struct drm_device *dev,
 		 * drivers must set crtc->mode_changed themselves when connector
 		 * properties need to be updated.
 		 */
-		ret = update_connector_routing(state, i);
+		ret = update_connector_routing(state, connector,
+					       connector_state);
 		if (ret)
 			return ret;
 	}
@@ -617,7 +655,6 @@ disable_outputs(struct drm_device *dev, struct drm_atomic_state *old_state)
 	for_each_connector_in_state(old_state, connector, old_conn_state, i) {
 		const struct drm_encoder_helper_funcs *funcs;
 		struct drm_encoder *encoder;
-		struct drm_crtc_state *old_crtc_state;
 
 		/* Shut down everything that's in the changeset and currently
 		 * still on. So need to check the old, saved state. */
@@ -1719,28 +1756,18 @@ static int update_output_state(struct drm_atomic_state *state,
 	struct drm_crtc_state *crtc_state;
 	struct drm_connector *connector;
 	struct drm_connector_state *conn_state;
-	int ret, i, j;
+	int ret, i;
 
 	ret = drm_modeset_lock(&dev->mode_config.connection_mutex,
 			       state->acquire_ctx);
 	if (ret)
 		return ret;
 
-	/* First grab all affected connector/crtc states. */
-	for (i = 0; i < set->num_connectors; i++) {
-		conn_state = drm_atomic_get_connector_state(state,
-							    set->connectors[i]);
-		if (IS_ERR(conn_state))
-			return PTR_ERR(conn_state);
-	}
+	/* First disable all connectors on the target crtc. */
+	ret = drm_atomic_add_affected_connectors(state, set->crtc);
+	if (ret)
+		return ret;
 
-	for_each_crtc_in_state(state, crtc, crtc_state, i) {
-		ret = drm_atomic_add_affected_connectors(state, crtc);
-		if (ret)
-			return ret;
-	}
-
-	/* Then recompute connector->crtc links and crtc enabling state. */
 	for_each_connector_in_state(state, connector, conn_state, i) {
 		if (conn_state->crtc == set->crtc) {
 			ret = drm_atomic_set_crtc_for_connector(conn_state,
@@ -1748,16 +1775,19 @@ static int update_output_state(struct drm_atomic_state *state,
 			if (ret)
 				return ret;
 		}
+	}
 
-		for (j = 0; j < set->num_connectors; j++) {
-			if (set->connectors[j] == connector) {
-				ret = drm_atomic_set_crtc_for_connector(conn_state,
-									set->crtc);
-				if (ret)
-					return ret;
-				break;
-			}
-		}
+	/* Then set all connectors from set->connectors on the target crtc */
+	for (i = 0; i < set->num_connectors; i++) {
+		conn_state = drm_atomic_get_connector_state(state,
+							    set->connectors[i]);
+		if (IS_ERR(conn_state))
+			return PTR_ERR(conn_state);
+
+		ret = drm_atomic_set_crtc_for_connector(conn_state,
+							set->crtc);
+		if (ret)
+			return ret;
 	}
 
 	for_each_crtc_in_state(state, crtc, crtc_state, i) {
@@ -2549,8 +2579,10 @@ void drm_atomic_helper_plane_reset(struct drm_plane *plane)
 	kfree(plane->state);
 	plane->state = kzalloc(sizeof(*plane->state), GFP_KERNEL);
 
-	if (plane->state)
+	if (plane->state) {
 		plane->state->plane = plane;
+		plane->state->rotation = BIT(DRM_ROTATE_0);
+	}
 }
 EXPORT_SYMBOL(drm_atomic_helper_plane_reset);
 
