@@ -1027,7 +1027,6 @@ static bool free_pages_prepare(struct page *page, unsigned int order)
 					   PAGE_SIZE << order);
 	}
 	arch_free_page(page, order);
-	kernel_poison_pages(page, 1 << order, 0);
 	kernel_map_pages(page, 1 << order, 0);
 
 	return true;
@@ -1498,7 +1497,6 @@ static int prep_new_page(struct page *page, unsigned int order, gfp_t gfp_flags,
 	set_page_refcounted(page);
 
 	arch_alloc_page(page, order);
-	kernel_poison_pages(page, 1 << order, 1);
 	kernel_map_pages(page, 1 << order, 1);
 	kasan_alloc_pages(page, order);
 
