@@ -1311,33 +1311,11 @@ static int vxlan_rcv(struct sock *sk, struct sk_buff *skb)
 	/* For backwards compatibility, only allow reserved fields to be
 	 * used by VXLAN extensions if explicitly requested.
 	 */
-<<<<<<< HEAD
-	if ((flags & VXLAN_HF_GBP) && (vs->flags & VXLAN_F_GBP)) {
-		struct vxlanhdr_gbp *gbp;
-
-		gbp = (struct vxlanhdr_gbp *)vxh;
-		md->gbp = ntohs(gbp->policy_id);
-
-		if (tun_dst) {
-			tun_dst->u.tun_info.key.tun_flags |= TUNNEL_VXLAN_OPT;
-			tun_dst->u.tun_info.options_len = sizeof(*md);
-		}
-
-		if (gbp->dont_learn)
-			md->gbp |= VXLAN_GBP_DONT_LEARN;
-
-		if (gbp->policy_applied)
-			md->gbp |= VXLAN_GBP_POLICY_APPLIED;
-
-		flags &= ~VXLAN_GBP_USED_BITS;
-	}
-=======
 	if (vs->flags & VXLAN_F_REMCSUM_RX)
 		if (!vxlan_remcsum(&unparsed, skb, vs->flags))
 			goto drop;
 	if (vs->flags & VXLAN_F_GBP)
 		vxlan_parse_gbp_hdr(&unparsed, skb, vs->flags, md);
->>>>>>> linux-next/akpm-base
 
 	if (unparsed.vx_flags || unparsed.vx_vni) {
 		/* If there are any unprocessed flags remaining treat

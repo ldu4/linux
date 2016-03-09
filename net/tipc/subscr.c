@@ -326,12 +326,7 @@ static void tipc_subscrb_rcv_cb(struct net *net, int conid,
 		return tipc_subscrp_cancel(s, subscriber);
 	}
 
-<<<<<<< HEAD
-	if (sub)
-		tipc_nametbl_subscribe(sub);
-=======
 	tipc_subscrp_subscribe(net, s, subscriber, swap);
->>>>>>> linux-next/akpm-base
 }
 
 /* Handle one request to establish a new subscriber */

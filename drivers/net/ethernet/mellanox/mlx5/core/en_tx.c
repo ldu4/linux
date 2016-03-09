@@ -206,13 +206,6 @@ static netdev_tx_t mlx5e_sq_xmit(struct mlx5e_sq *sq, struct sk_buff *skb)
 	if (skb_is_gso(skb)) {
 		eseg->mss    = cpu_to_be16(skb_shinfo(skb)->gso_size);
 		opcode       = MLX5_OPCODE_LSO;
-<<<<<<< HEAD
-		ihs          = skb_transport_offset(skb) + tcp_hdrlen(skb);
-		payload_len  = skb->len - ihs;
-		num_bytes = skb->len + (skb_shinfo(skb)->gso_segs - 1) * ihs;
-		sq->stats.tso_packets++;
-		sq->stats.tso_bytes += payload_len;
-=======
 
 		if (skb->encapsulation) {
 			ihs = skb_inner_transport_offset(skb) + inner_tcp_hdrlen(skb);
@@ -225,7 +218,6 @@ static netdev_tx_t mlx5e_sq_xmit(struct mlx5e_sq *sq, struct sk_buff *skb)
 		}
 
 		num_bytes = skb->len + (skb_shinfo(skb)->gso_segs - 1) * ihs;
->>>>>>> linux-next/akpm-base
 	} else {
 		bf = sq->bf_budget &&
 		     !skb->xmit_more &&
