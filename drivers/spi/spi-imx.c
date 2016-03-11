@@ -216,12 +216,6 @@ static bool spi_imx_can_dma(struct spi_master *master, struct spi_device *spi,
 	if (!master->dma_rx)
 		return false;
 
-<<<<<<< HEAD
-	if (spi_imx->dma_is_inited && transfer->len >= spi_imx->wml &&
-	    (transfer->len % spi_imx->wml) == 0)
-		return true;
-	return false;
-=======
 	if (!bpw)
 		bpw = spi->bits_per_word;
 
@@ -237,7 +231,6 @@ static bool spi_imx_can_dma(struct spi_master *master, struct spi_device *spi,
 		return false;
 
 	return true;
->>>>>>> linux-next/akpm-base
 }
 
 #define MX51_ECSPI_CTRL		0x08
@@ -1015,22 +1008,6 @@ static int spi_imx_dma_transfer(struct spi_imx_data *spi_imx,
 	desc_tx->callback_param = (void *)spi_imx;
 	dmaengine_submit(desc_tx);
 	reinit_completion(&spi_imx->dma_tx_completion);
-<<<<<<< HEAD
-
-	/* Trigger the cspi module. */
-	spi_imx->dma_finished = 0;
-
-	/*
-	 * Set these order to avoid potential RX overflow. The overflow may
-	 * happen if we enable SPI HW before starting RX DMA due to rescheduling
-	 * for another task and/or interrupt.
-	 * So RX DMA enabled first to make sure data would be read out from FIFO
-	 * ASAP. TX DMA enabled next to start filling TX FIFO with new data.
-	 * And finaly SPI HW enabled to start actual data transfer.
-	 */
-	dma_async_issue_pending(master->dma_rx);
-=======
->>>>>>> linux-next/akpm-base
 	dma_async_issue_pending(master->dma_tx);
 
 	transfer_timeout = spi_imx_calculate_timeout(spi_imx, transfer->len);
@@ -1042,20 +1019,7 @@ static int spi_imx_dma_transfer(struct spi_imx_data *spi_imx,
 		dev_err(spi_imx->dev, "I/O Error in DMA TX\n");
 		dmaengine_terminate_all(master->dma_tx);
 		dmaengine_terminate_all(master->dma_rx);
-<<<<<<< HEAD
-	} else {
-		timeout = wait_for_completion_timeout(
-				&spi_imx->dma_rx_completion, IMX_DMA_TIMEOUT);
-		if (!timeout) {
-			pr_warn("%s %s: I/O Error in DMA RX\n",
-				dev_driver_string(&master->dev),
-				dev_name(&master->dev));
-			spi_imx->devtype_data->reset(spi_imx);
-			dmaengine_terminate_all(master->dma_rx);
-		}
-=======
 		return -ETIMEDOUT;
->>>>>>> linux-next/akpm-base
 	}
 
 	timeout = wait_for_completion_timeout(&spi_imx->dma_rx_completion,
