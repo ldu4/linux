@@ -285,7 +285,8 @@ void *devm_memremap_pages(struct device *dev, struct resource *res,
 	align_start = res->start & ~(SECTION_SIZE - 1);
 	align_size = ALIGN(res->start + resource_size(res), SECTION_SIZE)
 		- align_start;
-	is_ram = region_intersects(align_start, align_size, "System RAM");
+	is_ram = region_intersects(align_start, align_size,
+				   IORESOURCE_SYSTEM_RAM, IORES_DESC_NONE);
 
 	if (is_ram == REGION_MIXED) {
 		WARN_ONCE(1, "%s attempted on mixed region %pr\n",
