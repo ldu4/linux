@@ -20,6 +20,7 @@
 #include <linux/kasan.h>
 #include <linux/kthread.h>
 #include <linux/freezer.h>
+#include <linux/module.h>
 #include "internal.h"
 
 #ifdef CONFIG_COMPACTION
@@ -1953,6 +1954,7 @@ static int __init kcompactd_init(void)
 	hotcpu_notifier(cpu_callback, 0);
 	return 0;
 }
-subsys_initcall(kcompactd_init)
+
+module_init(kcompactd_init)
 
 #endif /* CONFIG_COMPACTION */
