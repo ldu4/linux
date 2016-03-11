@@ -88,15 +88,15 @@ static inline bool compaction_deferred(struct zone *zone, int order)
 	return true;
 }
 
-static inline int kcompactd_run(int nid)
+static int kcompactd_run(int nid)
 {
 	return 0;
 }
-static inline void kcompactd_stop(int nid)
+static void kcompactd_stop(int nid)
 {
 }
 
-static inline void wakeup_kcompactd(pg_data_t *pgdat, int order, int classzone_idx)
+static void wakeup_kcompactd(pg_data_t *pgdat, int order, int classzone_idx)
 {
 }
 
