@@ -22,7 +22,9 @@
 #include <linux/swapops.h>
 #include <linux/mmu_notifier.h>
 #include <linux/uio.h>
+#ifdef CONFIG_COMPAT
 #include <linux/compat.h>
+#endif
 #include <asm/tlb.h>
 
 /*
