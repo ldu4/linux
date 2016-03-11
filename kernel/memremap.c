@@ -271,11 +271,6 @@ struct dev_pagemap *find_dev_pagemap(resource_size_t phys)
 void *devm_memremap_pages(struct device *dev, struct resource *res,
 		struct percpu_ref *ref, struct vmem_altmap *altmap)
 {
-<<<<<<< HEAD
-=======
-	int is_ram = region_intersects(res->start, resource_size(res),
-				       IORESOURCE_SYSTEM_RAM, IORES_DESC_NONE);
->>>>>>> linux-next/akpm-base
 	resource_size_t key, align_start, align_size, align_end;
 	struct dev_pagemap *pgmap;
 	struct page_map *page_map;
