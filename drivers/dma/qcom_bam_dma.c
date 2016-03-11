@@ -53,9 +53,9 @@
 #include "virt-dma.h"
 
 struct bam_desc_hw {
-	u32 addr;		/* Buffer physical address */
-	u16 size;		/* Buffer size in bytes */
-	u16 flags;
+	__le32 addr;		/* Buffer physical address */
+	__le16 size;		/* Buffer size in bytes */
+	__le16 flags;
 };
 
 #define DESC_FLAG_INT BIT(15)
@@ -502,8 +502,8 @@ static int bam_alloc_chan(struct dma_chan *chan)
 		return 0;
 
 	/* allocate FIFO descriptor space, but only if necessary */
-	bchan->fifo_virt = dma_alloc_writecombine(bdev->dev, BAM_DESC_FIFO_SIZE,
-				&bchan->fifo_phys, GFP_KERNEL);
+	bchan->fifo_virt = dma_alloc_wc(bdev->dev, BAM_DESC_FIFO_SIZE,
+					&bchan->fifo_phys, GFP_KERNEL);
 
 	if (!bchan->fifo_virt) {
 		dev_err(bdev->dev, "Failed to allocate desc fifo\n");
@@ -538,8 +538,8 @@ static void bam_free_chan(struct dma_chan *chan)
 	bam_reset_channel(bchan);
 	spin_unlock_irqrestore(&bchan->vc.lock, flags);
 
-	dma_free_writecombine(bdev->dev, BAM_DESC_FIFO_SIZE, bchan->fifo_virt,
-				bchan->fifo_phys);
+	dma_free_wc(bdev->dev, BAM_DESC_FIFO_SIZE, bchan->fifo_virt,
+		    bchan->fifo_phys);
 	bchan->fifo_virt = NULL;
 
 	/* mask irq for pipe/channel */
@@ -632,14 +632,15 @@ static struct dma_async_tx_descriptor *bam_prep_slave_sg(struct dma_chan *chan,
 		unsigned int curr_offset = 0;
 
 		do {
-			desc->addr = sg_dma_address(sg) + curr_offset;
+			desc->addr = cpu_to_le32(sg_dma_address(sg) +
+						 curr_offset);
 
 			if (remainder > BAM_MAX_DATA_SIZE) {
-				desc->size = BAM_MAX_DATA_SIZE;
+				desc->size = cpu_to_le16(BAM_MAX_DATA_SIZE);
 				remainder -= BAM_MAX_DATA_SIZE;
 				curr_offset += BAM_MAX_DATA_SIZE;
 			} else {
-				desc->size = remainder;
+				desc->size = cpu_to_le16(remainder);
 				remainder = 0;
 			}
 
@@ -915,9 +916,11 @@ static void bam_start_dma(struct bam_chan *bchan)
 
 	/* set any special flags on the last descriptor */
 	if (async_desc->num_desc == async_desc->xfer_len)
-		desc[async_desc->xfer_len - 1].flags = async_desc->flags;
+		desc[async_desc->xfer_len - 1].flags =
+					cpu_to_le16(async_desc->flags);
 	else
-		desc[async_desc->xfer_len - 1].flags |= DESC_FLAG_INT;
+		desc[async_desc->xfer_len - 1].flags |=
+					cpu_to_le16(DESC_FLAG_INT);
 
 	if (bchan->tail + async_desc->xfer_len > MAX_DESCRIPTORS) {
 		u32 partial = MAX_DESCRIPTORS - bchan->tail;
@@ -1231,9 +1234,9 @@ static int bam_dma_remove(struct platform_device *pdev)
 		bam_dma_terminate_all(&bdev->channels[i].vc.chan);
 		tasklet_kill(&bdev->channels[i].vc.task);
 
-		dma_free_writecombine(bdev->dev, BAM_DESC_FIFO_SIZE,
-			bdev->channels[i].fifo_virt,
-			bdev->channels[i].fifo_phys);
+		dma_free_wc(bdev->dev, BAM_DESC_FIFO_SIZE,
+			    bdev->channels[i].fifo_virt,
+			    bdev->channels[i].fifo_phys);
 	}
 
 	tasklet_kill(&bdev->task);
