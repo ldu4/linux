@@ -720,7 +720,7 @@ struct signal_struct {
 	struct task_cputime cputime_expires;
 
 #ifdef CONFIG_NO_HZ_FULL
-	unsigned long tick_dep_mask;
+	atomic_t tick_dep_mask;
 #endif
 
 	struct list_head cpu_timers[3];
@@ -1553,7 +1553,7 @@ struct task_struct {
 #endif
 
 #ifdef CONFIG_NO_HZ_FULL
-	unsigned long tick_dep_mask;
+	atomic_t tick_dep_mask;
 #endif
 	unsigned long nvcsw, nivcsw; /* context switch counts */
 	u64 start_time;		/* monotonic time in nsec */
@@ -1656,6 +1656,9 @@ struct task_struct {
 	unsigned int lockdep_recursion;
 	struct held_lock held_locks[MAX_LOCK_DEPTH];
 	gfp_t lockdep_reclaim_gfp;
+#ifdef CONFIG_LOCKED_ACCESS
+	u64 curr_acqchain_key;
+#endif
 #endif
 #ifdef CONFIG_UBSAN
 	unsigned int in_ubsan;
