@@ -125,7 +125,7 @@ struct lustre_mount_data {
 
 /*
  * This limit is arbitrary (131072 clients on x86), but it is convenient to use
- * 2^n * PAGE_CACHE_SIZE * 8 for the number of bits that fit an order-n allocation.
+ * 2^n * PAGE_SIZE * 8 for the number of bits that fit an order-n allocation.
  * If we need more than 131072 clients (order-2 allocation on x86) then this
  * should become an array of single-page pointers that are allocated on demand.
  */
