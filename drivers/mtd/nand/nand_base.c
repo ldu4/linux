@@ -3967,7 +3967,7 @@ ident_done:
 static int nand_dt_init(struct nand_chip *chip)
 {
 	struct device_node *dn = nand_get_flash_node(chip);
-	int ecc_mode, ecc_strength, ecc_step;
+	int ecc_mode, ecc_algo, ecc_strength, ecc_step;
 
 	if (!dn)
 		return 0;
@@ -3979,6 +3979,7 @@ static int nand_dt_init(struct nand_chip *chip)
 		chip->bbt_options |= NAND_BBT_USE_FLASH;
 
 	ecc_mode = of_get_nand_ecc_mode(dn);
+	ecc_algo = of_get_nand_ecc_algo(dn);
 	ecc_strength = of_get_nand_ecc_strength(dn);
 	ecc_step = of_get_nand_ecc_step_size(dn);
 
@@ -3990,6 +3991,9 @@ static int nand_dt_init(struct nand_chip *chip)
 
 	if (ecc_mode >= 0)
 		chip->ecc.mode = ecc_mode;
+
+	if (ecc_algo >= 0)
+		chip->ecc.algo = ecc_algo;
 
 	if (ecc_strength >= 0)
 		chip->ecc.strength = ecc_strength;
@@ -4009,7 +4013,6 @@ static int nand_dt_init(struct nand_chip *chip)
  * This is the first phase of the normal nand_scan() function. It reads the
  * flash ID and sets up MTD fields accordingly.
  *
- * The mtd->owner field must be set to the module of the caller.
  */
 int nand_scan_ident(struct mtd_info *mtd, int maxchips,
 		    struct nand_flash_dev *table)
@@ -4429,18 +4432,11 @@ EXPORT_SYMBOL(nand_scan_tail);
  *
  * This fills out all the uninitialized function pointers with the defaults.
  * The flash ID is read and the mtd/chip structures are filled with the
- * appropriate values. The mtd->owner field must be set to the module of the
- * caller.
+ * appropriate values.
  */
 int nand_scan(struct mtd_info *mtd, int maxchips)
 {
 	int ret;
-
-	/* Many callers got this wrong, so check for it for a while... */
-	if (!mtd->owner && caller_is_module()) {
-		pr_crit("%s called with NULL mtd->owner!\n", __func__);
-		BUG();
-	}
 
 	ret = nand_scan_ident(mtd, maxchips, NULL);
 	if (!ret)
