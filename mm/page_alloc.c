@@ -3373,29 +3373,16 @@ retry:
 		goto got_pg;
 
 	/* Checks for THP-specific high-order allocations */
-	if (is_thp_allocation(gfp_mask, order)) {
-		/*
-		 * If compaction is deferred for high-order allocations, it is
-		 * because sync compaction recently failed. If this is the case
-		 * and the caller requested a THP allocation, we do not want
-		 * to heavily disrupt the system, so we fail the allocation
-		 * instead of entering direct reclaim.
-		 */
-		if (compact_result == COMPACT_DEFERRED)
-			goto nopage;
-
-		/*
-		 * Compaction is contended so rather back off than cause
-		 * excessive stalls.
-		 * for THP, unless it is khugepaged trying to collapse,
-		 * or an asynchronous huge tmpfs recovery work item.
-		 */
-		if (current->flags & PF_KTHREAD)
-			migration_mode = MIGRATE_SYNC_LIGHT;
-		else if (compact_result == COMPACT_CONTENDED)
-			goto nopage;
-	} else
+	if (!is_thp_allocation(gfp_mask, order))
 		migration_mode = MIGRATE_SYNC_LIGHT;
+
+	/*
+	 * Checks for THP-specific high-order allocations and back off
+	 * if the the compaction backed off
+	 */
+	if (is_thp_allocation(gfp_mask, order) &&
+			compaction_withdrawn(compact_result))
+		goto nopage;
 
 	/* Try direct reclaim and then allocating */
 	page = __alloc_pages_direct_reclaim(gfp_mask, order, alloc_flags, ac,
