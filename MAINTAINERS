@@ -1260,7 +1260,7 @@ M:	Santosh Shilimkar <ssantosh@kernel.org>
 L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
 S:	Maintained
 F:	arch/arm/mach-keystone/
-F:	arch/arm/boot/dts/k2*
+F:	arch/arm/boot/dts/keystone-*
 T:	git git://git.kernel.org/pub/scm/linux/kernel/git/ssantosh/linux-keystone.git
 
 ARM/TEXAS INSTRUMENT KEYSTONE CLOCK FRAMEWORK
@@ -1322,7 +1322,7 @@ F:	drivers/rtc/rtc-armada38x.c
 F:	arch/arm/boot/dts/armada*
 F:	arch/arm/boot/dts/kirkwood*
 F:	arch/arm64/boot/dts/marvell/armada*
-
+F:	arch/arm/configs/mvebu_*_defconfig
 
 ARM/Marvell Berlin SoC support
 M:	Sebastian Hesselbarth <sebastian.hesselbarth@gmail.com>
@@ -1470,7 +1470,10 @@ F:	arch/arm/boot/dts/qcom-*.dts
 F:	arch/arm/boot/dts/qcom-*.dtsi
 F:	arch/arm/mach-qcom/
 F:	arch/arm64/boot/dts/qcom/*
+F:	drivers/i2c/busses/i2c-qup.c
+F:	drivers/clk/qcom/
 F:	drivers/soc/qcom/
+F:	drivers/spi/spi-qup.c
 F:	drivers/tty/serial/msm_serial.h
 F:	drivers/tty/serial/msm_serial.c
 F:	drivers/*/pm8???-*
@@ -3348,6 +3351,7 @@ F:	Documentation/powerpc/cxlflash.txt
 
 STMMAC ETHERNET DRIVER
 M:	Giuseppe Cavallaro <peppe.cavallaro@st.com>
+M:	Alexandre Torgue <alexandre.torgue@st.com>
 L:	netdev@vger.kernel.org
 W:	http://www.stlinux.com
 S:	Supported
@@ -5539,7 +5543,7 @@ IIO SUBSYSTEM AND DRIVERS
 M:	Jonathan Cameron <jic23@kernel.org>
 R:	Hartmut Knaack <knaack.h@gmx.de>
 R:	Lars-Peter Clausen <lars@metafoo.de>
-R:	Peter Meerwald <pmeerw@pmeerw.net>
+R:	Peter Meerwald-Stadler <pmeerw@pmeerw.net>
 L:	linux-iio@vger.kernel.org
 S:	Maintained
 F:	drivers/iio/
@@ -7020,9 +7024,9 @@ M:	Chanwoo Choi <cw00.choi@samsung.com>
 M:	Krzysztof Kozlowski <k.kozlowski@samsung.com>
 L:	linux-kernel@vger.kernel.org
 S:	Supported
-F:	drivers/*/max14577.c
+F:	drivers/*/max14577*.c
 F:	drivers/*/max77686*.c
-F:	drivers/*/max77693.c
+F:	drivers/*/max77693*.c
 F:	drivers/extcon/extcon-max14577.c
 F:	drivers/extcon/extcon-max77693.c
 F:	drivers/rtc/rtc-max77686.c
@@ -10587,6 +10591,14 @@ L:	linux-tegra@vger.kernel.org
 S:	Maintained
 F:	drivers/staging/nvec/
 
+STAGING - OLPC SECONDARY DISPLAY CONTROLLER (DCON)
+M:	Jens Frederich <jfrederich@gmail.com>
+M:	Daniel Drake <dsd@laptop.org>
+M:	Jon Nettleton <jon.nettleton@gmail.com>
+W:	http://wiki.laptop.org/go/DCON
+S:	Maintained
+F:	drivers/staging/olpc_dcon/
+
 STAGING - REALTEK RTL8712U DRIVERS
 M:	Larry Finger <Larry.Finger@lwfinger.net>
 M:	Florian Schilhabel <florian.c.schilhabel@googlemail.com>.
@@ -11030,6 +11042,7 @@ F:	drivers/platform/x86/thinkpad_acpi.c
 
 TI BANDGAP AND THERMAL DRIVER
 M:	Eduardo Valentin <edubezval@gmail.com>
+M:	Keerthy <j-keerthy@ti.com>
 L:	linux-pm@vger.kernel.org
 L:	linux-omap@vger.kernel.org
 S:	Maintained

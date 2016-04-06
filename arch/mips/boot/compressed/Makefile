@@ -37,8 +37,16 @@ vmlinuzobjs-$(CONFIG_DEBUG_ZBOOT)		   += $(obj)/dbg.o
 vmlinuzobjs-$(CONFIG_SYS_SUPPORTS_ZBOOT_UART16550) += $(obj)/uart-16550.o
 vmlinuzobjs-$(CONFIG_SYS_SUPPORTS_ZBOOT_UART_PROM) += $(obj)/uart-prom.o
 vmlinuzobjs-$(CONFIG_MIPS_ALCHEMY)		   += $(obj)/uart-alchemy.o
+vmlinuzobjs-$(CONFIG_ATH79)			   += $(obj)/uart-ath79.o
 endif
 
+<<<<<<< HEAD
+=======
+extra-y += uart-ath79.c
+$(obj)/uart-ath79.c: $(srctree)/arch/mips/ath79/early_printk.c
+	$(call cmd,shipped)
+
+>>>>>>> linux-next/akpm-base
 vmlinuzobjs-$(CONFIG_KERNEL_XZ) += $(obj)/ashldi3.o $(obj)/bswapsi.o
 
 extra-y += ashldi3.c bswapsi.c
