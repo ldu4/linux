@@ -89,7 +89,7 @@ extern bool shmem_recovery_migrate_page(struct page *new, struct page *page);
 # ifdef CONFIG_SYSCTL
 struct ctl_table;
 extern int shmem_huge, shmem_huge_min, shmem_huge_max;
-extern int shmem_huge_recoveries;
+extern int shmem_huge_recoveries, shmem_huge_gfpmask, shmem_recovery_gfpmask;
 extern int shmem_huge_sysctl(struct ctl_table *table, int write,
 			     void __user *buffer, size_t *lenp, loff_t *ppos);
 # endif /* CONFIG_SYSCTL */

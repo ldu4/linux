@@ -883,7 +883,7 @@ static inline gfp_t alloc_hugepage_direct_gfpmask(struct vm_area_struct *vma)
 	else if (test_bit(TRANSPARENT_HUGEPAGE_DEFRAG_DIRECT_FLAG, &transparent_hugepage_flags))
 		reclaim_flags = __GFP_DIRECT_RECLAIM;
 
-	return GFP_TRANSHUGE | reclaim_flags;
+	return GFP_TRANSHUGE | __GFP_THISNODE | reclaim_flags;
 }
 
 /* Defrag for khugepaged will enter direct reclaim/compaction if necessary */

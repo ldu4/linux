@@ -323,6 +323,43 @@ static DEFINE_SPINLOCK(shmem_shrinklist_lock);
 int shmem_huge __read_mostly;
 int shmem_huge_recoveries __read_mostly = 8;	/* concurrent recovery limit */
 
+int shmem_huge_gfpmask __read_mostly =
+	(int)(GFP_HIGHUSER_MOVABLE|__GFP_NOWARN|__GFP_THISNODE|__GFP_NORETRY);
+int shmem_recovery_gfpmask __read_mostly =
+	(int)(GFP_HIGHUSER_MOVABLE|__GFP_NOWARN|__GFP_THISNODE);
+
+/*
+ * Compose the requested_gfp for a small page together with the tunable
+ * template above, to construct a suitable gfpmask for a huge allocation.
+ */
+static gfp_t shmem_huge_gfp(int tunable_template, gfp_t requested_gfp)
+{
+	gfp_t huge_gfpmask = (gfp_t)tunable_template;
+	gfp_t relaxants;
+
+	/*
+	 * Relaxants must only be applied when they are permitted in both.
+	 * GFP_KERNEL happens to be the name for
+	 * __GFP_IO|__GFP_FS|__GFP_DIRECT_RECLAIM|__GFP_KSWAPD_RECLAIM.
+	 */
+	relaxants = huge_gfpmask & requested_gfp & GFP_KERNEL;
+
+	/*
+	 * Zone bits must be taken exclusively from the requested gfp mask.
+	 * __GFP_COMP would be a disaster: make sure the sysctl cannot add it.
+	 */
+	huge_gfpmask &= __GFP_BITS_MASK & ~(GFP_ZONEMASK|__GFP_COMP|GFP_KERNEL);
+
+	/*
+	 * These might be right for a small page, but unsuitable for the huge.
+	 * REPEAT and NOFAIL very likely wrong in huge_gfpmask, but permitted.
+	 */
+	requested_gfp &= ~(__GFP_REPEAT|__GFP_NOFAIL|__GFP_COMP|GFP_KERNEL);
+
+	/* Beyond that, we can simply use the union, sensible or not */
+	return huge_gfpmask | requested_gfp | relaxants;
+}
+
 static struct page *shmem_hugeteam_lookup(struct address_space *mapping,
 					  pgoff_t index, bool speculative)
 {
@@ -1395,8 +1432,9 @@ static void shmem_recovery_work(struct work_struct *work)
 		 * often choose an unsuitable NUMA node: something to fix soon,
 		 * but not an immediate blocker.
 		 */
+		gfp = shmem_huge_gfp(shmem_recovery_gfpmask, gfp);
 		head = __alloc_pages_node(page_to_nid(page),
-			gfp | __GFP_NOWARN | __GFP_THISNODE, HPAGE_PMD_ORDER);
+					  gfp, HPAGE_PMD_ORDER);
 		if (!head) {
 			shr_stats(huge_failed);
 			error = -ENOMEM;
@@ -1732,8 +1770,14 @@ static struct shrinker shmem_hugehole_shrinker = {
 #else /* !CONFIG_TRANSPARENT_HUGEPAGE */
 
 #define shmem_huge SHMEM_HUGE_DENY
+#define shmem_huge_gfpmask GFP_HIGHUSER_MOVABLE
 #define shmem_huge_recoveries 0
 #define shr_stats(x) do {} while (0)
+
+static inline gfp_t shmem_huge_gfp(int tunable_template, gfp_t requested_gfp)
+{
+	return requested_gfp;
+}
 
 static inline struct page *shmem_hugeteam_lookup(struct address_space *mapping,
 					pgoff_t index, bool speculative)
@@ -2626,14 +2670,16 @@ static struct page *shmem_alloc_page(gfp_t gfp, struct shmem_inode_info *info,
 		rcu_read_unlock();
 
 		if (*hugehint == SHMEM_ALLOC_HUGE_PAGE) {
-			head = alloc_pages_vma(gfp|__GFP_NORETRY|__GFP_NOWARN,
-				HPAGE_PMD_ORDER, &pvma, 0, numa_node_id(),
-				true);
+			gfp_t huge_gfp;
+
+			huge_gfp = shmem_huge_gfp(shmem_huge_gfpmask, gfp);
+			head = alloc_pages_vma(huge_gfp,
+					HPAGE_PMD_ORDER, &pvma, 0,
+					numa_node_id(), true);
 			/* Shrink and retry? Or leave it to recovery worker */
 			if (!head && !shmem_huge_recoveries &&
 			    shmem_shrink_hugehole(NULL, NULL) != SHRINK_STOP) {
-				head = alloc_pages_vma(
-					gfp|__GFP_NORETRY|__GFP_NOWARN,
+				head = alloc_pages_vma(huge_gfp,
 					HPAGE_PMD_ORDER, &pvma, 0,
 					numa_node_id(), true);
 			}
