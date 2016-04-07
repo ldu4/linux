@@ -1160,7 +1160,7 @@ sfw_add_test(struct srpc_server_rpc *rpc)
 		int len;
 
 		if ((sn->sn_features & LST_FEAT_BULK_LEN) == 0) {
-			len = npg * PAGE_CACHE_SIZE;
+			len = npg * PAGE_SIZE;
 
 		} else  {
 			len = sizeof(lnet_process_id_packed_t) *

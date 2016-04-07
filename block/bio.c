@@ -1333,7 +1333,7 @@ struct bio *bio_map_user_iov(struct request_queue *q,
 		 * release the pages we didn't map into the bio, if any
 		 */
 		while (j < page_limit)
-			page_cache_release(pages[j++]);
+			put_page(pages[j++]);
 	}
 
 	kfree(pages);
@@ -1359,7 +1359,7 @@ struct bio *bio_map_user_iov(struct request_queue *q,
 	for (j = 0; j < nr_pages; j++) {
 		if (!pages[j])
 			break;
-		page_cache_release(pages[j]);
+		put_page(pages[j]);
 	}
  out:
 	kfree(pages);
@@ -1379,7 +1379,7 @@ static void __bio_unmap_user(struct bio *bio)
 		if (bio_data_dir(bio) == READ)
 			set_page_dirty_lock(bvec->bv_page);
 
-		page_cache_release(bvec->bv_page);
+		put_page(bvec->bv_page);
 	}
 
 	bio_put(bio);
@@ -1652,7 +1652,7 @@ void bio_check_pages_dirty(struct bio *bio)
 		struct page *page = bvec->bv_page;
 
 		if (PageDirty(page) || PageCompound(page)) {
-			page_cache_release(page);
+			put_page(page);
 			bvec->bv_page = NULL;
 		} else {
 			nr_clean_pages++;

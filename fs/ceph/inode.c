@@ -1344,7 +1344,7 @@ void ceph_readdir_cache_release(struct ceph_readdir_cache_control *ctl)
 {
 	if (ctl->page) {
 		kunmap(ctl->page);
-		page_cache_release(ctl->page);
+		put_page(ctl->page);
 		ctl->page = NULL;
 	}
 }
@@ -1354,7 +1354,7 @@ static int fill_readdir_cache(struct inode *dir, struct dentry *dn,
 			      struct ceph_mds_request *req)
 {
 	struct ceph_inode_info *ci = ceph_inode(dir);
-	unsigned nsize = PAGE_CACHE_SIZE / sizeof(struct dentry*);
+	unsigned nsize = PAGE_SIZE / sizeof(struct dentry*);
 	unsigned idx = ctl->index % nsize;
 	pgoff_t pgoff = ctl->index / nsize;
 

@@ -2082,7 +2082,7 @@ static int lmv_sync(struct obd_export *exp, const struct lu_fid *fid,
  * - Adjust the lde_reclen of the ending entry of each lu_dirpage to span
  *   to the first entry of the next lu_dirpage.
  */
-#if PAGE_CACHE_SIZE > LU_PAGE_SIZE
+#if PAGE_SIZE > LU_PAGE_SIZE
 static void lmv_adjust_dirpages(struct page **pages, int ncfspgs, int nlupgs)
 {
 	int i;
@@ -2162,8 +2162,8 @@ static int lmv_readpage(struct obd_export *exp, struct md_op_data *op_data,
 	if (rc != 0)
 		return rc;
 
-	ncfspgs = ((*request)->rq_bulk->bd_nob_transferred + PAGE_CACHE_SIZE - 1)
-		 >> PAGE_CACHE_SHIFT;
+	ncfspgs = ((*request)->rq_bulk->bd_nob_transferred + PAGE_SIZE - 1)
+		 >> PAGE_SHIFT;
 	nlupgs = (*request)->rq_bulk->bd_nob_transferred >> LU_PAGE_SHIFT;
 	LASSERT(!((*request)->rq_bulk->bd_nob_transferred & ~LU_PAGE_MASK));
 	LASSERT(ncfspgs > 0 && ncfspgs <= op_data->op_npages);
