@@ -1558,7 +1558,11 @@ struct dentry *__d_alloc(struct super_block *sb, const struct qstr *name)
 	 * be overwriting an internal NUL character
 	 */
 	dentry->d_iname[DNAME_INLINE_LEN-1] = 0;
-	if (name->len > DNAME_INLINE_LEN-1) {
+	if (unlikely(!name)) {
+		static const struct qstr anon = QSTR_INIT("/", 1);
+		name = &anon;
+		dname = dentry->d_iname;
+	} else if (name->len > DNAME_INLINE_LEN-1) {
 		size_t size = offsetof(struct external_name, name[1]);
 		struct external_name *p = kmalloc(size + name->len,
 						  GFP_KERNEL_ACCOUNT);
@@ -1667,7 +1671,8 @@ void d_set_d_op(struct dentry *dentry, const struct dentry_operations *op)
 				DCACHE_OP_REVALIDATE	|
 				DCACHE_OP_WEAK_REVALIDATE	|
 				DCACHE_OP_DELETE	|
-				DCACHE_OP_SELECT_INODE));
+				DCACHE_OP_SELECT_INODE	|
+				DCACHE_OP_REAL));
 	dentry->d_op = op;
 	if (!op)
 		return;
@@ -1685,6 +1690,8 @@ void d_set_d_op(struct dentry *dentry, const struct dentry_operations *op)
 		dentry->d_flags |= DCACHE_OP_PRUNE;
 	if (op->d_select_inode)
 		dentry->d_flags |= DCACHE_OP_SELECT_INODE;
+	if (op->d_real)
+		dentry->d_flags |= DCACHE_OP_REAL;
 
 }
 EXPORT_SYMBOL(d_set_d_op);
@@ -1812,9 +1819,7 @@ struct dentry *d_make_root(struct inode *root_inode)
 	struct dentry *res = NULL;
 
 	if (root_inode) {
-		static const struct qstr name = QSTR_INIT("/", 1);
-
-		res = __d_alloc(root_inode->i_sb, &name);
+		res = __d_alloc(root_inode->i_sb, NULL);
 		if (res)
 			d_instantiate(res, root_inode);
 		else
@@ -1855,7 +1860,6 @@ EXPORT_SYMBOL(d_find_any_alias);
 
 static struct dentry *__d_obtain_alias(struct inode *inode, int disconnected)
 {
-	static const struct qstr anonstring = QSTR_INIT("/", 1);
 	struct dentry *tmp;
 	struct dentry *res;
 	unsigned add_flags;
@@ -1869,7 +1873,7 @@ static struct dentry *__d_obtain_alias(struct inode *inode, int disconnected)
 	if (res)
 		goto out_iput;
 
-	tmp = __d_alloc(inode->i_sb, &anonstring);
+	tmp = __d_alloc(inode->i_sb, NULL);
 	if (!tmp) {
 		res = ERR_PTR(-ENOMEM);
 		goto out_iput;
