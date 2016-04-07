@@ -1313,6 +1313,7 @@ extern void init_dl_task_timer(struct sched_dl_entity *dl_se);
 unsigned long to_ratio(u64 period, u64 runtime);
 
 extern void init_entity_runnable_average(struct sched_entity *se);
+extern void post_init_entity_util_avg(struct sched_entity *se);
 
 #ifdef CONFIG_NO_HZ_FULL
 extern bool sched_can_stop_tick(struct rq *rq);
@@ -1841,6 +1842,14 @@ static inline void cpufreq_trigger_update(u64 time)
 static inline void cpufreq_update_util(u64 time, unsigned long util, unsigned long max) {}
 static inline void cpufreq_trigger_update(u64 time) {}
 #endif /* CONFIG_CPU_FREQ */
+
+#ifdef arch_scale_freq_capacity
+#ifndef arch_scale_freq_invariant
+#define arch_scale_freq_invariant()	(true)
+#endif
+#else /* arch_scale_freq_capacity */
+#define arch_scale_freq_invariant()	(false)
+#endif
 
 static inline void account_reset_rq(struct rq *rq)
 {
