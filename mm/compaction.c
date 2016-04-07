@@ -737,7 +737,7 @@ isolate_migratepages_block(struct compact_control *cc, unsigned long low_pfn,
 
 		/*
 		 * Check may be lockless but that's ok as we recheck later.
-		 * It's possible to migrate LRU and movable kernel pages.
+		 * It's possible to migrate LRU pages and balloon pages
 		 * Skip any other type of page
 		 */
 		is_lru = PageLRU(page);
@@ -747,18 +747,6 @@ isolate_migratepages_block(struct compact_control *cc, unsigned long low_pfn,
 					/* Successfully isolated */
 					goto isolate_success;
 				}
-			}
-
-			if (unlikely(PageMovable(page)) &&
-					!PageIsolated(page)) {
-				if (locked) {
-					spin_unlock_irqrestore(&zone->lru_lock,
-									flags);
-					locked = false;
-				}
-
-				if (isolate_movable_page(page, isolate_mode))
-					goto isolate_success;
 			}
 		}
 
