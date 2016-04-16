@@ -867,7 +867,8 @@ int ip6_append_data(struct sock *sk,
 				int odd, struct sk_buff *skb),
 		    void *from, int length, int transhdrlen, int hlimit,
 		    int tclass, struct ipv6_txoptions *opt, struct flowi6 *fl6,
-		    struct rt6_info *rt, unsigned int flags, int dontfrag);
+		    struct rt6_info *rt, unsigned int flags, int dontfrag,
+		    const struct sockcm_cookie *sockc);
 
 int ip6_push_pending_frames(struct sock *sk);
 
@@ -884,7 +885,8 @@ struct sk_buff *ip6_make_skb(struct sock *sk,
 			     void *from, int length, int transhdrlen,
 			     int hlimit, int tclass, struct ipv6_txoptions *opt,
 			     struct flowi6 *fl6, struct rt6_info *rt,
-			     unsigned int flags, int dontfrag);
+			     unsigned int flags, int dontfrag,
+			     const struct sockcm_cookie *sockc);
 
 static inline struct sk_buff *ip6_finish_skb(struct sock *sk)
 {
@@ -959,6 +961,8 @@ int compat_ipv6_getsockopt(struct sock *sk, int level, int optname,
 int ip6_datagram_connect(struct sock *sk, struct sockaddr *addr, int addr_len);
 int ip6_datagram_connect_v6_only(struct sock *sk, struct sockaddr *addr,
 				 int addr_len);
+int ip6_datagram_dst_update(struct sock *sk, bool fix_sk_saddr);
+void ip6_datagram_release_cb(struct sock *sk);
 
 int ipv6_recv_error(struct sock *sk, struct msghdr *msg, int len,
 		    int *addr_len);

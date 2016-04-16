@@ -3255,6 +3255,7 @@ static int addrconf_notify(struct notifier_block *this, unsigned long event,
 			   void *ptr)
 {
 	struct net_device *dev = netdev_notifier_info_to_dev(ptr);
+	struct netdev_notifier_changeupper_info *info;
 	struct inet6_dev *idev = __in6_dev_get(dev);
 	int run_pending = 0;
 	int err;
@@ -3413,6 +3414,15 @@ static int addrconf_notify(struct notifier_block *this, unsigned long event,
 		if (idev)
 			addrconf_type_change(dev, event);
 		break;
+
+	case NETDEV_CHANGEUPPER:
+		info = ptr;
+
+		/* flush all routes if dev is linked to or unlinked from
+		 * an L3 master device (e.g., VRF)
+		 */
+		if (info->upper_dev && netif_is_l3_master(info->upper_dev))
+			addrconf_ifdown(dev, 0);
 	}
 
 	return NOTIFY_OK;
@@ -3436,6 +3446,12 @@ static void addrconf_type_change(struct net_device *dev, unsigned long event)
 		ipv6_mc_remap(idev);
 	else if (event == NETDEV_PRE_TYPE_CHANGE)
 		ipv6_mc_unmap(idev);
+}
+
+static bool addr_is_local(const struct in6_addr *addr)
+{
+	return ipv6_addr_type(addr) &
+		(IPV6_ADDR_LINKLOCAL | IPV6_ADDR_LOOPBACK);
 }
 
 static int addrconf_ifdown(struct net_device *dev, int how)
@@ -3495,7 +3511,8 @@ restart:
 				 * address is retained on a down event
 				 */
 				if (!keep_addr ||
-				    !(ifa->flags & IFA_F_PERMANENT)) {
+				    !(ifa->flags & IFA_F_PERMANENT) ||
+				    addr_is_local(&ifa->addr)) {
 					hlist_del_init_rcu(&ifa->addr_lst);
 					goto restart;
 				}
@@ -3544,7 +3561,8 @@ restart:
 		write_unlock_bh(&idev->lock);
 		spin_lock_bh(&ifa->lock);
 
-		if (keep_addr && (ifa->flags & IFA_F_PERMANENT)) {
+		if (keep_addr && (ifa->flags & IFA_F_PERMANENT) &&
+		    !addr_is_local(&ifa->addr)) {
 			/* set state to skip the notifier below */
 			state = INET6_IFADDR_STATE_DEAD;
 			ifa->state = 0;
@@ -4995,14 +5013,12 @@ static int inet6_set_iftoken(struct inet6_dev *idev, struct in6_addr *token)
 {
 	struct inet6_ifaddr *ifp;
 	struct net_device *dev = idev->dev;
-	bool update_rs = false;
+	bool clear_token, update_rs = false;
 	struct in6_addr ll_addr;
 
 	ASSERT_RTNL();
 
 	if (!token)
-		return -EINVAL;
-	if (ipv6_addr_any(token))
 		return -EINVAL;
 	if (dev->flags & (IFF_LOOPBACK | IFF_NOARP))
 		return -EINVAL;
@@ -5018,10 +5034,13 @@ static int inet6_set_iftoken(struct inet6_dev *idev, struct in6_addr *token)
 
 	write_unlock_bh(&idev->lock);
 
+	clear_token = ipv6_addr_any(token);
+	if (clear_token)
+		goto update_lft;
+
 	if (!idev->dead && (idev->if_flags & IF_READY) &&
 	    !ipv6_get_lladdr(dev, &ll_addr, IFA_F_TENTATIVE |
 			     IFA_F_OPTIMISTIC)) {
-
 		/* If we're not ready, then normal ifup will take care
 		 * of this. Otherwise, we need to request our rs here.
 		 */
@@ -5029,6 +5048,7 @@ static int inet6_set_iftoken(struct inet6_dev *idev, struct in6_addr *token)
 		update_rs = true;
 	}
 
+update_lft:
 	write_lock_bh(&idev->lock);
 
 	if (update_rs) {
