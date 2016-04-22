@@ -49,7 +49,7 @@
 #include "io-pgtable.h"
 
 /* Maximum number of stream IDs assigned to a single device */
-#define MAX_MASTER_STREAMIDS		MAX_PHANDLE_ARGS
+#define MAX_MASTER_STREAMIDS		128
 
 /* Maximum number of context banks per SMMU */
 #define ARM_SMMU_MAX_CBS		128
@@ -357,6 +357,12 @@ struct arm_smmu_domain {
 	struct iommu_domain		domain;
 };
 
+struct arm_smmu_phandle_args {
+	struct device_node *np;
+	int args_count;
+	uint32_t args[MAX_MASTER_STREAMIDS];
+};
+
 static struct iommu_ops arm_smmu_ops;
 
 static DEFINE_SPINLOCK(arm_smmu_devices_lock);
@@ -466,7 +472,7 @@ static int insert_smmu_master(struct arm_smmu_device *smmu,
 
 static int register_smmu_master(struct arm_smmu_device *smmu,
 				struct device *dev,
-				struct of_phandle_args *masterspec)
+				struct arm_smmu_phandle_args *masterspec)
 {
 	int i;
 	struct arm_smmu_master *master;
@@ -826,6 +832,12 @@ static int arm_smmu_init_domain_context(struct iommu_domain *domain,
 	if (smmu_domain->smmu)
 		goto out_unlock;
 
+	/* We're bypassing these SIDs, so don't allocate an actual context */
+	if (domain->type == IOMMU_DOMAIN_DMA) {
+		smmu_domain->smmu = smmu;
+		goto out_unlock;
+	}
+
 	/*
 	 * Mapping the requested stage onto what we support is surprisingly
 	 * complicated, mainly because the spec allows S1+S2 SMMUs without
@@ -948,7 +960,7 @@ static void arm_smmu_destroy_domain_context(struct iommu_domain *domain)
 	void __iomem *cb_base;
 	int irq;
 
-	if (!smmu)
+	if (!smmu || domain->type == IOMMU_DOMAIN_DMA)
 		return;
 
 	/*
@@ -1089,17 +1101,19 @@ static int arm_smmu_domain_add_master(struct arm_smmu_domain *smmu_domain,
 	struct arm_smmu_device *smmu = smmu_domain->smmu;
 	void __iomem *gr0_base = ARM_SMMU_GR0(smmu);
 
+	/*
+	 * FIXME: This won't be needed once we have IOMMU-backed DMA ops
+	 * for all devices behind the SMMU. Note that we need to take
+	 * care configuring SMRs for devices both a platform_device and
+	 * and a PCI device (i.e. a PCI host controller)
+	 */
+	if (smmu_domain->domain.type == IOMMU_DOMAIN_DMA)
+		return 0;
+
 	/* Devices in an IOMMU group may already be configured */
 	ret = arm_smmu_master_configure_smrs(smmu, cfg);
 	if (ret)
 		return ret == -EEXIST ? 0 : ret;
-
-	/*
-	 * FIXME: This won't be needed once we have IOMMU-backed DMA ops
-	 * for all devices behind the SMMU.
-	 */
-	if (smmu_domain->domain.type == IOMMU_DOMAIN_DMA)
-		return 0;
 
 	for (i = 0; i < cfg->num_streamids; ++i) {
 		u32 idx, s2cr;
@@ -1737,7 +1751,8 @@ static int arm_smmu_device_dt_probe(struct platform_device *pdev)
 	struct arm_smmu_device *smmu;
 	struct device *dev = &pdev->dev;
 	struct rb_node *node;
-	struct of_phandle_args masterspec;
+	struct of_phandle_iterator it;
+	struct arm_smmu_phandle_args *masterspec;
 	int num_irqs, i, err;
 
 	smmu = devm_kzalloc(dev, sizeof(*smmu), GFP_KERNEL);
@@ -1798,19 +1813,34 @@ static int arm_smmu_device_dt_probe(struct platform_device *pdev)
 
 	i = 0;
 	smmu->masters = RB_ROOT;
-	while (!of_parse_phandle_with_args(dev->of_node, "mmu-masters",
-					   "#stream-id-cells", i,
-					   &masterspec)) {
-		err = register_smmu_master(smmu, dev, &masterspec);
+
+	err = -ENOMEM;
+	/* No need to zero the memory for masterspec */
+	masterspec = kmalloc(sizeof(*masterspec), GFP_KERNEL);
+	if (!masterspec)
+		goto out_put_masters;
+
+	of_for_each_phandle(&it, err, dev->of_node,
+			    "mmu-masters", "#stream-id-cells", 0) {
+		int count = of_phandle_iterator_args(&it, masterspec->args,
+						     MAX_MASTER_STREAMIDS);
+		masterspec->np		= of_node_get(it.node);
+		masterspec->args_count	= count;
+
+		err = register_smmu_master(smmu, dev, masterspec);
 		if (err) {
 			dev_err(dev, "failed to add master %s\n",
-				masterspec.np->name);
+				masterspec->np->name);
+			kfree(masterspec);
 			goto out_put_masters;
 		}
 
 		i++;
 	}
+
 	dev_notice(dev, "registered %d master devices\n", i);
+
+	kfree(masterspec);
 
 	parse_driver_options(smmu);
 
