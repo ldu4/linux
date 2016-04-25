@@ -47,7 +47,6 @@
 
 #include <linux/mm.h>
 #include <linux/pagemap.h>
-#include <linux/pageteam.h>
 #include <linux/swap.h>
 #include <linux/swapops.h>
 #include <linux/slab.h>
@@ -688,7 +687,7 @@ pmd_t *mm_find_pmd(struct mm_struct *mm, unsigned long address)
 	pgd_t *pgd;
 	pud_t *pud;
 	pmd_t *pmd = NULL;
-	pmd_t pmdval;
+	pmd_t pmde;
 
 	pgd = pgd_offset(mm, address);
 	if (!pgd_present(*pgd))
@@ -701,12 +700,12 @@ pmd_t *mm_find_pmd(struct mm_struct *mm, unsigned long address)
 	pmd = pmd_offset(pud, address);
 	/*
 	 * Some THP functions use the sequence pmdp_huge_clear_flush(), set_pmd_at()
-	 * without locking out concurrent rmap lookups.  So when looking for a
-	 * pmd entry, in which to find a pte, test present and !THP together.
+	 * without holding anon_vma lock for write.  So when looking for a
+	 * genuine pmde (in which to find pte), test present and !THP together.
 	 */
-	pmdval = *pmd;
+	pmde = *pmd;
 	barrier();
-	if (!pmd_present(pmdval) || pmd_trans_huge(pmdval))
+	if (!pmd_present(pmde) || pmd_trans_huge(pmde))
 		pmd = NULL;
 out:
 	return pmd;
@@ -801,7 +800,6 @@ bool page_check_address_transhuge(struct page *page, struct mm_struct *mm,
 	pgd_t *pgd;
 	pud_t *pud;
 	pmd_t *pmd;
-	pmd_t pmdval;
 	pte_t *pte;
 	spinlock_t *ptl;
 
@@ -823,24 +821,32 @@ bool page_check_address_transhuge(struct page *page, struct mm_struct *mm,
 	if (!pud_present(*pud))
 		return false;
 	pmd = pmd_offset(pud, address);
-again:
-	pmdval = *pmd;
-	barrier();
-	if (!pmd_present(pmdval))
-		return false;
 
-	if (pmd_trans_huge(pmdval)) {
-		if (pmd_page(pmdval) != page)
-			return false;
+	if (pmd_trans_huge(*pmd)) {
 		ptl = pmd_lock(mm, pmd);
-		if (unlikely(!pmd_same(*pmd, pmdval))) {
+		if (!pmd_present(*pmd))
+			goto unlock_pmd;
+		if (unlikely(!pmd_trans_huge(*pmd))) {
 			spin_unlock(ptl);
-			goto again;
+			goto map_pte;
 		}
+
+		if (pmd_page(*pmd) != page)
+			goto unlock_pmd;
+
 		pte = NULL;
 		goto found;
-	}
+unlock_pmd:
+		spin_unlock(ptl);
+		return false;
+	} else {
+		pmd_t pmde = *pmd;
 
+		barrier();
+		if (!pmd_present(pmde) || pmd_trans_huge(pmde))
+			return false;
+	}
+map_pte:
 	pte = pte_offset_map(pmd, address);
 	if (!pte_present(*pte)) {
 		pte_unmap(pte);
@@ -857,7 +863,7 @@ check_pte:
 	}
 
 	/* THP can be referenced by any subpage */
-	if (pte_pfn(*pte) - page_to_pfn(page) >= (1 << compound_order(page))) {
+	if (pte_pfn(*pte) - page_to_pfn(page) >= hpage_nr_pages(page)) {
 		pte_unmap_unlock(pte, ptl);
 		return false;
 	}
@@ -1398,7 +1404,6 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
 		     unsigned long address, void *arg)
 {
 	struct mm_struct *mm = vma->vm_mm;
-	pmd_t *pmd;
 	pte_t *pte;
 	pte_t pteval;
 	spinlock_t *ptl;
@@ -1418,7 +1423,8 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
 			goto out;
 	}
 
-	if (!page_check_address_transhuge(page, mm, address, &pmd, &pte, &ptl))
+	pte = page_check_address(page, mm, address, &ptl, 0);
+	if (!pte)
 		goto out;
 
 	/*
@@ -1436,19 +1442,6 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
 		if (flags & TTU_MUNLOCK)
 			goto out_unmap;
 	}
-
-	if (!pte) {
-		if (!(flags & TTU_IGNORE_ACCESS) &&
-		    IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE) &&
-		    pmdp_clear_flush_young_notify(vma, address, pmd)) {
-			ret = SWAP_FAIL;
-			goto out_unmap;
-		}
-		spin_unlock(ptl);
-		unmap_team_by_pmd(vma, address, pmd, page);
-		goto out;
-	}
-
 	if (!(flags & TTU_IGNORE_ACCESS)) {
 		if (ptep_clear_flush_young_notify(vma, address, pte)) {
 			ret = SWAP_FAIL;
@@ -1549,9 +1542,7 @@ discard:
 	put_page(page);
 
 out_unmap:
-	spin_unlock(ptl);
-	if (pte)
-		pte_unmap(pte);
+	pte_unmap_unlock(pte, ptl);
 	if (ret != SWAP_FAIL && ret != SWAP_MLOCK && !(flags & TTU_MUNLOCK))
 		mmu_notifier_invalidate_page(mm, address);
 out:
