@@ -1364,7 +1364,7 @@ static enum compact_result compact_finished(struct zone *zone,
  *   COMPACT_CONTINUE - If compaction should run now
  */
 static enum compact_result __compaction_suitable(struct zone *zone, int order,
-					int alloc_flags, int classzone_idx)
+					unsigned int alloc_flags, int classzone_idx)
 {
 	int fragindex;
 	unsigned long watermark;
@@ -1409,7 +1409,7 @@ static enum compact_result __compaction_suitable(struct zone *zone, int order,
 }
 
 enum compact_result compaction_suitable(struct zone *zone, int order,
-					int alloc_flags, int classzone_idx)
+					unsigned int alloc_flags, int classzone_idx)
 {
 	enum compact_result ret;
 
@@ -1590,7 +1590,7 @@ out:
 
 static enum compact_result compact_zone_order(struct zone *zone, int order,
 		gfp_t gfp_mask, enum migrate_mode mode, int *contended,
-		int alloc_flags, int classzone_idx)
+		unsigned int alloc_flags, int classzone_idx)
 {
 	enum compact_result ret;
 	struct compact_control cc = {
@@ -1632,7 +1632,7 @@ int sysctl_extfrag_threshold = 500;
  * This is the main entry point for direct page compaction.
  */
 enum compact_result try_to_compact_pages(gfp_t gfp_mask, unsigned int order,
-			int alloc_flags, const struct alloc_context *ac,
+			unsigned int alloc_flags, const struct alloc_context *ac,
 			enum migrate_mode mode, int *contended)
 {
 	int may_enter_fs = gfp_mask & __GFP_FS;
