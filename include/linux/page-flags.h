@@ -101,9 +101,6 @@ enum pageflags {
 #ifdef CONFIG_MEMORY_FAILURE
 	PG_hwpoison,		/* hardware poisoned page. Don't touch */
 #endif
-#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-	PG_team,		/* used for huge tmpfs (shmem) */
-#endif
 #if defined(CONFIG_IDLE_PAGE_TRACKING) && defined(CONFIG_64BIT)
 	PG_young,
 	PG_idle,
@@ -233,9 +230,6 @@ static inline int Page##uname(const struct page *page) { return 0; }
 
 #define SETPAGEFLAG_NOOP(uname)						\
 static inline void SetPage##uname(struct page *page) {  }
-
-#define __SETPAGEFLAG_NOOP(uname)					\
-static inline void __SetPage##uname(struct page *page) {  }
 
 #define CLEARPAGEFLAG_NOOP(uname)					\
 static inline void ClearPage##uname(struct page *page) {  }
@@ -562,8 +556,6 @@ static inline int TestClearPageDoubleMap(struct page *page)
 	return test_and_clear_bit(PG_double_map, &page[1].flags);
 }
 
-PAGEFLAG(Team, team, PF_NO_COMPOUND)
-	__SETPAGEFLAG(Team, team, PF_NO_COMPOUND)
 #else
 TESTPAGEFLAG_FALSE(TransHuge)
 TESTPAGEFLAG_FALSE(TransCompound)
@@ -571,8 +563,6 @@ TESTPAGEFLAG_FALSE(TransTail)
 TESTPAGEFLAG_FALSE(DoubleMap)
 	TESTSETFLAG_FALSE(DoubleMap)
 	TESTCLEARFLAG_FALSE(DoubleMap)
-PAGEFLAG_FALSE(Team)
-	__SETPAGEFLAG_NOOP(Team)
 #endif
 
 /*
