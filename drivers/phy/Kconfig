@@ -250,7 +250,8 @@ config PHY_SUN9I_USB
 	tristate "Allwinner sun9i SoC USB PHY driver"
 	depends on ARCH_SUNXI && HAS_IOMEM && OF
 	depends on RESET_CONTROLLER
-	depends on USB_COMMON
+	depends on USB_SUPPORT
+	select USB_COMMON
 	select GENERIC_PHY
 	help
 	  Enable this to support the transceiver that is part of Allwinner
@@ -420,5 +421,7 @@ config PHY_CYGNUS_PCIE
 	help
 	  Enable this to support the Broadcom Cygnus PCIe PHY.
 	  If unsure, say N.
+
+source "drivers/phy/tegra/Kconfig"
 
 endmenu
