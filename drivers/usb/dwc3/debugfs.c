@@ -942,62 +942,25 @@ void dwc3_debugfs_init(struct dwc3 *dwc)
 	dwc->regset->base = dwc->regs;
 
 	file = debugfs_create_regset32("regdump", S_IRUGO, root, dwc->regset);
-<<<<<<< HEAD
-	if (!file) {
-		ret = -ENOMEM;
-		goto err2;
-	}
-=======
 	if (!file)
 		dev_dbg(dwc->dev, "Can't create debugfs regdump\n");
->>>>>>> linux-next/akpm-base
 
 	if (IS_ENABLED(CONFIG_USB_DWC3_DUAL_ROLE)) {
 		file = debugfs_create_file("mode", S_IRUGO | S_IWUSR, root,
 				dwc, &dwc3_mode_fops);
-<<<<<<< HEAD
-		if (!file) {
-			ret = -ENOMEM;
-			goto err2;
-		}
-=======
 		if (!file)
 			dev_dbg(dwc->dev, "Can't create debugfs mode\n");
->>>>>>> linux-next/akpm-base
 	}
 
 	if (IS_ENABLED(CONFIG_USB_DWC3_DUAL_ROLE) ||
 			IS_ENABLED(CONFIG_USB_DWC3_GADGET)) {
 		file = debugfs_create_file("testmode", S_IRUGO | S_IWUSR, root,
 				dwc, &dwc3_testmode_fops);
-<<<<<<< HEAD
-		if (!file) {
-			ret = -ENOMEM;
-			goto err2;
-		}
-
-		file = debugfs_create_file("link_state", S_IRUGO | S_IWUSR, root,
-				dwc, &dwc3_link_state_fops);
-		if (!file) {
-			ret = -ENOMEM;
-			goto err2;
-		}
-	}
-
-	return 0;
-
-err2:
-	kfree(dwc->regset);
-
-err1:
-	debugfs_remove_recursive(root);
-=======
 
 		file = debugfs_create_file("link_state", S_IRUGO | S_IWUSR,
 				root, dwc, &dwc3_link_state_fops);
 		if (!file)
 			dev_dbg(dwc->dev, "Can't create debugfs link_state\n");
->>>>>>> linux-next/akpm-base
 
 		dwc3_debugfs_create_endpoint_dirs(dwc, root);
 	}

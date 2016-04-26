@@ -279,10 +279,7 @@ static u16 get_alias(struct device *dev)
 	struct pci_dev *pdev = to_pci_dev(dev);
 	u16 devid, ivrs_alias, pci_alias;
 
-<<<<<<< HEAD
-=======
 	/* The callers make sure that get_device_id() does not fail here */
->>>>>>> linux-next/akpm-base
 	devid = get_device_id(dev);
 	ivrs_alias = amd_iommu_alias_table[devid];
 	pci_for_each_dma_alias(pdev, __last_alias, &pci_alias);
@@ -347,8 +344,6 @@ static struct iommu_dev_data *find_dev_data(u16 devid)
 }
 
 static struct iommu_dev_data *get_dev_data(struct device *dev)
-<<<<<<< HEAD
-=======
 {
 	return dev->archdata.iommu;
 }
@@ -357,7 +352,6 @@ static struct iommu_dev_data *get_dev_data(struct device *dev)
 * Find or create an IOMMU group for a acpihid device.
 */
 static struct iommu_group *acpihid_device_group(struct device *dev)
->>>>>>> linux-next/akpm-base
 {
 	struct acpihid_map_entry *p, *entry = NULL;
 	int devid;
@@ -505,11 +499,7 @@ static int iommu_init_device(struct device *dev)
 
 	dev_data->alias = get_alias(dev);
 
-<<<<<<< HEAD
-	if (pci_iommuv2_capable(pdev)) {
-=======
 	if (dev_is_pci(dev) && pci_iommuv2_capable(to_pci_dev(dev))) {
->>>>>>> linux-next/akpm-base
 		struct amd_iommu *iommu;
 
 		iommu = amd_iommu_rlookup_table[dev_data->devid];
@@ -530,12 +520,9 @@ static void iommu_ignore_device(struct device *dev)
 	int devid;
 
 	devid = get_device_id(dev);
-<<<<<<< HEAD
-=======
 	if (devid < 0)
 		return;
 
->>>>>>> linux-next/akpm-base
 	alias = get_alias(dev);
 
 	memset(&amd_iommu_dev_table[devid], 0, sizeof(struct dev_table_entry));

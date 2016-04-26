@@ -2101,10 +2101,7 @@ int intel_pin_and_map_ringbuffer_obj(struct drm_device *dev,
 	struct drm_i915_gem_object *obj = ringbuf->obj;
 	/* Ring wraparound at offset 0 sometimes hangs. No idea why. */
 	unsigned flags = PIN_OFFSET_BIAS | 4096;
-<<<<<<< HEAD
-=======
 	void *addr;
->>>>>>> linux-next/akpm-base
 	int ret;
 
 	if (HAS_LLC(dev_priv) && !obj->stolen) {
