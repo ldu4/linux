@@ -1556,7 +1556,6 @@ static int mlx5e_set_mtu(struct mlx5e_priv *priv, u16 mtu)
 	mlx5_modify_nic_vport_mtu(mdev, hw_mtu);
 	return 0;
 }
-<<<<<<< HEAD
 
 static void mlx5e_query_mtu(struct mlx5e_priv *priv, u16 *mtu)
 {
@@ -1586,37 +1585,6 @@ static int mlx5e_set_dev_port_mtu(struct net_device *netdev)
 		netdev_warn(netdev, "%s: VPort MTU %d is different than netdev mtu %d\n",
 			    __func__, mtu, netdev->mtu);
 
-=======
-
-static void mlx5e_query_mtu(struct mlx5e_priv *priv, u16 *mtu)
-{
-	struct mlx5_core_dev *mdev = priv->mdev;
-	u16 hw_mtu = 0;
-	int err;
-
-	err = mlx5_query_nic_vport_mtu(mdev, &hw_mtu);
-	if (err || !hw_mtu) /* fallback to port oper mtu */
-		mlx5_query_port_oper_mtu(mdev, &hw_mtu, 1);
-
-	*mtu = MLX5E_HW2SW_MTU(hw_mtu);
-}
-
-static int mlx5e_set_dev_port_mtu(struct net_device *netdev)
-{
-	struct mlx5e_priv *priv = netdev_priv(netdev);
-	u16 mtu;
-	int err;
-
-	err = mlx5e_set_mtu(priv, netdev->mtu);
-	if (err)
-		return err;
-
-	mlx5e_query_mtu(priv, &mtu);
-	if (mtu != netdev->mtu)
-		netdev_warn(netdev, "%s: VPort MTU %d is different than netdev mtu %d\n",
-			    __func__, mtu, netdev->mtu);
-
->>>>>>> linux-next/akpm-base
 	netdev->mtu = mtu;
 	return 0;
 }
@@ -2272,8 +2240,6 @@ static int set_feature_rx_vlan(struct net_device *netdev, bool enable)
 	return err;
 }
 
-<<<<<<< HEAD
-=======
 static int mlx5e_handle_feature(struct net_device *netdev,
 				netdev_features_t wanted_features,
 				netdev_features_t feature,
@@ -2317,7 +2283,6 @@ static int mlx5e_set_features(struct net_device *netdev,
 	return err ? -EINVAL : 0;
 }
 
->>>>>>> linux-next/akpm-base
 #define MXL5_HW_MIN_MTU 64
 #define MXL5E_MIN_MTU (MXL5_HW_MIN_MTU + ETH_FCS_LEN)
 

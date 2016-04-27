@@ -2276,17 +2276,11 @@ static int nla_put_secy(struct macsec_secy *secy, struct sk_buff *skb)
 	if (!secy_nest)
 		return 1;
 
-<<<<<<< HEAD
-	if (nla_put_sci(skb, MACSEC_SECY_ATTR_SCI, secy->sci) ||
-	    nla_put_u64(skb, MACSEC_SECY_ATTR_CIPHER_SUITE,
-			MACSEC_DEFAULT_CIPHER_ID) ||
-=======
 	if (nla_put_sci(skb, MACSEC_SECY_ATTR_SCI, secy->sci,
 			MACSEC_SECY_ATTR_PAD) ||
 	    nla_put_u64_64bit(skb, MACSEC_SECY_ATTR_CIPHER_SUITE,
 			      MACSEC_DEFAULT_CIPHER_ID,
 			      MACSEC_SECY_ATTR_PAD) ||
->>>>>>> linux-next/akpm-base
 	    nla_put_u8(skb, MACSEC_SECY_ATTR_ICV_LEN, secy->icv_len) ||
 	    nla_put_u8(skb, MACSEC_SECY_ATTR_OPER, secy->operational) ||
 	    nla_put_u8(skb, MACSEC_SECY_ATTR_PROTECT, secy->protect_frames) ||
@@ -3245,13 +3239,8 @@ static int macsec_fill_info(struct sk_buff *skb,
 	if (nla_put_sci(skb, IFLA_MACSEC_SCI, secy->sci,
 			IFLA_MACSEC_PAD) ||
 	    nla_put_u8(skb, IFLA_MACSEC_ICV_LEN, secy->icv_len) ||
-<<<<<<< HEAD
-	    nla_put_u64(skb, IFLA_MACSEC_CIPHER_SUITE,
-			MACSEC_DEFAULT_CIPHER_ID) ||
-=======
 	    nla_put_u64_64bit(skb, IFLA_MACSEC_CIPHER_SUITE,
 			      MACSEC_DEFAULT_CIPHER_ID, IFLA_MACSEC_PAD) ||
->>>>>>> linux-next/akpm-base
 	    nla_put_u8(skb, IFLA_MACSEC_ENCODING_SA, tx_sc->encoding_sa) ||
 	    nla_put_u8(skb, IFLA_MACSEC_ENCRYPT, tx_sc->encrypt) ||
 	    nla_put_u8(skb, IFLA_MACSEC_PROTECT, secy->protect_frames) ||

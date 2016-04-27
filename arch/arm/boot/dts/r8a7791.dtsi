@@ -1084,10 +1084,6 @@
 			compatible = "fixed-clock";
 			#clock-cells = <0>;
 			clock-frequency = <0>;
-<<<<<<< HEAD
-			clock-output-names = "pcie_bus";
-=======
->>>>>>> linux-next/akpm-base
 		};
 
 		/* External SCIF clock */
@@ -1111,10 +1107,6 @@
 			#clock-cells = <0>;
 			/* This value must be overridden by the board. */
 			clock-frequency = <0>;
-<<<<<<< HEAD
-			clock-output-names = "can_clk";
-=======
->>>>>>> linux-next/akpm-base
 		};
 
 		/* Special CPG clocks */

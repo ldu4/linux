@@ -23,11 +23,6 @@
 void __init shmobile_init_delay(void)
 {
 	struct device_node *np, *cpus;
-<<<<<<< HEAD
-	unsigned int div = 0;
-	bool has_arch_timer = false;
-=======
->>>>>>> linux-next/akpm-base
 	u32 max_freq = 0;
 
 	cpus = of_find_node_by_path("/cpus");
@@ -47,19 +42,6 @@ void __init shmobile_init_delay(void)
 
 		if (!of_property_read_u32(np, "clock-frequency", &freq))
 			max_freq = max(max_freq, freq);
-<<<<<<< HEAD
-
-		if (of_device_is_compatible(np, "arm,cortex-a8")) {
-			div = 2;
-		} else if (of_device_is_compatible(np, "arm,cortex-a9")) {
-			div = 1;
-		} else if (of_device_is_compatible(np, "arm,cortex-a7") ||
-			 of_device_is_compatible(np, "arm,cortex-a15")) {
-			div = 1;
-			has_arch_timer = true;
-		}
-=======
->>>>>>> linux-next/akpm-base
 	}
 
 	of_node_put(cpus);
@@ -67,10 +49,6 @@ void __init shmobile_init_delay(void)
 	if (!max_freq || !div)
 		return;
 
-<<<<<<< HEAD
-	if (!has_arch_timer || !IS_ENABLED(CONFIG_ARM_ARCH_TIMER))
-		shmobile_setup_delay_hz(max_freq, 1, div);
-=======
 	/*
 	 * Calculate a worst-case loops-per-jiffy value
 	 * based on maximum cpu core hz setting and the
@@ -82,5 +60,4 @@ void __init shmobile_init_delay(void)
 
 	if (!preset_lpj)
 		preset_lpj = max_freq / HZ;
->>>>>>> linux-next/akpm-base
 }
