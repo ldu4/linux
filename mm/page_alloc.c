@@ -2679,7 +2679,7 @@ get_page_from_freelist(gfp_t gfp_mask, unsigned int order, unsigned int alloc_fl
 	struct zoneref *z;
 	struct page *page = NULL;
 	struct zone *zone;
-	bool fair_skipped;
+	int nr_fair_skipped = 0;
 	bool zonelist_rescan;
 
 zonelist_scan:
@@ -2707,7 +2707,7 @@ zonelist_scan:
 			if (!zone_local(ac->preferred_zone, zone))
 				break;
 			if (test_bit(ZONE_FAIR_DEPLETED, &zone->flags)) {
-				fair_skipped = true;
+				nr_fair_skipped++;
 				continue;
 			}
 		}
@@ -2800,7 +2800,7 @@ try_this_zone:
 	 */
 	if (alloc_flags & ALLOC_FAIR) {
 		alloc_flags &= ~ALLOC_FAIR;
-		if (fair_skipped) {
+		if (nr_fair_skipped) {
 			zonelist_rescan = true;
 			reset_alloc_batches(ac->preferred_zone);
 		}
