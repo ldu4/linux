@@ -143,13 +143,8 @@
 
 &pfc {
 	scif0_pins: serial0 {
-<<<<<<< HEAD
-		renesas,groups = "scif0_data_d";
-		renesas,function = "scif0";
-=======
 		groups = "scif0_data_d";
 		function = "scif0";
->>>>>>> linux-next/akpm-base
 	};
 
 	ether_pins: ether {
