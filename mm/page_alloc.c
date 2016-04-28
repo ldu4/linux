@@ -1048,7 +1048,7 @@ static bool free_pages_prepare(struct page *page, unsigned int order)
 			bad += free_pages_check(page + i);
 		}
 	}
-	if (PageAnonHead(page))
+	if (PageAnon(page))
 		page->mapping = NULL;
 	bad += free_pages_check(page);
 	if (bad)
