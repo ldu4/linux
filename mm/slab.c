@@ -1236,7 +1236,7 @@ static void __init set_up_node(struct kmem_cache *cachep, int index)
 	}
 }
 
-#ifdef CONFIG_FREELIST_RANDOM
+#ifdef CONFIG_SLAB_FREELIST_RANDOM
 static void freelist_randomize(struct rnd_state *state, freelist_idx_t *list,
 			size_t count)
 {
@@ -1288,7 +1288,7 @@ static inline int cache_random_seq_create(struct kmem_cache *cachep)
 	return 0;
 }
 static inline void cache_random_seq_destroy(struct kmem_cache *cachep) { }
-#endif /* CONFIG_FREELIST_RANDOM */
+#endif /* CONFIG_SLAB_FREELIST_RANDOM */
 
 
 /*
@@ -2530,7 +2530,7 @@ static void cache_init_objs_debug(struct kmem_cache *cachep, struct page *page)
 #endif
 }
 
-#ifdef CONFIG_FREELIST_RANDOM
+#ifdef CONFIG_SLAB_FREELIST_RANDOM
 /* Hold information during a freelist initialization */
 union freelist_init_state {
 	struct {
@@ -2624,7 +2624,7 @@ static inline bool shuffle_freelist(struct kmem_cache *cachep,
 {
 	return false;
 }
-#endif /* CONFIG_FREELIST_RANDOM */
+#endif /* CONFIG_SLAB_FREELIST_RANDOM */
 
 static void cache_init_objs(struct kmem_cache *cachep,
 			    struct page *page)
