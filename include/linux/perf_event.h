@@ -834,9 +834,25 @@ extern int perf_event_overflow(struct perf_event *event,
 				 struct perf_sample_data *data,
 				 struct pt_regs *regs);
 
+extern void perf_event_output_forward(struct perf_event *event,
+				     struct perf_sample_data *data,
+				     struct pt_regs *regs);
+extern void perf_event_output_backward(struct perf_event *event,
+				       struct perf_sample_data *data,
+				       struct pt_regs *regs);
 extern void perf_event_output(struct perf_event *event,
-				struct perf_sample_data *data,
-				struct pt_regs *regs);
+			      struct perf_sample_data *data,
+			      struct pt_regs *regs);
+
+static inline bool
+is_default_overflow_handler(struct perf_event *event)
+{
+	if (likely(event->overflow_handler == perf_event_output_forward))
+		return true;
+	if (unlikely(event->overflow_handler == perf_event_output_backward))
+		return true;
+	return false;
+}
 
 extern void
 perf_event_header__init_id(struct perf_event_header *header,
@@ -882,8 +898,6 @@ static inline void perf_arch_fetch_caller_regs(struct pt_regs *regs, unsigned lo
  */
 static inline void perf_fetch_caller_regs(struct pt_regs *regs)
 {
-	memset(regs, 0, sizeof(*regs));
-
 	perf_arch_fetch_caller_regs(regs, CALLER_ADDR0);
 }
 
@@ -1018,7 +1032,7 @@ static inline bool perf_paranoid_kernel(void)
 }
 
 extern void perf_event_init(void);
-extern void perf_tp_event(u64 addr, u64 count, void *record,
+extern void perf_tp_event(u16 event_type, u64 count, void *record,
 			  int entry_size, struct pt_regs *regs,
 			  struct hlist_head *head, int rctx,
 			  struct task_struct *task);
@@ -1045,8 +1059,20 @@ static inline bool has_aux(struct perf_event *event)
 	return event->pmu->setup_aux;
 }
 
+static inline bool is_write_backward(struct perf_event *event)
+{
+	return !!event->attr.write_backward;
+}
+
 extern int perf_output_begin(struct perf_output_handle *handle,
 			     struct perf_event *event, unsigned int size);
+extern int perf_output_begin_forward(struct perf_output_handle *handle,
+				    struct perf_event *event,
+				    unsigned int size);
+extern int perf_output_begin_backward(struct perf_output_handle *handle,
+				      struct perf_event *event,
+				      unsigned int size);
+
 extern void perf_output_end(struct perf_output_handle *handle);
 extern unsigned int perf_output_copy(struct perf_output_handle *handle,
 			     const void *buf, unsigned int len);
