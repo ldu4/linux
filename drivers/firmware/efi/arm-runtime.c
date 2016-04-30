@@ -27,6 +27,7 @@
 #include <asm/mmu.h>
 #include <asm/pgalloc.h>
 #include <asm/pgtable.h>
+#include <asm/xen/xen-ops.h>
 
 extern u64 efi_system_table;
 
@@ -42,11 +43,13 @@ static struct mm_struct efi_mm = {
 static bool __init efi_virtmap_init(void)
 {
 	efi_memory_desc_t *md;
+	bool systab_found;
 
 	efi_mm.pgd = pgd_alloc(&efi_mm);
 	init_new_context(NULL, &efi_mm);
 
-	for_each_efi_memory_desc(&memmap, md) {
+	systab_found = false;
+	for_each_efi_memory_desc(md) {
 		phys_addr_t phys = md->phys_addr;
 		int ret;
 
@@ -64,7 +67,25 @@ static bool __init efi_virtmap_init(void)
 				&phys, ret);
 			return false;
 		}
+		/*
+		 * If this entry covers the address of the UEFI system table,
+		 * calculate and record its virtual address.
+		 */
+		if (efi_system_table >= phys &&
+		    efi_system_table < phys + (md->num_pages * EFI_PAGE_SIZE)) {
+			efi.systab = (void *)(unsigned long)(efi_system_table -
+							     phys + md->virt_addr);
+			systab_found = true;
+		}
 	}
+	if (!systab_found) {
+		pr_err("No virtual mapping found for the UEFI System Table\n");
+		return false;
+	}
+
+	if (efi_memattr_apply_permissions(&efi_mm, efi_set_mapping_permissions))
+		return false;
+
 	return true;
 }
 
@@ -89,34 +110,29 @@ static int __init arm_enable_runtime_services(void)
 
 	pr_info("Remapping and enabling EFI services.\n");
 
-	mapsize = memmap.map_end - memmap.map;
-	memmap.map = (__force void *)ioremap_cache(memmap.phys_map,
-						   mapsize);
-	if (!memmap.map) {
+	mapsize = efi.memmap.map_end - efi.memmap.map;
+
+	efi.memmap.map = memremap(efi.memmap.phys_map, mapsize, MEMREMAP_WB);
+	if (!efi.memmap.map) {
 		pr_err("Failed to remap EFI memory map\n");
 		return -ENOMEM;
 	}
-	memmap.map_end = memmap.map + mapsize;
-	efi.memmap = &memmap;
+	efi.memmap.map_end = efi.memmap.map + mapsize;
 
-	efi.systab = (__force void *)ioremap_cache(efi_system_table,
-						   sizeof(efi_system_table_t));
-	if (!efi.systab) {
-		pr_err("Failed to remap EFI System Table\n");
-		return -ENOMEM;
+	if (IS_ENABLED(CONFIG_XEN_EFI) && efi_enabled(EFI_PARAVIRT)) {
+		/* Set up runtime services function pointers for Xen Dom0 */
+		xen_efi_runtime_setup();
+	} else {
+		if (!efi_virtmap_init()) {
+			pr_err("UEFI virtual mapping missing or invalid -- runtime services will not be available\n");
+			return -ENOMEM;
+		}
+
+		/* Set up runtime services function pointers */
+		efi_native_runtime_setup();
 	}
-	set_bit(EFI_SYSTEM_TABLES, &efi.flags);
 
-	if (!efi_virtmap_init()) {
-		pr_err("No UEFI virtual mapping was installed -- runtime services will not be available\n");
-		return -ENOMEM;
-	}
-
-	/* Set up runtime services function pointers */
-	efi_native_runtime_setup();
 	set_bit(EFI_RUNTIME_SERVICES, &efi.flags);
-
-	efi.runtime_version = efi.systab->hdr.revision;
 
 	return 0;
 }

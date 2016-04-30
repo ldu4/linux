@@ -1377,6 +1377,9 @@ byt_set_termios(struct uart_port *p, struct ktermios *termios,
 	unsigned long m, n;
 	u32 reg;
 
+	/* Gracefully handle the B0 case: fall back to B9600 */
+	fuart = fuart ? fuart : 9600 * 16;
+
 	/* Get Fuart closer to Fref */
 	fuart *= rounddown_pow_of_two(fref / fuart);
 
@@ -1454,13 +1457,13 @@ byt_serial_setup(struct serial_private *priv,
 		return -EINVAL;
 	}
 
-	rx_param->src_master = 1;
-	rx_param->dst_master = 0;
+	rx_param->m_master = 0;
+	rx_param->p_master = 1;
 
 	dma->rxconf.src_maxburst = 16;
 
-	tx_param->src_master = 1;
-	tx_param->dst_master = 0;
+	tx_param->m_master = 0;
+	tx_param->p_master = 1;
 
 	dma->txconf.dst_maxburst = 16;
 

@@ -43,6 +43,7 @@ struct efi __read_mostly efi = {
 	.config_table		= EFI_INVALID_TABLE_ADDR,
 	.esrt			= EFI_INVALID_TABLE_ADDR,
 	.properties_table	= EFI_INVALID_TABLE_ADDR,
+	.mem_attr_table		= EFI_INVALID_TABLE_ADDR,
 };
 EXPORT_SYMBOL(efi);
 
@@ -256,7 +257,7 @@ subsys_initcall(efisubsys_init);
  */
 int __init efi_mem_desc_lookup(u64 phys_addr, efi_memory_desc_t *out_md)
 {
-	struct efi_memory_map *map = efi.memmap;
+	struct efi_memory_map *map = &efi.memmap;
 	phys_addr_t p, e;
 
 	if (!efi_enabled(EFI_MEMMAP)) {
@@ -338,6 +339,7 @@ static __initdata efi_config_table_type_t common_tables[] = {
 	{UGA_IO_PROTOCOL_GUID, "UGA", &efi.uga},
 	{EFI_SYSTEM_RESOURCE_TABLE_GUID, "ESRT", &efi.esrt},
 	{EFI_PROPERTIES_TABLE_GUID, "PROP", &efi.properties_table},
+	{EFI_MEMORY_ATTRIBUTES_TABLE_GUID, "MEMATTR", &efi.mem_attr_table},
 	{NULL_GUID, NULL, NULL},
 };
 
@@ -351,8 +353,9 @@ static __init int match_config_table(efi_guid_t *guid,
 		for (i = 0; efi_guidcmp(table_types[i].guid, NULL_GUID); i++) {
 			if (!efi_guidcmp(*guid, table_types[i].guid)) {
 				*(table_types[i].ptr) = table;
-				pr_cont(" %s=0x%lx ",
-					table_types[i].name, table);
+				if (table_types[i].name)
+					pr_cont(" %s=0x%lx ",
+						table_types[i].name, table);
 				return 1;
 			}
 		}
@@ -469,12 +472,14 @@ device_initcall(efi_load_efivars);
 		FIELD_SIZEOF(struct efi_fdt_params, field) \
 	}
 
-static __initdata struct {
+struct params {
 	const char name[32];
 	const char propname[32];
 	int offset;
 	int size;
-} dt_params[] = {
+};
+
+static struct params fdt_params[] __initdata = {
 	UEFI_PARAM("System Table", "linux,uefi-system-table", system_table),
 	UEFI_PARAM("MemMap Address", "linux,uefi-mmap-start", mmap),
 	UEFI_PARAM("MemMap Size", "linux,uefi-mmap-size", mmap_size),
@@ -482,24 +487,45 @@ static __initdata struct {
 	UEFI_PARAM("MemMap Desc. Version", "linux,uefi-mmap-desc-ver", desc_ver)
 };
 
+static struct params xen_fdt_params[] __initdata = {
+	UEFI_PARAM("System Table", "xen,uefi-system-table", system_table),
+	UEFI_PARAM("MemMap Address", "xen,uefi-mmap-start", mmap),
+	UEFI_PARAM("MemMap Size", "xen,uefi-mmap-size", mmap_size),
+	UEFI_PARAM("MemMap Desc. Size", "xen,uefi-mmap-desc-size", desc_size),
+	UEFI_PARAM("MemMap Desc. Version", "xen,uefi-mmap-desc-ver", desc_ver)
+};
+
 struct param_info {
 	int found;
 	void *params;
+	struct params *dt_params;
+	int size;
 };
 
 static int __init fdt_find_uefi_params(unsigned long node, const char *uname,
 				       int depth, void *data)
 {
 	struct param_info *info = data;
+	struct params *dt_params = info->dt_params;
 	const void *prop;
 	void *dest;
 	u64 val;
-	int i, len;
+	int i, len, offset;
 
-	if (depth != 1 || strcmp(uname, "chosen") != 0)
-		return 0;
+	if (efi_enabled(EFI_PARAVIRT)) {
+		if (depth != 1 || strcmp(uname, "hypervisor") != 0)
+			return 0;
 
-	for (i = 0; i < ARRAY_SIZE(dt_params); i++) {
+		offset = of_get_flat_dt_subnode_by_name(node, "uefi");
+		if (offset < 0)
+			return 0;
+		node = offset;
+	} else {
+		if (depth != 1 || strcmp(uname, "chosen") != 0)
+			return 0;
+	}
+
+	for (i = 0; i < info->size; i++) {
 		prop = of_get_flat_dt_prop(node, dt_params[i].propname, &len);
 		if (!prop)
 			return 0;
@@ -530,12 +556,20 @@ int __init efi_get_fdt_params(struct efi_fdt_params *params)
 	info.found = 0;
 	info.params = params;
 
+	if (efi_enabled(EFI_PARAVIRT)) {
+		info.dt_params = xen_fdt_params;
+		info.size = ARRAY_SIZE(xen_fdt_params);
+	} else {
+		info.dt_params = fdt_params;
+		info.size = ARRAY_SIZE(fdt_params);
+	}
+
 	ret = of_scan_flat_dt(fdt_find_uefi_params, &info);
 	if (!info.found)
 		pr_info("UEFI not found.\n");
 	else if (!ret)
 		pr_err("Can't find '%s' in device tree!\n",
-		       dt_params[info.found].name);
+		       info.dt_params[info.found].name);
 
 	return ret;
 }
@@ -620,20 +654,49 @@ char * __init efi_md_typeattr_format(char *buf, size_t size,
  */
 u64 __weak efi_mem_attributes(unsigned long phys_addr)
 {
-	struct efi_memory_map *map;
 	efi_memory_desc_t *md;
-	void *p;
 
 	if (!efi_enabled(EFI_MEMMAP))
 		return 0;
 
-	map = efi.memmap;
-	for (p = map->map; p < map->map_end; p += map->desc_size) {
-		md = p;
+	for_each_efi_memory_desc(md) {
 		if ((md->phys_addr <= phys_addr) &&
 		    (phys_addr < (md->phys_addr +
 		    (md->num_pages << EFI_PAGE_SHIFT))))
 			return md->attribute;
 	}
 	return 0;
+}
+
+int efi_status_to_err(efi_status_t status)
+{
+	int err;
+
+	switch (status) {
+	case EFI_SUCCESS:
+		err = 0;
+		break;
+	case EFI_INVALID_PARAMETER:
+		err = -EINVAL;
+		break;
+	case EFI_OUT_OF_RESOURCES:
+		err = -ENOSPC;
+		break;
+	case EFI_DEVICE_ERROR:
+		err = -EIO;
+		break;
+	case EFI_WRITE_PROTECTED:
+		err = -EROFS;
+		break;
+	case EFI_SECURITY_VIOLATION:
+		err = -EACCES;
+		break;
+	case EFI_NOT_FOUND:
+		err = -ENOENT;
+		break;
+	default:
+		err = -EINVAL;
+	}
+
+	return err;
 }
