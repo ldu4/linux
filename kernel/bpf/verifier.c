@@ -979,8 +979,6 @@ error:
 	verbose("cannot pass map_type %d into func %d\n",
 		map->map_type, func_id);
 	return -EINVAL;
-<<<<<<< HEAD
-=======
 }
 
 static int check_raw_mode(const struct bpf_func_proto *fn)
@@ -999,7 +997,6 @@ static int check_raw_mode(const struct bpf_func_proto *fn)
 		count++;
 
 	return count > 1 ? -EINVAL : 0;
->>>>>>> linux-next/akpm-base
 }
 
 static int check_call(struct verifier_env *env, int func_id)
