@@ -15,7 +15,6 @@
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/i2c.h>
-#include <linux/i2c-mux.h>
 #include <linux/iio/iio.h>
 #include <linux/module.h>
 #include "inv_mpu_iio.h"
@@ -52,10 +51,9 @@ static int inv_mpu6050_write_reg_unlocked(struct i2c_client *client,
 	return 0;
 }
 
-static int inv_mpu6050_select_bypass(struct i2c_adapter *adap, void *mux_priv,
-				     u32 chan_id)
+static int inv_mpu6050_select_bypass(struct i2c_mux_core *muxc, u32 chan_id)
 {
-	struct i2c_client *client = mux_priv;
+	struct i2c_client *client = i2c_mux_priv(muxc);
 	struct iio_dev *indio_dev = dev_get_drvdata(&client->dev);
 	struct inv_mpu6050_state *st = iio_priv(indio_dev);
 	int ret = 0;
@@ -84,10 +82,9 @@ write_error:
 	return ret;
 }
 
-static int inv_mpu6050_deselect_bypass(struct i2c_adapter *adap,
-				       void *mux_priv, u32 chan_id)
+static int inv_mpu6050_deselect_bypass(struct i2c_mux_core *muxc, u32 chan_id)
 {
-	struct i2c_client *client = mux_priv;
+	struct i2c_client *client = i2c_mux_priv(muxc);
 	struct iio_dev *indio_dev = dev_get_drvdata(&client->dev);
 	struct inv_mpu6050_state *st = iio_priv(indio_dev);
 
@@ -104,6 +101,19 @@ static int inv_mpu6050_deselect_bypass(struct i2c_adapter *adap,
 	return 0;
 }
 
+static const char *inv_mpu_match_acpi_device(struct device *dev, int *chip_id)
+{
+	const struct acpi_device_id *id;
+
+	id = acpi_match_device(dev->driver->acpi_match_table, dev);
+	if (!id)
+		return NULL;
+
+	*chip_id = (int)id->driver_data;
+
+	return dev_name(dev);
+}
+
 /**
  *  inv_mpu_probe() - probe function.
  *  @client:          i2c client.
@@ -115,13 +125,24 @@ static int inv_mpu_probe(struct i2c_client *client,
 			 const struct i2c_device_id *id)
 {
 	struct inv_mpu6050_state *st;
-	int result;
-	const char *name = id ? id->name : NULL;
+	int result, chip_type;
 	struct regmap *regmap;
+	const char *name;
 
 	if (!i2c_check_functionality(client->adapter,
 				     I2C_FUNC_SMBUS_I2C_BLOCK))
 		return -EOPNOTSUPP;
+
+	if (id) {
+		chip_type = (int)id->driver_data;
+		name = id->name;
+	} else if (ACPI_HANDLE(&client->dev)) {
+		name = inv_mpu_match_acpi_device(&client->dev, &chip_type);
+		if (!name)
+			return -ENODEV;
+	} else {
+		return -ENOSYS;
+	}
 
 	regmap = devm_regmap_init_i2c(client, &inv_mpu_regmap_config);
 	if (IS_ERR(regmap)) {
@@ -131,21 +152,23 @@ static int inv_mpu_probe(struct i2c_client *client,
 	}
 
 	result = inv_mpu_core_probe(regmap, client->irq, name,
-				    NULL, id->driver_data);
+				    NULL, chip_type);
 	if (result < 0)
 		return result;
 
 	st = iio_priv(dev_get_drvdata(&client->dev));
-	st->mux_adapter = i2c_add_mux_adapter(client->adapter,
-					      &client->dev,
-					      client,
-					      0, 0, 0,
-					      inv_mpu6050_select_bypass,
-					      inv_mpu6050_deselect_bypass);
-	if (!st->mux_adapter) {
-		result = -ENODEV;
+	st->muxc = i2c_mux_alloc(client->adapter, &client->dev,
+				 1, 0, 0,
+				 inv_mpu6050_select_bypass,
+				 inv_mpu6050_deselect_bypass);
+	if (!st->muxc) {
+		result = -ENOMEM;
 		goto out_unreg_device;
 	}
+	st->muxc->priv = dev_get_drvdata(&client->dev);
+	result = i2c_mux_add_adapter(st->muxc, 0, 0, 0);
+	if (result)
+		goto out_unreg_device;
 
 	result = inv_mpu_acpi_create_mux_client(client);
 	if (result)
@@ -154,7 +177,7 @@ static int inv_mpu_probe(struct i2c_client *client,
 	return 0;
 
 out_del_mux:
-	i2c_del_mux_adapter(st->mux_adapter);
+	i2c_mux_del_adapters(st->muxc);
 out_unreg_device:
 	inv_mpu_core_remove(&client->dev);
 	return result;
@@ -166,7 +189,7 @@ static int inv_mpu_remove(struct i2c_client *client)
 	struct inv_mpu6050_state *st = iio_priv(indio_dev);
 
 	inv_mpu_acpi_delete_mux_client(client);
-	i2c_del_mux_adapter(st->mux_adapter);
+	i2c_mux_del_adapters(st->muxc);
 
 	return inv_mpu_core_remove(&client->dev);
 }
@@ -178,13 +201,14 @@ static int inv_mpu_remove(struct i2c_client *client)
 static const struct i2c_device_id inv_mpu_id[] = {
 	{"mpu6050", INV_MPU6050},
 	{"mpu6500", INV_MPU6500},
+	{"mpu9150", INV_MPU9150},
 	{}
 };
 
 MODULE_DEVICE_TABLE(i2c, inv_mpu_id);
 
 static const struct acpi_device_id inv_acpi_match[] = {
-	{"INVN6500", 0},
+	{"INVN6500", INV_MPU6500},
 	{ },
 };
 

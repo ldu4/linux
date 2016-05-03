@@ -577,6 +577,18 @@ static inline void mapping_allow_writable(struct address_space *mapping)
 struct posix_acl;
 #define ACL_NOT_CACHED ((void *)(-1))
 
+static inline struct posix_acl *
+uncached_acl_sentinel(struct task_struct *task)
+{
+	return (void *)task + 1;
+}
+
+static inline bool
+is_uncached_acl(struct posix_acl *acl)
+{
+	return (long)acl & 1;
+}
+
 #define IOP_FASTPERM	0x0001
 #define IOP_LOOKUP	0x0002
 #define IOP_NOFOLLOW	0x0004
@@ -635,7 +647,7 @@ struct inode {
 
 	/* Misc */
 	unsigned long		i_state;
-	struct mutex		i_mutex;
+	struct rw_semaphore	i_rwsem;
 
 	unsigned long		dirtied_when;	/* jiffies of first dirtying */
 	unsigned long		dirtied_time_when;
@@ -672,6 +684,7 @@ struct inode {
 		struct block_device	*i_bdev;
 		struct cdev		*i_cdev;
 		char			*i_link;
+		unsigned		i_dir_seq;
 	};
 
 	__u32			i_generation;
@@ -721,27 +734,42 @@ enum inode_i_mutex_lock_class
 
 static inline void inode_lock(struct inode *inode)
 {
-	mutex_lock(&inode->i_mutex);
+	down_write(&inode->i_rwsem);
 }
 
 static inline void inode_unlock(struct inode *inode)
 {
-	mutex_unlock(&inode->i_mutex);
+	up_write(&inode->i_rwsem);
+}
+
+static inline void inode_lock_shared(struct inode *inode)
+{
+	down_read(&inode->i_rwsem);
+}
+
+static inline void inode_unlock_shared(struct inode *inode)
+{
+	up_read(&inode->i_rwsem);
 }
 
 static inline int inode_trylock(struct inode *inode)
 {
-	return mutex_trylock(&inode->i_mutex);
+	return down_write_trylock(&inode->i_rwsem);
+}
+
+static inline int inode_trylock_shared(struct inode *inode)
+{
+	return down_read_trylock(&inode->i_rwsem);
 }
 
 static inline int inode_is_locked(struct inode *inode)
 {
-	return mutex_is_locked(&inode->i_mutex);
+	return rwsem_is_locked(&inode->i_rwsem);
 }
 
 static inline void inode_lock_nested(struct inode *inode, unsigned subclass)
 {
-	mutex_lock_nested(&inode->i_mutex, subclass);
+	down_write_nested(&inode->i_rwsem, subclass);
 }
 
 void lock_two_nondirectories(struct inode *, struct inode*);
@@ -1362,7 +1390,14 @@ struct super_block {
 
 	/* Granularity of c/m/atime in ns.
 	   Cannot be worse than a second */
-	u32		   s_time_gran;
+	u32		s_time_gran;
+
+	/*
+	 * Max and min values for timestamps
+	 * according to the range supported by filesystems.
+	 */
+	time64_t	s_time_min;
+	time64_t	s_time_max;
 
 	/*
 	 * The next field is for VFS *only*. No filesystems have any business
@@ -1422,6 +1457,26 @@ struct super_block {
 };
 
 extern struct timespec current_fs_time(struct super_block *sb);
+
+static inline struct timespec current_fs_time_sec(struct super_block *sb)
+{
+	return (struct timespec) { get_seconds(), 0 };
+}
+
+/* Place holder defines to ensure safe transition to timespec64
+ * in the vfs layer.
+ * These can be deleted after all filesystems and vfs are switched
+ * over to using 64 bit time.
+ */
+static inline struct timespec vfs_time_to_timespec(struct timespec inode_ts)
+{
+	return inode_ts;
+}
+
+static inline struct timespec timespec_to_vfs_time(struct timespec ts)
+{
+	return ts;
+}
 
 /*
  * Snapshotting support.
@@ -1646,6 +1701,7 @@ struct file_operations {
 	ssize_t (*read_iter) (struct kiocb *, struct iov_iter *);
 	ssize_t (*write_iter) (struct kiocb *, struct iov_iter *);
 	int (*iterate) (struct file *, struct dir_context *);
+	int (*iterate_shared) (struct file *, struct dir_context *);
 	unsigned int (*poll) (struct file *, struct poll_table_struct *);
 	long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
 	long (*compat_ioctl) (struct file *, unsigned int, unsigned long);
@@ -1700,7 +1756,8 @@ struct inode_operations {
 	int (*setattr) (struct dentry *, struct iattr *);
 	int (*getattr) (struct vfsmount *mnt, struct dentry *, struct kstat *);
 	int (*setxattr) (struct dentry *, const char *,const void *,size_t,int);
-	ssize_t (*getxattr) (struct dentry *, const char *, void *, size_t);
+	ssize_t (*getxattr) (struct dentry *, struct inode *,
+			     const char *, void *, size_t);
 	ssize_t (*listxattr) (struct dentry *, char *, size_t);
 	int (*removexattr) (struct dentry *, const char *);
 	int (*fiemap)(struct inode *, struct fiemap_extent_info *, u64 start,
@@ -2263,7 +2320,7 @@ struct filename {
 	const char		iname[];
 };
 
-extern long vfs_truncate(struct path *, loff_t);
+extern long vfs_truncate(const struct path *, loff_t);
 extern int do_truncate(struct dentry *, loff_t start, unsigned int time_attrs,
 		       struct file *filp);
 extern int vfs_fallocate(struct file *file, int mode, loff_t offset,
@@ -2395,6 +2452,8 @@ static inline void bd_unlink_disk_holder(struct block_device *bdev,
 
 /* fs/char_dev.c */
 #define CHRDEV_MAJOR_HASH_SIZE	255
+/* Marks the bottom of the first segment of free char majors */
+#define CHRDEV_MAJOR_DYN_END 234
 extern int alloc_chrdev_region(dev_t *, unsigned, unsigned, const char *);
 extern int register_chrdev_region(dev_t, unsigned, const char *);
 extern int __register_chrdev(unsigned int major, unsigned int baseminor,
@@ -2590,14 +2649,33 @@ static inline void i_readcount_inc(struct inode *inode)
 #endif
 extern int do_pipe_flags(int *, int);
 
+#define __kernel_read_file_id(id) \
+	id(UNKNOWN, unknown)		\
+	id(FIRMWARE, firmware)		\
+	id(MODULE, kernel-module)		\
+	id(KEXEC_IMAGE, kexec-image)		\
+	id(KEXEC_INITRAMFS, kexec-initramfs)	\
+	id(POLICY, security-policy)		\
+	id(MAX_ID, )
+
+#define __fid_enumify(ENUM, dummy) READING_ ## ENUM,
+#define __fid_stringify(dummy, str) #str,
+
 enum kernel_read_file_id {
-	READING_FIRMWARE = 1,
-	READING_MODULE,
-	READING_KEXEC_IMAGE,
-	READING_KEXEC_INITRAMFS,
-	READING_POLICY,
-	READING_MAX_ID
+	__kernel_read_file_id(__fid_enumify)
 };
+
+static const char * const kernel_read_file_str[] = {
+	__kernel_read_file_id(__fid_stringify)
+};
+
+static inline const char *kernel_read_file_id_str(enum kernel_read_file_id id)
+{
+	if (id < 0 || id >= READING_MAX_ID)
+		return kernel_read_file_str[READING_UNKNOWN];
+
+	return kernel_read_file_str[id];
+}
 
 extern int kernel_read(struct file *, loff_t, char *, unsigned long);
 extern int kernel_read_file(struct file *, void **, loff_t *, loff_t,

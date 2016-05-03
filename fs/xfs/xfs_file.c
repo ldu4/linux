@@ -145,12 +145,10 @@ xfs_update_prealloc_flags(
 	struct xfs_trans	*tp;
 	int			error;
 
-	tp = xfs_trans_alloc(ip->i_mount, XFS_TRANS_WRITEID);
-	error = xfs_trans_reserve(tp, &M_RES(ip->i_mount)->tr_writeid, 0, 0);
-	if (error) {
-		xfs_trans_cancel(tp);
+	error = xfs_trans_alloc(ip->i_mount, &M_RES(ip->i_mount)->tr_writeid,
+			0, 0, 0, &tp);
+	if (error)
 		return error;
-	}
 
 	xfs_ilock(ip, XFS_ILOCK_EXCL);
 	xfs_trans_ijoin(tp, ip, XFS_ILOCK_EXCL);
@@ -1715,7 +1713,7 @@ const struct file_operations xfs_file_operations = {
 const struct file_operations xfs_dir_file_operations = {
 	.open		= xfs_dir_open,
 	.read		= generic_read_dir,
-	.iterate	= xfs_file_readdir,
+	.iterate_shared	= xfs_file_readdir,
 	.llseek		= generic_file_llseek,
 	.unlocked_ioctl	= xfs_file_ioctl,
 #ifdef CONFIG_COMPAT
