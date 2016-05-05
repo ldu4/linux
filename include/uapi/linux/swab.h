@@ -97,7 +97,7 @@ static inline __attribute_const__ __u32 __fswahb32(__u32 val)
  * @x: value to byteswap
  */
 #ifdef __HAVE_BUILTIN_BSWAP16__
-#define __swab16(x) __builtin_bswap16((__u16)(x))
+#define __swab16(x) (__u16)__builtin_bswap16((__u16)(x))
 #else
 #define __swab16(x)				\
 	(__builtin_constant_p((__u16)(x)) ?	\
@@ -110,7 +110,7 @@ static inline __attribute_const__ __u32 __fswahb32(__u32 val)
  * @x: value to byteswap
  */
 #ifdef __HAVE_BUILTIN_BSWAP32__
-#define __swab32(x) __builtin_bswap32((__u32)(x))
+#define __swab32(x) (__u32)__builtin_bswap32((__u32)(x))
 #else
 #define __swab32(x)				\
 	(__builtin_constant_p((__u32)(x)) ?	\
