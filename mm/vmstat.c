@@ -1371,7 +1371,6 @@ static const struct file_operations proc_vmstat_file_operations = {
 	.llseek		= seq_lseek,
 	.release	= seq_release,
 };
-#endif /* CONFIG_PROC_FS */
 
 #ifdef CONFIG_SMP
 static struct workqueue_struct *vmstat_wq;
@@ -1436,7 +1435,10 @@ int vmstat_refresh(struct ctl_table *table, int write,
 		*lenp = 0;
 	return 0;
 }
+#endif /* CONFIG_SMP */
+#endif /* CONFIG_PROC_FS */
 
+#ifdef CONFIG_SMP
 static void vmstat_update(struct work_struct *w)
 {
 	if (refresh_cpu_vm_stats(true)) {
