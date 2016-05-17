@@ -3390,7 +3390,7 @@ static __init int setup_vmcs_config(struct vmcs_config *vmcs_conf)
 		}
 	}
 
-	if (cpu_has_xsaves)
+	if (boot_cpu_has(X86_FEATURE_XSAVES))
 		rdmsrl(MSR_IA32_XSS, host_xss);
 
 	return 0;
@@ -5050,8 +5050,8 @@ static void vmx_vcpu_reset(struct kvm_vcpu *vcpu, bool init_event)
 		vmcs_write16(VIRTUAL_PROCESSOR_ID, vmx->vpid);
 
 	cr0 = X86_CR0_NW | X86_CR0_CD | X86_CR0_ET;
-	vmx_set_cr0(vcpu, cr0); /* enter rmode */
 	vmx->vcpu.arch.cr0 = cr0;
+	vmx_set_cr0(vcpu, cr0); /* enter rmode */
 	vmx_set_cr4(vcpu, 0);
 	vmx_set_efer(vcpu, 0);
 	vmx_fpu_activate(vcpu);
