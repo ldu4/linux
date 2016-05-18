@@ -257,6 +257,7 @@ void __init setup_arch(char **cmdline_p)
 	 */
 	cpu_uninstall_idmap();
 
+	xen_early_init();
 	efi_init();
 	arm64_memblock_init();
 
@@ -280,8 +281,11 @@ void __init setup_arch(char **cmdline_p)
 		psci_dt_init();
 	else
 		psci_acpi_init();
+<<<<<<< HEAD
 
 	xen_early_init();
+=======
+>>>>>>> linux-next/akpm-base
 
 	cpu_read_bootcpu_ops();
 	smp_init_cpus();
