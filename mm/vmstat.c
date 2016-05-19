@@ -1379,6 +1379,7 @@ static DEFINE_PER_CPU(struct delayed_work, vmstat_work);
 int sysctl_stat_interval __read_mostly = HZ;
 static cpumask_var_t cpu_stat_off;
 
+#ifdef CONFIG_PROC_FS
 static void refresh_vm_stats(struct work_struct *work)
 {
 	refresh_cpu_vm_stats(true);
@@ -1436,6 +1437,7 @@ int vmstat_refresh(struct ctl_table *table, int write,
 		*lenp = 0;
 	return 0;
 }
+#endif /* CONFIG_PROC_FS */
 
 static void vmstat_update(struct work_struct *w)
 {
