@@ -98,6 +98,10 @@ struct iwl_nvm_data {
 	s8 max_tx_pwr_half_dbm;
 
 	bool lar_enabled;
+<<<<<<< HEAD
+=======
+	bool vht160_supported;
+>>>>>>> linux-next/akpm-base
 	struct ieee80211_supported_band bands[NUM_NL80211_BANDS];
 	struct ieee80211_channel channels[];
 };

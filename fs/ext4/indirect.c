@@ -649,6 +649,7 @@ out:
 }
 
 /*
+<<<<<<< HEAD
  * O_DIRECT for ext3 (or indirect map) based files
  *
  * If the O_DIRECT write will extend the file then add this inode to the
@@ -776,6 +777,8 @@ out:
 }
 
 /*
+=======
+>>>>>>> linux-next/akpm-base
  * Calculate the number of metadata blocks need to reserve
  * to allocate a new block at @lblocks for non extent file based file
  */
