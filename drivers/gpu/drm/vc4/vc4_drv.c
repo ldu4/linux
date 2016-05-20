@@ -81,6 +81,7 @@ static struct drm_driver vc4_drm_driver = {
 			    DRIVER_ATOMIC |
 			    DRIVER_GEM |
 			    DRIVER_HAVE_IRQ |
+			    DRIVER_RENDER |
 			    DRIVER_PRIME),
 	.lastclose = vc4_lastclose,
 	.irq_handler = vc4_irq,
@@ -90,7 +91,7 @@ static struct drm_driver vc4_drm_driver = {
 
 	.enable_vblank = vc4_enable_vblank,
 	.disable_vblank = vc4_disable_vblank,
-	.get_vblank_counter = drm_vblank_count,
+	.get_vblank_counter = drm_vblank_no_hw_counter,
 
 #if defined(CONFIG_DEBUG_FS)
 	.debugfs_init = vc4_debugfs_init,
@@ -257,6 +258,7 @@ static const struct component_master_ops vc4_drm_ops = {
 
 static struct platform_driver *const component_drivers[] = {
 	&vc4_hdmi_driver,
+	&vc4_dpi_driver,
 	&vc4_crtc_driver,
 	&vc4_hvs_driver,
 	&vc4_v3d_driver,

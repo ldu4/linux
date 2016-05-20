@@ -917,7 +917,7 @@ const struct inode_operations cifs_symlink_inode_ops = {
 	.permission = cifs_permission,
 	/* BB add the following two eventually */
 	/* revalidate: cifs_revalidate,
-	   setattr:    cifs_notify_change, *//* BB do we need notify change */
+	.setattr = cifs_notify_change, *//* BB do we need notify change */
 	.setxattr = generic_setxattr,
 	.getxattr = generic_getxattr,
 	.listxattr = cifs_listxattr,
@@ -1303,7 +1303,7 @@ init_cifs(void)
 		goto out_destroy_mids;
 
 #ifdef CONFIG_CIFS_UPCALL
-	rc = register_key_type(&cifs_spnego_key_type);
+	rc = init_cifs_spnego();
 	if (rc)
 		goto out_destroy_request_bufs;
 #endif /* CONFIG_CIFS_UPCALL */
@@ -1326,7 +1326,7 @@ out_init_cifs_idmap:
 out_register_key_type:
 #endif
 #ifdef CONFIG_CIFS_UPCALL
-	unregister_key_type(&cifs_spnego_key_type);
+	exit_cifs_spnego();
 out_destroy_request_bufs:
 #endif
 	cifs_destroy_request_bufs();
