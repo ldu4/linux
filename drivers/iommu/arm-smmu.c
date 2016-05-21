@@ -397,15 +397,12 @@ struct arm_smmu_domain {
 	struct iommu_domain		domain;
 };
 
-<<<<<<< HEAD
-=======
 struct arm_smmu_phandle_args {
 	struct device_node *np;
 	int args_count;
 	uint32_t args[MAX_MASTER_STREAMIDS];
 };
 
->>>>>>> linux-next/akpm-base
 static DEFINE_SPINLOCK(arm_smmu_devices_lock);
 static LIST_HEAD(arm_smmu_devices);
 
