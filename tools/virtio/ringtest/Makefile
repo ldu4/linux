@@ -1,10 +1,6 @@
 all:
 
-<<<<<<< HEAD
-all: ring virtio_ring_0_9 virtio_ring_poll virtio_ring_inorder
-=======
 all: ring virtio_ring_0_9 virtio_ring_poll virtio_ring_inorder skb_array
->>>>>>> linux-next/akpm-base
 
 CFLAGS += -Wall
 CFLAGS += -pthread -O2 -ggdb
@@ -20,10 +16,7 @@ ring: ring.o main.o
 virtio_ring_0_9: virtio_ring_0_9.o main.o
 virtio_ring_poll: virtio_ring_poll.o main.o
 virtio_ring_inorder: virtio_ring_inorder.o main.o
-<<<<<<< HEAD
-=======
 skb_array: skb_array.o main.o
->>>>>>> linux-next/akpm-base
 clean:
 	-rm main.o
 	-rm ring.o ring
