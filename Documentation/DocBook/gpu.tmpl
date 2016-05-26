@@ -1628,6 +1628,12 @@ void intel_crt_init(struct drm_device *dev)
 !Edrivers/gpu/drm/drm_dp_helper.c
     </sect2>
     <sect2>
+      <title>Display Port Dual Mode Adaptor Helper Functions Reference</title>
+!Pdrivers/gpu/drm/drm_dp_dual_mode_helper.c dp dual mode helpers
+!Iinclude/drm/drm_dp_dual_mode_helper.h
+!Edrivers/gpu/drm/drm_dp_dual_mode_helper.c
+    </sect2>
+    <sect2>
       <title>Display Port MST Helper Functions Reference</title>
 !Pdrivers/gpu/drm/drm_dp_mst_topology.c dp mst helper
 !Iinclude/drm/drm_dp_mst_helper.h
@@ -2839,14 +2845,7 @@ void (*disable_vblank) (struct drm_device *dev, int crtc);</synopsis>
     <para>
       Drivers must initialize the vertical blanking handling core with a call to
       <function>drm_vblank_init</function> in their
-      <methodname>load</methodname> operation. The function will set the struct
-      <structname>drm_device</structname>
-      <structfield>vblank_disable_allowed</structfield> field to 0. This will
-      keep vertical blanking interrupts enabled permanently until the first mode
-      set operation, where <structfield>vblank_disable_allowed</structfield> is
-      set to 1. The reason behind this is not clear. Drivers can set the field
-      to 1 after <function>calling drm_vblank_init</function> to make vertical
-      blanking interrupts dynamically managed from the beginning.
+      <methodname>load</methodname> operation.
     </para>
     <para>
       Vertical blanking interrupts can be enabled by the DRM core or by drivers

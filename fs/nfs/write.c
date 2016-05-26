@@ -1739,8 +1739,13 @@ int nfs_commit_file(struct file *file, struct nfs_write_verifier *verf)
 
 	open = get_nfs_open_context(nfs_file_open_context(file));
 	req  = nfs_create_request(open, NULL, NULL, 0, i_size_read(inode));
+<<<<<<< HEAD
 	if (IS_ERR(req)) {
 		ret = PTR_ERR(req);
+=======
+	if (!req) {
+		ret = -ENOMEM;
+>>>>>>> linux-next/akpm-base
 		goto out_put;
 	}
 
