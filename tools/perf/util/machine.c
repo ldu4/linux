@@ -1810,7 +1810,11 @@ static int thread__resolve_callchain_sample(struct thread *thread,
 	struct ip_callchain *chain = sample->callchain;
 	int chain_nr = chain->nr;
 	u8 cpumode = PERF_RECORD_MISC_USER;
+<<<<<<< HEAD
 	int i, j, err, nr_entries;
+=======
+	int i, j, err, nr_entries, nr_contexts;
+>>>>>>> linux-next/akpm-base
 	int skip_idx = -1;
 	int first_call = 0;
 
@@ -1825,7 +1829,12 @@ static int thread__resolve_callchain_sample(struct thread *thread,
 	 * Based on DWARF debug information, some architectures skip
 	 * a callchain entry saved by the kernel.
 	 */
+<<<<<<< HEAD
 	skip_idx = arch_skip_callchain_idx(thread, chain);
+=======
+	if (chain_nr < sysctl_perf_event_max_stack)
+		skip_idx = arch_skip_callchain_idx(thread, chain);
+>>>>>>> linux-next/akpm-base
 
 	/*
 	 * Add branches to call stack for easier browsing. This gives
@@ -1885,7 +1894,11 @@ static int thread__resolve_callchain_sample(struct thread *thread,
 	}
 
 check_calls:
+<<<<<<< HEAD
 	for (i = first_call, nr_entries = 0;
+=======
+	for (i = first_call, nr_entries = 0, nr_contexts = 0;
+>>>>>>> linux-next/akpm-base
 	     i < chain_nr && nr_entries < max_stack; i++) {
 		u64 ip;
 
@@ -1900,8 +1913,18 @@ check_calls:
 #endif
 		ip = chain->ips[j];
 
+<<<<<<< HEAD
 		if (ip < PERF_CONTEXT_MAX)
                        ++nr_entries;
+=======
+		if (ip >= PERF_CONTEXT_MAX) {
+			if (++nr_contexts > sysctl_perf_event_max_contexts_per_stack)
+				goto out_corrupted_callchain;
+		} else {
+			if (++nr_entries > sysctl_perf_event_max_stack)
+				goto out_corrupted_callchain;
+		}
+>>>>>>> linux-next/akpm-base
 
 		err = add_callchain_ip(thread, cursor, parent, root_al, &cpumode, ip);
 
@@ -1909,6 +1932,10 @@ check_calls:
 			return (err < 0) ? err : 0;
 	}
 
+	return 0;
+
+out_corrupted_callchain:
+	pr_warning("corrupted callchain. skipping...\n");
 	return 0;
 }
 

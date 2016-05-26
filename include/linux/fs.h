@@ -74,7 +74,6 @@ typedef int (get_block_t)(struct inode *inode, sector_t iblock,
 			struct buffer_head *bh_result, int create);
 typedef int (dio_iodone_t)(struct kiocb *iocb, loff_t offset,
 			ssize_t bytes, void *private);
-typedef void (dax_iodone_t)(struct buffer_head *bh_map, int uptodate);
 
 #define MAY_EXEC		0x00000001
 #define MAY_WRITE		0x00000002
@@ -1276,7 +1275,7 @@ static inline struct dentry *file_dentry(const struct file *file)
 	struct dentry *dentry = file->f_path.dentry;
 
 	if (unlikely(dentry->d_flags & DCACHE_OP_REAL))
-		return dentry->d_op->d_real(dentry, file_inode(file));
+		return dentry->d_op->d_real(dentry, file_inode(file), 0);
 	else
 		return dentry;
 }
@@ -1392,7 +1391,14 @@ struct super_block {
 
 	/* Granularity of c/m/atime in ns.
 	   Cannot be worse than a second */
-	u32		   s_time_gran;
+	u32		s_time_gran;
+
+	/*
+	 * Max and min values for timestamps
+	 * according to the range supported by filesystems.
+	 */
+	time64_t	s_time_min;
+	time64_t	s_time_max;
 
 	/*
 	 * The next field is for VFS *only*. No filesystems have any business
@@ -1452,6 +1458,26 @@ struct super_block {
 };
 
 extern struct timespec current_fs_time(struct super_block *sb);
+
+static inline struct timespec current_fs_time_sec(struct super_block *sb)
+{
+	return (struct timespec) { get_seconds(), 0 };
+}
+
+/* Place holder defines to ensure safe transition to timespec64
+ * in the vfs layer.
+ * These can be deleted after all filesystems and vfs are switched
+ * over to using 64 bit time.
+ */
+static inline struct timespec vfs_time_to_timespec(struct timespec inode_ts)
+{
+	return inode_ts;
+}
+
+static inline struct timespec timespec_to_vfs_time(struct timespec ts)
+{
+	return ts;
+}
 
 /*
  * Snapshotting support.
