@@ -1547,11 +1547,7 @@ lookup_again:
 		goto out_unlock;
 	}
 
-<<<<<<< HEAD
 	lseg = pnfs_find_lseg(lo, &arg, strict_iomode);
-=======
-	lseg = pnfs_find_lseg(lo, &arg);
->>>>>>> linux-next/akpm-base
 	if (lseg) {
 		trace_pnfs_update_layout(ino, pos, count, iomode, lo, lseg,
 				PNFS_UPDATE_LAYOUT_FOUND_CACHED);
