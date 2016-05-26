@@ -199,9 +199,5 @@ struct rpc_cred *ff_layout_get_ds_cred(struct pnfs_layout_segment *lseg,
 				       u32 ds_idx, struct rpc_cred *mdscred);
 bool ff_layout_has_available_ds(struct pnfs_layout_segment *lseg);
 bool ff_layout_avoid_mds_available_ds(struct pnfs_layout_segment *lseg);
-<<<<<<< HEAD
 bool ff_layout_avoid_read_on_rw(struct pnfs_layout_segment *lseg);
-
-=======
->>>>>>> linux-next/akpm-base
 #endif /* FS_NFS_NFS4FLEXFILELAYOUT_H */
