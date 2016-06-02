@@ -845,9 +845,12 @@ int efx_filter_rfs(struct net_device *net_dev, const struct sk_buff *skb,
 	struct flow_keys fk;
 	int rc;
 
+<<<<<<< HEAD
 	if (flow_id == RPS_FLOW_ID_INVALID)
 		return -EINVAL;
 
+=======
+>>>>>>> linux-next/akpm-base
 	if (!skb_flow_dissect_flow_keys(skb, &fk, 0))
 		return -EPROTONOSUPPORT;
 
