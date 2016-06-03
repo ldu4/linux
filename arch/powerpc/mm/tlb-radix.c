@@ -243,9 +243,35 @@ void radix__flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
 }
 EXPORT_SYMBOL(radix__flush_tlb_range);
 
+static int radix_get_mmu_psize(int page_size)
+{
+	int psize;
+
+	if (page_size == (1UL << mmu_psize_defs[mmu_virtual_psize].shift))
+		psize = mmu_virtual_psize;
+	else if (page_size == (1UL << mmu_psize_defs[MMU_PAGE_2M].shift))
+		psize = MMU_PAGE_2M;
+	else if (page_size == (1UL << mmu_psize_defs[MMU_PAGE_1G].shift))
+		psize = MMU_PAGE_1G;
+	else
+		return -1;
+	return psize;
+}
 
 void radix__tlb_flush(struct mmu_gather *tlb)
 {
+	int psize = 0;
 	struct mm_struct *mm = tlb->mm;
-	radix__flush_tlb_mm(mm);
+	int page_size = tlb->page_size;
+
+	psize = radix_get_mmu_psize(page_size);
+	if (psize == -1)
+		/* unknown page size */
+		goto flush_mm;
+
+	if (!tlb->fullmm && !tlb->need_flush_all)
+		radix__flush_tlb_range_psize(mm, tlb->start, tlb->end, psize);
+	else
+flush_mm:
+		radix__flush_tlb_mm(mm);
 }
