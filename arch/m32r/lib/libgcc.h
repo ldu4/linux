@@ -22,3 +22,4 @@ typedef union {
 
 #endif /* __ASM_LIBGCC_H */
 
+extern int __ucmpdi2(unsigned long long a, unsigned long long b);
