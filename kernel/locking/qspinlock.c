@@ -268,8 +268,6 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
 #endif
 
 /*
-<<<<<<< HEAD
-=======
  * Various notes on spin_is_locked() and spin_unlock_wait(), which are
  * 'interesting' functions:
  *
@@ -327,7 +325,6 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
  */
 
 /*
->>>>>>> linux-next/akpm-base
  * queued_spin_lock_slowpath() can (load-)ACQUIRE the lock before
  * issuing an _unordered_ store to set _Q_LOCKED_VAL.
  *
