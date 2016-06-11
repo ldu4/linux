@@ -614,7 +614,7 @@ static inline struct device_node *of_parse_phandle(const struct device_node *np,
 	return NULL;
 }
 
-static inline int of_parse_phandle_with_args(struct device_node *np,
+static inline int of_parse_phandle_with_args(const struct device_node *np,
 					     const char *list_name,
 					     const char *cells_name,
 					     int index,
@@ -1009,10 +1009,13 @@ static inline int of_get_available_child_count(const struct device_node *np)
 #endif
 
 typedef int (*of_init_fn_2)(struct device_node *, struct device_node *);
+typedef int (*of_init_fn_1_ret)(struct device_node *);
 typedef void (*of_init_fn_1)(struct device_node *);
 
 #define OF_DECLARE_1(table, name, compat, fn) \
 		_OF_DECLARE(table, name, compat, fn, of_init_fn_1)
+#define OF_DECLARE_1_RET(table, name, compat, fn) \
+		_OF_DECLARE(table, name, compat, fn, of_init_fn_1_ret)
 #define OF_DECLARE_2(table, name, compat, fn) \
 		_OF_DECLARE(table, name, compat, fn, of_init_fn_2)
 

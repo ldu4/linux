@@ -394,8 +394,9 @@ static void submit_flushes(struct work_struct *ws)
 			bi->bi_end_io = md_end_flush;
 			bi->bi_private = rdev;
 			bi->bi_bdev = rdev->bdev;
+			bio_set_op_attrs(bi, REQ_OP_WRITE, WRITE_FLUSH);
 			atomic_inc(&mddev->flush_pending);
-			submit_bio(WRITE_FLUSH, bi);
+			submit_bio(bi);
 			rcu_read_lock();
 			rdev_dec_pending(rdev, mddev);
 		}
@@ -413,7 +414,7 @@ static void md_submit_flush_data(struct work_struct *ws)
 		/* an empty barrier - all done */
 		bio_endio(bio);
 	else {
-		bio->bi_rw &= ~REQ_FLUSH;
+		bio->bi_rw &= ~REQ_PREFLUSH;
 		mddev->pers->make_request(mddev, bio);
 	}
 
@@ -742,9 +743,10 @@ void md_super_write(struct mddev *mddev, struct md_rdev *rdev,
 	bio_add_page(bio, page, size, 0);
 	bio->bi_private = rdev;
 	bio->bi_end_io = super_written;
+	bio_set_op_attrs(bio, REQ_OP_WRITE, WRITE_FLUSH_FUA);
 
 	atomic_inc(&mddev->pending_writes);
-	submit_bio(WRITE_FLUSH_FUA, bio);
+	submit_bio(bio);
 }
 
 void md_super_wait(struct mddev *mddev)
@@ -754,13 +756,14 @@ void md_super_wait(struct mddev *mddev)
 }
 
 int sync_page_io(struct md_rdev *rdev, sector_t sector, int size,
-		 struct page *page, int rw, bool metadata_op)
+		 struct page *page, int op, int op_flags, bool metadata_op)
 {
 	struct bio *bio = bio_alloc_mddev(GFP_NOIO, 1, rdev->mddev);
 	int ret;
 
 	bio->bi_bdev = (metadata_op && rdev->meta_bdev) ?
 		rdev->meta_bdev : rdev->bdev;
+	bio_set_op_attrs(bio, op, op_flags);
 	if (metadata_op)
 		bio->bi_iter.bi_sector = sector + rdev->sb_start;
 	else if (rdev->mddev->reshape_position != MaxSector &&
@@ -770,7 +773,8 @@ int sync_page_io(struct md_rdev *rdev, sector_t sector, int size,
 	else
 		bio->bi_iter.bi_sector = sector + rdev->data_offset;
 	bio_add_page(bio, page, size, 0);
-	submit_bio_wait(rw, bio);
+
+	submit_bio_wait(bio);
 
 	ret = !bio->bi_error;
 	bio_put(bio);
@@ -785,7 +789,7 @@ static int read_disk_sb(struct md_rdev *rdev, int size)
 	if (rdev->sb_loaded)
 		return 0;
 
-	if (!sync_page_io(rdev, 0, size, rdev->sb_page, READ, true))
+	if (!sync_page_io(rdev, 0, size, rdev->sb_page, REQ_OP_READ, 0, true))
 		goto fail;
 	rdev->sb_loaded = 1;
 	return 0;
@@ -1471,7 +1475,7 @@ static int super_1_load(struct md_rdev *rdev, struct md_rdev *refdev, int minor_
 			return -EINVAL;
 		bb_sector = (long long)offset;
 		if (!sync_page_io(rdev, bb_sector, sectors << 9,
-				  rdev->bb_page, READ, true))
+				  rdev->bb_page, REQ_OP_READ, 0, true))
 			return -EIO;
 		bbp = (u64 *)page_address(rdev->bb_page);
 		rdev->badblocks.shift = sb->bblog_shift;
@@ -2478,8 +2482,7 @@ static int add_bound_rdev(struct md_rdev *rdev)
 		if (add_journal)
 			mddev_resume(mddev);
 		if (err) {
-			unbind_rdev_from_array(rdev);
-			export_rdev(rdev);
+			md_kick_rdev_from_array(rdev);
 			return err;
 		}
 	}
@@ -7809,6 +7812,7 @@ void md_do_sync(struct md_thread *thread)
 		if (ret)
 			goto skip;
 
+		set_bit(MD_CLUSTER_RESYNC_LOCKED, &mddev->flags);
 		if (!(test_bit(MD_RECOVERY_SYNC, &mddev->recovery) ||
 			test_bit(MD_RECOVERY_RESHAPE, &mddev->recovery) ||
 			test_bit(MD_RECOVERY_RECOVER, &mddev->recovery))
@@ -8147,18 +8151,11 @@ void md_do_sync(struct md_thread *thread)
 		}
 	}
  skip:
-	if (mddev_is_clustered(mddev) &&
-	    ret == 0) {
-		/* set CHANGE_PENDING here since maybe another
-		 * update is needed, so other nodes are informed */
-		set_mask_bits(&mddev->flags, 0,
-			      BIT(MD_CHANGE_PENDING) | BIT(MD_CHANGE_DEVS));
-		md_wakeup_thread(mddev->thread);
-		wait_event(mddev->sb_wait,
-			   !test_bit(MD_CHANGE_PENDING, &mddev->flags));
-		md_cluster_ops->resync_finish(mddev);
-	} else
-		set_bit(MD_CHANGE_DEVS, &mddev->flags);
+	/* set CHANGE_PENDING here since maybe another update is needed,
+	 * so other nodes are informed. It should be harmless for normal
+	 * raid */
+	set_mask_bits(&mddev->flags, 0,
+		      BIT(MD_CHANGE_PENDING) | BIT(MD_CHANGE_DEVS));
 
 	spin_lock(&mddev->lock);
 	if (!test_bit(MD_RECOVERY_INTR, &mddev->recovery)) {
@@ -8502,6 +8499,11 @@ void md_reap_sync_thread(struct mddev *mddev)
 			rdev->saved_raid_disk = -1;
 
 	md_update_sb(mddev, 1);
+	/* MD_CHANGE_PENDING should be cleared by md_update_sb, so we can
+	 * call resync_finish here if MD_CLUSTER_RESYNC_LOCKED is set by
+	 * clustered raid */
+	if (test_and_clear_bit(MD_CLUSTER_RESYNC_LOCKED, &mddev->flags))
+		md_cluster_ops->resync_finish(mddev);
 	clear_bit(MD_RECOVERY_RUNNING, &mddev->recovery);
 	clear_bit(MD_RECOVERY_DONE, &mddev->recovery);
 	clear_bit(MD_RECOVERY_SYNC, &mddev->recovery);
