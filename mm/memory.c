@@ -2989,6 +2989,7 @@ static int do_set_pmd(struct fault_env *fe, struct page *page)
  * @fe: fault environment
  * @memcg: memcg to charge page (only for private mappings)
  * @page: page to map
+ * @old: if true, mark the PTE as old (clear _PAGE_ACCESSED for this entry)
  *
  * Caller must take care of unlocking fe->ptl, if fe->pte is non-NULL on return.
  *
