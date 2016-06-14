@@ -296,7 +296,7 @@ static struct drm_driver hdlcd_driver = {
 	.get_vblank_counter = drm_vblank_no_hw_counter,
 	.enable_vblank = hdlcd_enable_vblank,
 	.disable_vblank = hdlcd_disable_vblank,
-	.gem_free_object = drm_gem_cma_free_object,
+	.gem_free_object_unlocked = drm_gem_cma_free_object,
 	.gem_vm_ops = &drm_gem_cma_vm_ops,
 	.dumb_create = drm_gem_cma_dumb_create,
 	.dumb_map_offset = drm_gem_cma_dumb_map_offset,
@@ -429,9 +429,14 @@ static const struct component_master_ops hdlcd_master_ops = {
 	.unbind		= hdlcd_drm_unbind,
 };
 
-static int compare_dev(struct device *dev, void *data)
+static int compare_of(struct device *dev, void *data)
 {
 	return dev->of_node == data;
+}
+
+static void release_of(struct device *dev, void *data)
+{
+	of_node_put(data);
 }
 
 static int hdlcd_probe(struct platform_device *pdev)
@@ -460,7 +465,8 @@ static int hdlcd_probe(struct platform_device *pdev)
 		return -EAGAIN;
 	}
 
-	component_match_add(&pdev->dev, &match, compare_dev, port);
+	component_match_add_release(&pdev->dev, &match, release_of,
+				    compare_of, port);
 
 	return component_master_add_with_match(&pdev->dev, &hdlcd_master_ops,
 					       match);

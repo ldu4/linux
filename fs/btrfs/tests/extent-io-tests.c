@@ -376,9 +376,15 @@ static int test_eb_bitmaps(u32 sectorsize, u32 nodesize)
 	test_msg("Running extent buffer bitmap tests\n");
 
 	/*
+<<<<<<< HEAD
 	 * In ppc64, sectorsize can be 64K, thus 4 * 64K will be larger than
 	 * BTRFS_MAX_METADATA_BLOCKSIZE.
 	 */
+=======
+	* In ppc64, sectorsize can be 64K, thus 4 * 64K will be
+	* larger than BTRFS_MAX_METADATA_BLOCKSIZE.
+	*/
+>>>>>>> linux-next/akpm-base
 	len = (sectorsize < BTRFS_MAX_METADATA_BLOCKSIZE)
 		? sectorsize * 4 : sectorsize;
 
