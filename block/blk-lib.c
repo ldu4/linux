@@ -169,15 +169,8 @@ int blkdev_issue_write_same(struct block_device *bdev, sector_t sector,
 		}
 	}
 
-<<<<<<< HEAD
-	if (bio) {
-		ret = submit_bio_wait(REQ_WRITE | REQ_WRITE_SAME, bio);
-		bio_put(bio);
-	}
-=======
 	if (bio)
 		ret = submit_bio_wait(bio);
->>>>>>> linux-next/akpm-base
 	return ret != -EOPNOTSUPP ? ret : 0;
 }
 EXPORT_SYMBOL(blkdev_issue_write_same);
@@ -217,16 +210,8 @@ static int __blkdev_issue_zeroout(struct block_device *bdev, sector_t sector,
 		}
 	}
 
-<<<<<<< HEAD
-	if (bio) {
-		ret = submit_bio_wait(WRITE, bio);
-		bio_put(bio);
-		return ret;
-	}
-=======
 	if (bio)
 		return submit_bio_wait(bio);
->>>>>>> linux-next/akpm-base
 	return 0;
 }
 

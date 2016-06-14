@@ -508,19 +508,10 @@ static int u32_replace_hw_knode(struct tcf_proto *tp,
 	offload.type = TC_SETUP_CLSU32;
 	offload.cls_u32 = &u32_offload;
 
-<<<<<<< HEAD
-	if (!tc_should_offload(dev, tp, flags))
-		return tc_skip_sw(flags) ? -EINVAL : 0;
-
-	offload.cls_u32->command = TC_CLSU32_REPLACE_KNODE;
-	offload.cls_u32->knode.handle = n->handle;
-	offload.cls_u32->knode.fshift = n->fshift;
-=======
 	if (tc_should_offload(dev, tp, flags)) {
 		offload.cls_u32->command = TC_CLSU32_REPLACE_KNODE;
 		offload.cls_u32->knode.handle = n->handle;
 		offload.cls_u32->knode.fshift = n->fshift;
->>>>>>> linux-next/akpm-base
 #ifdef CONFIG_CLS_U32_MARK
 	offload.cls_u32->knode.val = n->val;
 	offload.cls_u32->knode.mask = n->mask;
