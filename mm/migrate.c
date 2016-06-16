@@ -1984,7 +1984,8 @@ fail_putback:
 	}
 
 	orig_entry = *pmd;
-	entry = mk_huge_pmd(new_page, vma->vm_page_prot);
+	entry = mk_pmd(new_page, vma->vm_page_prot);
+	entry = pmd_mkhuge(entry);
 	entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
 
 	/*
