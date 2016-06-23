@@ -2490,18 +2490,13 @@ static void collapse_huge_page(struct mm_struct *mm,
 	curr_allocstall = sum_vm_event(ALLOCSTALL);
 	down_read(&mm->mmap_sem);
 	result = hugepage_vma_revalidate(mm, address);
-	if (result) {
-		mem_cgroup_cancel_charge(new_page, memcg, true);
-		up_read(&mm->mmap_sem);
-		goto out_nolock;
-	}
+	if (result)
+		goto out;
 
 	pmd = mm_find_pmd(mm, address);
 	if (!pmd) {
 		result = SCAN_PMD_NULL;
-		mem_cgroup_cancel_charge(new_page, memcg, true);
-		up_read(&mm->mmap_sem);
-		goto out_nolock;
+		goto out;
 	}
 
 	/*
@@ -2515,9 +2510,8 @@ static void collapse_huge_page(struct mm_struct *mm,
 		 * label out. Continuing to collapse causes inconsistency.
 		 */
 		if (!__collapse_huge_page_swapin(mm, vma, address, pmd)) {
-			mem_cgroup_cancel_charge(new_page, memcg, true);
 			up_read(&mm->mmap_sem);
-			goto out_nolock;
+			goto out;
 		}
 	}
 
