@@ -30,6 +30,8 @@
 
 #include <asm/cacheflush.h>
 
+static int swiotlb __read_mostly;
+
 static pgprot_t __get_dma_pgprot(const struct dma_attrs *attrs, pgprot_t prot,
 				 bool coherent)
 {
