@@ -94,17 +94,17 @@ void __set_page_owner_migrate_reason(struct page *page, int reason)
 	page_ext->last_migrate_reason = reason;
 }
 
-void __split_page_owner(struct page *page, unsigned int order)
+gfp_t __get_page_owner_gfp(struct page *page)
 {
-	int i;
 	struct page_ext *page_ext = lookup_page_ext(page);
-
 	if (unlikely(!page_ext))
-		return;
+		/*
+		 * The caller just returns 0 if no valid gfp
+		 * So return 0 here too.
+		 */
+		return 0;
 
-	page_ext->order = 0;
-	for (i = 1; i < (1 << order); i++)
-		__copy_page_owner(page, page + i);
+	return page_ext->gfp_mask;
 }
 
 void __copy_page_owner(struct page *oldpage, struct page *newpage)

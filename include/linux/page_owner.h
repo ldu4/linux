@@ -10,7 +10,7 @@ extern struct page_ext_operations page_owner_ops;
 extern void __reset_page_owner(struct page *page, unsigned int order);
 extern void __set_page_owner(struct page *page,
 			unsigned int order, gfp_t gfp_mask);
-extern void __split_page_owner(struct page *page, unsigned int order);
+extern gfp_t __get_page_owner_gfp(struct page *page);
 extern void __copy_page_owner(struct page *oldpage, struct page *newpage);
 extern void __set_page_owner_migrate_reason(struct page *page, int reason);
 extern void __dump_page_owner(struct page *page);
@@ -28,10 +28,12 @@ static inline void set_page_owner(struct page *page,
 		__set_page_owner(page, order, gfp_mask);
 }
 
-static inline void split_page_owner(struct page *page, unsigned int order)
+static inline gfp_t get_page_owner_gfp(struct page *page)
 {
 	if (static_branch_unlikely(&page_owner_inited))
-		__split_page_owner(page, order);
+		return __get_page_owner_gfp(page);
+	else
+		return 0;
 }
 static inline void copy_page_owner(struct page *oldpage, struct page *newpage)
 {
@@ -56,9 +58,9 @@ static inline void set_page_owner(struct page *page,
 			unsigned int order, gfp_t gfp_mask)
 {
 }
-static inline void split_page_owner(struct page *page,
-			unsigned int order)
+static inline gfp_t get_page_owner_gfp(struct page *page)
 {
+	return 0;
 }
 static inline void copy_page_owner(struct page *oldpage, struct page *newpage)
 {
