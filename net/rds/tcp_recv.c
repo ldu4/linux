@@ -34,6 +34,7 @@
 #include <linux/slab.h>
 #include <net/tcp.h>
 
+#include "rds_single_path.h"
 #include "rds.h"
 #include "tcp.h"
 
@@ -171,7 +172,7 @@ static int rds_tcp_data_recv(read_descriptor_t *desc, struct sk_buff *skb,
 	while (left) {
 		if (!tinc) {
 			tinc = kmem_cache_alloc(rds_tcp_incoming_slab,
-					        arg->gfp);
+						arg->gfp);
 			if (!tinc) {
 				desc->error = -ENOMEM;
 				goto out;
