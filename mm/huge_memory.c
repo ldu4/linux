@@ -2485,8 +2485,8 @@ static void collapse_huge_page(struct mm_struct *mm,
 	swap = get_mm_counter(mm, MM_SWAPENTS);
 	curr_allocstall = sum_vm_event(ALLOCSTALL);
 	/*
-	 * Don't perform swapin readahead when the system is under pressure,
-	 * to avoid unnecessary resource consumption.
+	 * When system under pressure, don't swapin readahead.
+	 * So that avoid unnecessary resource consuming.
 	 */
 	if (allocstall == curr_allocstall && swap != 0)
 		__collapse_huge_page_swapin(mm, vma, address, pmd);
