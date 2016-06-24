@@ -95,17 +95,6 @@ static int sun4i_rgb_mode_valid(struct drm_connector *connector,
 	rounded_rate = clk_round_rate(tcon->dclk, rate);
 	if (rounded_rate < rate)
 		return MODE_CLOCK_LOW;
-<<<<<<< HEAD
-
-	if (rounded_rate > rate)
-		return MODE_CLOCK_HIGH;
-
-	DRM_DEBUG_DRIVER("Clock rate OK\n");
-
-	return MODE_OK;
-}
-=======
->>>>>>> linux-next/akpm-base
 
 	if (rounded_rate > rate)
 		return MODE_CLOCK_HIGH;
