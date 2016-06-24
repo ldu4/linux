@@ -923,8 +923,11 @@ const char * const vmstat_text[] = {
 	/* enum zone_stat_item countes */
 	"nr_free_pages",
 	"nr_alloc_batch",
-	"nr_zone_anon_lru",
-	"nr_zone_file_lru",
+	"nr_inactive_anon",
+	"nr_active_anon",
+	"nr_inactive_file",
+	"nr_active_file",
+	"nr_unevictable",
 	"nr_mlock",
 	"nr_anon_pages",
 	"nr_mapped",
@@ -940,9 +943,12 @@ const char * const vmstat_text[] = {
 	"nr_vmscan_write",
 	"nr_vmscan_immediate_reclaim",
 	"nr_writeback_temp",
+	"nr_isolated_anon",
+	"nr_isolated_file",
 	"nr_shmem",
 	"nr_dirtied",
 	"nr_written",
+	"nr_pages_scanned",
 #if IS_ENABLED(CONFIG_ZSMALLOC)
 	"nr_zspages",
 #endif
@@ -961,16 +967,6 @@ const char * const vmstat_text[] = {
 	"nr_shmem_hugepages",
 	"nr_shmem_pmdmapped",
 	"nr_free_cma",
-
-	/* Node-based counters */
-	"nr_inactive_anon",
-	"nr_active_anon",
-	"nr_inactive_file",
-	"nr_active_file",
-	"nr_unevictable",
-	"nr_isolated_anon",
-	"nr_isolated_file",
-	"nr_pages_scanned",
 
 	/* enum writeback_stat_item counters */
 	"nr_dirty_threshold",
@@ -993,11 +989,11 @@ const char * const vmstat_text[] = {
 	"pgmajfault",
 	"pglazyfreed",
 
-	"pgrefill",
-	"pgsteal_kswapd",
-	"pgsteal_direct",
-	"pgscan_kswapd",
-	"pgscan_direct",
+	TEXTS_FOR_ZONES("pgrefill")
+	TEXTS_FOR_ZONES("pgsteal_kswapd")
+	TEXTS_FOR_ZONES("pgsteal_direct")
+	TEXTS_FOR_ZONES("pgscan_kswapd")
+	TEXTS_FOR_ZONES("pgscan_direct")
 	"pgscan_direct_throttle",
 
 #ifdef CONFIG_NUMA
@@ -1425,7 +1421,7 @@ static void zoneinfo_show_print(struct seq_file *m, pg_data_t *pgdat,
 		   "\n        min      %lu"
 		   "\n        low      %lu"
 		   "\n        high     %lu"
-		   "\n   node_scanned  %lu"
+		   "\n        scanned  %lu"
 		   "\n        spanned  %lu"
 		   "\n        present  %lu"
 		   "\n        managed  %lu",
@@ -1433,13 +1429,13 @@ static void zoneinfo_show_print(struct seq_file *m, pg_data_t *pgdat,
 		   min_wmark_pages(zone),
 		   low_wmark_pages(zone),
 		   high_wmark_pages(zone),
-		   node_page_state(zone->zone_pgdat, NR_PAGES_SCANNED),
+		   zone_page_state(zone, NR_PAGES_SCANNED),
 		   zone->spanned_pages,
 		   zone->present_pages,
 		   zone->managed_pages);
 
 	for (i = 0; i < NR_VM_ZONE_STAT_ITEMS; i++)
-		seq_printf(m, "\n      %-12s %lu", vmstat_text[i],
+		seq_printf(m, "\n    %-12s %lu", vmstat_text[i],
 				zone_page_state(zone, i));
 
 	seq_printf(m,
@@ -1469,12 +1465,12 @@ static void zoneinfo_show_print(struct seq_file *m, pg_data_t *pgdat,
 #endif
 	}
 	seq_printf(m,
-		   "\n  node_unreclaimable:  %u"
-		   "\n  start_pfn:           %lu"
-		   "\n  node_inactive_ratio: %u",
-		   !pgdat_reclaimable(zone->zone_pgdat),
+		   "\n  all_unreclaimable: %u"
+		   "\n  start_pfn:         %lu"
+		   "\n  inactive_ratio:    %u",
+		   !zone_reclaimable(zone),
 		   zone->zone_start_pfn,
-		   zone->zone_pgdat->inactive_ratio);
+		   zone->inactive_ratio);
 	seq_putc(m, '\n');
 }
 
@@ -1565,6 +1561,7 @@ static int vmstat_show(struct seq_file *m, void *arg)
 {
 	unsigned long *l = arg;
 	unsigned long off = l - (unsigned long *)m->private;
+
 	seq_printf(m, "%s %lu\n", vmstat_text[off], *l);
 	return 0;
 }
