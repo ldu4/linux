@@ -406,7 +406,8 @@ free_tsk:
 }
 
 #ifdef CONFIG_MMU
-static int dup_mmap(struct mm_struct *mm, struct mm_struct *oldmm)
+static __latent_entropy int dup_mmap(struct mm_struct *mm,
+					struct mm_struct *oldmm)
 {
 	struct vm_area_struct *mpnt, *tmp, *prev, **pprev;
 	struct rb_node **rb_link, *rb_parent;
@@ -907,6 +908,12 @@ void mm_release(struct task_struct *tsk, struct mm_struct *mm)
 #endif
 	if (unlikely(!list_empty(&tsk->pi_state_list)))
 		exit_pi_state_list(tsk);
+
+	/* Must be last as the other cleanups might deref it */
+	if (unlikely(tsk->futex_cache)) {
+		exit_futex_task_cache(tsk);
+		tsk->futex_cache = NULL;
+	}
 #endif
 
 	uprobe_free_utask(tsk);
@@ -1277,7 +1284,8 @@ init_task_pid(struct task_struct *task, enum pid_type type, struct pid *pid)
  * parts of the process environment (as per the clone
  * flags). The actual kick-off is left to the caller.
  */
-static struct task_struct *copy_process(unsigned long clone_flags,
+static __latent_entropy struct task_struct *copy_process(
+					unsigned long clone_flags,
 					unsigned long stack_start,
 					unsigned long stack_size,
 					int __user *child_tidptr,
@@ -1517,6 +1525,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 #endif
 	INIT_LIST_HEAD(&p->pi_state_list);
 	p->pi_state_cache = NULL;
+	p->futex_cache = NULL;
 #endif
 	/*
 	 * sigaltstack should be cleared when sharing the same VM
@@ -1761,6 +1770,7 @@ long _do_fork(unsigned long clone_flags,
 
 	p = copy_process(clone_flags, stack_start, stack_size,
 			 child_tidptr, NULL, trace, tls, NUMA_NO_NODE);
+	add_latent_entropy();
 	/*
 	 * Do this prior waking up the new thread - the thread pointer
 	 * might get invalid after that point, if the thread exits quickly.
