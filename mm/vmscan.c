@@ -3138,30 +3138,24 @@ static int balance_pgdat(pg_data_t *pgdat, int order, int classzone_idx)
 
 		sc.nr_reclaimed = 0;
 
-		/*
-		 * If the number of buffer_heads in the machine exceeds the
-		 * maximum allowed level and this node has a highmem zone,
-		 * force kswapd to reclaim from it to relieve lowmem pressure.
-		 */
-		if (buffer_heads_over_limit) {
-			for (i = MAX_NR_ZONES - 1; i >= 0; i--) {
-				zone = pgdat->node_zones + i;
-				if (!populated_zone(zone))
-					continue;
-
-				if (is_highmem_idx(i))
-					classzone_idx = i;
-				break;
-			}
-		}
-
-		/* Only reclaim if there are no eligible zones */
+		/* Scan from the highest requested zone to dma */
 		for (i = classzone_idx; i >= 0; i--) {
 			zone = pgdat->node_zones + i;
 			if (!populated_zone(zone))
 				continue;
 
-			if (!zone_balanced(zone, sc.order, classzone_idx)) {
+			/*
+			 * If the number of buffer_heads in the machine
+			 * exceeds the maximum allowed level and this node
+			 * has a highmem zone, force kswapd to reclaim from
+			 * it to relieve lowmem pressure.
+			 */
+			if (buffer_heads_over_limit && is_highmem_idx(i)) {
+				classzone_idx = i;
+				break;
+			}
+
+			if (!zone_balanced(zone, order, 0)) {
 				classzone_idx = i;
 				break;
 			}
