@@ -24,34 +24,6 @@
 #include "sun4i_layer.h"
 #include "sun4i_tcon.h"
 
-static int sun4i_drv_connector_plug_all(struct drm_device *drm)
-{
-	struct drm_connector *connector, *failed;
-	int ret;
-
-	mutex_lock(&drm->mode_config.mutex);
-	list_for_each_entry(connector, &drm->mode_config.connector_list, head) {
-		ret = drm_connector_register(connector);
-		if (ret) {
-			failed = connector;
-			goto err;
-		}
-	}
-	mutex_unlock(&drm->mode_config.mutex);
-	return 0;
-
-err:
-	list_for_each_entry(connector, &drm->mode_config.connector_list, head) {
-		if (failed == connector)
-			break;
-
-		drm_connector_unregister(connector);
-	}
-	mutex_unlock(&drm->mode_config.mutex);
-
-	return ret;
-}
-
 static int sun4i_drv_enable_vblank(struct drm_device *drm, unsigned int pipe)
 {
 	struct sun4i_drv *drv = drm->dev_private;
@@ -103,7 +75,7 @@ static struct drm_driver sun4i_drv_driver = {
 	.dumb_create		= drm_gem_cma_dumb_create,
 	.dumb_destroy		= drm_gem_dumb_destroy,
 	.dumb_map_offset	= drm_gem_cma_dumb_map_offset,
-	.gem_free_object	= drm_gem_cma_free_object,
+	.gem_free_object_unlocked = drm_gem_cma_free_object,
 	.gem_vm_ops		= &drm_gem_cma_vm_ops,
 
 	/* PRIME Operations */
@@ -125,6 +97,22 @@ static struct drm_driver sun4i_drv_driver = {
 	.disable_vblank		= sun4i_drv_disable_vblank,
 };
 
+static void sun4i_remove_framebuffers(void)
+{
+	struct apertures_struct *ap;
+
+	ap = alloc_apertures(1);
+	if (!ap)
+		return;
+
+	/* The framebuffer can be located anywhere in RAM */
+	ap->ranges[0].base = 0;
+	ap->ranges[0].size = ~0;
+
+	remove_conflicting_framebuffers(ap, "sun4i-drm-fb", false);
+	kfree(ap);
+}
+
 static int sun4i_drv_bind(struct device *dev)
 {
 	struct drm_device *drm;
@@ -134,10 +122,6 @@ static int sun4i_drv_bind(struct device *dev)
 	drm = drm_dev_alloc(&sun4i_drv_driver, dev);
 	if (!drm)
 		return -ENOMEM;
-
-	ret = drm_dev_set_unique(drm, dev_name(drm->dev));
-	if (ret)
-		goto free_drm;
 
 	drv = devm_kzalloc(dev, sizeof(*drv), GFP_KERNEL);
 	if (!drv) {
@@ -172,6 +156,9 @@ static int sun4i_drv_bind(struct device *dev)
 	}
 	drm->irq_enabled = true;
 
+	/* Remove early framebuffers (ie. simplefb) */
+	sun4i_remove_framebuffers();
+
 	/* Create our framebuffer */
 	drv->fbdev = sun4i_framebuffer_init(drm);
 	if (IS_ERR(drv->fbdev)) {
@@ -187,14 +174,8 @@ static int sun4i_drv_bind(struct device *dev)
 	if (ret)
 		goto free_drm;
 
-	ret = sun4i_drv_connector_plug_all(drm);
-	if (ret)
-		goto unregister_drm;
-
 	return 0;
 
-unregister_drm:
-	drm_dev_unregister(drm);
 free_drm:
 	drm_dev_unref(drm);
 	return ret;
@@ -204,6 +185,7 @@ static void sun4i_drv_unbind(struct device *dev)
 {
 	struct drm_device *drm = dev_get_drvdata(dev);
 
+	drm_connector_unregister_all(drm);
 	drm_dev_unregister(drm);
 	drm_kms_helper_poll_fini(drm);
 	sun4i_framebuffer_free(drm);
