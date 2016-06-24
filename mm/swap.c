@@ -319,8 +319,7 @@ void activate_page(struct page *page)
 
 	page = compound_head(page);
 	spin_lock_irq(zone_lru_lock(zone));
-	__activate_page(page, mem_cgroup_page_lruvec(page, zone->zone_pgdat),
-			NULL);
+	__activate_page(page, mem_cgroup_page_lruvec(page, zone), NULL);
 	spin_unlock_irq(zone_lru_lock(zone));
 }
 #endif
