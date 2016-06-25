@@ -174,13 +174,6 @@ static int sun4i_drv_bind(struct device *dev)
 	if (ret)
 		goto free_drm;
 
-<<<<<<< HEAD
-	ret = drm_connector_register_all(drm);
-	if (ret)
-		goto unregister_drm;
-
-=======
->>>>>>> linux-next/akpm-base
 	return 0;
 
 free_drm:
