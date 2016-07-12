@@ -208,7 +208,6 @@ void acpi_boot_table_init (void);
 int acpi_mps_check (void);
 int acpi_numa_init (void);
 
-void early_acpi_table_init(void *data, size_t size);
 int acpi_table_init (void);
 int acpi_table_parse(char *id, acpi_tbl_table_handler handler);
 int __init acpi_parse_entries(char *id, unsigned long table_size,
@@ -232,12 +231,26 @@ int acpi_table_parse_madt(enum acpi_madt_type id,
 int acpi_parse_mcfg (struct acpi_table_header *header);
 void acpi_table_print_madt_entry (struct acpi_subtable_header *madt);
 
-/* the following four functions are architecture-dependent */
+/* the following numa functions are architecture-dependent */
 void acpi_numa_slit_init (struct acpi_table_slit *slit);
+
+#if defined(CONFIG_X86) || defined(CONFIG_IA64)
 void acpi_numa_processor_affinity_init (struct acpi_srat_cpu_affinity *pa);
+#else
+static inline void
+acpi_numa_processor_affinity_init(struct acpi_srat_cpu_affinity *pa) { }
+#endif
+
 void acpi_numa_x2apic_affinity_init(struct acpi_srat_x2apic_cpu_affinity *pa);
+
+#ifdef CONFIG_ARM64
+void acpi_numa_gicc_affinity_init(struct acpi_srat_gicc_affinity *pa);
+#else
+static inline void
+acpi_numa_gicc_affinity_init(struct acpi_srat_gicc_affinity *pa) { }
+#endif
+
 int acpi_numa_memory_affinity_init (struct acpi_srat_mem_affinity *ma);
-void acpi_numa_arch_fixup(void);
 
 #ifndef PHYS_CPUID_INVALID
 typedef u32 phys_cpuid_t;
@@ -543,6 +556,11 @@ struct platform_device *acpi_create_platform_device(struct acpi_device *);
 
 struct fwnode_handle;
 
+static inline bool acpi_dev_found(const char *hid)
+{
+	return false;
+}
+
 static inline bool is_acpi_node(struct fwnode_handle *fwnode)
 {
 	return false;
@@ -568,6 +586,12 @@ static inline struct acpi_data_node *to_acpi_data_node(struct fwnode_handle *fwn
 	return NULL;
 }
 
+static inline bool acpi_data_node_match(struct fwnode_handle *fwnode,
+					const char *name)
+{
+	return false;
+}
+
 static inline struct fwnode_handle *acpi_fwnode_handle(struct acpi_device *adev)
 {
 	return NULL;
@@ -588,7 +612,6 @@ static inline const char *acpi_dev_name(struct acpi_device *adev)
 	return NULL;
 }
 
-static inline void early_acpi_table_init(void *data, size_t size) { }
 static inline void acpi_early_init(void) { }
 static inline void acpi_subsystem_init(void) { }
 
@@ -652,6 +675,14 @@ static inline bool acpi_driver_match_device(struct device *dev,
 					    const struct device_driver *drv)
 {
 	return false;
+}
+
+static inline union acpi_object *acpi_evaluate_dsm(acpi_handle handle,
+						   const u8 *uuid,
+						   int rev, int func,
+						   union acpi_object *argv4)
+{
+	return NULL;
 }
 
 static inline int acpi_device_uevent_modalias(struct device *dev,
@@ -995,6 +1026,12 @@ static inline struct fwnode_handle *acpi_get_next_subnode(struct device *dev,
 		     (void *) data }
 
 #define acpi_probe_device_table(t)	({ int __r = 0; __r;})
+#endif
+
+#ifdef CONFIG_ACPI_TABLE_UPGRADE
+void acpi_table_upgrade(void);
+#else
+static inline void acpi_table_upgrade(void) { }
 #endif
 
 #endif	/*_LINUX_ACPI_H*/

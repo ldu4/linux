@@ -85,6 +85,9 @@ struct nf_conn {
 	spinlock_t	lock;
 	u16		cpu;
 
+#ifdef CONFIG_NF_CONNTRACK_ZONES
+	struct nf_conntrack_zone zone;
+#endif
 	/* XXX should I move this to the tail ? - Y.K */
 	/* These are my tuples; original and reply */
 	struct nf_conntrack_tuple_hash tuplehash[IP_CT_DIR_MAX];
@@ -284,9 +287,18 @@ static inline bool nf_is_loopback_packet(const struct sk_buff *skb)
 	return skb->dev && skb->skb_iif && skb->dev->flags & IFF_LOOPBACK;
 }
 
+/* jiffies until ct expires, 0 if already expired */
+static inline unsigned long nf_ct_expires(const struct nf_conn *ct)
+{
+	long timeout = (long)ct->timeout.expires - (long)jiffies;
+
+	return timeout > 0 ? timeout : 0;
+}
+
 struct kernel_param;
 
 int nf_conntrack_set_hashsize(const char *val, struct kernel_param *kp);
+int nf_conntrack_hash_resize(unsigned int hashsize);
 extern unsigned int nf_conntrack_htable_size;
 extern unsigned int nf_conntrack_max;
 

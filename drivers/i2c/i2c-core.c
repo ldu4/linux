@@ -1145,6 +1145,47 @@ struct i2c_client *i2c_new_dummy(struct i2c_adapter *adapter, u16 address)
 }
 EXPORT_SYMBOL_GPL(i2c_new_dummy);
 
+/**
+ * i2c_new_secondary_device - Helper to get the instantiated secondary address
+ * and create the associated device
+ * @client: Handle to the primary client
+ * @name: Handle to specify which secondary address to get
+ * @default_addr: Used as a fallback if no secondary address was specified
+ * Context: can sleep
+ *
+ * I2C clients can be composed of multiple I2C slaves bound together in a single
+ * component. The I2C client driver then binds to the master I2C slave and needs
+ * to create I2C dummy clients to communicate with all the other slaves.
+ *
+ * This function creates and returns an I2C dummy client whose I2C address is
+ * retrieved from the platform firmware based on the given slave name. If no
+ * address is specified by the firmware default_addr is used.
+ *
+ * On DT-based platforms the address is retrieved from the "reg" property entry
+ * cell whose "reg-names" value matches the slave name.
+ *
+ * This returns the new i2c client, which should be saved for later use with
+ * i2c_unregister_device(); or NULL to indicate an error.
+ */
+struct i2c_client *i2c_new_secondary_device(struct i2c_client *client,
+						const char *name,
+						u16 default_addr)
+{
+	struct device_node *np = client->dev.of_node;
+	u32 addr = default_addr;
+	int i;
+
+	if (np) {
+		i = of_property_match_string(np, "reg-names", name);
+		if (i >= 0)
+			of_property_read_u32_index(np, "reg", i, &addr);
+	}
+
+	dev_dbg(&client->adapter->dev, "Address for %s : 0x%x\n", name, addr);
+	return i2c_new_dummy(client->adapter, addr);
+}
+EXPORT_SYMBOL_GPL(i2c_new_secondary_device);
+
 /* ------------------------------------------------------------------------- */
 
 /* I2C bus adapters -- one roots each I2C or SMBUS segment */
@@ -1411,7 +1452,7 @@ static struct i2c_client *of_i2c_register_device(struct i2c_adapter *adap,
 
 static void of_i2c_register_devices(struct i2c_adapter *adap)
 {
-	struct device_node *node;
+	struct device_node *bus, *node;
 
 	/* Only register child devices if the adapter has a node pointer set */
 	if (!adap->dev.of_node)
@@ -1419,11 +1460,17 @@ static void of_i2c_register_devices(struct i2c_adapter *adap)
 
 	dev_dbg(&adap->dev, "of_i2c: walking child nodes\n");
 
-	for_each_available_child_of_node(adap->dev.of_node, node) {
+	bus = of_get_child_by_name(adap->dev.of_node, "i2c-bus");
+	if (!bus)
+		bus = of_node_get(adap->dev.of_node);
+
+	for_each_available_child_of_node(bus, node) {
 		if (of_node_test_and_set_flag(node, OF_POPULATED))
 			continue;
 		of_i2c_register_device(adap, node);
 	}
+
+	of_node_put(bus);
 }
 
 static int of_dev_node_match(struct device *dev, void *data)

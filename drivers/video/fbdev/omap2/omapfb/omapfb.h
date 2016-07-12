@@ -30,7 +30,7 @@
 #include <linux/rwsem.h>
 #include <linux/dma-mapping.h>
 
-#include <video/omapdss.h>
+#include <video/omapfb_dss.h>
 
 #ifdef DEBUG
 extern bool omapfb_debug;
