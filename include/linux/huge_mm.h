@@ -98,7 +98,7 @@ static inline int split_huge_page(struct page *page)
 void deferred_split_huge_page(struct page *page);
 
 void __split_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
-		unsigned long address, bool freeze);
+		unsigned long address, bool freeze, struct page *page);
 
 #define split_huge_pmd(__vma, __pmd, __address)				\
 	do {								\
@@ -106,7 +106,7 @@ void __split_huge_pmd(struct vm_area_struct *vma, pmd_t *pmd,
 		if (pmd_trans_huge(*____pmd)				\
 					|| pmd_devmap(*____pmd))	\
 			__split_huge_pmd(__vma, __pmd, __address,	\
-						false);			\
+						false, NULL);		\
 	}  while (0)
 
 
