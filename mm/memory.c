@@ -2408,8 +2408,7 @@ static int do_wp_page(struct fault_env *fe, pte_t orig_pte)
 				 * Protected against the rmap code by
 				 * the page lock.
 				 */
-				page_move_anon_rmap(compound_head(old_page),
-						    vma, fe->address);
+				page_move_anon_rmap(old_page, vma);
 			}
 			unlock_page(old_page);
 			return wp_page_reuse(fe, orig_pte, old_page, 0, 0);
