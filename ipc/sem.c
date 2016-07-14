@@ -161,13 +161,6 @@ static int sysvipc_sem_proc_show(struct seq_file *s, void *it);
 #define SEMOPM_FAST	64  /* ~ 372 bytes on stack */
 
 /*
- * Switching from the mode suitable for simple ops
- * to the mode for complex ops is costly. Therefore:
- * use some hysteresis
- */
-#define COMPLEX_MODE_ENTER 10
-
-/*
  * Locking:
  * a) global sem_lock() for read/write
  *	sem_undo.id_next,
@@ -286,25 +279,17 @@ static void sem_rcu_free(struct rcu_head *head)
 /*
  * Enter the mode suitable for non-simple operations:
  * Caller must own sem_perm.lock.
- * Note:
- * There is no leave complex mode function. Leaving
- * happens in sem_lock, with some hysteresis.
  */
 static void complexmode_enter(struct sem_array *sma)
 {
 	int i;
 	struct sem *sem;
 
-	if (sma->complex_mode > 0)  {
-		/*
-		 * We are already in complex_mode.
-		 * Nothing to do, just increase
-		 * counter until we return to simple mode
-		 */
-		WRITE_ONCE(sma->complex_mode, COMPLEX_MODE_ENTER);
+	if (sma->complex_mode)  {
+		/* We are already in complex_mode. Nothing to do */
 		return;
 	}
-	WRITE_ONCE(sma->complex_mode, COMPLEX_MODE_ENTER);
+	WRITE_ONCE(sma->complex_mode, true);
 
 	/* We need a full barrier:
 	 * The write to complex_mode must be visible
@@ -317,6 +302,27 @@ static void complexmode_enter(struct sem_array *sma)
 		spin_unlock_wait(&sem->lock);
 	}
 	ipc_smp_acquire__after_spin_is_unlocked();
+}
+
+/*
+ * Try to leave the mode that disallows simple operations:
+ * Caller must own sem_perm.lock.
+ */
+static void complexmode_tryleave(struct sem_array *sma)
+{
+	if (sma->complex_count)  {
+		/* Complex ops are sleeping.
+		 * We must stay in complex mode
+		 */
+		return;
+	}
+	/*
+	 * Immediately after setting complex_mode to false,
+	 * a simple op can start. Thus: all memory writes
+	 * performed by the current operation must be visible
+	 * before we set complex_mode to false.
+	 */
+	smp_store_release(&sma->complex_mode, false);
 }
 
 /*
@@ -379,42 +385,27 @@ static inline int sem_lock(struct sem_array *sma, struct sembuf *sops,
 	ipc_lock_object(&sma->sem_perm);
 
 	if (sma->complex_count == 0) {
-		/*
-		 * Check if fast path is possible:
-		 * There is no complex operation, check hysteresis
-		 * If 0, switch back to the fast path.
+		/* False alarm:
+		 * There is no complex operation, thus we can switch
+		 * back to the fast path.
 		 */
-		if (sma->complex_mode > 0) {
-			/* Note:
-			 * Immediately after setting complex_mode to 0,
-			 * a simple op could start.
-			 * The data it would access was written by the
-			 * previous owner of sem->sem_perm.lock, i.e
-			 * a release and an acquire memory barrier ago.
-			 * No need for another barrier.
-			 */
-			WRITE_ONCE(sma->complex_mode, sma->complex_mode-1);
-		}
-		if (sma->complex_mode == 0) {
-			spin_lock(&sem->lock);
-			ipc_unlock_object(&sma->sem_perm);
-			return sops->sem_num;
-		}
+		spin_lock(&sem->lock);
+		ipc_unlock_object(&sma->sem_perm);
+		return sops->sem_num;
+	} else {
+		/* Not a false alarm, thus complete the sequence for a
+		 * full lock.
+		 */
+		complexmode_enter(sma);
+		return -1;
 	}
-	/*
-	 * Not a false alarm, full lock is required.
-	 * Since we are already in complex_mode (either because of waiting
-	 * complex ops or due to hysteresis), there is not need for a
-	 * complexmode_enter().
-	 */
-	WARN_ON(sma->complex_mode == 0);
-	return -1;
 }
 
 static inline void sem_unlock(struct sem_array *sma, int locknum)
 {
 	if (locknum == -1) {
 		unmerge_queues(sma);
+		complexmode_tryleave(sma);
 		ipc_unlock_object(&sma->sem_perm);
 	} else {
 		struct sem *sem = sma->sem_base + locknum;
@@ -566,7 +557,7 @@ static int newary(struct ipc_namespace *ns, struct ipc_params *params)
 	}
 
 	sma->complex_count = 0;
-	WRITE_ONCE(sma->complex_mode, COMPLEX_MODE_ENTER);
+	sma->complex_mode = true; /* dropped by sem_unlock below */
 	INIT_LIST_HEAD(&sma->pending_alter);
 	INIT_LIST_HEAD(&sma->pending_const);
 	INIT_LIST_HEAD(&sma->list_id);
@@ -2223,7 +2214,7 @@ static int sysvipc_sem_proc_show(struct seq_file *s, void *it)
 	 * The proc interface isn't aware of sem_lock(), it calls
 	 * ipc_lock_object() directly (in sysvipc_find_ipc).
 	 * In order to stay compatible with sem_lock(), we must
-	 * enter complex_mode.
+	 * enter / leave complex_mode.
 	 */
 	complexmode_enter(sma);
 
@@ -2241,6 +2232,8 @@ static int sysvipc_sem_proc_show(struct seq_file *s, void *it)
 		   from_kgid_munged(user_ns, sma->sem_perm.cgid),
 		   sem_otime,
 		   sma->sem_ctime);
+
+	complexmode_tryleave(sma);
 
 	return 0;
 }
