@@ -389,11 +389,40 @@ static void __nf_conntrack_helper_unregister(struct nf_conntrack_helper *me,
 					     struct net *net)
 {
 	struct nf_conntrack_tuple_hash *h;
+	const struct hlist_nulls_node *nn;
+	int cpu;
+
+	/* Get rid of expecteds, set helpers to NULL. */
+	for_each_possible_cpu(cpu) {
+		struct ct_pcpu *pcpu = per_cpu_ptr(net->ct.pcpu_lists, cpu);
+
+		spin_lock_bh(&pcpu->lock);
+		hlist_nulls_for_each_entry(h, nn, &pcpu->unconfirmed, hnnode)
+			unhelp(h, me);
+		spin_unlock_bh(&pcpu->lock);
+	}
+}
+
+void nf_conntrack_helper_unregister(struct nf_conntrack_helper *me)
+{
+	struct nf_conntrack_tuple_hash *h;
 	struct nf_conntrack_expect *exp;
 	const struct hlist_node *next;
 	const struct hlist_nulls_node *nn;
+	unsigned int last_hsize;
+	spinlock_t *lock;
+	struct net *net;
 	unsigned int i;
-	int cpu;
+
+	mutex_lock(&nf_ct_helper_mutex);
+	hlist_del_rcu(&me->hnode);
+	nf_ct_helper_count--;
+	mutex_unlock(&nf_ct_helper_mutex);
+
+	/* Make sure every nothing is still using the helper unless its a
+	 * connection in the hash.
+	 */
+	synchronize_rcu();
 
 	/* Get rid of expectations */
 	spin_lock_bh(&nf_conntrack_expect_lock);
@@ -413,45 +442,26 @@ static void __nf_conntrack_helper_unregister(struct nf_conntrack_helper *me,
 	}
 	spin_unlock_bh(&nf_conntrack_expect_lock);
 
-	/* Get rid of expecteds, set helpers to NULL. */
-	for_each_possible_cpu(cpu) {
-		struct ct_pcpu *pcpu = per_cpu_ptr(net->ct.pcpu_lists, cpu);
-
-		spin_lock_bh(&pcpu->lock);
-		hlist_nulls_for_each_entry(h, nn, &pcpu->unconfirmed, hnnode)
-			unhelp(h, me);
-		spin_unlock_bh(&pcpu->lock);
-	}
-	local_bh_disable();
-	for (i = 0; i < nf_conntrack_htable_size; i++) {
-		nf_conntrack_lock(&nf_conntrack_locks[i % CONNTRACK_LOCKS]);
-		if (i < nf_conntrack_htable_size) {
-			hlist_nulls_for_each_entry(h, nn, &nf_conntrack_hash[i], hnnode)
-				unhelp(h, me);
-		}
-		spin_unlock(&nf_conntrack_locks[i % CONNTRACK_LOCKS]);
-	}
-	local_bh_enable();
-}
-
-void nf_conntrack_helper_unregister(struct nf_conntrack_helper *me)
-{
-	struct net *net;
-
-	mutex_lock(&nf_ct_helper_mutex);
-	hlist_del_rcu(&me->hnode);
-	nf_ct_helper_count--;
-	mutex_unlock(&nf_ct_helper_mutex);
-
-	/* Make sure every nothing is still using the helper unless its a
-	 * connection in the hash.
-	 */
-	synchronize_rcu();
-
 	rtnl_lock();
 	for_each_net(net)
 		__nf_conntrack_helper_unregister(me, net);
 	rtnl_unlock();
+
+	local_bh_disable();
+restart:
+	last_hsize = nf_conntrack_htable_size;
+	for (i = 0; i < last_hsize; i++) {
+		lock = &nf_conntrack_locks[i % CONNTRACK_LOCKS];
+		nf_conntrack_lock(lock);
+		if (last_hsize != nf_conntrack_htable_size) {
+			spin_unlock(lock);
+			goto restart;
+		}
+		hlist_nulls_for_each_entry(h, nn, &nf_conntrack_hash[i], hnnode)
+			unhelp(h, me);
+		spin_unlock(lock);
+	}
+	local_bh_enable();
 }
 EXPORT_SYMBOL_GPL(nf_conntrack_helper_unregister);
 

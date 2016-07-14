@@ -1,7 +1,7 @@
 /*
  * net/tipc/bearer.c: TIPC bearer code
  *
- * Copyright (c) 1996-2006, 2013-2014, Ericsson AB
+ * Copyright (c) 1996-2006, 2013-2016, Ericsson AB
  * Copyright (c) 2004-2006, 2010-2013, Wind River Systems
  * All rights reserved.
  *
@@ -39,6 +39,7 @@
 #include "bearer.h"
 #include "link.h"
 #include "discover.h"
+#include "monitor.h"
 #include "bcast.h"
 #include "netlink.h"
 
@@ -313,6 +314,10 @@ restart:
 	rcu_assign_pointer(tn->bearer_list[bearer_id], b);
 	if (skb)
 		tipc_bearer_xmit_skb(net, bearer_id, skb, &b->bcast_addr);
+
+	if (tipc_mon_create(net, bearer_id))
+		return -ENOMEM;
+
 	pr_info("Enabled bearer <%s>, discovery domain %s, priority %u\n",
 		name,
 		tipc_addr_string_fill(addr_string, disc_domain), priority);
@@ -328,6 +333,21 @@ static int tipc_reset_bearer(struct net *net, struct tipc_bearer *b)
 	tipc_node_delete_links(net, b->identity);
 	tipc_disc_reset(net, b);
 	return 0;
+}
+
+/* tipc_bearer_reset_all - reset all links on all bearers
+ */
+void tipc_bearer_reset_all(struct net *net)
+{
+	struct tipc_net *tn = tipc_net(net);
+	struct tipc_bearer *b;
+	int i;
+
+	for (i = 0; i < MAX_BEARERS; i++) {
+		b = rcu_dereference_rtnl(tn->bearer_list[i]);
+		if (b)
+			tipc_reset_bearer(net, b);
+	}
 }
 
 /**
@@ -348,6 +368,7 @@ static void bearer_disable(struct net *net, struct tipc_bearer *b)
 		tipc_disc_delete(b->link_req);
 	RCU_INIT_POINTER(tn->bearer_list[bearer_id], NULL);
 	kfree_rcu(b, rcu);
+	tipc_mon_delete(net, bearer_id);
 }
 
 int tipc_enable_l2_media(struct net *net, struct tipc_bearer *b,
