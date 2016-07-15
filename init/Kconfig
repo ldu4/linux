@@ -519,6 +519,7 @@ config SRCU
 config TASKS_RCU
 	bool
 	default n
+	depends on !UML
 	select SRCU
 	help
 	  This option enables a task-based RCU implementation that uses
@@ -783,6 +784,23 @@ config RCU_EXPEDITE_BOOT
 
 	  Accept the default if unsure.
 
+config RCUSYNC_EXPEDITE
+	bool "Expedite rcusync operations for per-CPU rwsems"
+	depends on RCU_EXPERT
+	default n
+	help
+	  Use this option to speed up per-CPU rwsem operations that are
+	  in turn used by some cgroups operations.  However, note well
+	  that specifying this option will enable expedited RCU grace
+	  periods.  These expedited grace periods can in turn introduce
+	  OS jitter, which can interfere with real-time, low-latency,
+	  HPC, and userspace-polling RDMA workloads.  That said, this
+	  OS jitter will not affect CPUs that are in nohz_full mode for
+	  the duration of the per-CPU rwsem operation in question.
+
+	  Say Y here if you want fast cgroups at the expense of OS jitter.
+	  Say N here if you are unsure.
+
 endmenu # "RCU Subsystem"
 
 config BUILD_BIN2C
@@ -853,8 +871,8 @@ config LOG_CPU_MAX_BUF_SHIFT
 	  used as it forces an exact (power of two) size of the ring buffer.
 
 	  The number of possible CPUs is used for this computation ignoring
-	  hotplugging making the compuation optimal for the the worst case
-	  scenerio while allowing a simple algorithm to be used from bootup.
+	  hotplugging making the computation optimal for the worst case
+	  scenario while allowing a simple algorithm to be used from bootup.
 
 	  Examples shift values and their meaning:
 		     17 => 128 KB for each CPU
@@ -1906,6 +1924,7 @@ if MODULES
 config MODULE_FORCE_LOAD
 	bool "Forced module loading"
 	default n
+	depends on !MODULE_SIG_FORCE
 	help
 	  Allow loading of modules without version information (ie. modprobe
 	  --force).  Forced module loading sets the 'F' (forced) taint flag and
