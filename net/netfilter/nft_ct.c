@@ -54,7 +54,6 @@ static void nft_ct_get_eval(const struct nft_expr *expr,
 	const struct nf_conn_help *help;
 	const struct nf_conntrack_tuple *tuple;
 	const struct nf_conntrack_helper *helper;
-	long diff;
 	unsigned int state;
 
 	ct = nf_ct_get(pkt->skb, &ctinfo);
@@ -94,10 +93,7 @@ static void nft_ct_get_eval(const struct nft_expr *expr,
 		return;
 #endif
 	case NFT_CT_EXPIRATION:
-		diff = (long)jiffies - (long)ct->timeout.expires;
-		if (diff < 0)
-			diff = 0;
-		*dest = jiffies_to_msecs(diff);
+		*dest = jiffies_to_msecs(nf_ct_expires(ct));
 		return;
 	case NFT_CT_HELPER:
 		if (ct->master == NULL)
@@ -354,6 +350,9 @@ static int nft_ct_get_init(const struct nft_ctx *ctx,
 	err = nft_ct_l3proto_try_module_get(ctx->afi->family);
 	if (err < 0)
 		return err;
+
+	if (priv->key == NFT_CT_BYTES || priv->key == NFT_CT_PKTS)
+		nf_ct_set_acct(ctx->net, true);
 
 	return 0;
 }

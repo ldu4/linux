@@ -14,6 +14,11 @@ CFLAGS_prom_init.o      += -fPIC
 CFLAGS_btext.o		+= -fPIC
 endif
 
+CFLAGS_cputable.o += $(DISABLE_LATENT_ENTROPY_PLUGIN)
+CFLAGS_init.o += $(DISABLE_LATENT_ENTROPY_PLUGIN)
+CFLAGS_btext.o += $(DISABLE_LATENT_ENTROPY_PLUGIN)
+CFLAGS_prom.o += $(DISABLE_LATENT_ENTROPY_PLUGIN)
+
 ifdef CONFIG_FUNCTION_TRACER
 # Do not trace early boot code
 CFLAGS_REMOVE_cputable.o = -mno-sched-epilog $(CC_FLAGS_FTRACE)
@@ -41,13 +46,13 @@ obj-$(CONFIG_VDSO32)		+= vdso32/
 obj-$(CONFIG_HAVE_HW_BREAKPOINT)	+= hw_breakpoint.o
 obj-$(CONFIG_PPC_BOOK3S_64)	+= cpu_setup_ppc970.o cpu_setup_pa6t.o
 obj-$(CONFIG_PPC_BOOK3S_64)	+= cpu_setup_power.o
-obj-$(CONFIG_PPC_BOOK3S_64)	+= mce.o mce_power.o
+obj-$(CONFIG_PPC_BOOK3S_64)	+= mce.o mce_power.o hmi.o
 obj64-$(CONFIG_RELOCATABLE)	+= reloc_64.o
 obj-$(CONFIG_PPC_BOOK3E_64)	+= exceptions-64e.o idle_book3e.o
 obj-$(CONFIG_PPC64)		+= vdso64/
 obj-$(CONFIG_ALTIVEC)		+= vecemu.o
 obj-$(CONFIG_PPC_970_NAP)	+= idle_power4.o
-obj-$(CONFIG_PPC_P7_NAP)	+= idle_power7.o
+obj-$(CONFIG_PPC_P7_NAP)	+= idle_book3s.o
 procfs-y			:= proc_powerpc.o
 obj-$(CONFIG_PROC_FS)		+= $(procfs-y)
 rtaspci-$(CONFIG_PPC64)-$(CONFIG_PCI)	:= rtas_pci.o
