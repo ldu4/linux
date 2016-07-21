@@ -54,7 +54,6 @@ static void nft_ct_get_eval(const struct nft_expr *expr,
 	const struct nf_conn_help *help;
 	const struct nf_conntrack_tuple *tuple;
 	const struct nf_conntrack_helper *helper;
-	long diff;
 	unsigned int state;
 
 	ct = nf_ct_get(pkt->skb, &ctinfo);
@@ -94,10 +93,7 @@ static void nft_ct_get_eval(const struct nft_expr *expr,
 		return;
 #endif
 	case NFT_CT_EXPIRATION:
-		diff = (long)jiffies - (long)ct->timeout.expires;
-		if (diff < 0)
-			diff = 0;
-		*dest = jiffies_to_msecs(diff);
+		*dest = jiffies_to_msecs(nf_ct_expires(ct));
 		return;
 	case NFT_CT_HELPER:
 		if (ct->master == NULL)
@@ -355,6 +351,9 @@ static int nft_ct_get_init(const struct nft_ctx *ctx,
 	if (err < 0)
 		return err;
 
+	if (priv->key == NFT_CT_BYTES || priv->key == NFT_CT_PKTS)
+		nf_ct_set_acct(ctx->net, true);
+
 	return 0;
 }
 
@@ -363,6 +362,7 @@ static int nft_ct_set_init(const struct nft_ctx *ctx,
 			   const struct nlattr * const tb[])
 {
 	struct nft_ct *priv = nft_expr_priv(expr);
+	bool label_got = false;
 	unsigned int len;
 	int err;
 
@@ -381,6 +381,7 @@ static int nft_ct_set_init(const struct nft_ctx *ctx,
 		err = nf_connlabels_get(ctx->net, (len * BITS_PER_BYTE) - 1);
 		if (err)
 			return err;
+		label_got = true;
 		break;
 #endif
 	default:
@@ -390,17 +391,28 @@ static int nft_ct_set_init(const struct nft_ctx *ctx,
 	priv->sreg = nft_parse_register(tb[NFTA_CT_SREG]);
 	err = nft_validate_register_load(priv->sreg, len);
 	if (err < 0)
-		return err;
+		goto err1;
 
 	err = nft_ct_l3proto_try_module_get(ctx->afi->family);
 	if (err < 0)
-		return err;
+		goto err1;
 
 	return 0;
+
+err1:
+	if (label_got)
+		nf_connlabels_put(ctx->net);
+	return err;
 }
 
-static void nft_ct_destroy(const struct nft_ctx *ctx,
-			   const struct nft_expr *expr)
+static void nft_ct_get_destroy(const struct nft_ctx *ctx,
+			       const struct nft_expr *expr)
+{
+	nft_ct_l3proto_module_put(ctx->afi->family);
+}
+
+static void nft_ct_set_destroy(const struct nft_ctx *ctx,
+			       const struct nft_expr *expr)
 {
 	struct nft_ct *priv = nft_expr_priv(expr);
 
@@ -472,7 +484,7 @@ static const struct nft_expr_ops nft_ct_get_ops = {
 	.size		= NFT_EXPR_SIZE(sizeof(struct nft_ct)),
 	.eval		= nft_ct_get_eval,
 	.init		= nft_ct_get_init,
-	.destroy	= nft_ct_destroy,
+	.destroy	= nft_ct_get_destroy,
 	.dump		= nft_ct_get_dump,
 };
 
@@ -481,7 +493,7 @@ static const struct nft_expr_ops nft_ct_set_ops = {
 	.size		= NFT_EXPR_SIZE(sizeof(struct nft_ct)),
 	.eval		= nft_ct_set_eval,
 	.init		= nft_ct_set_init,
-	.destroy	= nft_ct_destroy,
+	.destroy	= nft_ct_set_destroy,
 	.dump		= nft_ct_set_dump,
 };
 
