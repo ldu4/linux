@@ -136,6 +136,21 @@ static int nvdimm_bus_remove(struct device *dev)
 	return rc;
 }
 
+static void nvdimm_bus_shutdown(struct device *dev)
+{
+	struct nvdimm_bus *nvdimm_bus = walk_to_nvdimm_bus(dev);
+	struct nd_device_driver *nd_drv = NULL;
+
+	if (dev->driver)
+		nd_drv = to_nd_device_driver(dev->driver);
+
+	if (nd_drv && nd_drv->shutdown) {
+		nd_drv->shutdown(dev);
+		dev_dbg(&nvdimm_bus->dev, "%s.shutdown(%s)\n",
+				dev->driver->name, dev_name(dev));
+	}
+}
+
 void nd_device_notify(struct device *dev, enum nvdimm_event event)
 {
 	device_lock(dev);
@@ -214,6 +229,7 @@ static struct bus_type nvdimm_bus_type = {
 	.match = nvdimm_bus_match,
 	.probe = nvdimm_bus_probe,
 	.remove = nvdimm_bus_remove,
+	.shutdown = nvdimm_bus_shutdown,
 };
 
 static ASYNC_DOMAIN_EXCLUSIVE(nd_async_domain);
@@ -312,7 +328,7 @@ EXPORT_SYMBOL(__nd_driver_register);
 
 int nvdimm_revalidate_disk(struct gendisk *disk)
 {
-	struct device *dev = disk->driverfs_dev;
+	struct device *dev = disk_to_dev(disk)->parent;
 	struct nd_region *nd_region = to_nd_region(dev->parent);
 	const char *pol = nd_region->ro ? "only" : "write";
 
@@ -395,12 +411,10 @@ int nvdimm_bus_create_ndctl(struct nvdimm_bus *nvdimm_bus)
 	dev = device_create(nd_class, &nvdimm_bus->dev, devt, nvdimm_bus,
 			"ndctl%d", nvdimm_bus->id);
 
-	if (IS_ERR(dev)) {
+	if (IS_ERR(dev))
 		dev_dbg(&nvdimm_bus->dev, "failed to register ndctl%d: %ld\n",
 				nvdimm_bus->id, PTR_ERR(dev));
-		return PTR_ERR(dev);
-	}
-	return 0;
+	return PTR_ERR_OR_ZERO(dev);
 }
 
 void nvdimm_bus_destroy_ndctl(struct nvdimm_bus *nvdimm_bus)
