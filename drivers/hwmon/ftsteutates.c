@@ -27,6 +27,10 @@
 #include <linux/slab.h>
 #include <linux/sysfs.h>
 #include <linux/uaccess.h>
+<<<<<<< HEAD
+=======
+#include <linux/version.h>
+>>>>>>> linux-next/akpm-base
 #include <linux/watchdog.h>
 
 #define FTS_DEVICE_ID_REG		0x0000

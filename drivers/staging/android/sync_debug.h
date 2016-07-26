@@ -34,7 +34,12 @@ struct sync_timeline {
 	char			name[32];
 
 	/* protected by child_list_lock */
+<<<<<<< HEAD
 	int			context, value;
+=======
+	u64			context;
+	int			value;
+>>>>>>> linux-next/akpm-base
 
 	struct list_head	child_list_head;
 	spinlock_t		child_list_lock;
