@@ -100,8 +100,13 @@ static struct bio *__bio_alloc(struct f2fs_sb_info *sbi, block_t blk_addr,
 	return bio;
 }
 
+<<<<<<< HEAD
 static inline void __submit_bio(struct f2fs_sb_info *sbi,
 				struct bio *bio, enum page_type type)
+=======
+static inline void __submit_bio(struct f2fs_sb_info *sbi, struct bio *bio,
+				enum page_type type)
+>>>>>>> linux-next/akpm-base
 {
 	if (!is_read_io(bio_op(bio))) {
 		atomic_inc(&sbi->nr_wb_bios);
@@ -1652,6 +1657,7 @@ repeat:
 		zero_user_segment(page, 0, PAGE_SIZE);
 	} else {
 		struct bio *bio;
+<<<<<<< HEAD
 
 		bio = f2fs_grab_bio(inode, blkaddr, 1);
 		if (IS_ERR(bio)) {
@@ -1664,6 +1670,21 @@ repeat:
 			err = -EFAULT;
 			goto fail;
 		}
+=======
+
+		bio = f2fs_grab_bio(inode, blkaddr, 1);
+		if (IS_ERR(bio)) {
+			err = PTR_ERR(bio);
+			goto fail;
+		}
+		bio_set_op_attrs(bio, REQ_OP_READ, READ_SYNC);
+
+		if (bio_add_page(bio, page, PAGE_SIZE, 0) < PAGE_SIZE) {
+			bio_put(bio);
+			err = -EFAULT;
+			goto fail;
+		}
+>>>>>>> linux-next/akpm-base
 
 		__submit_bio(sbi, bio, DATA);
 

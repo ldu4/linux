@@ -12,7 +12,11 @@
 #define OMAP_VOUTDEF_H
 
 #include <media/v4l2-ctrls.h>
+<<<<<<< HEAD
 #include <video/omapdss.h>
+=======
+#include <video/omapfb_dss.h>
+>>>>>>> linux-next/akpm-base
 #include <video/omapvrfb.h>
 
 #define YUYV_BPP        2
