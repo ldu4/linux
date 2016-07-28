@@ -21,15 +21,12 @@
 #include <linux/of_device.h>
 #include <linux/pwm.h>
 #include <linux/gpio/consumer.h>
-<<<<<<< HEAD
-=======
 
 struct pwm_continuous_reg_data {
 	unsigned int min_uV_dutycycle;
 	unsigned int max_uV_dutycycle;
 	unsigned int dutycycle_unit;
 };
->>>>>>> linux-next/akpm-base
 
 struct pwm_regulator_data {
 	/*  Shared */
@@ -49,12 +46,6 @@ struct pwm_regulator_data {
 
 	int state;
 
-<<<<<<< HEAD
-	/* Continuous voltage */
-	int volt_uV;
-
-=======
->>>>>>> linux-next/akpm-base
 	/* Enable GPIO */
 	struct gpio_desc *enb_gpio;
 };
@@ -204,15 +195,6 @@ static int pwm_regulator_set_voltage(struct regulator_dev *rdev,
 	unsigned int max_uV_duty = drvdata->continuous.max_uV_dutycycle;
 	unsigned int duty_unit = drvdata->continuous.dutycycle_unit;
 	unsigned int ramp_delay = rdev->constraints->ramp_delay;
-<<<<<<< HEAD
-	struct pwm_args pargs;
-	unsigned int req_diff = min_uV - rdev->constraints->min_uV;
-	unsigned int diff;
-	unsigned int duty_pulse;
-	u64 req_period;
-	u32 rem;
-	int old_uV = pwm_regulator_get_voltage(rdev);
-=======
 	int min_uV = rdev->constraints->min_uV;
 	int max_uV = rdev->constraints->max_uV;
 	int diff_uV = max_uV - min_uV;
@@ -220,7 +202,6 @@ static int pwm_regulator_set_voltage(struct regulator_dev *rdev,
 	int old_uV = pwm_regulator_get_voltage(rdev);
 	unsigned int diff_duty;
 	unsigned int dutycycle;
->>>>>>> linux-next/akpm-base
 	int ret;
 
 	pwm_init_state(drvdata->pwm, &pstate);
@@ -252,21 +233,11 @@ static int pwm_regulator_set_voltage(struct regulator_dev *rdev,
 		return ret;
 	}
 
-<<<<<<< HEAD
-	drvdata->volt_uV = min_uV;
-
-	if ((ramp_delay == 0) || !pwm_regulator_is_enabled(rdev))
-		return 0;
-
-	/* Ramp delay is in uV/uS. Adjust to uS and delay */
-	ramp_delay = DIV_ROUND_UP(abs(min_uV - old_uV), ramp_delay);
-=======
 	if ((ramp_delay == 0) || !pwm_regulator_is_enabled(rdev))
 		return 0;
 
 	/* Ramp delay is in uV/uS. Adjust to uS and delay */
 	ramp_delay = DIV_ROUND_UP(abs(req_min_uV - old_uV), ramp_delay);
->>>>>>> linux-next/akpm-base
 	usleep_range(ramp_delay, ramp_delay + DIV_ROUND_UP(ramp_delay, 10));
 
 	return 0;
@@ -421,17 +392,9 @@ static int pwm_regulator_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-<<<<<<< HEAD
-	/*
-	 * FIXME: pwm_apply_args() should be removed when switching to the
-	 * atomic PWM API.
-	 */
-	pwm_apply_args(drvdata->pwm);
-=======
 	ret = pwm_adjust_config(drvdata->pwm);
 	if (ret)
 		return ret;
->>>>>>> linux-next/akpm-base
 
 	regulator = devm_regulator_register(&pdev->dev,
 					    &drvdata->desc, &config);

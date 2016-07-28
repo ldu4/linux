@@ -1970,8 +1970,6 @@ static int acpi_bus_scan_fixed(void)
 	return result < 0 ? result : 0;
 }
 
-<<<<<<< HEAD
-=======
 static void __init acpi_get_spcr_uart_addr(void)
 {
 	acpi_status status;
@@ -1985,7 +1983,6 @@ static void __init acpi_get_spcr_uart_addr(void)
 		printk(KERN_WARNING PREFIX "STAO table present, but SPCR is missing\n");
 }
 
->>>>>>> linux-next/akpm-base
 static bool acpi_scan_initialized;
 
 int __init acpi_scan_init(void)

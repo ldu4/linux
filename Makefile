@@ -667,24 +667,8 @@ endif
 endif
 # Find arch-specific stack protector compiler sanity-checking script.
 ifdef CONFIG_CC_STACKPROTECTOR
-<<<<<<< HEAD
-  stackp-path := $(srctree)/scripts/gcc-$(ARCH)_$(BITS)-has-stack-protector.sh
-  ifneq ($(wildcard $(stackp-path)),)
-    stackp-check := $(stackp-path)
-  endif
-endif
-KBUILD_CFLAGS += $(stackp-flag)
-
-ifdef CONFIG_KCOV
-  ifeq ($(call cc-option, $(CFLAGS_KCOV)),)
-    $(warning Cannot use CONFIG_KCOV: \
-             -fsanitize-coverage=trace-pc is not supported by compiler)
-    CFLAGS_KCOV =
-  endif
-=======
   stackp-path := $(srctree)/scripts/gcc-$(SRCARCH)_$(BITS)-has-stack-protector.sh
   stackp-check := $(wildcard $(stackp-path))
->>>>>>> linux-next/akpm-base
 endif
 KBUILD_CFLAGS += $(stackp-flag)
 

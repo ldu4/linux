@@ -911,11 +911,7 @@ int __v4l2_ctrl_s_ctrl_string(struct v4l2_ctrl *ctrl, const char *s);
  *
  * @ctrl:	The control.
  * @s:		The new string.
-<<<<<<< HEAD
- *
-=======
  *Controls name
->>>>>>> linux-next/akpm-base
  * This sets the control's new string safely by going through the control
  * framework. This function will lock the control's handler, so it cannot be
  * used from within the &v4l2_ctrl_ops functions.
@@ -1088,12 +1084,6 @@ int v4l2_try_ext_ctrls(struct v4l2_ctrl_handler *hdl,
  * If hdl == NULL then they will all return -EINVAL.
  */
 int v4l2_s_ext_ctrls(struct v4l2_fh *fh, struct v4l2_ctrl_handler *hdl,
-<<<<<<< HEAD
-						struct v4l2_ext_controls *c);
-
-/* Can be used as a subscribe_event function that just subscribes control
-   events. */
-=======
 		     struct v4l2_ext_controls *c);
 
 /**
@@ -1105,7 +1095,6 @@ int v4l2_s_ext_ctrls(struct v4l2_fh *fh, struct v4l2_ctrl_handler *hdl,
  * @fh: pointer to &struct v4l2_fh
  * @sub: pointer to &struct v4l2_event_subscription
  */
->>>>>>> linux-next/akpm-base
 int v4l2_ctrl_subdev_subscribe_event(struct v4l2_subdev *sd, struct v4l2_fh *fh,
 				     struct v4l2_event_subscription *sub);
 

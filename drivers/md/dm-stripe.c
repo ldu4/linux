@@ -309,11 +309,7 @@ static int stripe_map(struct dm_target *ti, struct bio *bio)
 }
 
 static long stripe_direct_access(struct dm_target *ti, sector_t sector,
-<<<<<<< HEAD
-				 void __pmem **kaddr, pfn_t *pfn, long size)
-=======
 				 void **kaddr, pfn_t *pfn, long size)
->>>>>>> linux-next/akpm-base
 {
 	struct stripe_c *sc = ti->private;
 	uint32_t stripe;

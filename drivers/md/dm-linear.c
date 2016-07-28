@@ -142,11 +142,7 @@ static int linear_iterate_devices(struct dm_target *ti,
 }
 
 static long linear_direct_access(struct dm_target *ti, sector_t sector,
-<<<<<<< HEAD
-				 void __pmem **kaddr, pfn_t *pfn, long size)
-=======
 				 void **kaddr, pfn_t *pfn, long size)
->>>>>>> linux-next/akpm-base
 {
 	struct linear_c *lc = ti->private;
 	struct block_device *bdev = lc->dev->bdev;

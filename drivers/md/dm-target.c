@@ -149,11 +149,7 @@ static void io_err_release_clone_rq(struct request *clone)
 }
 
 static long io_err_direct_access(struct dm_target *ti, sector_t sector,
-<<<<<<< HEAD
-				 void __pmem **kaddr, pfn_t *pfn, long size)
-=======
 				 void **kaddr, pfn_t *pfn, long size)
->>>>>>> linux-next/akpm-base
 {
 	return -EIO;
 }

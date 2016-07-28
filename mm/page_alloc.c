@@ -63,11 +63,7 @@
 #include <linux/sched/rt.h>
 #include <linux/page_owner.h>
 #include <linux/kthread.h>
-<<<<<<< HEAD
 #include <linux/memcontrol.h>
-=======
-#include <linux/random.h>
->>>>>>> linux-next/akpm-base
 
 #include <asm/sections.h>
 #include <asm/tlbflush.h>

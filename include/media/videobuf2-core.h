@@ -284,19 +284,11 @@ struct vb2_buffer {
  *			second time with the actually allocated number of
  *			buffers to verify if that is OK.
  *			The driver should return the required number of buffers
-<<<<<<< HEAD
- *			in *num_buffers, the required number of planes per
- *			buffer in *num_planes, the size of each plane should be
- *			set in the sizes[] array and optional per-plane
- *			allocator specific device in the alloc_devs[] array.
- *			When called from VIDIOC_REQBUFS, *num_planes == 0, the
-=======
  *			in \*num_buffers, the required number of planes per
  *			buffer in \*num_planes, the size of each plane should be
  *			set in the sizes\[\] array and optional per-plane
  *			allocator specific device in the alloc_devs\[\] array.
  *			When called from %VIDIOC_REQBUFS, \*num_planes == 0, the
->>>>>>> linux-next/akpm-base
  *			driver has to use the currently configured format to
  *			determine the plane sizes and \*num_buffers is the total
  *			number of buffers that are being allocated. When called
