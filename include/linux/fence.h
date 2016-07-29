@@ -359,7 +359,7 @@ unsigned fence_context_alloc(unsigned num);
 #define FENCE_TRACE(f, fmt, args...) \
 	do {								\
 		struct fence *__ff = (f);				\
-		if (config_enabled(CONFIG_FENCE_TRACE))			\
+		if (IS_ENABLED(CONFIG_FENCE_TRACE))			\
 			pr_info("f %u#%u: " fmt,			\
 				__ff->context, __ff->seqno, ##args);	\
 	} while (0)
