@@ -2071,7 +2071,12 @@ static void fix_read_error(struct r1conf *conf, int read_disk,
 				atomic_inc(&rdev->nr_pending);
 				rcu_read_unlock();
 				if (sync_page_io(rdev, sect, s<<9,
+<<<<<<< HEAD
 					 conf->tmppage, REQ_OP_READ, 0, false))
+=======
+						 conf->tmppage, REQ_OP_READ, 0,
+						 false))
+>>>>>>> linux-next/akpm-base
 					success = 1;
 				rdev_dec_pending(rdev, mddev);
 				if (success)
