@@ -1017,17 +1017,6 @@ DECLARE_EVENT_CLASS(btrfs__reserved_extent,
 
 	TP_ARGS(root, start, len),
 
-<<<<<<< HEAD
-	TP_STRUCT__entry(
-		__array(	u8,	fsid,	BTRFS_UUID_SIZE	)
-		__field(	u64,	root_objectid		)
-		__field(	u64,	start			)
-		__field(	u64,	len			)
-	),
-
-	TP_fast_assign(
-		memcpy(__entry->fsid, root->fs_info->fsid, BTRFS_UUID_SIZE);
-=======
 	TP_STRUCT__entry_btrfs(
 		__field(	u64,  root_objectid		)
 		__field(	u64,  start			)
@@ -1035,18 +1024,12 @@ DECLARE_EVENT_CLASS(btrfs__reserved_extent,
 	),
 
 	TP_fast_assign_btrfs(root->fs_info,
->>>>>>> linux-next/akpm-base
 		__entry->root_objectid	= root->root_key.objectid;
 		__entry->start		= start;
 		__entry->len		= len;
 	),
 
-<<<<<<< HEAD
-	TP_printk("%pU: root = %llu(%s), start = %llu, len = %llu",
-		  __entry->fsid,
-=======
 	TP_printk_btrfs("root = %llu(%s), start = %llu, len = %llu",
->>>>>>> linux-next/akpm-base
 		  show_root_type(__entry->root_objectid),
 		  (unsigned long long)__entry->start,
 		  (unsigned long long)__entry->len)
@@ -1102,12 +1085,7 @@ DECLARE_EVENT_CLASS(btrfs__reserve_extent,
 
 	TP_ARGS(root, block_group, start, len),
 
-<<<<<<< HEAD
-	TP_STRUCT__entry(
-		__array(	u8,	fsid,	BTRFS_UUID_SIZE	)
-=======
 	TP_STRUCT__entry_btrfs(
->>>>>>> linux-next/akpm-base
 		__field(	u64,	root_objectid		)
 		__field(	u64,	bg_objectid		)
 		__field(	u64,	flags			)
@@ -1115,12 +1093,7 @@ DECLARE_EVENT_CLASS(btrfs__reserve_extent,
 		__field(	u64,	len			)
 	),
 
-<<<<<<< HEAD
-	TP_fast_assign(
-		memcpy(__entry->fsid, root->fs_info->fsid, BTRFS_UUID_SIZE);
-=======
 	TP_fast_assign_btrfs(root->fs_info,
->>>>>>> linux-next/akpm-base
 		__entry->root_objectid	= root->root_key.objectid;
 		__entry->bg_objectid	= block_group->key.objectid;
 		__entry->flags		= block_group->flags;
@@ -1128,13 +1101,8 @@ DECLARE_EVENT_CLASS(btrfs__reserve_extent,
 		__entry->len		= len;
 	),
 
-<<<<<<< HEAD
-	TP_printk("%pU: root = %Lu(%s), block_group = %Lu, flags = %Lu(%s), "
-		  "start = %Lu, len = %Lu", __entry->fsid,
-=======
 	TP_printk_btrfs("root = %Lu(%s), block_group = %Lu, flags = %Lu(%s), "
 		  "start = %Lu, len = %Lu",
->>>>>>> linux-next/akpm-base
 		  show_root_type(__entry->root_objectid), __entry->bg_objectid,
 		  __entry->flags, __print_flags((unsigned long)__entry->flags,
 						"|", BTRFS_GROUP_FLAGS),
