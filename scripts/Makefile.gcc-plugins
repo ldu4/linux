@@ -6,6 +6,12 @@ ifdef CONFIG_GCC_PLUGINS
 
   gcc-plugin-$(CONFIG_GCC_PLUGIN_CYC_COMPLEXITY)	+= cyc_complexity_plugin.so
 
+  gcc-plugin-$(CONFIG_GCC_PLUGIN_LATENT_ENTROPY)	+= latent_entropy_plugin.so
+  gcc-plugin-cflags-$(CONFIG_GCC_PLUGIN_LATENT_ENTROPY)	+= -DLATENT_ENTROPY_PLUGIN
+  ifdef CONFIG_PAX_LATENT_ENTROPY
+    DISABLE_LATENT_ENTROPY_PLUGIN			+= -fplugin-arg-latent_entropy_plugin-disable
+  endif
+
   ifdef CONFIG_GCC_PLUGIN_SANCOV
     ifeq ($(CFLAGS_KCOV),)
       # It is needed because of the gcc-plugin.sh and gcc version checks.
@@ -20,6 +26,7 @@ ifdef CONFIG_GCC_PLUGINS
   endif
 
   GCC_PLUGINS_CFLAGS := $(strip $(addprefix -fplugin=$(objtree)/scripts/gcc-plugins/, $(gcc-plugin-y)) $(gcc-plugin-cflags-y))
+<<<<<<< HEAD
 
   export PLUGINCC GCC_PLUGINS_CFLAGS GCC_PLUGIN GCC_PLUGIN_SUBDIR SANCOV_PLUGIN
 
@@ -33,6 +40,21 @@ ifdef CONFIG_GCC_PLUGINS
   GCC_PLUGIN_SUBDIR := $(gcc-plugin-subdir-y)
 endif
 
+=======
+
+  export PLUGINCC GCC_PLUGINS_CFLAGS GCC_PLUGIN GCC_PLUGIN_SUBDIR SANCOV_PLUGIN DISABLE_LATENT_ENTROPY_PLUGIN
+
+  ifneq ($(PLUGINCC),)
+    # SANCOV_PLUGIN can be only in CFLAGS_KCOV because avoid duplication.
+    GCC_PLUGINS_CFLAGS := $(filter-out $(SANCOV_PLUGIN), $(GCC_PLUGINS_CFLAGS))
+  endif
+
+  KBUILD_CFLAGS += $(GCC_PLUGINS_CFLAGS)
+  GCC_PLUGIN := $(gcc-plugin-y)
+  GCC_PLUGIN_SUBDIR := $(gcc-plugin-subdir-y)
+endif
+
+>>>>>>> linux-next/akpm-base
 # If plugins aren't supported, abort the build before hard-to-read compiler
 # errors start getting spewed by the main build.
 PHONY += gcc-plugins-check
