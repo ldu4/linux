@@ -20,9 +20,13 @@ export HOSTLIBS
 
 $(HOSTLIBS)-y := $(foreach p,$(GCC_PLUGIN),$(if $(findstring /,$(p)),,$(p)))
 always := $($(HOSTLIBS)-y)
-
 $(foreach p,$($(HOSTLIBS)-y:%.so=%),$(eval $(p)-objs := $(p).o))
 
+<<<<<<< HEAD
+$(foreach p,$($(HOSTLIBS)-y:%.so=%),$(eval $(p)-objs := $(p).o))
+
+=======
+>>>>>>> linux-next/akpm-base
 subdir-y := $(GCC_PLUGIN_SUBDIR)
 subdir-  += $(GCC_PLUGIN_SUBDIR)
 
