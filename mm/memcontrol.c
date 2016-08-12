@@ -4041,22 +4041,18 @@ static DEFINE_IDR(mem_cgroup_idr);
 
 static void mem_cgroup_id_get_many(struct mem_cgroup *memcg, unsigned int n)
 {
-	VM_BUG_ON(atomic_read(&memcg->id.ref) <= 0);
 	atomic_add(n, &memcg->id.ref);
 }
 
 static struct mem_cgroup *mem_cgroup_id_get_active(struct mem_cgroup *memcg)
 {
-	while (!atomic_inc_not_zero(&memcg->id.ref)) {
-		VM_BUG_ON(mem_cgroup_is_root(memcg));
+	while (!atomic_inc_not_zero(&memcg->id.ref))
 		memcg = parent_mem_cgroup(memcg);
-	}
 	return memcg;
 }
 
 static void mem_cgroup_id_put_many(struct mem_cgroup *memcg, unsigned int n)
 {
-	VM_BUG_ON(atomic_read(&memcg->id.ref) < n);
 	if (atomic_sub_and_test(n, &memcg->id.ref)) {
 		idr_remove(&mem_cgroup_idr, memcg->id.id);
 		memcg->id.id = 0;
@@ -4177,7 +4173,6 @@ static struct mem_cgroup *mem_cgroup_alloc(void)
 	INIT_LIST_HEAD(&memcg->cgwb_list);
 #endif
 	idr_replace(&mem_cgroup_idr, memcg, memcg->id.id);
-	atomic_set(&memcg->id.ref, 1);
 	return memcg;
 fail:
 	if (memcg->id.id > 0)
@@ -4247,6 +4242,7 @@ fail:
 static int mem_cgroup_css_online(struct cgroup_subsys_state *css)
 {
 	/* Online state pins memcg ID, memcg ID pins CSS */
+	mem_cgroup_id_get(mem_cgroup_from_css(css));
 	css_get(css);
 	return 0;
 }
