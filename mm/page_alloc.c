@@ -3174,8 +3174,13 @@ should_compact_retry(struct alloc_context *ac, int order, int alloc_flags,
 	 * so it doesn't really make much sense to retry except when the
 	 * failure could be caused by insufficient priority
 	 */
-	if (compaction_failed(compact_result))
-		goto check_priority;
+	if (compaction_failed(compact_result)) {
+		if (*compact_priority > MIN_COMPACT_PRIORITY) {
+			(*compact_priority)--;
+			return true;
+		}
+		return false;
+	}
 
 	/*
 	 * make sure the compaction wasn't deferred or didn't bail out early
@@ -3199,15 +3204,6 @@ should_compact_retry(struct alloc_context *ac, int order, int alloc_flags,
 	if (compaction_retries <= max_retries)
 		return true;
 
-	/*
-	 * Make sure there is at least one attempt at the highest priority
-	 * if we exhausted all retries at the lower priorities
-	 */
-check_priority:
-	if (*compact_priority > MIN_COMPACT_PRIORITY) {
-		(*compact_priority)--;
-		return true;
-	}
 	return false;
 }
 #else
