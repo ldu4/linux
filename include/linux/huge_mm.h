@@ -152,8 +152,8 @@ static inline bool is_huge_zero_pmd(pmd_t pmd)
 	return is_huge_zero_page(pmd_page(pmd));
 }
 
-struct page *get_huge_zero_page(void);
-void put_huge_zero_page(void);
+struct page *mm_get_huge_zero_page(struct mm_struct *mm);
+void mm_put_huge_zero_page(struct mm_struct *mm);
 
 #define mk_huge_pmd(page, prot) pmd_mkhuge(mk_pmd(page, prot))
 
@@ -213,7 +213,7 @@ static inline bool is_huge_zero_page(struct page *page)
 	return false;
 }
 
-static inline void put_huge_zero_page(void)
+static inline void mm_put_huge_zero_page(struct mm_struct *mm)
 {
 	BUILD_BUG();
 }
