@@ -126,11 +126,15 @@ static int ima_add_digest_entry(struct ima_template_entry *entry, int flags)
 
 /*
  * Return the amount of memory required for serializing the
- * entire binary_runtime_measurement list.
+ * entire binary_runtime_measurement list, including the ima_kexec_hdr
+ * structure.
  */
 unsigned long ima_get_binary_runtime_size(void)
 {
-	return binary_runtime_size;
+	if (binary_runtime_size >= (ULONG_MAX - sizeof(struct ima_kexec_hdr)))
+		return ULONG_MAX;
+	else
+		return binary_runtime_size + sizeof(struct ima_kexec_hdr);
 };
 
 static int ima_pcr_extend(const u8 *hash, int pcr)
