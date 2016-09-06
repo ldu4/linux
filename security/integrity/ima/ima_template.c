@@ -462,8 +462,8 @@ int ima_restore_measurement_list(loff_t size, void *buf)
 			break;
 
 		memcpy(entry->digest, hdr_v1->digest, TPM_DIGEST_SIZE);
-		if (ima_canonical_fmt)
-			entry->pcr = le32_to_cpu(hdr_v1->pcr);
+		entry->pcr =
+		    !ima_canonical_fmt ? hdr_v1->pcr : le32_to_cpu(hdr_v1->pcr);
 		ret = ima_restore_measurement_entry(entry);
 		if (ret < 0)
 			break;

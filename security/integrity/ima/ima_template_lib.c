@@ -105,6 +105,7 @@ static void ima_show_template_data_binary(struct seq_file *m,
 
 	if (show != IMA_SHOW_BINARY_NO_FIELD_LEN) {
 		u32 field_len = !ima_canonical_fmt ? len : cpu_to_le32(len);
+
 		ima_putc(m, &field_len, sizeof(field_len));
 	}
 
