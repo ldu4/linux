@@ -93,8 +93,7 @@ static int ima_update_kexec_buffer(struct notifier_block *self,
 		return NOTIFY_OK;
 
 	kexec_buffer_size = ima_get_binary_runtime_size();
-	if (kexec_buffer_size >
-	    (kexec_segment_size - sizeof(struct ima_kexec_hdr))) {
+	if (kexec_buffer_size > kexec_segment_size) {
 		pr_err("Binary measurement list grew too large.\n");
 		goto out;
 	}
@@ -123,19 +122,28 @@ struct notifier_block update_buffer_nb = {
  */
 void ima_add_kexec_buffer(struct kimage *image)
 {
-	static int registered = 0;
+	static int registered;
 	struct kexec_buf kbuf = { .image = image, .buf_align = PAGE_SIZE,
 				  .buf_min = 0, .buf_max = ULONG_MAX,
 				  .top_down = true, .skip_checksum = true };
+	unsigned long binary_runtime_size;
 	int ret;
 
 	if (!kexec_can_hand_over_buffer())
 		return;
 
-	kexec_segment_size = ALIGN(ima_get_binary_runtime_size() + PAGE_SIZE,
-				   PAGE_SIZE);
-
-	if (kexec_segment_size >= (ULONG_MAX - sizeof(long))) {
+	/*
+	 * Reserve at least an extra half page of memory for additional
+	 * measurements between kexec load and execute.
+	 */
+	binary_runtime_size = ima_get_binary_runtime_size();
+	if (binary_runtime_size >= ULONG_MAX - PAGE_SIZE)
+		kexec_segment_size = ULONG_MAX;
+	else
+		kexec_segment_size = ALIGN(ima_get_binary_runtime_size() +
+					   PAGE_SIZE / 2, PAGE_SIZE);
+	if ((kexec_segment_size == ULONG_MAX) ||
+	    ((kexec_segment_size >> PAGE_SHIFT) > totalram_pages / 2)) {
 		pr_err("Binary measurement list too large.\n");
 		return;
 	}
