@@ -674,6 +674,11 @@ enum hv_signal_policy {
 	HV_SIGNAL_POLICY_EXPLICIT,
 };
 
+enum hv_numa_policy {
+	HV_BALANCED = 0,
+	HV_LOCALIZED,
+};
+
 enum vmbus_device_type {
 	HV_IDE = 0,
 	HV_SCSI,
@@ -850,6 +855,43 @@ struct vmbus_channel {
 	 * ring lock to preserve the current behavior.
 	 */
 	bool acquire_ring_lock;
+	/*
+	 * For performance critical channels (storage, networking
+	 * etc,), Hyper-V has a mechanism to enhance the throughput
+	 * at the expense of latency:
+	 * When the host is to be signaled, we just set a bit in a shared page
+	 * and this bit will be inspected by the hypervisor within a certain
+	 * window and if the bit is set, the host will be signaled. The window
+	 * of time is the monitor latency - currently around 100 usecs. This
+	 * mechanism improves throughput by:
+	 *
+	 * A) Making the host more efficient - each time it wakes up,
+	 *    potentially it will process morev number of packets. The
+	 *    monitor latency allows a batch to build up.
+	 * B) By deferring the hypercall to signal, we will also minimize
+	 *    the interrupts.
+	 *
+	 * Clearly, these optimizations improve throughput at the expense of
+	 * latency. Furthermore, since the channel is shared for both
+	 * control and data messages, control messages currently suffer
+	 * unnecessary latency adversley impacting performance and boot
+	 * time. To fix this issue, permit tagging the channel as being
+	 * in "low latency" mode. In this mode, we will bypass the monitor
+	 * mechanism.
+	 */
+	bool low_latency;
+
+	/*
+	 * NUMA distribution policy:
+	 * We support teo policies:
+	 * 1) Balanced: Here all performance critical channels are
+	 *    distributed evenly amongst all the NUMA nodes.
+	 *    This policy will be the default policy.
+	 * 2) Localized: All channels of a given instance of a
+	 *    performance critical service will be assigned CPUs
+	 *    within a selected NUMA node.
+	 */
+	enum hv_numa_policy affinity_policy;
 
 };
 
@@ -868,6 +910,12 @@ static inline void set_channel_signal_state(struct vmbus_channel *c,
 					    enum hv_signal_policy policy)
 {
 	c->signal_policy = policy;
+}
+
+static inline void set_channel_affinity_state(struct vmbus_channel *c,
+					      enum hv_numa_policy policy)
+{
+	c->affinity_policy = policy;
 }
 
 static inline void set_channel_read_state(struct vmbus_channel *c, bool state)
@@ -889,6 +937,16 @@ static inline void set_channel_pending_send_size(struct vmbus_channel *c,
 						 u32 size)
 {
 	c->outbound.ring_buffer->pending_send_sz = size;
+}
+
+static inline void set_low_latency_mode(struct vmbus_channel *c)
+{
+	c->low_latency = true;
+}
+
+static inline void clear_low_latency_mode(struct vmbus_channel *c)
+{
+	c->low_latency = false;
 }
 
 void vmbus_onmessage(void *context);
@@ -1113,6 +1171,13 @@ int __must_check __vmbus_driver_register(struct hv_driver *hv_driver,
 					 struct module *owner,
 					 const char *mod_name);
 void vmbus_driver_unregister(struct hv_driver *hv_driver);
+
+static inline const char *vmbus_dev_name(const struct hv_device *device_obj)
+{
+	const struct kobject *kobj = &device_obj->device.kobj;
+
+	return kobj->name;
+}
 
 void vmbus_hvsock_device_unregister(struct vmbus_channel *channel);
 
@@ -1357,6 +1422,9 @@ extern bool vmbus_prep_negotiate_resp(struct icmsg_hdr *,
 					struct icmsg_negotiate *, u8 *, int,
 					int);
 
+void hv_event_tasklet_disable(struct vmbus_channel *channel);
+void hv_event_tasklet_enable(struct vmbus_channel *channel);
+
 void hv_process_channel_removal(struct vmbus_channel *channel, u32 relid);
 
 /*
@@ -1421,89 +1489,5 @@ static inline  bool hv_need_to_signal_on_read(struct hv_ring_buffer_info *rbi)
 
 	return false;
 }
-
-/*
- * An API to support in-place processing of incoming VMBUS packets.
- */
-#define VMBUS_PKT_TRAILER	8
-
-static inline struct vmpacket_descriptor *
-get_next_pkt_raw(struct vmbus_channel *channel)
-{
-	struct hv_ring_buffer_info *ring_info = &channel->inbound;
-	u32 read_loc = ring_info->priv_read_index;
-	void *ring_buffer = hv_get_ring_buffer(ring_info);
-	struct vmpacket_descriptor *cur_desc;
-	u32 packetlen;
-	u32 dsize = ring_info->ring_datasize;
-	u32 delta = read_loc - ring_info->ring_buffer->read_index;
-	u32 bytes_avail_toread = (hv_get_bytes_to_read(ring_info) - delta);
-
-	if (bytes_avail_toread < sizeof(struct vmpacket_descriptor))
-		return NULL;
-
-	if ((read_loc + sizeof(*cur_desc)) > dsize)
-		return NULL;
-
-	cur_desc = ring_buffer + read_loc;
-	packetlen = cur_desc->len8 << 3;
-
-	/*
-	 * If the packet under consideration is wrapping around,
-	 * return failure.
-	 */
-	if ((read_loc + packetlen + VMBUS_PKT_TRAILER) > (dsize - 1))
-		return NULL;
-
-	return cur_desc;
-}
-
-/*
- * A helper function to step through packets "in-place"
- * This API is to be called after each successful call
- * get_next_pkt_raw().
- */
-static inline void put_pkt_raw(struct vmbus_channel *channel,
-				struct vmpacket_descriptor *desc)
-{
-	struct hv_ring_buffer_info *ring_info = &channel->inbound;
-	u32 read_loc = ring_info->priv_read_index;
-	u32 packetlen = desc->len8 << 3;
-	u32 dsize = ring_info->ring_datasize;
-
-	if ((read_loc + packetlen + VMBUS_PKT_TRAILER) > dsize)
-		BUG();
-	/*
-	 * Include the packet trailer.
-	 */
-	ring_info->priv_read_index += packetlen + VMBUS_PKT_TRAILER;
-}
-
-/*
- * This call commits the read index and potentially signals the host.
- * Here is the pattern for using the "in-place" consumption APIs:
- *
- * while (get_next_pkt_raw() {
- *	process the packet "in-place";
- *	put_pkt_raw();
- * }
- * if (packets processed in place)
- *	commit_rd_index();
- */
-static inline void commit_rd_index(struct vmbus_channel *channel)
-{
-	struct hv_ring_buffer_info *ring_info = &channel->inbound;
-	/*
-	 * Make sure all reads are done before we update the read index since
-	 * the writer may start writing to the read area once the read index
-	 * is updated.
-	 */
-	virt_rmb();
-	ring_info->ring_buffer->read_index = ring_info->priv_read_index;
-
-	if (hv_need_to_signal_on_read(ring_info))
-		vmbus_set_event(channel);
-}
-
 
 #endif /* _HYPERV_H */
