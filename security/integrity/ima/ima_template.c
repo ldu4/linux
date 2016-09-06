@@ -200,7 +200,7 @@ static int template_desc_init_fields(const char *template_fmt,
 	return 0;
 }
 
-void __init ima_init_template_list(void)
+void ima_init_template_list(void)
 {
 	int i;
 
@@ -218,9 +218,11 @@ void __init ima_init_template_list(void)
 
 struct ima_template_desc *ima_template_desc_current(void)
 {
-	if (!ima_template)
+	if (!ima_template) {
+		ima_init_template_list();
 		ima_template =
 		    lookup_template_desc(CONFIG_IMA_DEFAULT_TEMPLATE);
+	}
 	return ima_template;
 }
 
