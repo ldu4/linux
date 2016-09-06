@@ -193,14 +193,6 @@ static int template_desc_init_fields(const char *template_fmt,
 	return 0;
 }
 
-struct ima_template_desc *ima_template_desc_current(void)
-{
-	if (!ima_template)
-		ima_template =
-		    lookup_template_desc(CONFIG_IMA_DEFAULT_TEMPLATE);
-	return ima_template;
-}
-
 void __init ima_init_template_list(void)
 {
 	int i;
@@ -212,6 +204,14 @@ void __init ima_init_template_list(void)
 	}
 	spin_unlock(&template_list);
 	synchronize_rcu();
+}
+
+struct ima_template_desc *ima_template_desc_current(void)
+{
+	if (!ima_template)
+		ima_template =
+		    lookup_template_desc(CONFIG_IMA_DEFAULT_TEMPLATE);
+	return ima_template;
 }
 
 int __init ima_init_template(void)
