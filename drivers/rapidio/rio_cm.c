@@ -2268,9 +2268,8 @@ static int rio_cm_shutdown(struct notifier_block *nb, unsigned long code,
 	}
 	spin_unlock_bh(&idr_lock);
 
-	if (!list_empty(&list))
-		list_for_each_entry(ch, &list, ch_node)
-			riocm_send_close(ch);
+	list_for_each_entry(ch, &list, ch_node)
+		riocm_send_close(ch);
 
 	return NOTIFY_DONE;
 }
