@@ -371,18 +371,13 @@ static void gic_handle_shared_int(bool chained)
 	bitmap_and(pending, pending, intrmask, gic_shared_intrs);
 	bitmap_and(pending, pending, pcpu_mask, gic_shared_intrs);
 
-	intr = find_first_bit(pending, gic_shared_intrs);
-	while (intr != gic_shared_intrs) {
+	for_each_set_bit(intr, pending, gic_shared_intrs) {
 		virq = irq_linear_revmap(gic_irq_domain,
 					 GIC_SHARED_TO_HWIRQ(intr));
 		if (chained)
 			generic_handle_irq(virq);
 		else
 			do_IRQ(virq);
-
-		/* go to next pending bit */
-		bitmap_clear(pending, intr, 1);
-		intr = find_first_bit(pending, gic_shared_intrs);
 	}
 }
 
@@ -518,18 +513,13 @@ static void gic_handle_local_int(bool chained)
 
 	bitmap_and(&pending, &pending, &masked, GIC_NUM_LOCAL_INTRS);
 
-	intr = find_first_bit(&pending, GIC_NUM_LOCAL_INTRS);
-	while (intr != GIC_NUM_LOCAL_INTRS) {
+	for_each_set_bit(intr, &pending, GIC_NUM_LOCAL_INTRS) {
 		virq = irq_linear_revmap(gic_irq_domain,
 					 GIC_LOCAL_TO_HWIRQ(intr));
 		if (chained)
 			generic_handle_irq(virq);
 		else
 			do_IRQ(virq);
-
-		/* go to next pending bit */
-		bitmap_clear(&pending, intr, 1);
-		intr = find_first_bit(&pending, GIC_NUM_LOCAL_INTRS);
 	}
 }
 
@@ -726,6 +716,7 @@ static int gic_setup_dev_chip(struct irq_domain *d, unsigned int virq,
 			chip = &gic_all_vpes_local_irq_controller;
 			irq_set_handler(virq, handle_percpu_irq);
 			break;
+<<<<<<< HEAD
 
 		default:
 			chip = &gic_local_irq_controller;
@@ -734,6 +725,16 @@ static int gic_setup_dev_chip(struct irq_domain *d, unsigned int virq,
 			break;
 		}
 
+=======
+
+		default:
+			chip = &gic_local_irq_controller;
+			irq_set_handler(virq, handle_percpu_devid_irq);
+			irq_set_percpu_devid(virq);
+			break;
+		}
+
+>>>>>>> linux-next/akpm-base
 		err = irq_domain_set_hwirq_and_chip(d, virq, hwirq,
 						    chip, NULL);
 	}
