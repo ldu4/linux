@@ -467,6 +467,7 @@ static u64 user2credits(u64 user, int revision)
 		/* If multiplying would overflow... */
 		if (user > 0xFFFFFFFF / (HZ*CREDITS_PER_JIFFY_v1))
 			/* Divide first. */
+<<<<<<< HEAD
 			return (user / XT_HASHLIMIT_SCALE) *\
 						HZ * CREDITS_PER_JIFFY_v1;
 
@@ -478,6 +479,20 @@ static u64 user2credits(u64 user, int revision)
 						HZ * CREDITS_PER_JIFFY;
 
 		return (user * HZ * CREDITS_PER_JIFFY) / XT_HASHLIMIT_SCALE_v2;
+=======
+			return div64_u64(user, XT_HASHLIMIT_SCALE)
+				* HZ * CREDITS_PER_JIFFY_v1;
+
+		return div64_u64(user * HZ * CREDITS_PER_JIFFY_v1,
+				 XT_HASHLIMIT_SCALE);
+	} else {
+		if (user > 0xFFFFFFFFFFFFFFFF / (HZ*CREDITS_PER_JIFFY))
+			return div64_u64(user, XT_HASHLIMIT_SCALE_v2)
+				* HZ * CREDITS_PER_JIFFY;
+
+		return div64_u64(user * HZ * CREDITS_PER_JIFFY,
+				 XT_HASHLIMIT_SCALE_v2);
+>>>>>>> linux-next/akpm-base
 	}
 }
 
