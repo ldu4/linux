@@ -119,10 +119,7 @@ struct raid6_recov_calls {
 extern const struct raid6_recov_calls raid6_recov_intx1;
 extern const struct raid6_recov_calls raid6_recov_ssse3;
 extern const struct raid6_recov_calls raid6_recov_avx2;
-<<<<<<< HEAD
-=======
 extern const struct raid6_recov_calls raid6_recov_avx512;
->>>>>>> linux-next/akpm-base
 extern const struct raid6_recov_calls raid6_recov_s390xc;
 
 extern const struct raid6_calls raid6_neonx1;

@@ -341,11 +341,8 @@ latex_documents = [
     ('development-process/index', 'development-process.tex', 'Linux Kernel Development Documentation',
      'The kernel development community', 'manual'),
     ('gpu/index', 'gpu.tex', 'Linux GPU Driver Developer\'s Guide',
-<<<<<<< HEAD
-=======
      'The kernel development community', 'manual'),
     ('media/index', 'media.tex', 'Linux Media Subsystem Documentation',
->>>>>>> linux-next/akpm-base
      'The kernel development community', 'manual'),
 ]
 

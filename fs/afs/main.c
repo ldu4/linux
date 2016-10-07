@@ -15,10 +15,7 @@
 #include <linux/completion.h>
 #include <linux/sched.h>
 #include <linux/random.h>
-<<<<<<< HEAD
-=======
 #include <linux/ktime.h>
->>>>>>> linux-next/akpm-base
 #include "internal.h"
 
 MODULE_DESCRIPTION("AFS Client File System");

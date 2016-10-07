@@ -15,13 +15,8 @@ CEC_DQEVENT - Dequeue a CEC event
 Synopsis
 ========
 
-<<<<<<< HEAD
-.. c:function:: int ioctl( int fd, int request, struct cec_event *argp )
-   :name: CEC_DQEVENT
-=======
 .. c:function:: int ioctl( int fd, CEC_DQEVENT, struct cec_event *argp )
     :name: CEC_DQEVENT
->>>>>>> linux-next/akpm-base
 
 Arguments
 =========

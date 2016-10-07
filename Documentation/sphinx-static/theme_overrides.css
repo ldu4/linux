@@ -56,11 +56,7 @@
 	font-family: "Courier New", Courier, monospace
     }
 
-<<<<<<< HEAD
-    /* inline literal: drop the borderbox, padding and red color */
-=======
     /* inline literal: drop the borderbox and red color */
->>>>>>> linux-next/akpm-base
 
     code, .rst-content tt, .rst-content code {
         color: inherit;

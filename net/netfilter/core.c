@@ -90,18 +90,12 @@ static void nf_set_hooks_head(struct net *net, const struct nf_hook_ops *reg,
 {
 	switch (reg->pf) {
 	case NFPROTO_NETDEV:
-<<<<<<< HEAD
-=======
 #ifdef CONFIG_NETFILTER_INGRESS
->>>>>>> linux-next/akpm-base
 		/* We already checked in nf_register_net_hook() that this is
 		 * used from ingress.
 		 */
 		rcu_assign_pointer(reg->dev->nf_hooks_ingress, entry);
-<<<<<<< HEAD
-=======
 #endif
->>>>>>> linux-next/akpm-base
 		break;
 	default:
 		rcu_assign_pointer(net->nf.hooks[reg->pf][reg->hooknum],
@@ -115,12 +109,6 @@ int nf_register_net_hook(struct net *net, const struct nf_hook_ops *reg)
 	struct nf_hook_entry *hooks_entry;
 	struct nf_hook_entry *entry;
 
-<<<<<<< HEAD
-	if (reg->pf == NFPROTO_NETDEV &&
-	    (reg->hooknum != NF_NETDEV_INGRESS ||
-	     !reg->dev || dev_net(reg->dev) != net))
-		return -EINVAL;
-=======
 	if (reg->pf == NFPROTO_NETDEV) {
 #ifndef CONFIG_NETFILTER_INGRESS
 		if (reg->hooknum == NF_NETDEV_INGRESS)
@@ -130,7 +118,6 @@ int nf_register_net_hook(struct net *net, const struct nf_hook_ops *reg)
 		    !reg->dev || dev_net(reg->dev) != net)
 			return -EINVAL;
 	}
->>>>>>> linux-next/akpm-base
 
 	entry = kmalloc(sizeof(*entry), GFP_KERNEL);
 	if (!entry)
@@ -153,7 +140,6 @@ int nf_register_net_hook(struct net *net, const struct nf_hook_ops *reg)
 		reg->priority >= hooks_entry->orig_ops->priority &&
 		nf_entry_dereference(hooks_entry->next)) {
 		hooks_entry = nf_entry_dereference(hooks_entry->next);
-<<<<<<< HEAD
 	}
 
 	if (hooks_entry) {
@@ -163,17 +149,6 @@ int nf_register_net_hook(struct net *net, const struct nf_hook_ops *reg)
 		nf_set_hooks_head(net, reg, entry);
 	}
 
-=======
-	}
-
-	if (hooks_entry) {
-		entry->next = nf_entry_dereference(hooks_entry->next);
-		rcu_assign_pointer(hooks_entry->next, entry);
-	} else {
-		nf_set_hooks_head(net, reg, entry);
-	}
-
->>>>>>> linux-next/akpm-base
 	mutex_unlock(&nf_hook_mutex);
 #ifdef CONFIG_NETFILTER_INGRESS
 	if (reg->pf == NFPROTO_NETDEV && reg->hooknum == NF_NETDEV_INGRESS)
@@ -192,11 +167,8 @@ void nf_unregister_net_hook(struct net *net, const struct nf_hook_ops *reg)
 
 	mutex_lock(&nf_hook_mutex);
 	hooks_entry = nf_hook_entry_head(net, reg);
-<<<<<<< HEAD
-	if (hooks_entry->orig_ops == reg) {
 =======
 	if (hooks_entry && hooks_entry->orig_ops == reg) {
->>>>>>> linux-next/akpm-base
 		nf_set_hooks_head(net, reg,
 				  nf_entry_dereference(hooks_entry->next));
 		goto unlock;

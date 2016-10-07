@@ -19,10 +19,7 @@
 #include <linux/highmem.h>
 #include <linux/rculist.h>
 #include <linux/module.h>
-<<<<<<< HEAD
-=======
 #include <linux/pm_runtime.h>
->>>>>>> linux-next/akpm-base
 #include "tpm.h"
 
 #define ACPI_SIG_TPM2 "TPM2"

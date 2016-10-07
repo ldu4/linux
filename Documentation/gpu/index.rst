@@ -12,10 +12,7 @@ Linux GPU Driver Developer's Guide
    drm-uapi
    i915
    vga-switcheroo
-<<<<<<< HEAD
-=======
    vgaarbiter
->>>>>>> linux-next/akpm-base
 
 .. only::  subproject
 
