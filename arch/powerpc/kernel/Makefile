@@ -129,7 +129,7 @@ ifneq ($(CONFIG_PPC_INDIRECT_PIO),y)
 obj-y				+= iomap.o
 endif
 
-ifeq ($(CONFIG_MODULES)$(CONFIG_WORD_SIZE),y64)
+ifeq ($(CONFIG_MODULES)$(BITS),y64)
 obj-y				+= elf_util_64.o
 endif
 
