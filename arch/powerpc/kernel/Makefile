@@ -130,7 +130,7 @@ obj-y				+= iomap.o
 endif
 
 ifeq ($(CONFIG_MODULES)$(BITS),y64)
-obj-y				+= elf_util_64.o
+obj-y				+= elf_util.o elf_util_64.o
 endif
 
 obj64-$(CONFIG_PPC_TRANSACTIONAL_MEM)	+= tm.o
