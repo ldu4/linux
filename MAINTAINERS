@@ -1446,6 +1446,7 @@ F:	drivers/cpufreq/mvebu-cpufreq.c
 F:	arch/arm/configs/mvebu_*_defconfig
 
 ARM/Marvell Berlin SoC support
+M:	Jisheng Zhang <jszhang@marvell.com>
 M:	Sebastian Hesselbarth <sebastian.hesselbarth@gmail.com>
 L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
 S:	Maintained
@@ -1778,6 +1779,7 @@ F:	drivers/char/hw_random/st-rng.c
 F:	drivers/clocksource/arm_global_timer.c
 F:	drivers/clocksource/clksrc_st_lpc.c
 F:	drivers/cpufreq/sti-cpufreq.c
+F:	drivers/dma/st_fdma*
 F:	drivers/i2c/busses/i2c-st.c
 F:	drivers/media/rc/st_rc.c
 F:	drivers/media/platform/sti/c8sectpfe/
@@ -1788,6 +1790,7 @@ F:	drivers/phy/phy-stih407-usb.c
 F:	drivers/phy/phy-stih41x-usb.c
 F:	drivers/pinctrl/pinctrl-st.c
 F:	drivers/remoteproc/st_remoteproc.c
+F:	drivers/remoteproc/st_slim_rproc.c
 F:	drivers/reset/sti/
 F:	drivers/rtc/rtc-st-lpc.c
 F:	drivers/tty/serial/st-asc.c
@@ -1796,6 +1799,7 @@ F:	drivers/usb/host/ehci-st.c
 F:	drivers/usb/host/ohci-st.c
 F:	drivers/watchdog/st_lpc_wdt.c
 F:	drivers/ata/ahci_st.c
+F:	include/linux/remoteproc/st_slim_rproc.h
 
 ARM/STM32 ARCHITECTURE
 M:	Maxime Coquelin <mcoquelin.stm32@gmail.com>
@@ -2533,6 +2537,8 @@ L:	netdev@vger.kernel.org
 L:	linux-kernel@vger.kernel.org
 S:	Supported
 F:	kernel/bpf/
+F:	tools/testing/selftests/bpf/
+F:	lib/test_bpf.c
 
 BROADCOM B44 10/100 ETHERNET DRIVER
 M:	Michael Chan <michael.chan@broadcom.com>
@@ -4072,6 +4078,16 @@ F:	include/drm/i915*
 F:	include/uapi/drm/i915_drm.h
 F:	Documentation/gpu/i915.rst
 
+INTEL GVT-g DRIVERS (Intel GPU Virtualization)
+M:      Zhenyu Wang <zhenyuw@linux.intel.com>
+M:      Zhi Wang <zhi.a.wang@intel.com>
+L:      igvt-g-dev@lists.01.org
+L:      intel-gfx@lists.freedesktop.org
+W:      https://01.org/igvt-g
+T:      git https://github.com/01org/gvt-linux.git
+S:      Supported
+F:      drivers/gpu/drm/i915/gvt/
+
 DRM DRIVERS FOR ATMEL HLCDC
 M:	Boris Brezillon <boris.brezillon@free-electrons.com>
 L:	dri-devel@lists.freedesktop.org
@@ -4628,8 +4644,9 @@ F:	sound/usb/misc/ua101.c
 
 EXTENSIBLE FIRMWARE INTERFACE (EFI)
 M:	Matt Fleming <matt@codeblueprint.co.uk>
+M:	Ard Biesheuvel <ard.biesheuvel@linaro.org>
 L:	linux-efi@vger.kernel.org
-T:	git git://git.kernel.org/pub/scm/linux/kernel/git/mfleming/efi.git
+T:	git git://git.kernel.org/pub/scm/linux/kernel/git/efi/efi.git
 S:	Maintained
 F:	Documentation/efi-stub.txt
 F:	arch/ia64/kernel/efi.c
@@ -5608,7 +5625,6 @@ F:	drivers/watchdog/hpwdt.c
 
 HEWLETT-PACKARD SMART ARRAY RAID DRIVER (hpsa)
 M:	Don Brace <don.brace@microsemi.com>
-L:	iss_storagedev@hp.com
 L:	esc.storagedev@microsemi.com
 L:	linux-scsi@vger.kernel.org
 S:	Supported
@@ -5619,7 +5635,6 @@ F:	include/uapi/linux/cciss*.h
 
 HEWLETT-PACKARD SMART CISS RAID DRIVER (cciss)
 M:	Don Brace <don.brace@microsemi.com>
-L:	iss_storagedev@hp.com
 L:	esc.storagedev@microsemi.com
 L:	linux-scsi@vger.kernel.org
 S:	Supported
@@ -8306,7 +8321,6 @@ F:	drivers/scsi/arm/oak.c
 F:	drivers/scsi/atari_scsi.*
 F:	drivers/scsi/dmx3191d.c
 F:	drivers/scsi/g_NCR5380.*
-F:	drivers/scsi/g_NCR5380_mmio.c
 F:	drivers/scsi/mac_scsi.*
 F:	drivers/scsi/sun3_scsi.*
 F:	drivers/scsi/sun3_scsi_vme.c
@@ -8437,7 +8451,6 @@ F:	include/uapi/linux/net_namespace.h
 F:	tools/net/
 F:	tools/testing/selftests/net/
 F:	lib/random32.c
-F:	lib/test_bpf.c
 
 NETWORKING [IPv4/IPv6]
 M:	"David S. Miller" <davem@davemloft.net>
@@ -12377,7 +12390,8 @@ F:	Documentation/scsi/ufs.txt
 F:	drivers/scsi/ufs/
 
 UNIVERSAL FLASH STORAGE HOST CONTROLLER DRIVER DWC HOOKS
-M:	Joao Pinto <Joao.Pinto@synopsys.com>
+M:	Manjunath M Bettegowda <manjumb@synopsys.com>
+M:	Prabu Thangamuthu <prabut@synopsys.com>
 L:	linux-scsi@vger.kernel.org
 S:	Supported
 F:	drivers/scsi/ufs/*dwc*
