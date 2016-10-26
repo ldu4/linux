@@ -4331,7 +4331,7 @@ void show_free_areas(unsigned int filter)
 
 		show_node(zone);
 		printk(KERN_CONT
-		        "%s"
+			"%s"
 			" free:%lukB"
 			" min:%lukB"
 			" low:%lukB"
