@@ -447,7 +447,7 @@ static int netvsc_start_xmit(struct sk_buff *skb, struct net_device *net)
 	 * Setup the sendside checksum offload only if this is not a
 	 * GSO packet.
 	 */
-	if (skb_is_gso(skb)) {
+	if ((net_trans_info & (INFO_TCP | INFO_UDP)) && skb_is_gso(skb)) {
 		struct ndis_tcp_lso_info *lso_info;
 
 		rndis_msg_size += NDIS_LSO_PPI_SIZE;
@@ -607,15 +607,18 @@ static struct sk_buff *netvsc_alloc_recv_skb(struct net_device *net,
 	       packet->total_data_buflen);
 
 	skb->protocol = eth_type_trans(skb, net);
-	if (csum_info) {
-		/* We only look at the IP checksum here.
-		 * Should we be dropping the packet if checksum
-		 * failed? How do we deal with other checksums - TCP/UDP?
-		 */
-		if (csum_info->receive.ip_checksum_succeeded)
+
+	/* skb is already created with CHECKSUM_NONE */
+	skb_checksum_none_assert(skb);
+
+	/*
+	 * In Linux, the IP checksum is always checked.
+	 * Do L4 checksum offload if enabled and present.
+	 */
+	if (csum_info && (net->features & NETIF_F_RXCSUM)) {
+		if (csum_info->receive.tcp_checksum_succeeded ||
+		    csum_info->receive.udp_checksum_succeeded)
 			skb->ip_summed = CHECKSUM_UNNECESSARY;
-		else
-			skb->ip_summed = CHECKSUM_NONE;
 	}
 
 	if (vlan_tci & VLAN_TAG_PRESENT)
@@ -872,18 +875,11 @@ static int netvsc_change_mtu(struct net_device *ndev, int mtu)
 	struct netvsc_device *nvdev = ndevctx->nvdev;
 	struct hv_device *hdev = ndevctx->device_ctx;
 	struct netvsc_device_info device_info;
-	int limit = ETH_DATA_LEN;
 	u32 num_chn;
 	int ret = 0;
 
 	if (ndevctx->start_remove || !nvdev || nvdev->destroy)
 		return -ENODEV;
-
-	if (nvdev->nvsp_version >= NVSP_PROTOCOL_VERSION_2)
-		limit = NETVSC_MTU - ETH_HLEN;
-
-	if (mtu < NETVSC_MTU_MIN || mtu > limit)
-		return -EINVAL;
 
 	ret = netvsc_close(ndev);
 	if (ret)
@@ -1401,6 +1397,13 @@ static int netvsc_probe(struct hv_device *dev,
 	nvdev = net_device_ctx->nvdev;
 	netif_set_real_num_tx_queues(net, nvdev->num_chn);
 	netif_set_real_num_rx_queues(net, nvdev->num_chn);
+
+	/* MTU range: 68 - 1500 or 65521 */
+	net->min_mtu = NETVSC_MTU_MIN;
+	if (nvdev->nvsp_version >= NVSP_PROTOCOL_VERSION_2)
+		net->max_mtu = NETVSC_MTU - ETH_HLEN;
+	else
+		net->max_mtu = ETH_DATA_LEN;
 
 	ret = register_netdev(net);
 	if (ret != 0) {
