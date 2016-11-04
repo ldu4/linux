@@ -40,6 +40,7 @@ struct task_struct *_current_task[NR_CPUS];	/* For stack switching */
 
 struct cpuinfo_arc cpuinfo_arc700[NR_CPUS];
 
+<<<<<<< HEAD
 static const struct id_to_str arc_cpu_rel[] = {
 #ifdef CONFIG_ISA_ARCOMPACT
 	{ 0x34, "R4.10"},
@@ -61,6 +62,20 @@ static const struct id_to_str arc_cpu_nm[] = {
 	{ 0x50, "ARC HS38"  },
 #endif
 	{ 0x00, "Unknown"   }
+=======
+static const struct cpuinfo_data arc_cpu_tbl[] = {
+#ifdef CONFIG_ISA_ARCOMPACT
+	{ {0x20, "ARC 600"      }, 0x2F},
+	{ {0x30, "ARC 700"      }, 0x33},
+	{ {0x34, "ARC 700 R4.10"}, 0x34},
+	{ {0x35, "ARC 700 R4.11"}, 0x35},
+#else
+	{ {0x50, "ARC HS38 R2.0"}, 0x51},
+	{ {0x52, "ARC HS38 R2.1"}, 0x52},
+	{ {0x53, "ARC HS38 R3.0"}, 0x53},
+#endif
+	{ {0x00, NULL		} }
+>>>>>>> linux-next/akpm-base
 };
 
 static void read_decode_ccm_bcr(struct cpuinfo_arc *cpu)
@@ -115,25 +130,51 @@ static void read_arc_build_cfg_regs(void)
 	struct bcr_timer timer;
 	struct bcr_generic bcr;
 	struct cpuinfo_arc *cpu = &cpuinfo_arc700[smp_processor_id()];
+<<<<<<< HEAD
 	const struct id_to_str *tbl;
+=======
+	const struct cpuinfo_data *tbl;
+>>>>>>> linux-next/akpm-base
 
 	FIX_PTR(cpu);
 
 	READ_BCR(AUX_IDENTITY, cpu->core);
 	READ_BCR(ARC_REG_ISA_CFG_BCR, cpu->isa);
 
+<<<<<<< HEAD
 	for (tbl = &arc_cpu_rel[0]; tbl->id != 0; tbl++) {
 		if (cpu->core.family == tbl->id) {
 			cpu->details = tbl->str;
+=======
+	for (tbl = &arc_cpu_tbl[0]; tbl->info.id != 0; tbl++) {
+		if ((cpu->core.family >= tbl->info.id) &&
+		    (cpu->core.family <= tbl->up_range)) {
+			cpu->details = tbl;
+>>>>>>> linux-next/akpm-base
 			break;
 		}
 	}
 
+<<<<<<< HEAD
 	for (tbl = &arc_cpu_nm[0]; tbl->id != 0; tbl++) {
 		if ((cpu->core.family & 0xF0) == tbl->id)
 			break;
 	}
 	cpu->name = tbl->str;
+=======
+	/* some hacks for lack of feature BCR info in old ARC700 cores */
+	if (is_isa_arcompact()) {
+		if (!cpu->isa.ver)	/* ISA BCR absent, use Kconfig info */
+			cpu->isa.atomic = IS_ENABLED(CONFIG_ARC_HAS_LLSC);
+		else
+			cpu->isa.atomic = cpu->isa.atomic1;
+
+		cpu->isa.be = IS_ENABLED(CONFIG_CPU_BIG_ENDIAN);
+	}
+
+	cpu->extn.swape = (cpu->core.family >= 0x34) ? 1 :
+				IS_ENABLED(CONFIG_ARC_HAS_SWAPE);
+>>>>>>> linux-next/akpm-base
 
 	READ_BCR(ARC_REG_TIMERS_BCR, timer);
 	cpu->extn.timer0 = timer.t0;
@@ -202,6 +243,7 @@ static void read_arc_build_cfg_regs(void)
 
 	cpu->extn.debug = cpu->extn.ap | cpu->extn.smart | cpu->extn.rtt;
 
+<<<<<<< HEAD
 	/* some hacks for lack of feature BCR info in old ARC700 cores */
 	if (is_isa_arcompact()) {
 		if (!cpu->isa.ver)	/* ISA BCR absent, use Kconfig info */
@@ -217,22 +259,48 @@ static void read_arc_build_cfg_regs(void)
 	}
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 static char *arc_cpu_mumbojumbo(int cpu_id, char *buf, int len)
 {
 	struct cpuinfo_arc *cpu = &cpuinfo_arc700[cpu_id];
 	struct bcr_identity *core = &cpu->core;
+<<<<<<< HEAD
+=======
+	const struct cpuinfo_data *tbl = cpu->details;
+	char *isa_nm;
+>>>>>>> linux-next/akpm-base
 	int i, n = 0;
 
 	FIX_PTR(cpu);
 
+<<<<<<< HEAD
+=======
+	if (is_isa_arcompact()) {
+		isa_nm = "ARCompact";
+	} else {
+		isa_nm = "ARCv2";
+	}
+
+>>>>>>> linux-next/akpm-base
 	n += scnprintf(buf + n, len - n,
 		       "\nIDENTITY\t: ARCVER [%#02x] ARCNUM [%#02x] CHIPID [%#4x]\n",
 		       core->family, core->cpu_id, core->chip_id);
 
+<<<<<<< HEAD
 	n += scnprintf(buf + n, len - n, "processor [%d]\t: %s %s (%s ISA) %s\n",
 		       cpu_id, cpu->name, cpu->details,
 		       is_isa_arcompact() ? "ARCompact" : "ARCv2",
 		       IS_AVAIL1(cpu->isa.be, "[Big-Endian]"));
+=======
+	n += scnprintf(buf + n, len - n,
+				       "processor [%d]\t: %s (%s ISA) %s\n",
+				       cpu_id, tbl->info.str, isa_nm,
+				       IS_AVAIL1(cpu->isa.be, "[Big-Endian]"));
+
+	if (tbl->info.id == 0)
+		n += scnprintf(buf + n, len - n, "UNKNOWN ARC Processor\n");
+>>>>>>> linux-next/akpm-base
 
 	n += scnprintf(buf + n, len - n, "Timers\t\t: %s%s%s%s\nISA Extn\t: ",
 		       IS_AVAIL1(cpu->extn.timer0, "Timer0 "),
