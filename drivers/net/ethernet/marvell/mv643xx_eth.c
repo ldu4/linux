@@ -3160,17 +3160,10 @@ static int mv643xx_eth_probe(struct platform_device *pdev)
 
 	err = 0;
 	if (pd->phy_node) {
-<<<<<<< HEAD
-		mp->phy = of_phy_connect(mp->dev, pd->phy_node,
-					 mv643xx_eth_adjust_link, 0,
-					 get_phy_mode(mp));
-		if (!mp->phy)
-=======
 		phydev = of_phy_connect(mp->dev, pd->phy_node,
 					mv643xx_eth_adjust_link, 0,
 					PHY_INTERFACE_MODE_GMII);
 		if (!phydev)
->>>>>>> linux-next/akpm-base
 			err = -ENODEV;
 		else
 			phy_addr_set(mp, phydev->mdio.addr);
@@ -3227,15 +3220,12 @@ static int mv643xx_eth_probe(struct platform_device *pdev)
 	dev->priv_flags |= IFF_UNICAST_FLT;
 	dev->gso_max_segs = MV643XX_MAX_TSO_SEGS;
 
-<<<<<<< HEAD
-=======
 	/* MTU range: 64 - 9500 */
 	dev->min_mtu = 64;
 	dev->max_mtu = 9500;
 
 	SET_NETDEV_DEV(dev, &pdev->dev);
 
->>>>>>> linux-next/akpm-base
 	if (mp->shared->win_protect)
 		wrl(mp, WINDOW_PROTECT(mp->port_num), mp->shared->win_protect);
 

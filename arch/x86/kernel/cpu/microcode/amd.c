@@ -433,23 +433,9 @@ int __init save_microcode_in_initrd_amd(unsigned int fam)
 		if (IS_ENABLED(CONFIG_X86_32) && (cont.size != -1)) {
 			struct cpio_data cp = { NULL, 0, "" };
 
-<<<<<<< HEAD
-#ifdef CONFIG_X86_32
-	get_bsp_sig();
-	cont	= (unsigned long)container;
-	cont_va = __va(container);
-#else
-	/*
-	 * We need the physical address of the container for both bitness since
-	 * boot_params.hdr.ramdisk_image is a physical address.
-	 */
-	cont    = __pa_nodebug(container);
-	cont_va = container;
-=======
 #ifdef CONFIG_BLK_DEV_INITRD
 			cp = find_cpio_data(ucode_path, (void *)initrd_start,
 					    initrd_end - initrd_start, NULL);
->>>>>>> linux-next/akpm-base
 #endif
 
 			if (!(cp.data && cp.size)) {

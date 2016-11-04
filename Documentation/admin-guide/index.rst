@@ -58,7 +58,6 @@ configure specific aspects of kernel behavior to your liking.
    binfmt-misc
    mono
    java
-<<<<<<< HEAD
    bad-memory
    basic-profiling
 
@@ -69,5 +68,3 @@ configure specific aspects of kernel behavior to your liking.
 
    * :ref:`genindex`
 
-=======
->>>>>>> doc-tweaks

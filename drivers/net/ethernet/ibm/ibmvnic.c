@@ -3659,11 +3659,8 @@ static void handle_crq_init_rsp(struct work_struct *work)
 
 	netdev->real_num_tx_queues = adapter->req_tx_queues;
 	netdev->mtu = adapter->req_mtu;
-<<<<<<< HEAD
-=======
 	netdev->min_mtu = adapter->min_mtu;
 	netdev->max_mtu = adapter->max_mtu;
->>>>>>> linux-next/akpm-base
 
 	if (adapter->failover) {
 		adapter->failover = false;

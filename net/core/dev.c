@@ -5446,15 +5446,6 @@ static struct net_device *netdev_next_lower_dev_rcu(struct net_device *dev,
 	struct netdev_adjacent *lower;
 
 	lower = list_entry_rcu((*iter)->next, struct netdev_adjacent, list);
-<<<<<<< HEAD
-
-	if (&lower->list == &dev->all_adj_list.lower)
-		return NULL;
-
-	*iter = &lower->list;
-
-	return lower->dev;
-=======
 	if (&lower->list == &dev->adj_list.lower)
 		return NULL;
 
@@ -5488,7 +5479,6 @@ int netdev_walk_all_lower_dev_rcu(struct net_device *dev,
 	}
 
 	return 0;
->>>>>>> linux-next/akpm-base
 }
 EXPORT_SYMBOL_GPL(netdev_walk_all_lower_dev_rcu);
 
