@@ -63,6 +63,9 @@ Frame Buffer Functions Reference
 DRM Format Handling
 ===================
 
+.. kernel-doc:: include/drm/drm_fourcc.h
+   :internal:
+
 .. kernel-doc:: drivers/gpu/drm/drm_fourcc.c
    :export:
 
@@ -215,7 +218,7 @@ Connectors state change detection must be cleanup up with a call to
 Output discovery and initialization example
 -------------------------------------------
 
-::
+.. code-block:: c
 
     void intel_crt_init(struct drm_device *dev)
     {
