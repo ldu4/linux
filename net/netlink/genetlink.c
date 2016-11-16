@@ -369,11 +369,7 @@ int genl_register_family(struct genl_family *family)
 
 	err = genl_validate_assign_mc_groups(family);
 	if (err)
-<<<<<<< HEAD
-		goto errout_free;
-=======
 		goto errout_remove;
->>>>>>> linux-next/akpm-base
 
 	genl_unlock_all();
 
@@ -385,11 +381,8 @@ int genl_register_family(struct genl_family *family)
 
 	return 0;
 
-<<<<<<< HEAD
-=======
 errout_remove:
 	idr_remove(&genl_fam_idr, family->id);
->>>>>>> linux-next/akpm-base
 errout_free:
 	kfree(family->attrbuf);
 errout_locked:

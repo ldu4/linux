@@ -59,11 +59,7 @@ mlx5_eswitch_add_offloaded_rule(struct mlx5_eswitch *esw,
 		return ERR_PTR(-EOPNOTSUPP);
 
 	/* per flow vlan pop/push is emulated, don't set that into the firmware */
-<<<<<<< HEAD
-	action = attr->action & ~(MLX5_FLOW_CONTEXT_ACTION_VLAN_PUSH | MLX5_FLOW_CONTEXT_ACTION_VLAN_POP);
-=======
 	flow_act.action = attr->action & ~(MLX5_FLOW_CONTEXT_ACTION_VLAN_PUSH | MLX5_FLOW_CONTEXT_ACTION_VLAN_POP);
->>>>>>> linux-next/akpm-base
 
 	if (flow_act.action & MLX5_FLOW_CONTEXT_ACTION_FWD_DEST) {
 		dest[i].type = MLX5_FLOW_DESTINATION_TYPE_VPORT;
