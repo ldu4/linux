@@ -420,7 +420,7 @@ static void alc_auto_setup_eapd(struct hda_codec *codec, bool on)
 }
 
 /* generic shutup callback;
- * just turning off EPAD and a little pause for avoiding pop-noise
+ * just turning off EAPD and a little pause for avoiding pop-noise
  */
 static void alc_eapd_shutup(struct hda_codec *codec)
 {
@@ -6907,8 +6907,6 @@ static const struct hda_fixup alc662_fixups[] = {
 		.v.pins = (const struct hda_pintbl[]) {
 			{ 0x15, 0x40f000f0 }, /* disabled */
 			{ 0x16, 0x40f000f0 }, /* disabled */
-			{ 0x18, 0x01014011 }, /* LO */
-			{ 0x1a, 0x01014012 }, /* LO */
 			{ }
 		}
 	},

@@ -90,7 +90,6 @@ struct stmmac_priv {
 	struct mac_device_info *hw;
 	spinlock_t lock;
 
-	struct phy_device *phydev ____cacheline_aligned_in_smp;
 	int oldlink;
 	int speed;
 	int oldduplex;
@@ -129,6 +128,7 @@ struct stmmac_priv {
 	int irq_wake;
 	spinlock_t ptp_lock;
 	void __iomem *mmcaddr;
+	void __iomem *ptpaddr;
 	u32 rx_tail_addr;
 	u32 tx_tail_addr;
 	u32 mss;

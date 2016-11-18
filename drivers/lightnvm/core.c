@@ -22,7 +22,7 @@
 #include <linux/types.h>
 #include <linux/sem.h>
 #include <linux/bitmap.h>
-#include <linux/module.h>
+#include <linux/moduleparam.h>
 #include <linux/miscdevice.h>
 #include <linux/lightnvm.h>
 #include <linux/sched/sysctl.h>
@@ -198,15 +198,42 @@ void nvm_mark_blk(struct nvm_dev *dev, struct ppa_addr ppa, int type)
 }
 EXPORT_SYMBOL(nvm_mark_blk);
 
+int nvm_set_bb_tbl(struct nvm_dev *dev, struct ppa_addr *ppas, int nr_ppas,
+								int type)
+{
+	struct nvm_rq rqd;
+	int ret;
+
+	if (nr_ppas > dev->ops->max_phys_sect) {
+		pr_err("nvm: unable to update all sysblocks atomically\n");
+		return -EINVAL;
+	}
+
+	memset(&rqd, 0, sizeof(struct nvm_rq));
+
+	nvm_set_rqd_ppalist(dev, &rqd, ppas, nr_ppas, 1);
+	nvm_generic_to_addr_mode(dev, &rqd);
+
+	ret = dev->ops->set_bb_tbl(dev, &rqd.ppa_addr, rqd.nr_ppas, type);
+	nvm_free_rqd_ppalist(dev, &rqd);
+	if (ret) {
+		pr_err("nvm: sysblk failed bb mark\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(nvm_set_bb_tbl);
+
 int nvm_submit_io(struct nvm_dev *dev, struct nvm_rq *rqd)
 {
 	return dev->mt->submit_io(dev, rqd);
 }
 EXPORT_SYMBOL(nvm_submit_io);
 
-int nvm_erase_blk(struct nvm_dev *dev, struct nvm_block *blk)
+int nvm_erase_blk(struct nvm_dev *dev, struct nvm_block *blk, int flags)
 {
-	return dev->mt->erase_blk(dev, blk, 0);
+	return dev->mt->erase_blk(dev, blk, flags);
 }
 EXPORT_SYMBOL(nvm_erase_blk);
 
@@ -287,7 +314,8 @@ void nvm_free_rqd_ppalist(struct nvm_dev *dev, struct nvm_rq *rqd)
 }
 EXPORT_SYMBOL(nvm_free_rqd_ppalist);
 
-int nvm_erase_ppa(struct nvm_dev *dev, struct ppa_addr *ppas, int nr_ppas)
+int nvm_erase_ppa(struct nvm_dev *dev, struct ppa_addr *ppas, int nr_ppas,
+								int flags)
 {
 	struct nvm_rq rqd;
 	int ret;
@@ -302,6 +330,8 @@ int nvm_erase_ppa(struct nvm_dev *dev, struct ppa_addr *ppas, int nr_ppas)
 		return ret;
 
 	nvm_generic_to_addr_mode(dev, &rqd);
+
+	rqd.flags = flags;
 
 	ret = dev->ops->erase_block(dev, &rqd);
 
@@ -889,6 +919,10 @@ static const struct kernel_param_ops nvm_configure_by_str_event_param_ops = {
 	.get	= nvm_configure_get,
 };
 
+/*
+ * Not available as modular, but easiest way to remain compatible with
+ * existing boot arg behaviour is to continue using module param here.
+ */
 #undef MODULE_PARAM_PREFIX
 #define MODULE_PARAM_PREFIX	"lnvm."
 
@@ -1162,10 +1196,4 @@ static struct miscdevice _nvm_misc = {
 	.nodename	= "lightnvm/control",
 	.fops		= &_ctl_fops,
 };
-module_misc_device(_nvm_misc);
-
-MODULE_ALIAS_MISCDEV(MISC_DYNAMIC_MINOR);
-
-MODULE_AUTHOR("Matias Bjorling <m@bjorling.me>");
-MODULE_LICENSE("GPL v2");
-MODULE_VERSION("0.1");
+builtin_misc_device(_nvm_misc);

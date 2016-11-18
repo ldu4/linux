@@ -1633,8 +1633,8 @@ int vm_insert_pfn_prot(struct vm_area_struct *vma, unsigned long addr,
 
 	if (addr < vma->vm_start || addr >= vma->vm_end)
 		return -EFAULT;
-	if (track_pfn_insert(vma, &pgprot, __pfn_to_pfn_t(pfn, PFN_DEV)))
-		return -EINVAL;
+
+	track_pfn_insert(vma, &pgprot, __pfn_to_pfn_t(pfn, PFN_DEV));
 
 	ret = insert_pfn(vma, addr, __pfn_to_pfn_t(pfn, PFN_DEV), pgprot);
 
@@ -1651,8 +1651,8 @@ int vm_insert_mixed(struct vm_area_struct *vma, unsigned long addr,
 
 	if (addr < vma->vm_start || addr >= vma->vm_end)
 		return -EFAULT;
-	if (track_pfn_insert(vma, &pgprot, pfn))
-		return -EINVAL;
+
+	track_pfn_insert(vma, &pgprot, pfn);
 
 	/*
 	 * If we don't have pte special, then we have to use the pfn_valid()
@@ -3962,6 +3962,7 @@ int access_process_vm(struct task_struct *tsk, unsigned long addr,
 
 	return ret;
 }
+EXPORT_SYMBOL_GPL(access_process_vm);
 
 /*
  * Print the name of a VMA.
