@@ -1935,7 +1935,7 @@ ok:
 
 		spin_lock(&mle->spinlock);
 		if (mle->type == DLM_MLE_BLOCK || mle->type == DLM_MLE_MIGRATION)
-			extra_ref = 1;
+			extra_ref = test_bit(assert->node_idx, mle->maybe_map) ? 1 : 0;
 		else {
 			/* MASTER mle: if any bits set in the response map
 			 * then the calling node needs to re-assert to clear
@@ -3338,12 +3338,17 @@ static void dlm_clean_block_mle(struct dlm_ctxt *dlm,
 		mlog(0, "mle found, but dead node %u would not have been "
 		     "master\n", dead_node);
 		spin_unlock(&mle->spinlock);
+	} else if(mle->master != O2NM_MAX_NODES){
+		mlog(ML_NOTICE, "mle found, master assert received, master has "
+			"already set to %d.\n ", mle->master);
+		spin_unlock(&mle->spinlock);
 	} else {
 		/* Must drop the refcount by one since the assert_master will
 		 * never arrive. This may result in the mle being unlinked and
 		 * freed, but there may still be a process waiting in the
 		 * dlmlock path which is fine. */
 		mlog(0, "node %u was expected master\n", dead_node);
+		clear_bit(bit, mle->maybe_map);
 		atomic_set(&mle->woken, 1);
 		spin_unlock(&mle->spinlock);
 		wake_up(&mle->wq);
