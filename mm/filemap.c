@@ -383,8 +383,9 @@ int __filemap_fdatawrite_range(struct address_space *mapping, loff_t start,
 		.range_end = end,
 	};
 
-	if (!mapping_cap_writeback_dirty(mapping))
-		return 0;
+	if (!sb_is_blkdev_sb(mapping->host->i_sb))
+		if (!mapping_cap_writeback_dirty(mapping))
+			return 0;
 
 	wbc_attach_fdatawrite_inode(&wbc, mapping->host);
 	ret = do_writepages(mapping, &wbc);
