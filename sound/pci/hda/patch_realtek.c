@@ -420,7 +420,7 @@ static void alc_auto_setup_eapd(struct hda_codec *codec, bool on)
 }
 
 /* generic shutup callback;
- * just turning off EPAD and a little pause for avoiding pop-noise
+ * just turning off EAPD and a little pause for avoiding pop-noise
  */
 static void alc_eapd_shutup(struct hda_codec *codec)
 {
@@ -5917,6 +5917,9 @@ static const struct snd_hda_pin_quirk alc269_pin_fixup_tbl[] = {
 		{0x12, 0x90a60180},
 		{0x14, 0x90170120},
 		{0x21, 0x02211030}),
+	SND_HDA_PIN_QUIRK(0x10ec0255, 0x1028, "Dell", ALC255_FIXUP_DELL1_MIC_NO_PRESENCE,
+		{0x1b, 0x01011020},
+		{0x21, 0x02211010}),
 	SND_HDA_PIN_QUIRK(0x10ec0256, 0x1028, "Dell", ALC255_FIXUP_DELL1_MIC_NO_PRESENCE,
 		{0x12, 0x90a60160},
 		{0x14, 0x90170120},
