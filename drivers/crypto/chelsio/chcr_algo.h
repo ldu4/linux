@@ -408,7 +408,6 @@ static u32 round_constant[11] = {
 	0x1B000000, 0x36000000, 0x6C000000
 };
 
-<<<<<<< HEAD
 /* dec_key - OUTPUT - Reverse round key
  * key - INPUT - key
  * keylength - INPUT - length of the key in number of bits
@@ -466,6 +465,4 @@ static inline void get_aes_decrypt_key(unsigned char *dec_key,
 	}
 }
 
-=======
->>>>>>> linux-next/akpm-base
 #endif /* __CHCR_ALGO_H__ */
