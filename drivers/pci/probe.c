@@ -227,7 +227,8 @@ int __pci_read_base(struct pci_dev *dev, enum pci_bar_type type,
 			mask64 = (u32)PCI_BASE_ADDRESS_MEM_MASK;
 		}
 	} else {
-		res->flags |= (l & IORESOURCE_ROM_ENABLE);
+		if (l & PCI_ROM_ADDRESS_ENABLE)
+			res->flags |= IORESOURCE_ROM_ENABLE;
 		l64 = l & PCI_ROM_ADDRESS_MASK;
 		sz64 = sz & PCI_ROM_ADDRESS_MASK;
 		mask64 = (u32)PCI_ROM_ADDRESS_MASK;
@@ -1764,8 +1765,7 @@ static void pci_dma_configure(struct pci_dev *dev)
 		if (attr == DEV_DMA_NOT_SUPPORTED)
 			dev_warn(&dev->dev, "DMA not supported.\n");
 		else
-			arch_setup_dma_ops(&dev->dev, 0, 0, NULL,
-					   attr == DEV_DMA_COHERENT);
+			acpi_dma_configure(&dev->dev, attr);
 	}
 
 	pci_put_host_bridge_device(bridge);
