@@ -543,8 +543,6 @@ void __init mount_root(void)
 #endif
 }
 
-#define ROOTWAIT_MSEC 5
-
 /*
  * Prepare the namespace - decide what/where to mount, load ramdisks, etc.
  */
@@ -590,7 +588,7 @@ void __init prepare_namespace(void)
 			saved_root_name);
 		while (driver_probe_done() != 0 ||
 			(ROOT_DEV = name_to_dev_t(saved_root_name)) == 0)
-			msleep(ROOTWAIT_MSEC);
+			msleep(5);
 		async_synchronize_full();
 	}
 
