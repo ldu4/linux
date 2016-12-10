@@ -112,7 +112,6 @@ extern long do_handle_open(int mountdirfd,
 			   struct file_handle __user *ufh, int open_flag);
 extern int open_check_o_direct(struct file *f);
 extern int vfs_open(const struct path *, struct file *, const struct cred *);
-extern struct file *filp_clone_open(struct file *);
 
 /*
  * inode.c
@@ -184,3 +183,6 @@ typedef loff_t (*iomap_actor_t)(struct inode *inode, loff_t pos, loff_t len,
 loff_t iomap_apply(struct inode *inode, loff_t pos, loff_t length,
 		unsigned flags, struct iomap_ops *ops, void *data,
 		iomap_actor_t actor);
+
+/* direct-io.c: */
+int sb_init_dio_done_wq(struct super_block *sb);
