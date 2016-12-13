@@ -318,6 +318,7 @@ static inline void list_add_leaf_cfs_rq(struct cfs_rq *cfs_rq)
 			 * the list, this means to put the child at the tail
 			 * of the list that starts by parent.
 			 */
+<<<<<<< HEAD
 			list_add_tail_rcu(&cfs_rq->leaf_cfs_rq_list,
 				&(cfs_rq->tg->parent->cfs_rq[cpu]->leaf_cfs_rq_list));
 			/*
@@ -332,6 +333,22 @@ static inline void list_add_leaf_cfs_rq(struct cfs_rq *cfs_rq)
 			 * at the tail of the list.
 			 */
 			list_add_tail_rcu(&cfs_rq->leaf_cfs_rq_list,
+=======
+			list_add_tail_rcu(&cfs_rq->leaf_cfs_rq_list,
+				&(cfs_rq->tg->parent->cfs_rq[cpu]->leaf_cfs_rq_list));
+			/*
+			 * The branch is now connected to its tree so we can
+			 * reset tmp_alone_branch to the beginning of the
+			 * list.
+			 */
+			rq->tmp_alone_branch = &rq->leaf_cfs_rq_list;
+		} else if (!cfs_rq->tg->parent) {
+			/*
+			 * cfs rq without parent should be put
+			 * at the tail of the list.
+			 */
+			list_add_tail_rcu(&cfs_rq->leaf_cfs_rq_list,
+>>>>>>> linux-next/akpm-base
 				&rq->leaf_cfs_rq_list);
 			/*
 			 * We have reach the beg of a tree so we can reset
@@ -3284,10 +3301,17 @@ static inline void update_load_avg(struct sched_entity *se, int flags)
 			  se->on_rq * scale_load_down(se->load.weight),
 			  cfs_rq->curr == se, NULL);
 	}
+<<<<<<< HEAD
 
 	decayed  = update_cfs_rq_load_avg(now, cfs_rq, true);
 	decayed |= propagate_entity_load_avg(se);
 
+=======
+
+	decayed  = update_cfs_rq_load_avg(now, cfs_rq, true);
+	decayed |= propagate_entity_load_avg(se);
+
+>>>>>>> linux-next/akpm-base
 	if (decayed && (flags & UPDATE_TG))
 		update_tg_load_avg(cfs_rq, 0);
 }
@@ -5405,8 +5429,12 @@ find_idlest_group(struct sched_domain *sd, struct task_struct *p,
 {
 	struct sched_group *idlest = NULL, *group = sd->groups;
 	struct sched_group *most_spare_sg = NULL;
+<<<<<<< HEAD
 	unsigned long min_runnable_load = ULONG_MAX, this_runnable_load = 0;
 	unsigned long min_avg_load = ULONG_MAX, this_avg_load = 0;
+=======
+	unsigned long min_load = ULONG_MAX, this_load = 0;
+>>>>>>> linux-next/akpm-base
 	unsigned long most_spare = 0, this_spare = 0;
 	int load_idx = sd->forkexec_idx;
 	int imbalance_scale = 100 + (sd->imbalance_pct-100)/2;
@@ -5417,8 +5445,12 @@ find_idlest_group(struct sched_domain *sd, struct task_struct *p,
 		load_idx = sd->wake_idx;
 
 	do {
+<<<<<<< HEAD
 		unsigned long load, avg_load, runnable_load;
 		unsigned long spare_cap, max_spare_cap;
+=======
+		unsigned long load, avg_load, spare_cap, max_spare_cap;
+>>>>>>> linux-next/akpm-base
 		int local_group;
 		int i;
 
@@ -5435,7 +5467,10 @@ find_idlest_group(struct sched_domain *sd, struct task_struct *p,
 		 * the group containing the CPU with most spare capacity.
 		 */
 		avg_load = 0;
+<<<<<<< HEAD
 		runnable_load = 0;
+=======
+>>>>>>> linux-next/akpm-base
 		max_spare_cap = 0;
 
 		for_each_cpu(i, sched_group_cpus(group)) {
@@ -5445,9 +5480,13 @@ find_idlest_group(struct sched_domain *sd, struct task_struct *p,
 			else
 				load = target_load(i, load_idx);
 
+<<<<<<< HEAD
 			runnable_load += load;
 
 			avg_load += cfs_rq_load_avg(&cpu_rq(i)->cfs);
+=======
+			avg_load += load;
+>>>>>>> linux-next/akpm-base
 
 			spare_cap = capacity_spare_wake(i, p);
 
@@ -5462,6 +5501,7 @@ find_idlest_group(struct sched_domain *sd, struct task_struct *p,
 					group->sgc->capacity;
 
 		if (local_group) {
+<<<<<<< HEAD
 			this_runnable_load = runnable_load;
 			this_avg_load = avg_load;
 			this_spare = max_spare_cap;
@@ -5481,6 +5521,13 @@ find_idlest_group(struct sched_domain *sd, struct task_struct *p,
 				 * blocked load into account through avg_load.
 				 */
 				min_avg_load = avg_load;
+=======
+			this_load = avg_load;
+			this_spare = max_spare_cap;
+		} else {
+			if (avg_load < min_load) {
+				min_load = avg_load;
+>>>>>>> linux-next/akpm-base
 				idlest = group;
 			}
 
@@ -5497,6 +5544,7 @@ find_idlest_group(struct sched_domain *sd, struct task_struct *p,
 	 * utilized systems if we require spare_capacity > task_util(p),
 	 * so we allow for some task stuffing by using
 	 * spare_capacity > task_util(p)/2.
+<<<<<<< HEAD
 	 *
 	 * Spare capacity can't be used for fork because the utilization has
 	 * not been set yet, we must first select a rq to compute the initial
@@ -5517,6 +5565,16 @@ skip_spare:
 		return NULL;
 
 	if (min_runnable_load > (this_runnable_load + imbalance))
+=======
+	 */
+	if (this_spare > task_util(p) / 2 &&
+	    imbalance*this_spare > 100*most_spare)
+		return NULL;
+	else if (most_spare > task_util(p) / 2)
+		return most_spare_sg;
+
+	if (!idlest || 100*this_load < imbalance*min_load)
+>>>>>>> linux-next/akpm-base
 		return NULL;
 
 	if ((this_runnable_load < (min_runnable_load + imbalance)) &&

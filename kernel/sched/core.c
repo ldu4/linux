@@ -4907,6 +4907,7 @@ int __sched _cond_resched(void)
 		preempt_schedule_common();
 		return 1;
 	}
+	rcu_all_qs();
 	return 0;
 }
 EXPORT_SYMBOL(_cond_resched);
@@ -5280,6 +5281,7 @@ void init_idle(struct task_struct *idle, int cpu)
 	__sched_fork(0, idle);
 	idle->state = TASK_RUNNING;
 	idle->se.exec_start = sched_clock();
+	idle->flags |= PF_IDLE;
 
 	kasan_unpoison_task_stack(idle);
 

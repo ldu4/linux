@@ -627,7 +627,7 @@ static struct ctl_table kern_table[] = {
 		.data		= &tracepoint_printk,
 		.maxlen		= sizeof(tracepoint_printk),
 		.mode		= 0644,
-		.proc_handler	= proc_dointvec,
+		.proc_handler	= tracepoint_printk_sysctl,
 	},
 #endif
 #ifdef CONFIG_KEXEC_CORE
@@ -980,13 +980,6 @@ static struct ctl_table kern_table[] = {
 		.data		= &bootloader_version,
 		.maxlen		= sizeof (int),
 		.mode		= 0444,
-		.proc_handler	= proc_dointvec,
-	},
-	{
-		.procname	= "kstack_depth_to_print",
-		.data		= &kstack_depth_to_print,
-		.maxlen		= sizeof(int),
-		.mode		= 0644,
 		.proc_handler	= proc_dointvec,
 	},
 	{

@@ -1988,6 +1988,7 @@ static bool remove_xps_queue(struct xps_dev_maps *dev_maps,
 		RCU_INIT_POINTER(dev_maps->cpu_map[tci], NULL);
 		kfree_rcu(map, rcu);
 		return false;
+<<<<<<< HEAD
 	}
 
 	return true;
@@ -2015,6 +2016,35 @@ static bool remove_xps_queue_cpu(struct net_device *dev,
 	return active;
 }
 
+=======
+	}
+
+	return true;
+}
+
+static bool remove_xps_queue_cpu(struct net_device *dev,
+				 struct xps_dev_maps *dev_maps,
+				 int cpu, u16 offset, u16 count)
+{
+	int num_tc = dev->num_tc ? : 1;
+	bool active = false;
+	int tci;
+
+	for (tci = cpu * num_tc; num_tc--; tci++) {
+		int i, j;
+
+		for (i = count, j = offset; i--; j++) {
+			if (!remove_xps_queue(dev_maps, cpu, j))
+				break;
+		}
+
+		active |= i < 0;
+	}
+
+	return active;
+}
+
+>>>>>>> linux-next/akpm-base
 static void netif_reset_xps_queues(struct net_device *dev, u16 offset,
 				   u16 count)
 {
@@ -5021,6 +5051,7 @@ restart:
 		if (busy_poll) {
 			rc = busy_poll(napi);
 			goto count;
+<<<<<<< HEAD
 		}
 		if (!napi_poll) {
 			unsigned long val = READ_ONCE(napi->state);
@@ -5038,6 +5069,25 @@ restart:
 			have_poll_lock = netpoll_poll_lock(napi);
 			napi_poll = napi->poll;
 		}
+=======
+		}
+		if (!napi_poll) {
+			unsigned long val = READ_ONCE(napi->state);
+
+			/* If multiple threads are competing for this napi,
+			 * we avoid dirtying napi->state as much as we can.
+			 */
+			if (val & (NAPIF_STATE_DISABLE | NAPIF_STATE_SCHED |
+				   NAPIF_STATE_IN_BUSY_POLL))
+				goto count;
+			if (cmpxchg(&napi->state, val,
+				    val | NAPIF_STATE_IN_BUSY_POLL |
+					  NAPIF_STATE_SCHED) != val)
+				goto count;
+			have_poll_lock = netpoll_poll_lock(napi);
+			napi_poll = napi->poll;
+		}
+>>>>>>> linux-next/akpm-base
 		rc = napi_poll(napi, BUSY_POLL_BUDGET);
 		trace_napi_poll(napi, rc, BUSY_POLL_BUDGET);
 count:
@@ -8008,17 +8058,12 @@ out:
 }
 EXPORT_SYMBOL_GPL(dev_change_net_namespace);
 
-static int dev_cpu_callback(struct notifier_block *nfb,
-			    unsigned long action,
-			    void *ocpu)
+static int dev_cpu_dead(unsigned int oldcpu)
 {
 	struct sk_buff **list_skb;
 	struct sk_buff *skb;
-	unsigned int cpu, oldcpu = (unsigned long)ocpu;
+	unsigned int cpu;
 	struct softnet_data *sd, *oldsd;
-
-	if (action != CPU_DEAD && action != CPU_DEAD_FROZEN)
-		return NOTIFY_OK;
 
 	local_irq_disable();
 	cpu = smp_processor_id();
@@ -8069,9 +8114,8 @@ static int dev_cpu_callback(struct notifier_block *nfb,
 		input_queue_head_incr(oldsd);
 	}
 
-	return NOTIFY_OK;
+	return 0;
 }
-
 
 /**
  *	netdev_increment_features - increment feature set by one
@@ -8406,7 +8450,9 @@ static int __init net_dev_init(void)
 	open_softirq(NET_TX_SOFTIRQ, net_tx_action);
 	open_softirq(NET_RX_SOFTIRQ, net_rx_action);
 
-	hotcpu_notifier(dev_cpu_callback, 0);
+	rc = cpuhp_setup_state_nocalls(CPUHP_NET_DEV_DEAD, "net/dev:dead",
+				       NULL, dev_cpu_dead);
+	WARN_ON(rc < 0);
 	dst_subsys_init();
 	rc = 0;
 out:

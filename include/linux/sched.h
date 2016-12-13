@@ -313,10 +313,17 @@ extern char ___assert_task_state[1 - 2*!!(
  *
  *	need_sleep = false;
  *	wake_up_state(p, TASK_UNINTERRUPTIBLE);
+<<<<<<< HEAD
  *
  * Where wake_up_state() (and all other wakeup primitives) imply enough
  * barriers to order the store of the variable against wakeup.
  *
+=======
+ *
+ * Where wake_up_state() (and all other wakeup primitives) imply enough
+ * barriers to order the store of the variable against wakeup.
+ *
+>>>>>>> linux-next/akpm-base
  * Wakeup will do: if (@state & p->state) p->state = TASK_RUNNING, that is,
  * once it observes the TASK_UNINTERRUPTIBLE store the waking CPU can issue a
  * TASK_RUNNING store which can collide with __set_current_state(TASK_RUNNING).
@@ -1685,6 +1692,7 @@ struct task_struct {
 	struct list_head cpu_timers[3];
 
 /* process credentials */
+	const struct cred __rcu *ptracer_cred; /* Tracer's credentials at attach */
 	const struct cred __rcu *real_cred; /* objective and real subjective task
 					 * credentials (COW) */
 	const struct cred __rcu *cred;	/* effective (overridable) subjective task
@@ -1819,6 +1827,9 @@ struct task_struct {
 	struct css_set __rcu *cgroups;
 	/* cg_list protected by css_set_lock and tsk->alloc_lock */
 	struct list_head cg_list;
+#endif
+#ifdef CONFIG_INTEL_RDT_A
+	int closid;
 #endif
 #ifdef CONFIG_FUTEX
 	struct robust_list_head __user *robust_list;
@@ -2287,6 +2298,7 @@ extern void thread_group_cputime_adjusted(struct task_struct *p, cputime_t *ut, 
 /*
  * Per process flags
  */
+#define PF_IDLE		0x00000002	/* I am an IDLE thread */
 #define PF_EXITING	0x00000004	/* getting shut down */
 #define PF_EXITPIDONE	0x00000008	/* pi exit done on shut down */
 #define PF_VCPU		0x00000010	/* I'm a virtual CPU */
@@ -2648,7 +2660,7 @@ extern struct task_struct *idle_task(int cpu);
  */
 static inline bool is_idle_task(const struct task_struct *p)
 {
-	return p->pid == 0;
+	return !!(p->flags & PF_IDLE);
 }
 extern struct task_struct *curr_task(int cpu);
 extern void ia64_set_curr_task(int cpu, struct task_struct *p);
@@ -3347,10 +3359,11 @@ static inline int signal_pending_state(long state, struct task_struct *p)
  * cond_resched_lock() will drop the spinlock before scheduling,
  * cond_resched_softirq() will enable bhs before scheduling.
  */
+void rcu_all_qs(void);
 #ifndef CONFIG_PREEMPT
 extern int _cond_resched(void);
 #else
-static inline int _cond_resched(void) { return 0; }
+static inline int _cond_resched(void) { rcu_all_qs(); return 0; }
 #endif
 
 #define cond_resched() ({			\

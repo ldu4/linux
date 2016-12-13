@@ -1935,8 +1935,13 @@ int mwifiex_sta_prepare_cmd(struct mwifiex_private *priv, uint16_t cmd_no,
 		mwifiex_dbg(priv->adapter, ERROR,
 			    "0x%x command not supported by firmware\n",
 			    cmd_no);
+<<<<<<< HEAD
 			return -EOPNOTSUPP;
 		}
+=======
+		return -EOPNOTSUPP;
+	}
+>>>>>>> linux-next/akpm-base
 
 	/* Prepare command */
 	switch (cmd_no) {
