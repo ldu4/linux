@@ -108,11 +108,7 @@
 };
 
 &mmc1_pins {
-<<<<<<< HEAD
-	allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
-=======
 	bias-pull-up;
->>>>>>> linux-next/akpm-base
 };
 
 &mmc2 {
@@ -154,15 +150,8 @@
 
 &r_pio {
 	wifi_en_pin_cubieboard4: wifi_en_pin@0 {
-<<<<<<< HEAD
-		allwinner,pins = "PL2";
-		allwinner,function = "gpio_out";
-		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
-		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
-=======
 		pins = "PL2";
 		function = "gpio_out";
->>>>>>> linux-next/akpm-base
 	};
 };
 

@@ -784,15 +784,8 @@
 			};
 
 			i2s0_mclk_pins_a: i2s0-mclk@0 {
-<<<<<<< HEAD
-				allwinner,pins = "PB5";
-				allwinner,function = "i2s0";
-				allwinner,drive = <SUN4I_PINCTRL_10_MA>;
-				allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
-=======
 				pins = "PB5";
 				function = "i2s0";
->>>>>>> linux-next/akpm-base
 			};
 
 			ir0_rx_pins_a: ir0@0 {

@@ -438,19 +438,13 @@ A typical EDAC system has the following structure under
 	│   │   ├── ce_count
 	│   │   ├── ce_noinfo_count
 	│   │   ├── dimm0
-<<<<<<< HEAD
-=======
 	│   │   │   ├── dimm_ce_count
->>>>>>> linux-next/akpm-base
 	│   │   │   ├── dimm_dev_type
 	│   │   │   ├── dimm_edac_mode
 	│   │   │   ├── dimm_label
 	│   │   │   ├── dimm_location
 	│   │   │   ├── dimm_mem_type
-<<<<<<< HEAD
-=======
 	│   │   │   ├── dimm_ue_count
->>>>>>> linux-next/akpm-base
 	│   │   │   ├── size
 	│   │   │   └── uevent
 	│   │   ├── max_location
@@ -465,19 +459,13 @@ A typical EDAC system has the following structure under
 	│   │   ├── ce_count
 	│   │   ├── ce_noinfo_count
 	│   │   ├── dimm0
-<<<<<<< HEAD
-=======
 	│   │   │   ├── dimm_ce_count
->>>>>>> linux-next/akpm-base
 	│   │   │   ├── dimm_dev_type
 	│   │   │   ├── dimm_edac_mode
 	│   │   │   ├── dimm_label
 	│   │   │   ├── dimm_location
 	│   │   │   ├── dimm_mem_type
-<<<<<<< HEAD
-=======
 	│   │   │   ├── dimm_ue_count
->>>>>>> linux-next/akpm-base
 	│   │   │   ├── size
 	│   │   │   └── uevent
 	│   │   ├── max_location
@@ -499,8 +487,6 @@ this ``X`` memory module:
 	This attribute file displays, in count of megabytes, the memory
 	that this csrow contains.
 
-<<<<<<< HEAD
-=======
 - ``dimm_ue_count`` - Uncorrectable Errors count attribute file
 
 	This attribute file displays the total count of uncorrectable
@@ -517,7 +503,6 @@ this ``X`` memory module:
 	monitored for non-zero values and report such information
 	to the system administrator.
 
->>>>>>> linux-next/akpm-base
 - ``dimm_dev_type``  - Device type attribute file
 
 	This attribute file will display what type of DRAM device is

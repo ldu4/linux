@@ -154,11 +154,7 @@
 };
 
 &mmc0_pins_a {
-<<<<<<< HEAD
-	allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
-=======
 	bias-pull-up;
->>>>>>> linux-next/akpm-base
 };
 
 &mmc0 {

@@ -7,11 +7,7 @@ ccflags-y := -I$(srctree)/$(src)/include \
 
 # Common support
 obj-y := id.o io.o control.o devices.o fb.o timer.o pm.o \
-<<<<<<< HEAD
-	 common.o gpio.o dma.o wd_timer.o display.o i2c.o hdq1w.o omap_hwmod.o \
-=======
 	 common.o dma.o wd_timer.o display.o i2c.o hdq1w.o omap_hwmod.o \
->>>>>>> linux-next/akpm-base
 	 omap_device.o omap-headsmp.o sram.o drm.o
 
 hwmod-common				= omap_hwmod.o omap_hwmod_reset.o \

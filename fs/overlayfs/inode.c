@@ -305,8 +305,6 @@ static const struct inode_operations ovl_symlink_inode_operations = {
 	.update_time	= ovl_update_time,
 };
 
-<<<<<<< HEAD
-=======
 static DEFINE_READ_MOSTLY_HASHTABLE(ovl_fops_htable, 5);
 static DEFINE_MUTEX(ovl_fops_mutex);
 
@@ -541,7 +539,6 @@ static const struct file_operations ovl_file_operations = {
 	.open		= ovl_open,
 };
 
->>>>>>> linux-next/akpm-base
 static void ovl_fill_inode(struct inode *inode, umode_t mode, dev_t rdev)
 {
 	inode->i_ino = get_next_ino();
@@ -554,10 +551,7 @@ static void ovl_fill_inode(struct inode *inode, umode_t mode, dev_t rdev)
 	switch (mode & S_IFMT) {
 	case S_IFREG:
 		inode->i_op = &ovl_file_inode_operations;
-<<<<<<< HEAD
-=======
 		inode->i_fop = &ovl_file_operations;
->>>>>>> linux-next/akpm-base
 		break;
 
 	case S_IFDIR:

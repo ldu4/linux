@@ -458,20 +458,6 @@ nfsd4_decode_fattr(struct nfsd4_compoundargs *argp, u32 *bmval,
 			return nfserr_jukebox;
 	}
 #endif
-<<<<<<< HEAD
-	if (bmval[2] & FATTR4_WORD2_MODE_UMASK) {
-		if (!umask)
-			goto xdr_error;
-		READ_BUF(8);
-		len += 8;
-		dummy32 = be32_to_cpup(p++);
-		iattr->ia_mode = dummy32 & (S_IFMT | S_IALLUGO);
-		dummy32 = be32_to_cpup(p++);
-		*umask = dummy32 & S_IRWXUGO;
-		iattr->ia_valid |= ATTR_MODE;
-	}
-=======
->>>>>>> linux-next/akpm-base
 	if (len != expected_len)
 		goto xdr_error;
 
