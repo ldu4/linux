@@ -152,6 +152,11 @@ driver-model/
 	- directory with info about Linux driver model.
 early-userspace/
 	- info about initramfs, klibc, and userspace early during boot.
+<<<<<<< HEAD
+=======
+admin-guide/ras.rst
+	- information on Reliability, Availability and Serviceability
+>>>>>>> linux-next/akpm-base
 efi-stub.txt
 	- How to use the EFI boot stub to bypass GRUB or elilo on EFI systems.
 eisa.txt

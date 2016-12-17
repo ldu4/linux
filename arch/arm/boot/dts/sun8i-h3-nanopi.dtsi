@@ -110,15 +110,21 @@
 
 &pio {
 	leds_npi: led_pins@0 {
+<<<<<<< HEAD
 		allwinner,pins = "PA10";
 		allwinner,function = "gpio_out";
 		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
 		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
+=======
+		pins = "PA10";
+		function = "gpio_out";
+>>>>>>> linux-next/akpm-base
 	};
 };
 
 &r_pio {
 	leds_r_npi: led_pins@0 {
+<<<<<<< HEAD
 		allwinner,pins = "PL10";
 		allwinner,function = "gpio_out";
 		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
@@ -130,6 +136,15 @@
 		allwinner,function = "gpio_in";
 		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
 		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
+=======
+		pins = "PL10";
+		function = "gpio_out";
+	};
+
+	sw_r_npi: key_pins@0 {
+		pins = "PL3";
+		function = "gpio_in";
+>>>>>>> linux-next/akpm-base
 	};
 };
 

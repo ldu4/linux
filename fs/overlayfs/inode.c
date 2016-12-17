@@ -11,6 +11,10 @@
 #include <linux/slab.h>
 #include <linux/xattr.h>
 #include <linux/posix_acl.h>
+#include <linux/mm.h>
+#include <linux/module.h>
+#include <linux/file.h>
+#include <linux/hashtable.h>
 #include "overlayfs.h"
 
 int ovl_setattr(struct dentry *dentry, struct iattr *attr)
@@ -296,12 +300,248 @@ static const struct inode_operations ovl_file_inode_operations = {
 static const struct inode_operations ovl_symlink_inode_operations = {
 	.setattr	= ovl_setattr,
 	.get_link	= ovl_get_link,
-	.readlink	= generic_readlink,
 	.getattr	= ovl_getattr,
 	.listxattr	= ovl_listxattr,
 	.update_time	= ovl_update_time,
 };
 
+<<<<<<< HEAD
+=======
+static DEFINE_READ_MOSTLY_HASHTABLE(ovl_fops_htable, 5);
+static DEFINE_MUTEX(ovl_fops_mutex);
+
+#define OVL_FOPS_MAGIC 0x73706f462a6c764f
+
+struct ovl_fops {
+	struct module *owner;
+	struct file_operations fops;
+	u64 magic;
+	const struct file_operations *orig_fops;
+	struct hlist_node entry;
+};
+
+void ovl_cleanup_fops_htable(void)
+{
+	int bkt;
+	struct hlist_node *tmp;
+	struct ovl_fops *ofop;
+
+	hash_for_each_safe(ovl_fops_htable, bkt, tmp, ofop, entry) {
+		fops_put(ofop->orig_fops);
+		module_put(ofop->owner);
+		kfree(ofop);
+	}
+}
+
+static bool ovl_file_is_lower(struct file *file)
+{
+	return !OVL_TYPE_UPPER(ovl_path_type(file->f_path.dentry));
+}
+
+static const struct file_operations *ovl_orig_fops(struct file *file)
+{
+	struct ovl_fops *ofop = container_of(file->f_op, struct ovl_fops, fops);
+
+	if (WARN_ON(ofop->magic != OVL_FOPS_MAGIC))
+		return NULL;
+
+	return ofop->orig_fops;
+}
+
+static ssize_t ovl_read_iter(struct kiocb *iocb, struct iov_iter *to)
+{
+	struct file *file = iocb->ki_filp;
+	ssize_t ret;
+
+	if (likely(ovl_file_is_lower(file))) {
+		const struct file_operations *f_op = ovl_orig_fops(file);
+
+		return f_op ? f_op->read_iter(iocb, to) : -EIO;
+	}
+
+	file = filp_clone_open(file);
+	if (IS_ERR(file))
+		return PTR_ERR(file);
+
+	ret = vfs_iter_read(file, to, &iocb->ki_pos);
+	fput(file);
+
+	return ret;
+}
+
+static int ovl_mmap(struct file *file, struct vm_area_struct *vma)
+{
+	if (likely(ovl_file_is_lower(file))) {
+		const struct file_operations *f_op = ovl_orig_fops(file);
+
+		return f_op ? f_op->mmap(file, vma) : -EIO;
+	}
+
+	file = filp_clone_open(file);
+	if (IS_ERR(file))
+		return PTR_ERR(file);
+
+	fput(vma->vm_file);
+	/* transfer ref: */
+	vma->vm_file = file;
+
+	if (!file->f_op->mmap)
+		return -ENODEV;
+
+	return file->f_op->mmap(file, vma);
+}
+
+static int ovl_fsync(struct file *file, loff_t start, loff_t end, int datasync)
+{
+	int ret;
+
+	if (likely(ovl_file_is_lower(file))) {
+		const struct file_operations *f_op = ovl_orig_fops(file);
+
+		return f_op ? f_op->fsync(file, start, end, datasync) : -EIO;
+	}
+	file = filp_clone_open(file);
+	if (IS_ERR(file))
+		return PTR_ERR(file);
+
+	ret = vfs_fsync_range(file, start, end, datasync);
+	fput(file);
+
+	return ret;
+}
+
+static struct ovl_fops *ovl_fops_find(const struct file_operations *orig)
+{
+	struct ovl_fops *ofop;
+
+	hash_for_each_possible_rcu(ovl_fops_htable, ofop, entry, (long) orig) {
+		if (ofop->orig_fops == orig)
+			return ofop;
+	}
+	return NULL;
+}
+
+static struct ovl_fops *ovl_fops_get(struct file *file)
+{
+	const struct file_operations *orig = file->f_op;
+	struct ovl_fops *ofop = ovl_fops_find(orig);
+
+	if (likely(ofop))
+		return ofop;
+
+	mutex_lock(&ovl_fops_mutex);
+	ofop = ovl_fops_find(orig);
+	if (ofop)
+		goto out_unlock;
+
+	ofop = kzalloc(sizeof(struct ovl_fops), GFP_KERNEL);
+	if (!ofop)
+		goto out_unlock;
+
+	/*
+	 * FS don't usually fill in fops->owner, so grab ref to filesystem's
+	 * module as well.
+	 */
+	ofop->owner = file_inode(file)->i_sb->s_type->owner;
+	__module_get(ofop->owner);
+
+	ofop->magic = OVL_FOPS_MAGIC;
+	ofop->orig_fops = fops_get(orig);
+
+	/* By default don't intercept: */
+	ofop->fops = *orig;
+
+	/* Intercept these: */
+	if (orig->read_iter)
+		ofop->fops.read_iter = ovl_read_iter;
+	if (orig->mmap)
+		ofop->fops.mmap = ovl_mmap;
+	if (orig->fsync)
+		ofop->fops.fsync = ovl_fsync;
+
+	/*
+	 * These should be intercepted, but they are very unlikely to be
+	 * a problem in practice.  Leave them alone for now:
+	 *
+	 * - copy_file_range
+	 * - clone_file_range
+	 * - dedupe_file_range
+	 *
+	 * Don't intercept these:
+	 *
+	 * - llseek
+	 * - unlocked_ioctl
+	 * - compat_ioctl
+	 * - flush
+	 * - release
+	 * - get_unmapped_area
+	 * - check_flags
+	 *
+	 * These will never be called on R/O file descriptors:
+	 *
+	 * - write
+	 * - write_iter
+	 * - splice_write
+	 * - sendpage
+	 * - fallocate
+	 *
+	 * Locking operations are already intercepted by vfs for ovl:
+	 *
+	 * - lock
+	 * - flock
+	 * - setlease
+	 */
+
+	/* splice_read should be generic_file_splice_read */
+	WARN_ON(orig->splice_read != generic_file_splice_read);
+
+	/* These make no sense for "normal" files: */
+	WARN_ON(orig->read);
+	WARN_ON(orig->iterate);
+	WARN_ON(orig->iterate_shared);
+	WARN_ON(orig->poll);
+	WARN_ON(orig->fasync);
+	WARN_ON(orig->show_fdinfo);
+
+	hash_add_rcu(ovl_fops_htable, &ofop->entry, (long) orig);
+
+out_unlock:
+	mutex_unlock(&ovl_fops_mutex);
+
+	return ofop;
+}
+
+static int ovl_open(struct inode *inode, struct file *file)
+{
+	int ret = 0;
+	struct ovl_fops *ofop;
+	bool isupper = OVL_TYPE_UPPER(ovl_path_type(file->f_path.dentry));
+
+	/* Want fops from real inode */
+	replace_fops(file, inode->i_fop);
+	if (file->f_op->open)
+		ret = file->f_op->open(inode, file);
+
+	/* No need to override fops for upper */
+	if (isupper || ret)
+		return ret;
+
+	ofop = ovl_fops_get(file);
+	if (unlikely(!ofop)) {
+		if (file->f_op->release)
+			file->f_op->release(inode, file);
+		return -ENOMEM;
+	}
+	replace_fops(file, &ofop->fops);
+
+	return 0;
+}
+
+static const struct file_operations ovl_file_operations = {
+	.open		= ovl_open,
+};
+
+>>>>>>> linux-next/akpm-base
 static void ovl_fill_inode(struct inode *inode, umode_t mode, dev_t rdev)
 {
 	inode->i_ino = get_next_ino();
@@ -314,6 +554,10 @@ static void ovl_fill_inode(struct inode *inode, umode_t mode, dev_t rdev)
 	switch (mode & S_IFMT) {
 	case S_IFREG:
 		inode->i_op = &ovl_file_inode_operations;
+<<<<<<< HEAD
+=======
+		inode->i_fop = &ovl_file_operations;
+>>>>>>> linux-next/akpm-base
 		break;
 
 	case S_IFDIR:

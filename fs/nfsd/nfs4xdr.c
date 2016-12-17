@@ -458,6 +458,7 @@ nfsd4_decode_fattr(struct nfsd4_compoundargs *argp, u32 *bmval,
 			return nfserr_jukebox;
 	}
 #endif
+<<<<<<< HEAD
 	if (bmval[2] & FATTR4_WORD2_MODE_UMASK) {
 		if (!umask)
 			goto xdr_error;
@@ -469,6 +470,8 @@ nfsd4_decode_fattr(struct nfsd4_compoundargs *argp, u32 *bmval,
 		*umask = dummy32 & S_IRWXUGO;
 		iattr->ia_valid |= ATTR_MODE;
 	}
+=======
+>>>>>>> linux-next/akpm-base
 	if (len != expected_len)
 		goto xdr_error;
 
@@ -3605,10 +3608,10 @@ nfsd4_encode_readlink(struct nfsd4_compoundres *resp, __be32 nfserr, struct nfsd
 	if (!p)
 		return nfserr_resource;
 	/*
-	 * XXX: By default, the ->readlink() VFS op will truncate symlinks
-	 * if they would overflow the buffer.  Is this kosher in NFSv4?  If
-	 * not, one easy fix is: if ->readlink() precisely fills the buffer,
-	 * assume that truncation occurred, and return NFS4ERR_RESOURCE.
+	 * XXX: By default, vfs_readlink() will truncate symlinks if they
+	 * would overflow the buffer.  Is this kosher in NFSv4?  If not, one
+	 * easy fix is: if vfs_readlink() precisely fills the buffer, assume
+	 * that truncation occurred, and return NFS4ERR_RESOURCE.
 	 */
 	nfserr = nfsd_readlink(readlink->rl_rqstp, readlink->rl_fhp,
 						(char *)p, &maxcount);

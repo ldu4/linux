@@ -7,7 +7,6 @@
  * the Free Software Foundation.
  */
 
-#include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/slab.h>
 #include <linux/file.h>
@@ -17,12 +16,11 @@
 #include <linux/uaccess.h>
 #include <linux/sched.h>
 #include <linux/namei.h>
-#include <linux/fdtable.h>
-#include <linux/ratelimit.h>
 #include "overlayfs.h"
 
 #define OVL_COPY_UP_CHUNK_SIZE (1 << 20)
 
+<<<<<<< HEAD
 static bool __read_mostly ovl_check_copy_up;
 module_param_named(check_copy_up, ovl_check_copy_up, bool,
 		   S_IWUSR | S_IRUGO);
@@ -52,6 +50,8 @@ static void ovl_do_check_copy_up(struct dentry *dentry)
 		iterate_fd(current->files, 0, ovl_check_fd, dentry);
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 int ovl_copy_xattr(struct dentry *old, struct dentry *new)
 {
 	ssize_t list_size, size, value_size = 0;
@@ -340,8 +340,6 @@ static int ovl_copy_up_one(struct dentry *parent, struct dentry *dentry,
 
 	if (WARN_ON(!workdir))
 		return -EROFS;
-
-	ovl_do_check_copy_up(lowerdentry);
 
 	ovl_path_upper(parent, &parentpath);
 	upperdir = parentpath.dentry;

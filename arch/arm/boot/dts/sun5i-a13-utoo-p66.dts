@@ -80,7 +80,11 @@
 };
 
 &codec_pa_pin {
+<<<<<<< HEAD
 	allwinner,pins = "PG3";
+=======
+	pins = "PG3";
+>>>>>>> linux-next/akpm-base
 };
 
 &mmc2 {
@@ -100,10 +104,16 @@
 
 &pio {
 	i2c_lcd_pins: i2c_lcd_pin@0 {
+<<<<<<< HEAD
 		allwinner,pins = "PG10", "PG12";
 		allwinner,function = "gpio_out";
 		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
 		allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
+=======
+		pins = "PG10", "PG12";
+		function = "gpio_out";
+		bias-pull-up;
+>>>>>>> linux-next/akpm-base
 	};
 };
 
@@ -131,5 +141,5 @@
 };
 
 &usb0_vbus_pin_a {
-	allwinner,pins = "PB4";
+	pins = "PB4";
 };

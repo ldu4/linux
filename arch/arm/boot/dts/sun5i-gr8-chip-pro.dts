@@ -159,6 +159,7 @@
 
 &pio {
 	usb0_id_pin_chip_pro: usb0-id-pin@0 {
+<<<<<<< HEAD
 		allwinner,pins = "PG2";
 		allwinner,function = "gpio_in";
 		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
@@ -170,6 +171,15 @@
 		allwinner,function = "gpio_out";
 		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
 		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
+=======
+		pins = "PG2";
+		function = "gpio_in";
+	};
+
+	wifi_reg_on_pin_chip_pro: wifi-reg-on-pin@0 {
+		pins = "PB10";
+		function = "gpio_out";
+>>>>>>> linux-next/akpm-base
 	};
 };
 
