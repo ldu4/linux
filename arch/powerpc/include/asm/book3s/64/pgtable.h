@@ -313,6 +313,11 @@ extern unsigned long pci_io_base;
 /* Advertise support for _PAGE_SPECIAL */
 #define __HAVE_ARCH_PTE_SPECIAL
 
+/* Advertise that we call the Speculative Page Fault handler */
+#if defined(CONFIG_PPC_BOOK3S_64)
+#define __HAVE_ARCH_CALL_SPF
+#endif
+
 #ifndef __ASSEMBLY__
 
 /*
