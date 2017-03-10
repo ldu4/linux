@@ -27,7 +27,6 @@
  */
 #include <drm/drmP.h>
 #include <drm/amdgpu_drm.h>
-#include <asm/set_memory.h>
 #include "amdgpu.h"
 
 /*
