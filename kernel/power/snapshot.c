@@ -35,7 +35,6 @@
 #include <asm/pgtable.h>
 #include <asm/tlbflush.h>
 #include <asm/io.h>
-#include <asm/set_memory.h>
 
 #include "power.h"
 
