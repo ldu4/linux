@@ -24,7 +24,6 @@
 #include <asm/pgalloc.h>
 #include <asm/proto.h>
 #include <asm/pat.h>
-#include <asm/set_memory.h>
 
 /*
  * The current flushing context - we pass it instead of 5 arguments:

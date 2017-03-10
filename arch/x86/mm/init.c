@@ -5,7 +5,7 @@
 #include <linux/memblock.h>
 #include <linux/bootmem.h>	/* for max_low_pfn */
 
-#include <asm/set_memory.h>
+#include <asm/cacheflush.h>
 #include <asm/e820.h>
 #include <asm/init.h>
 #include <asm/page.h>

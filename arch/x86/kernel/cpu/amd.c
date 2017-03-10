@@ -15,7 +15,7 @@
 
 #ifdef CONFIG_X86_64
 # include <asm/mmconfig.h>
-# include <asm/set_memory.h>
+# include <asm/cacheflush.h>
 #endif
 
 #include "cpu.h"
