@@ -27,7 +27,7 @@
 #include <linux/io.h>
 #include <linux/dma-mapping.h>
 
-#include <asm/set_memory.h>
+#include <asm/cacheflush.h>
 
 #include "intel_th.h"
 #include "msu.h"
