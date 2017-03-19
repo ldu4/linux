@@ -630,6 +630,7 @@ miximum||maximum
 mmnemonic||mnemonic
 mnay||many
 modulues||modules
+momery||memory
 monochorome||monochrome
 monochromo||monochrome
 monocrome||monochrome
