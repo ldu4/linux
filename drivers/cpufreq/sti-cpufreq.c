@@ -235,7 +235,7 @@ use_defaults:
 	return 0;
 }
 
-static int sti_cpufreq_fetch_syscon_regsiters(void)
+static int sti_cpufreq_fetch_syscon_registers(void)
 {
 	struct device *dev = ddata.cpu;
 	struct device_node *np = dev->of_node;
@@ -274,7 +274,7 @@ static int sti_cpufreq_init(void)
 		goto skip_voltage_scaling;
 	}
 
-	ret = sti_cpufreq_fetch_syscon_regsiters();
+	ret = sti_cpufreq_fetch_syscon_registers();
 	if (ret)
 		goto skip_voltage_scaling;
 
