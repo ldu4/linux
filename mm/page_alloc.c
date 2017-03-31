@@ -2015,6 +2015,10 @@ static void steal_suitable_fallback(struct zone *zone, struct page *page,
 			alike_pages = 0;
 	}
 
+	/* moving whole block can fail due to zone boundary conditions */
+	if (!free_pages)
+		goto single_page;
+
 	/*
 	 * If a sufficient number of pages in the block are either free or of
 	 * comparable migratability as our allocation, claim the whole block.
