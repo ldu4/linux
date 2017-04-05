@@ -347,20 +347,27 @@ static void fix_zone_id(struct zone *zone, unsigned long start_pfn,
 		set_page_links(pfn_to_page(pfn), zid, nid, pfn);
 }
 
-static void __ref ensure_zone_is_initialized(struct zone *zone,
+/* Can fail with -ENOMEM from allocating a wait table with vmalloc() or
+ * alloc_bootmem_node_nopanic()/memblock_virt_alloc_node_nopanic() */
+static int __ref ensure_zone_is_initialized(struct zone *zone,
 			unsigned long start_pfn, unsigned long num_pages)
 {
-	if (!zone_is_empty(zone))
-		init_currently_empty_zone(zone, start_pfn, num_pages);
+	if (zone_is_empty(zone))
+		return init_currently_empty_zone(zone, start_pfn, num_pages);
+
+	return 0;
 }
 
 static int __meminit move_pfn_range_left(struct zone *z1, struct zone *z2,
 		unsigned long start_pfn, unsigned long end_pfn)
 {
+	int ret;
 	unsigned long flags;
 	unsigned long z1_start_pfn;
 
-	ensure_zone_is_initialized(z1, start_pfn, end_pfn - start_pfn);
+	ret = ensure_zone_is_initialized(z1, start_pfn, end_pfn - start_pfn);
+	if (ret)
+		return ret;
 
 	pgdat_resize_lock(z1->zone_pgdat, &flags);
 
@@ -396,10 +403,13 @@ out_fail:
 static int __meminit move_pfn_range_right(struct zone *z1, struct zone *z2,
 		unsigned long start_pfn, unsigned long end_pfn)
 {
+	int ret;
 	unsigned long flags;
 	unsigned long z2_end_pfn;
 
-	ensure_zone_is_initialized(z2, start_pfn, end_pfn - start_pfn);
+	ret = ensure_zone_is_initialized(z2, start_pfn, end_pfn - start_pfn);
+	if (ret)
+		return ret;
 
 	pgdat_resize_lock(z1->zone_pgdat, &flags);
 
@@ -470,9 +480,12 @@ static int __meminit __add_zone(struct zone *zone, unsigned long phys_start_pfn)
 	int nid = pgdat->node_id;
 	int zone_type;
 	unsigned long flags, pfn;
+	int ret;
 
 	zone_type = zone - pgdat->node_zones;
-	ensure_zone_is_initialized(zone, phys_start_pfn, nr_pages);
+	ret = ensure_zone_is_initialized(zone, phys_start_pfn, nr_pages);
+	if (ret)
+		return ret;
 
 	pgdat_resize_lock(zone->zone_pgdat, &flags);
 	grow_zone_span(zone, phys_start_pfn, phys_start_pfn + nr_pages);
