@@ -216,7 +216,7 @@ static int sock_xmit(struct nbd_device *nbd, int index, int send, void *buf,
 	int result;
 	struct msghdr msg;
 	struct kvec iov;
-	unsigned long pflags = current->flags;
+	unsigned int noreclaim_flag;
 
 	if (unlikely(!sock)) {
 		dev_err_ratelimited(disk_to_dev(nbd->disk),
@@ -225,7 +225,7 @@ static int sock_xmit(struct nbd_device *nbd, int index, int send, void *buf,
 		return -EINVAL;
 	}
 
-	current->flags |= PF_MEMALLOC;
+	noreclaim_flag = memalloc_noreclaim_save();
 	do {
 		sock->sk->sk_allocation = GFP_NOIO | __GFP_MEMALLOC;
 		iov.iov_base = buf;
@@ -251,7 +251,7 @@ static int sock_xmit(struct nbd_device *nbd, int index, int send, void *buf,
 		buf += result;
 	} while (size > 0);
 
-	tsk_restore_flags(current, pflags, PF_MEMALLOC);
+	memalloc_noreclaim_restore(noreclaim_flag);
 
 	return result;
 }
