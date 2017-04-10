@@ -2397,6 +2397,18 @@ static inline void memalloc_nofs_restore(unsigned int flags)
 	current->flags = (current->flags & ~PF_MEMALLOC_NOFS) | flags;
 }
 
+static inline unsigned int memalloc_noreclaim_save(void)
+{
+	unsigned int flags = current->flags & PF_MEMALLOC;
+	current->flags |= PF_MEMALLOC;
+	return flags;
+}
+
+static inline void memalloc_noreclaim_restore(unsigned int flags)
+{
+	current->flags = (current->flags & ~PF_MEMALLOC) | flags;
+}
+
 /* Per-process atomic flags. */
 #define PFA_NO_NEW_PRIVS 0	/* May not gain new privileges. */
 #define PFA_SPREAD_PAGE  1      /* Spread page cache over cpuset */
