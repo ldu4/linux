@@ -153,7 +153,7 @@ void __init free_initrd_mem(unsigned long start, unsigned long end)
 #endif
 
 #ifdef CONFIG_MEMORY_HOTPLUG
-int arch_add_memory(int nid, u64 start, u64 size, enum memory_type type)
+int arch_add_memory(int nid, u64 start, u64 size, bool for_device)
 {
 	unsigned long zone_start_pfn, zone_end_pfn, nr_pages;
 	unsigned long start_pfn = PFN_DOWN(start);
@@ -161,18 +161,6 @@ int arch_add_memory(int nid, u64 start, u64 size, enum memory_type type)
 	pg_data_t *pgdat = NODE_DATA(nid);
 	struct zone *zone;
 	int rc, i;
-
-	/*
-	 * Each memory_type needs special handling, so error out on an
-	 * unsupported type.
-	 */
-	switch (type) {
-	case MEMORY_NORMAL:
-		break;
-	default:
-		pr_err("hotplug unsupported memory type %d\n", type);
-		return -EINVAL;
-	}
 
 	rc = vmem_add_mapping(start, size);
 	if (rc)
@@ -217,7 +205,7 @@ unsigned long memory_block_size_bytes(void)
 }
 
 #ifdef CONFIG_MEMORY_HOTREMOVE
-int arch_remove_memory(u64 start, u64 size, enum memory_type type)
+int arch_remove_memory(u64 start, u64 size)
 {
 	/*
 	 * There is no hardware or firmware interface which could trigger a

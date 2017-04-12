@@ -248,7 +248,7 @@ static void devm_memremap_pages_release(struct device *dev, void *data)
 	align_size = ALIGN(resource_size(res), SECTION_SIZE);
 
 	mem_hotplug_begin();
-	arch_remove_memory(align_start, align_size, pgmap->type);
+	arch_remove_memory(align_start, align_size);
 	mem_hotplug_done();
 
 	untrack_pfn(NULL, PHYS_PFN(align_start), align_size);
@@ -326,7 +326,6 @@ void *devm_memremap_pages(struct device *dev, struct resource *res,
 	}
 	pgmap->ref = ref;
 	pgmap->res = &page_map->res;
-	pgmap->type = MEMORY_DEVICE_PERSISTENT;
 
 	mutex_lock(&pgmap_lock);
 	error = 0;
@@ -364,7 +363,7 @@ void *devm_memremap_pages(struct device *dev, struct resource *res,
 		goto err_pfn_remap;
 
 	mem_hotplug_begin();
-	error = arch_add_memory(nid, align_start, align_size, pgmap->type);
+	error = arch_add_memory(nid, align_start, align_size, true);
 	mem_hotplug_done();
 	if (error)
 		goto err_add_memory;
