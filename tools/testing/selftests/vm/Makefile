@@ -15,6 +15,7 @@ BINARIES += thuge-gen
 BINARIES += transhuge-stress
 BINARIES += userfaultfd
 BINARIES += mlock-random-test
+BINARIES += virtual_address_range
 
 all: $(BINARIES)
 %: %.c
