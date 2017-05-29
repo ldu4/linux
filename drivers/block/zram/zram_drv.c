@@ -732,12 +732,10 @@ compress_again:
 	kunmap_atomic(src);
 
 	if (unlikely(ret)) {
-		/*
-		 * We failed to compress the page, try to store it
-		 * uncompressed (if there is enough memory).
-		 */
 		pr_err("Compression failed! err=%d\n", ret);
-		comp_len = PAGE_SIZE;
+		if (entry)
+			zram_entry_free(zram, entry);
+		return ret;
 	}
 
 	if (unlikely(comp_len > max_zpage_size))
