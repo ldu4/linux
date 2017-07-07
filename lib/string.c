@@ -981,7 +981,6 @@ EXPORT_SYMBOL(strreplace);
 
 void fortify_panic(const char *name)
 {
-	pr_emerg("detected buffer overflow in %s\n", name);
-	BUG();
+	panic("detected buffer overflow in %s", name);
 }
 EXPORT_SYMBOL(fortify_panic);
