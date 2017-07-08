@@ -615,7 +615,9 @@ void free_pgtables(struct mmu_gather *tlb, struct vm_area_struct *vma,
 		 * Hide vma from rmap and truncate_pagecache before freeing
 		 * pgtables
 		 */
+		write_seqcount_begin(&vma->vm_sequence);
 		unlink_anon_vmas(vma);
+		write_seqcount_end(&vma->vm_sequence);
 		unlink_file_vma(vma);
 
 		if (is_vm_hugetlb_page(vma)) {
@@ -629,7 +631,9 @@ void free_pgtables(struct mmu_gather *tlb, struct vm_area_struct *vma,
 			       && !is_vm_hugetlb_page(next)) {
 				vma = next;
 				next = vma->vm_next;
+				write_seqcount_begin(&vma->vm_sequence);
 				unlink_anon_vmas(vma);
+				write_seqcount_end(&vma->vm_sequence);
 				unlink_file_vma(vma);
 			}
 			free_pgd_range(tlb, addr, vma->vm_end,
