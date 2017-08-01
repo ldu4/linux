@@ -449,8 +449,7 @@ void zram_page_end_io(struct bio *bio)
 {
 	struct page *page = bio->bi_io_vec[0].bv_page;
 
-	page_endio(page, op_is_write(bio_op(bio)),
-			blk_status_to_errno(bio->bi_status));
+	page_endio(page, op_is_write(bio_op(bio)), bio->bi_error);
 	bio_put(bio);
 }
 
