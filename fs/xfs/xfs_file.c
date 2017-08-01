@@ -1050,8 +1050,7 @@ xfs_find_get_desired_pgoff(
 		unsigned int	i;
 
 		want = min_t(pgoff_t, end - index, PAGEVEC_SIZE - 1) + 1;
-		nr_pages = pagevec_lookup(&pvec, inode->i_mapping, index,
-					  want);
+		nr_pages = pagevec_lookup(&pvec, inode->i_mapping, &index);
 		if (nr_pages == 0)
 			break;
 
