@@ -3997,6 +3997,15 @@ static inline int wp_huge_pmd(struct vm_fault *vmf, pmd_t orig_pmd)
 	if (vmf->vma->vm_ops->huge_fault)
 		return vmf->vma->vm_ops->huge_fault(vmf, PE_SIZE_PMD);
 
+	/*
+	 * __split_huge_pmd() is not compatible with the speculative path
+	 * due to the check it does on the vma boundaries.
+	 * If we are doing a speculative page fault, abort it and try again
+	 * with the mmap_sem held.
+	 */
+	if (vmf->flags & FAULT_FLAG_SPECULATIVE)
+		return VM_FAULT_RETRY;
+
 	/* COW handled on pte level: split pmd */
 	VM_BUG_ON_VMA(vmf->vma_flags & VM_SHARED, vmf->vma);
 	__split_huge_pmd(vmf->vma, vmf->pmd, vmf->address, false, NULL);
@@ -4382,7 +4391,12 @@ int handle_speculative_fault(struct mm_struct *mm, unsigned long address,
 
 	pmd = pmd_offset(pud, address);
 	pmde = READ_ONCE(*pmd);
-	if (pmd_none(pmde) || unlikely(pmd_bad(pmde)))
+	if (unlikely(pmd_bad(pmde)))
+		goto out_walk;
+	if (pmd_none(pmde)) {
+		if (!transparent_hugepage_enabled(vmf.vma))
+			goto out_walk;
+	} else if (is_swap_pmd(pmde))
 		goto out_walk;
 
 	/*
@@ -4393,9 +4407,6 @@ int handle_speculative_fault(struct mm_struct *mm, unsigned long address,
 	 * The result is that we take at least one !speculative fault per PMD
 	 * in order to instantiate it.
 	 */
-	/* Transparent huge pages are not supported. */
-	if (unlikely(pmd_trans_huge(pmde)))
-		goto out_walk;
 
 	vmf.pmd = pmd;
 	vmf.pgoff = linear_page_index(vmf.vma, address);
@@ -4415,7 +4426,37 @@ int handle_speculative_fault(struct mm_struct *mm, unsigned long address,
 	}
 
 	mem_cgroup_oom_enable();
-	ret = handle_pte_fault(&vmf);
+	if (pmd_none(pmde) || pmd_trans_huge(pmde)) {
+		/*
+		 * Transparent Hupe Page support
+		 */
+		trace_spf_thp(_RET_IP_, vmf.vma, address);
+		if (pmd_none(pmde)) {
+			trace_spf_thp_create(_RET_IP_, vmf.vma, address);
+			ret = create_huge_pmd(&vmf);
+		} else if (pmd_protnone(pmde) && vma_is_accessible(vmf.vma)) {
+			trace_spf_thp_numa(_RET_IP_, vmf.vma, address);
+			ret = do_huge_pmd_numa_page(&vmf, pmde);
+		} else if (flags & FAULT_FLAG_WRITE && !pmd_write(pmde)) {
+			trace_spf_thp_wp(_RET_IP_, vmf.vma, address);
+			ret = wp_huge_pmd(&vmf, pmde);
+		} else {
+			/*
+			 * Here we may want to call huge_pmd_set_accessed()
+			 * but it is not yet ready as it doesn't return a status
+			 */
+			trace_spf_thp_notsup(_RET_IP_, vmf.vma, address);
+			VM_BUG_ON(ret != VM_FAULT_RETRY);
+		}
+
+		/* We currently don't handle the fallback pte here. */
+		if (ret & VM_FAULT_FALLBACK) {
+			trace_spf_thp_fallback(_RET_IP_, vmf.vma, address);
+			ret |= VM_FAULT_RETRY;
+		} else if (ret & (VM_FAULT_RETRY | VM_FAULT_ERROR))
+			trace_spf_thp_retry(_RET_IP_, vmf.vma, address);
+	} else
+		ret = handle_pte_fault(&vmf);
 	mem_cgroup_oom_disable();
 
 	/*
