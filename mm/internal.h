@@ -351,7 +351,12 @@ static inline void mlock_migrate_page(struct page *newpage, struct page *page)
 	}
 }
 
-extern pmd_t maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma);
+extern pmd_t __maybe_pmd_mkwrite(pmd_t pmd, unsigned long vm_flags);
+
+static inline pmd_t maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma)
+{
+	return __maybe_pmd_mkwrite(pmd, vma->vm_flags);
+}
 
 /*
  * At what user virtual address is page expected in @vma?
