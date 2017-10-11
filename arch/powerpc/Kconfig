@@ -1209,6 +1209,10 @@ endif
 config	ARCH_RANDOM
 	def_bool n
 
+config SPF
+	def_bool y
+	depends on PPC_BOOK3S_64 && SMP
+
 source "net/Kconfig"
 
 source "drivers/Kconfig"
