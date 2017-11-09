@@ -4488,7 +4488,7 @@ void print_vma_addr(char *prefix, unsigned long ip)
 	 * Do not print if we are in atomic
 	 * contexts (in exception stacks, etc.):
 	 */
-	if (in_atomic())
+	if (preempt_count())
 		return;
 
 	down_read(&mm->mmap_sem);
