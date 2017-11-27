@@ -44,9 +44,7 @@ int do_swap_page(struct vm_fault *vmf);
 extern struct vm_area_struct *get_vma(struct mm_struct *mm,
 				      unsigned long addr);
 extern void put_vma(struct vm_area_struct *vma);
-#endif
 
-#ifdef CONFIG_SPF
 static inline bool vma_has_changed(struct vm_fault *vmf)
 {
 	int ret = RB_EMPTY_NODE(&vmf->vma->vm_rb);

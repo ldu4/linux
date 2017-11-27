@@ -2278,6 +2278,7 @@ find_vma_prev(struct mm_struct *mm, unsigned long addr,
 	if (vma) {
 		*pprev = vma->vm_prev;
 	} else {
+
 		struct rb_node *rb_node = mm->mm_rb.rb_node;
 		*pprev = NULL;
 		while (rb_node) {
