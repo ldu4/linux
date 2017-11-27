@@ -1355,7 +1355,10 @@ extern int handle_mm_fault(struct vm_area_struct *vma, unsigned long address,
 		unsigned int flags);
 #ifdef CONFIG_SPECULATIVE_PAGE_FAULT
 extern int handle_speculative_fault(struct mm_struct *mm,
-				    unsigned long address, unsigned int flags);
+				    unsigned long address, unsigned int flags,
+				    struct vm_area_struct **vma);
+extern bool can_reuse_spf_vma(struct vm_area_struct *vma,
+			      unsigned long address);
 #endif /* CONFIG_SPECULATIVE_PAGE_FAULT */
 extern int fixup_user_fault(struct task_struct *tsk, struct mm_struct *mm,
 			    unsigned long address, unsigned int fault_flags,
