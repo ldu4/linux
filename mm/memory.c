@@ -2453,6 +2453,7 @@ static inline void wp_page_reuse(struct vm_fault *vmf)
 static bool pte_spinlock(struct vm_fault *vmf)
 {
 	bool ret = false;
+	pmd_t pmdval;
 
 	/* Check if vma is still valid */
 	if (!(vmf->flags & FAULT_FLAG_SPECULATIVE)) {
@@ -2464,6 +2465,16 @@ static bool pte_spinlock(struct vm_fault *vmf)
 	local_irq_disable();
 	if (vma_has_changed(vmf)) {
 		trace_spf_vma_changed(_RET_IP_, vmf->vma, vmf->address);
+		goto out;
+	}
+
+	/*
+	 * We check again the pmd to ensure that there is a huge collapse
+	 * operation in progress in our back.
+	 */
+	pmdval = READ_ONCE(*vmf->pmd);
+	if (pmd_none(pmdval) || pmd_trans_huge(pmdval)) {
+		trace_spf_pmd_changed(_RET_IP_, vmf->vma, vmf->address);
 		goto out;
 	}
 
@@ -2498,6 +2509,7 @@ static bool pte_map_lock(struct vm_fault *vmf)
 {
 	bool ret = false;
 	pte_t *pte;
+	pmd_t pmdval;
 	spinlock_t *ptl;
 
 	if (!(vmf->flags & FAULT_FLAG_SPECULATIVE)) {
@@ -2516,6 +2528,16 @@ static bool pte_map_lock(struct vm_fault *vmf)
 	local_irq_disable();
 	if (vma_has_changed(vmf)) {
 		trace_spf_vma_changed(_RET_IP_, vmf->vma, vmf->address);
+		goto out;
+	}
+
+	/*
+	 * We check again the pmd to ensure that there is a huge collapse
+	 * operation in progress in our back.
+	 */
+	pmdval = READ_ONCE(*vmf->pmd);
+	if (pmd_none(pmdval) || pmd_trans_huge(pmdval)) {
+		trace_spf_pmd_changed(_RET_IP_, vmf->vma, vmf->address);
 		goto out;
 	}
 
@@ -4096,6 +4118,8 @@ static int handle_pte_fault(struct vm_fault *vmf)
 		 * pmd from under us anymore at this point because we hold the
 		 * mmap_sem read mode and khugepaged takes it in write mode.
 		 * So now it's safe to run pte_offset_map().
+		 * WARNING this is no more true when called by the SPF handler.
+		 * How could we ensure that the pmd is not changed in our back ?
 		 */
 		vmf->pte = pte_offset_map(vmf->pmd, vmf->address);
 		vmf->orig_pte = *vmf->pte;
@@ -4393,17 +4417,17 @@ int handle_speculative_fault(struct mm_struct *mm, unsigned long address,
 	if (pgd_none(pgde) || unlikely(pgd_bad(pgde)))
 		goto out_walk;
 
-	p4d = p4d_alloc(mm, pgd, address);
+	p4d = p4d_offset(pgd, address);
 	p4de = READ_ONCE(*p4d);
 	if (p4d_none(p4de) || unlikely(p4d_bad(p4de)))
 		goto out_walk;
 
-	pud = pud_alloc(mm, p4d, address);
+	pud = pud_offset(p4d, address);
 	pude = READ_ONCE(*pud);
 	if (pud_none(pude) || unlikely(pud_bad(pude)))
 		goto out_walk;
 
-	/* Huge pages are not supported. */
+	/* Huge pages at PUD level are not supported. */
 	if (unlikely(pud_trans_huge(pude)))
 		goto out_walk;
 
@@ -4411,10 +4435,13 @@ int handle_speculative_fault(struct mm_struct *mm, unsigned long address,
 	pmde = READ_ONCE(*pmd);
 	if (unlikely(pmd_bad(pmde)))
 		goto out_walk;
-	if (pmd_none(pmde)) {
-		if (!transparent_hugepage_enabled(vmf.vma))
-			goto out_walk;
-	} else if (is_swap_pmd(pmde))
+	if (pmd_none(pmde) || is_swap_pmd(pmde))
+		/*
+		 * pmd_none could mean that a hugepage collapse is in progress
+		 * in our back as collapse_huge_page() mark it before
+		 * invalidating the pte (which is done once the IPI is catched
+		 * by all CPU and we have interrupt disabled).
+		 */
 		goto out_walk;
 
 	/*
@@ -4444,15 +4471,12 @@ int handle_speculative_fault(struct mm_struct *mm, unsigned long address,
 	}
 
 	mem_cgroup_oom_enable();
-	if (pmd_none(pmde) || pmd_trans_huge(pmde)) {
+	if (pmd_trans_huge(pmde)) {
 		/*
 		 * Transparent Hupe Page support
 		 */
 		trace_spf_thp(_RET_IP_, vmf.vma, address);
-		if (pmd_none(pmde)) {
-			trace_spf_thp_create(_RET_IP_, vmf.vma, address);
-			ret = create_huge_pmd(&vmf);
-		} else if (pmd_protnone(pmde) && vma_is_accessible(vmf.vma)) {
+		if (pmd_protnone(pmde) && vma_is_accessible(vmf.vma)) {
 			trace_spf_thp_numa(_RET_IP_, vmf.vma, address);
 			ret = do_huge_pmd_numa_page(&vmf, pmde);
 		} else if (flags & FAULT_FLAG_WRITE && !pmd_write(pmde)) {

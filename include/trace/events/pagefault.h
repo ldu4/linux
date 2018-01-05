@@ -89,7 +89,7 @@ DEFINE_EVENT(spf, spf_thp,
 	TP_ARGS(caller, vma, address)
 );
 
-DEFINE_EVENT(spf, spf_thp_create,
+DEFINE_EVENT(spf, spf_pmd_changed,
 
 	TP_PROTO(unsigned long caller,
 		 struct vm_area_struct *vma, unsigned long address),
