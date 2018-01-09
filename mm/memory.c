@@ -4109,7 +4109,7 @@ static int handle_pte_fault(struct vm_fault *vmf)
 		 * concurrent faults and from rmap lookups.
 		 */
 		vmf->pte = NULL;
-	} else {
+	} else if (!(vmf->flags & FAULT_FLAG_SPECULATIVE)) {
 		/* See comment in pte_alloc_one_map() */
 		if (pmd_devmap_trans_unstable(vmf->pmd))
 			return 0;
@@ -4118,8 +4118,9 @@ static int handle_pte_fault(struct vm_fault *vmf)
 		 * pmd from under us anymore at this point because we hold the
 		 * mmap_sem read mode and khugepaged takes it in write mode.
 		 * So now it's safe to run pte_offset_map().
-		 * WARNING this is no more true when called by the SPF handler.
-		 * How could we ensure that the pmd is not changed in our back ?
+		 * This is not applicable to the speculative page fault handler
+		 * but in that case, the pte is fetched earlier in
+		 * handle_speculative_fault().
 		 */
 		vmf->pte = pte_offset_map(vmf->pmd, vmf->address);
 		vmf->orig_pte = *vmf->pte;
@@ -4444,6 +4445,9 @@ int handle_speculative_fault(struct mm_struct *mm, unsigned long address,
 		 */
 		goto out_walk;
 
+	if (pmd_devmap_trans_unstable(pmd)) /* could we use pmde here ? */
+		goto out_walk;
+
 	/*
 	 * The above does not allocate/instantiate page-tables because doing so
 	 * would lead to the possibility of instantiating page-tables after
@@ -4452,6 +4456,14 @@ int handle_speculative_fault(struct mm_struct *mm, unsigned long address,
 	 * The result is that we take at least one !speculative fault per PMD
 	 * in order to instantiate it.
 	 */
+
+	vmf.pte = pte_offset_map(pmd, address);
+	vmf.orig_pte = READ_ONCE(*vmf.pte);
+	barrier(); 	/* See comment in handle_pte_fault() */
+	if (pte_none(vmf.orig_pte)) {
+		pte_unmap(vmf.pte);
+		vmf.pte = NULL;
+	}
 
 	vmf.pmd = pmd;
 	vmf.pgoff = linear_page_index(vmf.vma, address);
