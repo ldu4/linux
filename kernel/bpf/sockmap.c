@@ -1729,19 +1729,11 @@ static int __sock_map_ctx_update_elem(struct bpf_map *map,
 		 * we increment the refcnt. If this is the case abort with an
 		 * error.
 		 */
-<<<<<<< HEAD
-		verdict = bpf_prog_inc_not_zero(verdict);
-		if (IS_ERR(verdict))
-			return PTR_ERR(verdict);
-
-		parse = bpf_prog_inc_not_zero(parse);
-=======
 		verdict = bpf_prog_inc_not_zero(progs->bpf_verdict);
 		if (IS_ERR(verdict))
 			return PTR_ERR(verdict);
 
 		parse = bpf_prog_inc_not_zero(progs->bpf_parse);
->>>>>>> linux-next/akpm-base
 		if (IS_ERR(parse)) {
 			bpf_prog_put(verdict);
 			return PTR_ERR(parse);
@@ -1749,11 +1741,7 @@ static int __sock_map_ctx_update_elem(struct bpf_map *map,
 	}
 
 	if (tx_msg) {
-<<<<<<< HEAD
-		tx_msg = bpf_prog_inc_not_zero(tx_msg);
-=======
 		tx_msg = bpf_prog_inc_not_zero(progs->bpf_tx_msg);
->>>>>>> linux-next/akpm-base
 		if (IS_ERR(tx_msg)) {
 			if (parse && verdict) {
 				bpf_prog_put(parse);

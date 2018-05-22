@@ -87,22 +87,6 @@ struct tls_sw_context_tx {
 	struct crypto_aead *aead_send;
 	struct crypto_wait async_wait;
 
-<<<<<<< HEAD
-	/* Receive context */
-	struct strparser strp;
-	void (*saved_data_ready)(struct sock *sk);
-	unsigned int (*sk_poll)(struct file *file, struct socket *sock,
-				struct poll_table_struct *wait);
-	struct sk_buff *recv_pkt;
-	u8 control;
-	bool decrypted;
-
-	char rx_aad_ciphertext[TLS_AAD_SPACE_SIZE];
-	char rx_aad_plaintext[TLS_AAD_SPACE_SIZE];
-
-	/* Sending context */
-=======
->>>>>>> linux-next/akpm-base
 	char aad_space[TLS_AAD_SPACE_SIZE];
 
 	unsigned int sg_plaintext_size;

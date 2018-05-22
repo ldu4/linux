@@ -2203,14 +2203,9 @@ int bpf_prog_load_xattr(const struct bpf_prog_load_attr *attr,
 	if (!attr->file)
 		return -EINVAL;
 
-<<<<<<< HEAD
-	obj = bpf_object__open(attr->file);
-	if (IS_ERR_OR_NULL(obj))
-=======
 	obj = __bpf_object__open(attr->file, NULL, 0,
 				 bpf_prog_type__needs_kver(attr->prog_type));
 	if (IS_ERR(obj))
->>>>>>> linux-next/akpm-base
 		return -ENOENT;
 
 	bpf_object__for_each_program(prog, obj) {

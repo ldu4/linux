@@ -209,11 +209,7 @@ static void i2c_dw_xfer_init(struct dw_i2c_dev *dev)
 	i2c_dw_disable_int(dev);
 
 	/* Enable the adapter */
-<<<<<<< HEAD
-	__i2c_dw_enable(dev, true);
-=======
 	__i2c_dw_enable(dev);
->>>>>>> linux-next/akpm-base
 
 	/* Dummy read to avoid the register getting stuck on Bay Trail */
 	dw_readl(dev, DW_IC_ENABLE_STATUS);
