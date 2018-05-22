@@ -396,7 +396,11 @@ static int prop_compression_apply(struct inode *inode,
 		btrfs_set_fs_incompat(fs_info, COMPRESS_LZO);
 	} else if (!strncmp("zlib", value, 4)) {
 		type = BTRFS_COMPRESS_ZLIB;
+<<<<<<< HEAD
 	} else if (!strncmp("zstd", value, len)) {
+=======
+	} else if (!strncmp("zstd", value, 4)) {
+>>>>>>> linux-next/akpm-base
 		type = BTRFS_COMPRESS_ZSTD;
 		btrfs_set_fs_incompat(fs_info, COMPRESS_ZSTD);
 	} else {
