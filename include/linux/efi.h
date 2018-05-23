@@ -397,7 +397,11 @@ typedef struct {
 	u32 set_bar_attributes;
 	u64 romsize;
 	u32 romimage;
+<<<<<<< HEAD
 } efi_pci_io_protocol_32;
+=======
+} efi_pci_io_protocol_32_t;
+>>>>>>> linux-next/akpm-base
 
 typedef struct {
 	u64 poll_mem;
@@ -417,7 +421,11 @@ typedef struct {
 	u64 set_bar_attributes;
 	u64 romsize;
 	u64 romimage;
+<<<<<<< HEAD
 } efi_pci_io_protocol_64;
+=======
+} efi_pci_io_protocol_64_t;
+>>>>>>> linux-next/akpm-base
 
 typedef struct {
 	void *poll_mem;
@@ -437,7 +445,7 @@ typedef struct {
 	void *set_bar_attributes;
 	uint64_t romsize;
 	void *romimage;
-} efi_pci_io_protocol;
+} efi_pci_io_protocol_t;
 
 #define EFI_PCI_IO_ATTRIBUTE_ISA_MOTHERBOARD_IO 0x0001
 #define EFI_PCI_IO_ATTRIBUTE_ISA_IO 0x0002
