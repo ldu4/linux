@@ -951,9 +951,6 @@ static netdev_tx_t ip6erspan_tunnel_xmit(struct sk_buff *skb,
 		truncate = true;
 	}
 
-<<<<<<< HEAD
-	if (skb_cow_head(skb, dev->needed_headroom ?: t->hlen))
-=======
 	nhoff = skb_network_header(skb) - skb_mac_header(skb);
 	if (skb->protocol == htons(ETH_P_IP) &&
 	    (ntohs(ip_hdr(skb)->tot_len) > skb->len - nhoff))
@@ -965,7 +962,6 @@ static netdev_tx_t ip6erspan_tunnel_xmit(struct sk_buff *skb,
 		truncate = true;
 
 	if (skb_cow_head(skb, dev->needed_headroom))
->>>>>>> linux-next/akpm-base
 		goto tx_err;
 
 	t->parms.o_flags &= ~TUNNEL_KEY;

@@ -905,8 +905,6 @@ static struct rela *find_switch_table(struct objtool_file *file,
 	struct instruction *orig_insn = insn;
 	unsigned long table_offset;
 
-<<<<<<< HEAD
-=======
 	/* case 1 & 2 */
 	text_rela = find_rela_by_dest_range(insn->sec, insn->offset, insn->len);
 	if (text_rela && text_rela->sym == file->rodata->sym &&
@@ -927,7 +925,6 @@ static struct rela *find_switch_table(struct objtool_file *file,
 	}
 
 	/* case 3 */
->>>>>>> linux-next/akpm-base
 	/*
 	 * Backward search using the @first_jump_src links, these help avoid
 	 * much of the 'in between' code. Which avoids us getting confused by
@@ -966,27 +963,11 @@ static struct rela *find_switch_table(struct objtool_file *file,
 		 */
 		if (find_symbol_containing(file->rodata, table_offset))
 			continue;
-<<<<<<< HEAD
-
-		rodata_rela = find_rela_by_dest(file->rodata, table_offset);
-		if (rodata_rela) {
-			/*
-			 * Use of RIP-relative switch jumps is quite rare, and
-			 * indicates a rare GCC quirk/bug which can leave dead
-			 * code behind.
-			 */
-			if (text_rela->type == R_X86_64_PC32)
-				file->ignore_unreachables = true;
-
-			return rodata_rela;
-		}
-=======
 
 		/* mov [rodata addr], %reg */
 		rodata_rela = find_rela_by_dest(file->rodata, table_offset);
 		if (rodata_rela)
 			return rodata_rela;
->>>>>>> linux-next/akpm-base
 	}
 
 	return NULL;
