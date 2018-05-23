@@ -810,10 +810,9 @@ static bool shadow_mapped(unsigned long addr)
 		return false;
 
 	/*
-	 * We can't use pud_large() or pud_huge(), the first one
-	 * is arch-specific, the last one depend on HUGETLB_PAGE.
-	 * So let's abuse pud_bad(), if pud is bad than it's bad
-	 * because it's huge.
+	 * We can't use pud_large() or pud_huge(), the first one is
+	 * arch-specific, the last one depends on HUGETLB_PAGE.  So let's abuse
+	 * pud_bad(), if pud is bad then it's bad because it's huge.
 	 */
 	if (pud_bad(*pud))
 		return true;
