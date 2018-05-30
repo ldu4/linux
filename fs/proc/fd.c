@@ -245,17 +245,22 @@ static int proc_readfd_common(struct file *file, struct dir_context *ctx,
 	for (fd = ctx->pos - 2;
 	     fd < files_fdtable(files)->max_fds;
 	     fd++, ctx->pos++) {
+		struct file *f;
+		struct fd_data data;
 		char name[10 + 1];
 		unsigned int len;
 
-		if (!fcheck_files(files, fd))
+		f = fcheck_files(files, fd);
+		if (!f)
 			continue;
+		data.mode = f->f_mode;
 		rcu_read_unlock();
+		data.fd = fd;
 
 		len = snprintf(name, sizeof(name), "%u", fd);
 		if (!proc_fill_cache(file, ctx,
 				     name, len, instantiate, p,
-				     (void *)(unsigned long)fd))
+				     &data)
 			goto out_fd_loop;
 		cond_resched();
 		rcu_read_lock();
