@@ -1,5 +1,6 @@
 config AUTOFS4_FS
 	tristate "Kernel automounter version 4 support (also supports v3 and v5)"
+	depends on AUTOFS_FS=n
 	default n
 	depends on AUTOFS_FS = n
 	help
