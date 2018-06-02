@@ -44,6 +44,7 @@
 #include <asm/compat.h>
 #include <asm/cpufeature.h>
 #include <asm/debug-monitors.h>
+#include <asm/fpsimd.h>
 #include <asm/pgtable.h>
 #include <asm/stacktrace.h>
 #include <asm/syscall.h>
@@ -1046,8 +1047,6 @@ static const struct user_regset_view user_aarch64_view = {
 };
 
 #ifdef CONFIG_COMPAT
-#include <linux/compat.h>
-
 enum compat_regset {
 	REGSET_COMPAT_GPR,
 	REGSET_COMPAT_VFP,

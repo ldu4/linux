@@ -14,7 +14,7 @@
 #include <asm-generic/module.h>
 
 
-#ifdef CC_USING_MPROFILE_KERNEL
+#ifdef CONFIG_MPROFILE_KERNEL
 #define MODULE_ARCH_VERMAGIC_FTRACE	"mprofile-kernel "
 #else
 #define MODULE_ARCH_VERMAGIC_FTRACE	""
@@ -53,6 +53,9 @@ struct mod_arch_specific {
 #ifdef CONFIG_DYNAMIC_FTRACE
 	unsigned long toc;
 	unsigned long tramp;
+#ifdef CONFIG_DYNAMIC_FTRACE_WITH_REGS
+	unsigned long tramp_regs;
+#endif
 #endif
 
 	/* For module function descriptor dereference */

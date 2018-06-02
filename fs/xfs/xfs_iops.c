@@ -37,7 +37,6 @@
 #include "xfs_da_btree.h"
 #include "xfs_dir2.h"
 #include "xfs_trans_space.h"
-#include "xfs_pnfs.h"
 #include "xfs_iomap.h"
 
 #include <linux/capability.h>
@@ -260,6 +259,7 @@ xfs_vn_lookup(
 	struct dentry	*dentry,
 	unsigned int flags)
 {
+	struct inode *inode;
 	struct xfs_inode *cip;
 	struct xfs_name	name;
 	int		error;
@@ -269,14 +269,13 @@ xfs_vn_lookup(
 
 	xfs_dentry_to_name(&name, dentry);
 	error = xfs_lookup(XFS_I(dir), &name, &cip, NULL);
-	if (unlikely(error)) {
-		if (unlikely(error != -ENOENT))
-			return ERR_PTR(error);
-		d_add(dentry, NULL);
-		return NULL;
-	}
-
-	return d_splice_alias(VFS_I(cip), dentry);
+	if (likely(!error))
+		inode = VFS_I(cip);
+	else if (likely(error == -ENOENT))
+		inode = NULL;
+	else
+		inode = ERR_PTR(error);
+	return d_splice_alias(inode, dentry);
 }
 
 STATIC struct dentry *
@@ -855,7 +854,7 @@ xfs_setattr_size(
 	/*
 	 * Make sure that the dquots are attached to the inode.
 	 */
-	error = xfs_qm_dqattach(ip, 0);
+	error = xfs_qm_dqattach(ip);
 	if (error)
 		return error;
 
@@ -1030,14 +1029,19 @@ xfs_vn_setattr(
 	int			error;
 
 	if (iattr->ia_valid & ATTR_SIZE) {
-		struct xfs_inode	*ip = XFS_I(d_inode(dentry));
-		uint			iolock = XFS_IOLOCK_EXCL;
-
-		error = xfs_break_layouts(d_inode(dentry), &iolock);
-		if (error)
-			return error;
+		struct inode		*inode = d_inode(dentry);
+		struct xfs_inode	*ip = XFS_I(inode);
+		uint			iolock;
 
 		xfs_ilock(ip, XFS_MMAPLOCK_EXCL);
+		iolock = XFS_IOLOCK_EXCL | XFS_MMAPLOCK_EXCL;
+
+		error = xfs_break_layouts(inode, &iolock, BREAK_UNMAP);
+		if (error) {
+			xfs_iunlock(ip, XFS_MMAPLOCK_EXCL);
+			return error;
+		}
+
 		error = xfs_vn_setattr_size(dentry, iattr);
 		xfs_iunlock(ip, XFS_MMAPLOCK_EXCL);
 	} else {
