@@ -2452,13 +2452,13 @@ static struct dentry *proc_pident_lookup(struct inode *dir,
 		if (p->len != dentry->d_name.len)
 			continue;
 		if (!memcmp(dentry->d_name.name, p->name, p->len)) {
-			error = proc_pident_instantiate(dir, dentry, task, p);
+			res = proc_pident_instantiate(dentry, task, p);
 			break;
 		}
 	}
 	put_task_struct(task);
 out_no_task:
-	return ERR_PTR(error);
+	return res;
 }
 
 static int proc_pident_readdir(struct file *file, struct dir_context *ctx,
