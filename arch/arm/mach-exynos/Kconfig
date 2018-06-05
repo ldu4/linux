@@ -107,20 +107,6 @@ config SOC_EXYNOS5420
 	default y
 	depends on ARCH_EXYNOS5
 
-<<<<<<< HEAD
-config SOC_EXYNOS5440
-	bool "SAMSUNG EXYNOS5440"
-	default y
-	depends on ARCH_EXYNOS5
-	select HAVE_ARM_ARCH_TIMER
-	select AUTO_ZRELADDR
-	select PINCTRL_EXYNOS5440
-	select PM_OPP
-	help
-	  Enable EXYNOS5440 SoC support
-
-=======
->>>>>>> linux-next/akpm-base
 config SOC_EXYNOS5800
 	bool "SAMSUNG EXYNOS5800"
 	default y

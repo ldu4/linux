@@ -2052,37 +2052,12 @@ int vfs_dedupe_file_range(struct file *file, struct file_dedupe_range *same)
 			info->status = -EBADF;
 			goto next_loop;
 		}
-<<<<<<< HEAD
-		dst = file_inode(dst_file);
-
-		ret = mnt_want_write_file(dst_file);
-		if (ret) {
-			info->status = ret;
-			goto next_fdput;
-		}
-
-		dst_off = info->dest_offset;
-		ret = clone_verify_area(dst_file, dst_off, len, true);
-		if (ret < 0) {
-			info->status = ret;
-			goto next_file;
-		}
-		ret = 0;
-=======
->>>>>>> linux-next/akpm-base
 
 		if (info->reserved) {
 			info->status = -EINVAL;
 			goto next_loop;
 		}
 
-<<<<<<< HEAD
-next_file:
-		mnt_drop_write_file(dst_file);
-next_fdput:
-		fdput(dst_fd);
-next_loop:
-=======
 		deduped = vfs_dedupe_file_range_one(file, off, dst_file,
 						    info->dest_offset, len);
 		if (deduped == -EBADE)
@@ -2094,7 +2069,6 @@ next_loop:
 
 next_loop:
 		fdput(dst_fd);
->>>>>>> linux-next/akpm-base
 		if (fatal_signal_pending(current))
 			goto out;
 	}

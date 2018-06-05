@@ -63,8 +63,6 @@ struct proc_dir_entry *proc_create_net_data(const char *name, umode_t mode,
 struct proc_dir_entry *proc_create_net_single(const char *name, umode_t mode,
 		struct proc_dir_entry *parent,
 		int (*show)(struct seq_file *, void *), void *data);
-<<<<<<< HEAD
-=======
 struct proc_dir_entry *proc_create_net_data_write(const char *name, umode_t mode,
 						  struct proc_dir_entry *parent,
 						  const struct seq_operations *ops,
@@ -75,7 +73,6 @@ struct proc_dir_entry *proc_create_net_single_write(const char *name, umode_t mo
 						    int (*show)(struct seq_file *, void *),
 						    proc_write_t write,
 						    void *data);
->>>>>>> linux-next/akpm-base
 
 #else /* CONFIG_PROC_FS */
 

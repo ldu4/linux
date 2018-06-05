@@ -43,16 +43,11 @@ static int seq_open_net(struct inode *inode, struct file *file)
 	unsigned int state_size = PDE(inode)->state_size;
 	struct seq_net_private *p;
 	struct net *net;
-<<<<<<< HEAD
-
-	WARN_ON_ONCE(state_size < sizeof(*p));
-=======
 
 	WARN_ON_ONCE(state_size < sizeof(*p));
 
 	if (file->f_mode & FMODE_WRITE && !PDE(inode)->write)
 		return -EACCES;
->>>>>>> linux-next/akpm-base
 
 	net = get_proc_net(inode);
 	if (!net)
@@ -81,10 +76,7 @@ static int seq_release_net(struct inode *ino, struct file *f)
 static const struct file_operations proc_net_seq_fops = {
 	.open		= seq_open_net,
 	.read		= seq_read,
-<<<<<<< HEAD
-=======
 	.write		= proc_simple_write,
->>>>>>> linux-next/akpm-base
 	.llseek		= seq_lseek,
 	.release	= seq_release_net,
 };
@@ -104,8 +96,6 @@ struct proc_dir_entry *proc_create_net_data(const char *name, umode_t mode,
 	return proc_register(parent, p);
 }
 EXPORT_SYMBOL_GPL(proc_create_net_data);
-<<<<<<< HEAD
-=======
 
 /**
  * proc_create_net_data_write - Create a writable net_ns-specific proc file
@@ -150,7 +140,6 @@ struct proc_dir_entry *proc_create_net_data_write(const char *name, umode_t mode
 	return proc_register(parent, p);
 }
 EXPORT_SYMBOL_GPL(proc_create_net_data_write);
->>>>>>> linux-next/akpm-base
 
 static int single_open_net(struct inode *inode, struct file *file)
 {
@@ -178,10 +167,7 @@ static int single_release_net(struct inode *ino, struct file *f)
 static const struct file_operations proc_net_single_fops = {
 	.open		= single_open_net,
 	.read		= seq_read,
-<<<<<<< HEAD
-=======
 	.write		= proc_simple_write,
->>>>>>> linux-next/akpm-base
 	.llseek		= seq_lseek,
 	.release	= single_release_net,
 };
@@ -200,8 +186,6 @@ struct proc_dir_entry *proc_create_net_single(const char *name, umode_t mode,
 	return proc_register(parent, p);
 }
 EXPORT_SYMBOL_GPL(proc_create_net_single);
-<<<<<<< HEAD
-=======
 
 /**
  * proc_create_net_single_write - Create a writable net_ns-specific proc file
@@ -245,7 +229,6 @@ struct proc_dir_entry *proc_create_net_single_write(const char *name, umode_t mo
 	return proc_register(parent, p);
 }
 EXPORT_SYMBOL_GPL(proc_create_net_single_write);
->>>>>>> linux-next/akpm-base
 
 static struct net *get_proc_task_net(struct inode *dir)
 {

@@ -22,149 +22,9 @@ static inline struct afs_net *afs_seq2net(struct seq_file *m)
 	return afs_net(seq_file_net(m));
 }
 
-<<<<<<< HEAD
-static int afs_proc_cells_open(struct inode *inode, struct file *file);
-static void *afs_proc_cells_start(struct seq_file *p, loff_t *pos);
-static void *afs_proc_cells_next(struct seq_file *p, void *v, loff_t *pos);
-static void afs_proc_cells_stop(struct seq_file *p, void *v);
-static int afs_proc_cells_show(struct seq_file *m, void *v);
-static ssize_t afs_proc_cells_write(struct file *file, const char __user *buf,
-				    size_t size, loff_t *_pos);
-
-static const struct seq_operations afs_proc_cells_ops = {
-	.start	= afs_proc_cells_start,
-	.next	= afs_proc_cells_next,
-	.stop	= afs_proc_cells_stop,
-	.show	= afs_proc_cells_show,
-};
-
-static const struct file_operations afs_proc_cells_fops = {
-	.open		= afs_proc_cells_open,
-	.read		= seq_read,
-	.write		= afs_proc_cells_write,
-	.llseek		= seq_lseek,
-	.release	= seq_release,
-};
-
-static ssize_t afs_proc_rootcell_read(struct file *file, char __user *buf,
-				      size_t size, loff_t *_pos);
-static ssize_t afs_proc_rootcell_write(struct file *file,
-				       const char __user *buf,
-				       size_t size, loff_t *_pos);
-
-static const struct file_operations afs_proc_rootcell_fops = {
-	.read		= afs_proc_rootcell_read,
-	.write		= afs_proc_rootcell_write,
-	.llseek		= no_llseek,
-};
-
-static void *afs_proc_cell_volumes_start(struct seq_file *p, loff_t *pos);
-static void *afs_proc_cell_volumes_next(struct seq_file *p, void *v,
-					loff_t *pos);
-static void afs_proc_cell_volumes_stop(struct seq_file *p, void *v);
-static int afs_proc_cell_volumes_show(struct seq_file *m, void *v);
-
-static const struct seq_operations afs_proc_cell_volumes_ops = {
-	.start	= afs_proc_cell_volumes_start,
-	.next	= afs_proc_cell_volumes_next,
-	.stop	= afs_proc_cell_volumes_stop,
-	.show	= afs_proc_cell_volumes_show,
-};
-
-static void *afs_proc_cell_vlservers_start(struct seq_file *p, loff_t *pos);
-static void *afs_proc_cell_vlservers_next(struct seq_file *p, void *v,
-					  loff_t *pos);
-static void afs_proc_cell_vlservers_stop(struct seq_file *p, void *v);
-static int afs_proc_cell_vlservers_show(struct seq_file *m, void *v);
-
-static const struct seq_operations afs_proc_cell_vlservers_ops = {
-	.start	= afs_proc_cell_vlservers_start,
-	.next	= afs_proc_cell_vlservers_next,
-	.stop	= afs_proc_cell_vlservers_stop,
-	.show	= afs_proc_cell_vlservers_show,
-};
-
-static void *afs_proc_servers_start(struct seq_file *p, loff_t *pos);
-static void *afs_proc_servers_next(struct seq_file *p, void *v,
-					loff_t *pos);
-static void afs_proc_servers_stop(struct seq_file *p, void *v);
-static int afs_proc_servers_show(struct seq_file *m, void *v);
-
-static const struct seq_operations afs_proc_servers_ops = {
-	.start	= afs_proc_servers_start,
-	.next	= afs_proc_servers_next,
-	.stop	= afs_proc_servers_stop,
-	.show	= afs_proc_servers_show,
-};
-
-static int afs_proc_sysname_open(struct inode *inode, struct file *file);
-static int afs_proc_sysname_release(struct inode *inode, struct file *file);
-static void *afs_proc_sysname_start(struct seq_file *p, loff_t *pos);
-static void *afs_proc_sysname_next(struct seq_file *p, void *v,
-					loff_t *pos);
-static void afs_proc_sysname_stop(struct seq_file *p, void *v);
-static int afs_proc_sysname_show(struct seq_file *m, void *v);
-static ssize_t afs_proc_sysname_write(struct file *file,
-				      const char __user *buf,
-				      size_t size, loff_t *_pos);
-
-static const struct seq_operations afs_proc_sysname_ops = {
-	.start	= afs_proc_sysname_start,
-	.next	= afs_proc_sysname_next,
-	.stop	= afs_proc_sysname_stop,
-	.show	= afs_proc_sysname_show,
-};
-
-static const struct file_operations afs_proc_sysname_fops = {
-	.open		= afs_proc_sysname_open,
-	.read		= seq_read,
-	.llseek		= seq_lseek,
-	.release	= afs_proc_sysname_release,
-	.write		= afs_proc_sysname_write,
-};
-
-static int afs_proc_stats_show(struct seq_file *m, void *v);
-
-/*
- * initialise the /proc/fs/afs/ directory
- */
-int afs_proc_init(struct afs_net *net)
-{
-	_enter("");
-
-	net->proc_afs = proc_mkdir("fs/afs", NULL);
-	if (!net->proc_afs)
-		goto error_dir;
-
-	if (!proc_create("cells", 0644, net->proc_afs, &afs_proc_cells_fops) ||
-	    !proc_create("rootcell", 0644, net->proc_afs, &afs_proc_rootcell_fops) ||
-	    !proc_create_seq("servers", 0644, net->proc_afs, &afs_proc_servers_ops) ||
-	    !proc_create_single("stats", 0644, net->proc_afs, afs_proc_stats_show) ||
-	    !proc_create("sysname", 0644, net->proc_afs, &afs_proc_sysname_fops))
-		goto error_tree;
-
-	_leave(" = 0");
-	return 0;
-
-error_tree:
-	proc_remove(net->proc_afs);
-error_dir:
-	_leave(" = -ENOMEM");
-	return -ENOMEM;
-}
-
-/*
- * clean up the /proc/fs/afs/ directory
- */
-void afs_proc_cleanup(struct afs_net *net)
-{
-	proc_remove(net->proc_afs);
-	net->proc_afs = NULL;
-=======
 static inline struct afs_net *afs_seq2net_single(struct seq_file *m)
 {
 	return afs_net(seq_file_single_net(m));
->>>>>>> linux-next/akpm-base
 }
 
 /*
@@ -172,9 +32,6 @@ static inline struct afs_net *afs_seq2net_single(struct seq_file *m)
  */
 static int afs_proc_cells_show(struct seq_file *m, void *v)
 {
-<<<<<<< HEAD
-	return seq_open(file, &afs_proc_cells_ops);
-=======
 	struct afs_cell *cell = list_entry(v, struct afs_cell, proc_link);
 	struct afs_net *net = afs_seq2net(m);
 
@@ -187,7 +44,6 @@ static int afs_proc_cells_show(struct seq_file *m, void *v)
 	/* display one cell per line on subsequent lines */
 	seq_printf(m, "%3u %s\n", atomic_read(&cell->usage), cell->name);
 	return 0;
->>>>>>> linux-next/akpm-base
 }
 
 static void *afs_proc_cells_start(struct seq_file *m, loff_t *_pos)
@@ -334,54 +190,6 @@ out:
 	return ret;
 }
 
-<<<<<<< HEAD
-/*
- * initialise /proc/fs/afs/<cell>/
- */
-int afs_proc_cell_setup(struct afs_net *net, struct afs_cell *cell)
-{
-	struct proc_dir_entry *dir;
-
-	_enter("%p{%s},%p", cell, cell->name, net->proc_afs);
-
-	dir = proc_mkdir(cell->name, net->proc_afs);
-	if (!dir)
-		goto error_dir;
-
-	if (!proc_create_seq_data("vlservers", 0, dir,
-			&afs_proc_cell_vlservers_ops, cell))
-		goto error_tree;
-	if (!proc_create_seq_data("volumes", 0, dir, &afs_proc_cell_volumes_ops,
-			cell))
-		goto error_tree;
-
-	_leave(" = 0");
-	return 0;
-
-error_tree:
-	remove_proc_subtree(cell->name, net->proc_afs);
-error_dir:
-	_leave(" = -ENOMEM");
-	return -ENOMEM;
-}
-
-/*
- * remove /proc/fs/afs/<cell>/
- */
-void afs_proc_cell_remove(struct afs_net *net, struct afs_cell *cell)
-{
-	_enter("");
-
-	remove_proc_subtree(cell->name, net->proc_afs);
-
-	_leave("");
-}
-
-/*
- * set up the iterator to start reading from the cells list and return the
- * first item
- */
-=======
 static const char afs_vol_types[3][3] = {
 	[AFSVL_RWVOL]	= "RW",
 	[AFSVL_ROVOL]	= "RO",
@@ -409,16 +217,10 @@ static int afs_proc_cell_volumes_show(struct seq_file *m, void *v)
 	return 0;
 }
 
->>>>>>> linux-next/akpm-base
 static void *afs_proc_cell_volumes_start(struct seq_file *m, loff_t *_pos)
 	__acquires(cell->proc_lock)
 {
 	struct afs_cell *cell = PDE_DATA(file_inode(m->file));
-<<<<<<< HEAD
-
-	_enter("cell=%p pos=%Ld", cell, *_pos);
-=======
->>>>>>> linux-next/akpm-base
 
 	read_lock(&cell->proc_lock);
 	return seq_list_start_head(&cell->proc_volumes, *_pos);
@@ -427,11 +229,7 @@ static void *afs_proc_cell_volumes_start(struct seq_file *m, loff_t *_pos)
 static void *afs_proc_cell_volumes_next(struct seq_file *m, void *v,
 					loff_t *_pos)
 {
-<<<<<<< HEAD
-	struct afs_cell *cell = PDE_DATA(file_inode(p->file));
-=======
 	struct afs_cell *cell = PDE_DATA(file_inode(m->file));
->>>>>>> linux-next/akpm-base
 
 	return seq_list_next(v, &cell->proc_volumes, _pos);
 }
@@ -439,11 +237,7 @@ static void *afs_proc_cell_volumes_next(struct seq_file *m, void *v,
 static void afs_proc_cell_volumes_stop(struct seq_file *m, void *v)
 	__releases(cell->proc_lock)
 {
-<<<<<<< HEAD
-	struct afs_cell *cell = PDE_DATA(file_inode(p->file));
-=======
 	struct afs_cell *cell = PDE_DATA(file_inode(m->file));
->>>>>>> linux-next/akpm-base
 
 	read_unlock(&cell->proc_lock);
 }
@@ -460,12 +254,7 @@ static const struct seq_operations afs_proc_cell_volumes_ops = {
  */
 static int afs_proc_cell_vlservers_show(struct seq_file *m, void *v)
 {
-<<<<<<< HEAD
-	struct afs_cell *cell = PDE_DATA(file_inode(m->file));
-	struct afs_volume *vol = list_entry(v, struct afs_volume, proc_link);
-=======
 	struct sockaddr_rxrpc *addr = v;
->>>>>>> linux-next/akpm-base
 
 	/* display header on line 1 */
 	if (v == (void *)1) {
@@ -473,25 +262,11 @@ static int afs_proc_cell_vlservers_show(struct seq_file *m, void *v)
 		return 0;
 	}
 
-<<<<<<< HEAD
-	seq_printf(m, "%3d %08x %s\n",
-		   atomic_read(&vol->usage), vol->vid,
-		   afs_vol_types[vol->type]);
-
-	return 0;
-}
-
-/*
- * set up the iterator to start reading from the cells list and return the
- * first item
- */
-=======
 	/* display one cell per line on subsequent lines */
 	seq_printf(m, "%pISp\n", &addr->transport);
 	return 0;
 }
 
->>>>>>> linux-next/akpm-base
 static void *afs_proc_cell_vlservers_start(struct seq_file *m, loff_t *_pos)
 	__acquires(rcu)
 {
@@ -518,11 +293,7 @@ static void *afs_proc_cell_vlservers_next(struct seq_file *m, void *v,
 					  loff_t *_pos)
 {
 	struct afs_addr_list *alist;
-<<<<<<< HEAD
-	struct afs_cell *cell = PDE_DATA(file_inode(p->file));
-=======
 	struct afs_cell *cell = PDE_DATA(file_inode(m->file));
->>>>>>> linux-next/akpm-base
 	loff_t pos;
 
 	alist = rcu_dereference(cell->vl_addrs);
@@ -570,13 +341,6 @@ static int afs_proc_servers_show(struct seq_file *m, void *v)
 	return 0;
 }
 
-<<<<<<< HEAD
-/*
- * Set up the iterator to start reading from the server list and return the
- * first item.
- */
-=======
->>>>>>> linux-next/akpm-base
 static void *afs_proc_servers_start(struct seq_file *m, loff_t *_pos)
 	__acquires(rcu)
 {
@@ -777,8 +541,6 @@ static int afs_proc_stats_show(struct seq_file *m, void *v)
 		   atomic_long_read(&net->n_store_bytes));
 	return 0;
 }
-<<<<<<< HEAD
-=======
 
 /*
  * initialise /proc/fs/afs/<cell>/
@@ -877,4 +639,3 @@ void afs_proc_cleanup(struct afs_net *net)
 	proc_remove(net->proc_afs);
 	net->proc_afs = NULL;
 }
->>>>>>> linux-next/akpm-base

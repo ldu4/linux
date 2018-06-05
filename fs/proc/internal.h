@@ -48,10 +48,7 @@ struct proc_dir_entry {
 		const struct seq_operations *seq_ops;
 		int (*single_show)(struct seq_file *, void *);
 	};
-<<<<<<< HEAD
-=======
 	proc_write_t write;
->>>>>>> linux-next/akpm-base
 	void *data;
 	unsigned int state_size;
 	unsigned int low_ino;

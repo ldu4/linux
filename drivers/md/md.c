@@ -5523,12 +5523,6 @@ int md_run(struct mddev *mddev)
 		err = bioset_init(&mddev->bio_set, BIO_POOL_SIZE, 0, BIOSET_NEED_BVECS);
 		if (err)
 			return err;
-<<<<<<< HEAD
-	}
-	if (!bioset_initialized(&mddev->sync_set)) {
-		err = bioset_init(&mddev->sync_set, BIO_POOL_SIZE, 0, BIOSET_NEED_BVECS);
-		if (err)
-=======
 	}
 	if (!bioset_initialized(&mddev->sync_set)) {
 		err = bioset_init(&mddev->sync_set, BIO_POOL_SIZE, 0, BIOSET_NEED_BVECS);
@@ -5548,7 +5542,6 @@ int md_run(struct mddev *mddev)
 						flush_bio_free, mddev);
 		if (!mddev->flush_bio_pool) {
 			err = -ENOMEM;
->>>>>>> linux-next/akpm-base
 			goto abort;
 	}
 
@@ -5710,8 +5703,6 @@ int md_run(struct mddev *mddev)
 	return 0;
 
 abort:
-<<<<<<< HEAD
-=======
 	if (mddev->flush_bio_pool) {
 		mempool_destroy(mddev->flush_bio_pool);
 		mddev->flush_bio_pool = NULL;
@@ -5720,7 +5711,6 @@ abort:
 		mempool_destroy(mddev->flush_pool);
 		mddev->flush_pool = NULL;
 	}
->>>>>>> linux-next/akpm-base
 	bioset_exit(&mddev->bio_set);
 	bioset_exit(&mddev->sync_set);
 
@@ -5935,8 +5925,6 @@ void md_stop(struct mddev *mddev)
 	 * This is called from dm-raid
 	 */
 	__md_stop(mddev);
-<<<<<<< HEAD
-=======
 	if (mddev->flush_bio_pool) {
 		mempool_destroy(mddev->flush_bio_pool);
 		mddev->flush_bio_pool = NULL;
@@ -5945,7 +5933,6 @@ void md_stop(struct mddev *mddev)
 		mempool_destroy(mddev->flush_pool);
 		mddev->flush_pool = NULL;
 	}
->>>>>>> linux-next/akpm-base
 	bioset_exit(&mddev->bio_set);
 	bioset_exit(&mddev->sync_set);
 }

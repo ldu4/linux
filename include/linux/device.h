@@ -98,11 +98,8 @@ extern void bus_remove_file(struct bus_type *, struct bus_attribute *);
  * @p:		The private data of the driver core, only the driver core can
  *		touch this.
  * @lock_key:	Lock class key for use by the lock validator
-<<<<<<< HEAD
-=======
  * @need_parent_lock:	When probing or removing a device on this bus, the
  *			device core should lock the device's parent.
->>>>>>> linux-next/akpm-base
  *
  * A bus is a channel between the processor and one or more devices. For the
  * purposes of the device model, all devices are connected via a bus, even if
@@ -143,11 +140,8 @@ struct bus_type {
 
 	struct subsys_private *p;
 	struct lock_class_key lock_key;
-<<<<<<< HEAD
-=======
 
 	bool need_parent_lock;
->>>>>>> linux-next/akpm-base
 };
 
 extern int __must_check bus_register(struct bus_type *bus);

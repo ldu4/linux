@@ -1317,8 +1317,6 @@ static int pnp_seq_show(struct seq_file *seq, void *v)
 			   &ic_servaddr);
 	return 0;
 }
-<<<<<<< HEAD
-=======
 /* Create the /proc/net/ipconfig directory */
 static int __init ipconfig_proc_net_init(void)
 {
@@ -1374,7 +1372,6 @@ static const struct file_operations ntp_servers_seq_fops = {
 	.llseek		= seq_lseek,
 	.release	= single_release,
 };
->>>>>>> linux-next/akpm-base
 #endif /* CONFIG_PROC_FS */
 
 /*
@@ -1460,12 +1457,9 @@ static int __init ip_auto_config(void)
 
 #ifdef CONFIG_PROC_FS
 	proc_create_single("pnp", 0444, init_net.proc_net, pnp_seq_show);
-<<<<<<< HEAD
-=======
 
 	if (ipconfig_proc_net_init() == 0)
 		ipconfig_proc_net_create("ntp_servers", &ntp_servers_seq_fops);
->>>>>>> linux-next/akpm-base
 #endif /* CONFIG_PROC_FS */
 
 	if (!ic_enable)
