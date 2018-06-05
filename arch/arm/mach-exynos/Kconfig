@@ -8,7 +8,6 @@
 menuconfig ARCH_EXYNOS
 	bool "Samsung EXYNOS"
 	depends on ARCH_MULTI_V7
-	select ARCH_HAS_BANDGAP
 	select ARCH_HAS_HOLES_MEMORYMODEL
 	select ARCH_SUPPORTS_BIG_ENDIAN
 	select ARM_AMBA
@@ -108,6 +107,7 @@ config SOC_EXYNOS5420
 	default y
 	depends on ARCH_EXYNOS5
 
+<<<<<<< HEAD
 config SOC_EXYNOS5440
 	bool "SAMSUNG EXYNOS5440"
 	default y
@@ -119,6 +119,8 @@ config SOC_EXYNOS5440
 	help
 	  Enable EXYNOS5440 SoC support
 
+=======
+>>>>>>> linux-next/akpm-base
 config SOC_EXYNOS5800
 	bool "SAMSUNG EXYNOS5800"
 	default y

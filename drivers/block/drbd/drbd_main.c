@@ -2989,7 +2989,12 @@ static int __init drbd_init(void)
 		goto fail;
 
 	err = -ENOMEM;
+<<<<<<< HEAD
 	drbd_proc = proc_create_single("drbd", S_IFREG | 0444 , NULL, drbd_seq_show);
+=======
+	drbd_proc = proc_create_single("drbd", S_IFREG | 0444 , NULL,
+			drbd_seq_show);
+>>>>>>> linux-next/akpm-base
 	if (!drbd_proc)	{
 		pr_err("unable to register proc file\n");
 		goto fail;
