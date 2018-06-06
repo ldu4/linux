@@ -14,6 +14,7 @@
 #include <linux/pagemap.h>
 #include <linux/wait.h>
 #include <linux/atomic.h>
+#include <linux/cgroup.h>
 
 #ifdef CONFIG_BLOCK
 
@@ -200,13 +201,13 @@ void ll_rw_block(int, int, int, struct buffer_head * bh[]);
 int sync_dirty_buffer(struct buffer_head *bh);
 int __sync_dirty_buffer(struct buffer_head *bh, int op_flags);
 void write_dirty_buffer(struct buffer_head *bh, int op_flags);
+int submit_bh_blkcg_css(int op, int op_flags, struct buffer_head *bh,
+			struct cgroup_subsys_state *blkcg_css);
 int submit_bh(int, int, struct buffer_head *);
 void write_boundary_block(struct block_device *bdev,
 			sector_t bblock, unsigned blocksize);
 int bh_uptodate_or_lock(struct buffer_head *bh);
 int bh_submit_read(struct buffer_head *bh);
-loff_t page_cache_seek_hole_data(struct inode *inode, loff_t offset,
-				 loff_t length, int whence);
 
 extern int buffer_heads_over_limit;
 

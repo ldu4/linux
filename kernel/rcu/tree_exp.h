@@ -486,8 +486,14 @@ static void sync_rcu_exp_select_cpus(struct rcu_state *rsp,
 		rnp->rew.rew_func = func;
 		rnp->rew.rew_rsp = rsp;
 		if (!READ_ONCE(rcu_par_gp_wq) ||
+<<<<<<< HEAD
 		    rcu_scheduler_active != RCU_SCHEDULER_RUNNING) {
 			/* No workqueues yet. */
+=======
+		    rcu_scheduler_active != RCU_SCHEDULER_RUNNING ||
+		    rcu_is_last_leaf_node(rsp, rnp)) {
+			/* No workqueues yet or last leaf, do direct call. */
+>>>>>>> linux-next/akpm-base
 			sync_rcu_exp_select_node_cpus(&rnp->rew.rew_work);
 			continue;
 		}

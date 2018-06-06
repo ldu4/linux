@@ -163,6 +163,16 @@ then
 	print_warning Summary: $summary
 	cat $T.diags >> $file.diags
 fi
+<<<<<<< HEAD
+=======
+for i in $file.*.diags
+do
+	if test -f "$i"
+	then
+		cat $i >> $file.diags
+	fi
+done
+>>>>>>> linux-next/akpm-base
 if ! test -s $file.diags
 then
 	rm -f $file.diags

@@ -17,6 +17,7 @@
 #include <asm/set_memory.h>
 #include <asm/nospec-branch.h>
 
+<<<<<<< HEAD
 /*
  * Assembly code in arch/x86/net/bpf_jit.S
  */
@@ -26,6 +27,8 @@ extern u8 sk_load_byte_positive_offset[];
 extern u8 sk_load_word_negative_offset[], sk_load_half_negative_offset[];
 extern u8 sk_load_byte_negative_offset[];
 
+=======
+>>>>>>> linux-next/akpm-base
 static u8 *emit_code(u8 *ptr, u32 bytes, unsigned int len)
 {
 	if (len == 1)
@@ -107,9 +110,12 @@ static int bpf_size_to_x86_bytes(int bpf_size)
 #define X86_JLE 0x7E
 #define X86_JG  0x7F
 
+<<<<<<< HEAD
 #define CHOOSE_LOAD_FUNC(K, func) \
 	((int)K < 0 ? ((int)K >= SKF_LL_OFF ? func##_negative_offset : func) : func##_positive_offset)
 
+=======
+>>>>>>> linux-next/akpm-base
 /* Pick a register outside of BPF range for JIT internal work */
 #define AUX_REG (MAX_BPF_JIT_REG + 1)
 
@@ -120,8 +126,13 @@ static int bpf_size_to_x86_bytes(int bpf_size)
  * register in load/store instructions, it always needs an
  * extra byte of encoding and is callee saved.
  *
+<<<<<<< HEAD
  * R9  caches skb->len - skb->data_len
  * R10 caches skb->data, and used for blinding (if enabled)
+=======
+ * Also x86-64 register R9 is unused. x86-64 register R10 is
+ * used for blinding (if enabled).
+>>>>>>> linux-next/akpm-base
  */
 static const int reg2hex[] = {
 	[BPF_REG_0] = 0,  /* RAX */
@@ -196,19 +207,26 @@ static void jit_fill_hole(void *area, unsigned int size)
 
 struct jit_context {
 	int cleanup_addr; /* Epilogue code offset */
+<<<<<<< HEAD
 	bool seen_ld_abs;
 	bool seen_ax_reg;
+=======
+>>>>>>> linux-next/akpm-base
 };
 
 /* Maximum number of bytes emitted while JITing one eBPF insn */
 #define BPF_MAX_INSN_SIZE	128
 #define BPF_INSN_SAFETY		64
 
+<<<<<<< HEAD
 #define AUX_STACK_SPACE \
 	(32 /* Space for RBX, R13, R14, R15 */ + \
 	  8 /* Space for skb_copy_bits() buffer */)
+=======
+#define AUX_STACK_SPACE		40 /* Space for RBX, R13, R14, R15, tailcnt */
+>>>>>>> linux-next/akpm-base
 
-#define PROLOGUE_SIZE 37
+#define PROLOGUE_SIZE		37
 
 /*
  * Emit x86-64 prologue code for BPF program and check its size.
@@ -232,6 +250,7 @@ static void emit_prologue(u8 **pprog, u32 stack_depth, bool ebpf_from_cbpf)
 	/* sub rbp, AUX_STACK_SPACE */
 	EMIT4(0x48, 0x83, 0xED, AUX_STACK_SPACE);
 
+<<<<<<< HEAD
 	/* All classic BPF filters use R6(rbx) save it */
 
 	/* mov qword ptr [rbp+0],rbx */
@@ -246,6 +265,10 @@ static void emit_prologue(u8 **pprog, u32 stack_depth, bool ebpf_from_cbpf)
 	 * than synthetic ones. Therefore not worth adding complexity.
 	 */
 
+=======
+	/* mov qword ptr [rbp+0],rbx */
+	EMIT4(0x48, 0x89, 0x5D, 0);
+>>>>>>> linux-next/akpm-base
 	/* mov qword ptr [rbp+8],r13 */
 	EMIT4(0x4C, 0x89, 0x6D, 8);
 	/* mov qword ptr [rbp+16],r14 */
@@ -353,6 +376,7 @@ static void emit_bpf_tail_call(u8 **pprog)
 	*pprog = prog;
 }
 
+<<<<<<< HEAD
 
 static void emit_load_skb_data_hlen(u8 **pprog)
 {
@@ -374,6 +398,8 @@ static void emit_load_skb_data_hlen(u8 **pprog)
 	*pprog = prog;
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 static void emit_mov_imm32(u8 **pprog, bool sign_propagate,
 			   u32 dst_reg, const u32 imm32)
 {
@@ -462,8 +488,6 @@ static int do_jit(struct bpf_prog *bpf_prog, int *addrs, u8 *image,
 {
 	struct bpf_insn *insn = bpf_prog->insnsi;
 	int insn_cnt = bpf_prog->len;
-	bool seen_ld_abs = ctx->seen_ld_abs | (oldproglen == 0);
-	bool seen_ax_reg = ctx->seen_ax_reg | (oldproglen == 0);
 	bool seen_exit = false;
 	u8 temp[BPF_MAX_INSN_SIZE + BPF_INSN_SAFETY];
 	int i, cnt = 0;
@@ -473,9 +497,6 @@ static int do_jit(struct bpf_prog *bpf_prog, int *addrs, u8 *image,
 	emit_prologue(&prog, bpf_prog->aux->stack_depth,
 		      bpf_prog_was_classic(bpf_prog));
 
-	if (seen_ld_abs)
-		emit_load_skb_data_hlen(&prog);
-
 	for (i = 0; i < insn_cnt; i++, insn++) {
 		const s32 imm32 = insn->imm;
 		u32 dst_reg = insn->dst_reg;
@@ -483,12 +504,8 @@ static int do_jit(struct bpf_prog *bpf_prog, int *addrs, u8 *image,
 		u8 b2 = 0, b3 = 0;
 		s64 jmp_offset;
 		u8 jmp_cond;
-		bool reload_skb_data;
 		int ilen;
 		u8 *func;
-
-		if (dst_reg == BPF_REG_AX || src_reg == BPF_REG_AX)
-			ctx->seen_ax_reg = seen_ax_reg = true;
 
 		switch (insn->code) {
 			/* ALU */
@@ -916,6 +933,7 @@ xadd:			if (is_imm8(insn->off))
 		case BPF_JMP | BPF_CALL:
 			func = (u8 *) __bpf_call_base + imm32;
 			jmp_offset = func - (image + addrs[i]);
+<<<<<<< HEAD
 			if (seen_ld_abs) {
 				reload_skb_data = bpf_helper_changes_pkt_data(func);
 				if (reload_skb_data) {
@@ -931,21 +949,14 @@ xadd:			if (is_imm8(insn->off))
 					jmp_offset += 4;
 				}
 			}
+=======
+>>>>>>> linux-next/akpm-base
 			if (!imm32 || !is_simm32(jmp_offset)) {
 				pr_err("unsupported BPF func %d addr %p image %p\n",
 				       imm32, func, image);
 				return -EINVAL;
 			}
 			EMIT1_off32(0xE8, jmp_offset);
-			if (seen_ld_abs) {
-				if (reload_skb_data) {
-					EMIT1(0x5F); /* pop %rdi */
-					emit_load_skb_data_hlen(&prog);
-				} else {
-					EMIT2(0x41, 0x59); /* pop %r9 */
-					EMIT2(0x41, 0x5A); /* pop %r10 */
-				}
-			}
 			break;
 
 		case BPF_JMP | BPF_TAIL_CALL:
@@ -1080,6 +1091,7 @@ emit_jmp:
 			}
 			break;
 
+<<<<<<< HEAD
 		case BPF_LD | BPF_IND | BPF_W:
 			func = sk_load_word;
 			goto common_load;
@@ -1134,6 +1146,8 @@ common_load:
 			func = CHOOSE_LOAD_FUNC(imm32, sk_load_byte);
 			goto common_load;
 
+=======
+>>>>>>> linux-next/akpm-base
 		case BPF_JMP | BPF_EXIT:
 			if (seen_exit) {
 				jmp_offset = ctx->cleanup_addr - addrs[i];

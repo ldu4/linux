@@ -155,7 +155,11 @@ size_t _copy_from_iter_flushcache(void *addr, size_t bytes, struct iov_iter *i);
 #endif
 
 #ifdef CONFIG_ARCH_HAS_UACCESS_MCSAFE
+<<<<<<< HEAD
 size_t _copy_to_iter_mcsafe(void *addr, size_t bytes, struct iov_iter *i);
+=======
+size_t _copy_to_iter_mcsafe(const void *addr, size_t bytes, struct iov_iter *i);
+>>>>>>> linux-next/akpm-base
 #else
 #define _copy_to_iter_mcsafe _copy_to_iter
 #endif

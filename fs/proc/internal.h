@@ -48,6 +48,7 @@ struct proc_dir_entry {
 		const struct seq_operations *seq_ops;
 		int (*single_show)(struct seq_file *, void *);
 	};
+	proc_write_t write;
 	void *data;
 	unsigned int state_size;
 	unsigned int low_ino;
@@ -136,6 +137,8 @@ unsigned name_to_int(const struct qstr *qstr);
  */
 extern const struct file_operations proc_tid_children_operations;
 
+extern void proc_task_name(struct seq_file *m, struct task_struct *p,
+			   bool escape);
 extern int proc_tid_stat(struct seq_file *, struct pid_namespace *,
 			 struct pid *, struct task_struct *);
 extern int proc_tgid_stat(struct seq_file *, struct pid_namespace *,
@@ -187,6 +190,7 @@ static inline bool is_empty_pde(const struct proc_dir_entry *pde)
 {
 	return S_ISDIR(pde->mode) && !pde->proc_iops;
 }
+extern ssize_t proc_simple_write(struct file *, const char __user *, size_t, loff_t *);
 
 /*
  * inode.c

@@ -163,6 +163,12 @@ __do_user_fault(struct task_struct *tsk, unsigned long addr,
 {
 	struct siginfo si;
 
+<<<<<<< HEAD
+=======
+	if (addr > TASK_SIZE)
+		harden_branch_predictor();
+
+>>>>>>> linux-next/akpm-base
 	clear_siginfo(&si);
 
 #ifdef CONFIG_DEBUG_USER

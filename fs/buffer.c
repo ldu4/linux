@@ -3026,8 +3026,8 @@ void guard_bio_eod(int op, struct bio *bio)
 	}
 }
 
-static int submit_bh_wbc(int op, int op_flags, struct buffer_head *bh,
-			 enum rw_hint write_hint, struct writeback_control *wbc)
+struct bio *create_bh_bio(int op, int op_flags, struct buffer_head *bh,
+                          enum rw_hint write_hint)
 {
 	struct bio *bio;
 
@@ -3049,11 +3049,6 @@ static int submit_bh_wbc(int op, int op_flags, struct buffer_head *bh,
 	 */
 	bio = bio_alloc(GFP_NOIO, 1);
 
-	if (wbc) {
-		wbc_init_bio(wbc, bio);
-		wbc_account_io(wbc, bh->b_page, bh->b_size);
-	}
-
 	bio->bi_iter.bi_sector = bh->b_blocknr * (bh->b_size >> 9);
 	bio_set_dev(bio, bh->b_bdev);
 	bio->bi_write_hint = write_hint;
@@ -3073,13 +3068,44 @@ static int submit_bh_wbc(int op, int op_flags, struct buffer_head *bh,
 		op_flags |= REQ_PRIO;
 	bio_set_op_attrs(bio, op, op_flags);
 
+	return bio;
+}
+
+static int submit_bh_wbc(int op, int op_flags, struct buffer_head *bh,
+			 enum rw_hint write_hint, struct writeback_control *wbc)
+{
+	struct bio *bio;
+
+	bio = create_bh_bio(op, op_flags, bh, write_hint);
+
+	if (wbc) {
+		wbc_init_bio(wbc, bio);
+		wbc_account_io(wbc, bh->b_page, bh->b_size);
+	}
+
 	submit_bio(bio);
 	return 0;
 }
 
+int submit_bh_blkcg_css(int op, int op_flags, struct buffer_head *bh,
+			struct cgroup_subsys_state *blkcg_css)
+{
+	struct bio *bio;
+
+	bio = create_bh_bio(op, op_flags, bh, 0);
+	bio_associate_blkcg(bio, blkcg_css);
+	submit_bio(bio);
+	return 0;
+}
+EXPORT_SYMBOL(submit_bh_blkcg_css);
+
 int submit_bh(int op, int op_flags, struct buffer_head *bh)
 {
-	return submit_bh_wbc(op, op_flags, bh, 0, NULL);
+	struct bio *bio;
+
+	bio = create_bh_bio(op, op_flags, bh, 0);
+	submit_bio(bio);
+	return 0;
 }
 EXPORT_SYMBOL(submit_bh);
 
@@ -3426,120 +3452,6 @@ int bh_submit_read(struct buffer_head *bh)
 	return -EIO;
 }
 EXPORT_SYMBOL(bh_submit_read);
-
-/*
- * Seek for SEEK_DATA / SEEK_HOLE within @page, starting at @lastoff.
- *
- * Returns the offset within the file on success, and -ENOENT otherwise.
- */
-static loff_t
-page_seek_hole_data(struct page *page, loff_t lastoff, int whence)
-{
-	loff_t offset = page_offset(page);
-	struct buffer_head *bh, *head;
-	bool seek_data = whence == SEEK_DATA;
-
-	if (lastoff < offset)
-		lastoff = offset;
-
-	bh = head = page_buffers(page);
-	do {
-		offset += bh->b_size;
-		if (lastoff >= offset)
-			continue;
-
-		/*
-		 * Unwritten extents that have data in the page cache covering
-		 * them can be identified by the BH_Unwritten state flag.
-		 * Pages with multiple buffers might have a mix of holes, data
-		 * and unwritten extents - any buffer with valid data in it
-		 * should have BH_Uptodate flag set on it.
-		 */
-
-		if ((buffer_unwritten(bh) || buffer_uptodate(bh)) == seek_data)
-			return lastoff;
-
-		lastoff = offset;
-	} while ((bh = bh->b_this_page) != head);
-	return -ENOENT;
-}
-
-/*
- * Seek for SEEK_DATA / SEEK_HOLE in the page cache.
- *
- * Within unwritten extents, the page cache determines which parts are holes
- * and which are data: unwritten and uptodate buffer heads count as data;
- * everything else counts as a hole.
- *
- * Returns the resulting offset on successs, and -ENOENT otherwise.
- */
-loff_t
-page_cache_seek_hole_data(struct inode *inode, loff_t offset, loff_t length,
-			  int whence)
-{
-	pgoff_t index = offset >> PAGE_SHIFT;
-	pgoff_t end = DIV_ROUND_UP(offset + length, PAGE_SIZE);
-	loff_t lastoff = offset;
-	struct pagevec pvec;
-
-	if (length <= 0)
-		return -ENOENT;
-
-	pagevec_init(&pvec);
-
-	do {
-		unsigned nr_pages, i;
-
-		nr_pages = pagevec_lookup_range(&pvec, inode->i_mapping, &index,
-						end - 1);
-		if (nr_pages == 0)
-			break;
-
-		for (i = 0; i < nr_pages; i++) {
-			struct page *page = pvec.pages[i];
-
-			/*
-			 * At this point, the page may be truncated or
-			 * invalidated (changing page->mapping to NULL), or
-			 * even swizzled back from swapper_space to tmpfs file
-			 * mapping.  However, page->index will not change
-			 * because we have a reference on the page.
-                         *
-			 * If current page offset is beyond where we've ended,
-			 * we've found a hole.
-                         */
-			if (whence == SEEK_HOLE &&
-			    lastoff < page_offset(page))
-				goto check_range;
-
-			lock_page(page);
-			if (likely(page->mapping == inode->i_mapping) &&
-			    page_has_buffers(page)) {
-				lastoff = page_seek_hole_data(page, lastoff, whence);
-				if (lastoff >= 0) {
-					unlock_page(page);
-					goto check_range;
-				}
-			}
-			unlock_page(page);
-			lastoff = page_offset(page) + PAGE_SIZE;
-		}
-		pagevec_release(&pvec);
-	} while (index < end);
-
-	/* When no page at lastoff and we are not done, we found a hole. */
-	if (whence != SEEK_HOLE)
-		goto not_found;
-
-check_range:
-	if (lastoff < offset + length)
-		goto out;
-not_found:
-	lastoff = -ENOENT;
-out:
-	pagevec_release(&pvec);
-	return lastoff;
-}
 
 void __init buffer_init(void)
 {

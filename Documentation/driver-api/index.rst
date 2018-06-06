@@ -36,6 +36,7 @@ available subsections can be seen below.
    edac
    scsi
    libata
+   target
    mtdnand
    miscellaneous
    w1
@@ -51,6 +52,7 @@ available subsections can be seen below.
    dmaengine/index
    slimbus
    soundwire/index
+   fpga/index
 
 .. only::  subproject and html
 

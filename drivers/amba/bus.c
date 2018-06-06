@@ -102,8 +102,8 @@ static ssize_t driver_override_store(struct device *_dev,
 	if (strlen(driver_override)) {
 		dev->driver_override = driver_override;
 	} else {
-	       kfree(driver_override);
-	       dev->driver_override = NULL;
+		kfree(driver_override);
+		dev->driver_override = NULL;
 	}
 	device_unlock(_dev);
 
@@ -205,6 +205,7 @@ struct bus_type amba_bustype = {
 	.dma_configure	= platform_dma_configure,
 	.pm		= &amba_pm,
 };
+EXPORT_SYMBOL_GPL(amba_bustype);
 
 static int __init amba_init(void)
 {
