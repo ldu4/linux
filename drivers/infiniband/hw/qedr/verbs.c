@@ -414,7 +414,7 @@ int qedr_mmap(struct ib_ucontext *context, struct vm_area_struct *vma)
 
 	if ((vma->vm_start & (PAGE_SIZE - 1)) || (len & (PAGE_SIZE - 1))) {
 		DP_ERR(dev,
-		       "failed mmap, adrresses must be page aligned: start=0x%pK, end=0x%pK\n",
+		       "failed mmap, addresses must be page aligned: start=0x%pK, end=0x%pK\n",
 		       (void *)vma->vm_start, (void *)vma->vm_end);
 		return -EINVAL;
 	}
@@ -2577,7 +2577,7 @@ static int qedr_set_page(struct ib_mr *ibmr, u64 addr)
 	u32 pbes_in_page;
 
 	if (unlikely(mr->npages == mr->info.pbl_info.num_pbes)) {
-		DP_ERR(mr->dev, "qedr_set_page failes when %d\n", mr->npages);
+		DP_ERR(mr->dev, "qedr_set_page fails when %d\n", mr->npages);
 		return -ENOMEM;
 	}
 
@@ -3276,7 +3276,7 @@ int qedr_post_recv(struct ib_qp *ibqp, struct ib_recv_wr *wr,
 				SET_FIELD(flags, RDMA_RQ_SGE_NUM_SGES,
 					  wr->num_sge);
 
-			SET_FIELD(flags, RDMA_RQ_SGE_L_KEY,
+			SET_FIELD(flags, RDMA_RQ_SGE_L_KEY_LO,
 				  wr->sg_list[i].lkey);
 
 			RQ_SGE_SET(rqe, wr->sg_list[i].addr,
@@ -3295,7 +3295,7 @@ int qedr_post_recv(struct ib_qp *ibqp, struct ib_recv_wr *wr,
 			/* First one must include the number
 			 * of SGE in the list
 			 */
-			SET_FIELD(flags, RDMA_RQ_SGE_L_KEY, 0);
+			SET_FIELD(flags, RDMA_RQ_SGE_L_KEY_LO, 0);
 			SET_FIELD(flags, RDMA_RQ_SGE_NUM_SGES, 1);
 
 			RQ_SGE_SET(rqe, 0, 0, flags);
