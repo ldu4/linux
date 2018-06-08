@@ -1028,20 +1028,9 @@ static vm_fault_t dax_load_hole(struct address_space *mapping, void *entry,
 	}
 
 	pfn = page_to_pfn_t(zero_page);
-<<<<<<< HEAD
-	entry2 = dax_insert_mapping_entry(mapping, vmf, entry, pfn,
-			RADIX_DAX_ZERO_PAGE, false);
-	if (IS_ERR(entry2)) {
-		ret = VM_FAULT_SIGBUS;
-		goto out;
-	}
-
-	ret = vmf_insert_mixed(vmf->vma, vaddr, pfn);
-=======
 	dax_insert_mapping_entry(mapping, vmf, entry, pfn, RADIX_DAX_ZERO_PAGE,
 			false);
 	vm_insert_mixed(vmf->vma, vaddr, pfn);
->>>>>>> linux-next/akpm-base
 out:
 	trace_dax_load_hole(inode, vmf, ret);
 	return ret;
