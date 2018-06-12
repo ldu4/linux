@@ -251,8 +251,6 @@ void cpu_clear_disr(const struct arm64_cpu_capabilities *__unused);
 extern unsigned long __ro_after_init signal_minsigstksz; /* sigframe size */
 extern void __init minsigstksz_setup(void);
 
-<<<<<<< HEAD
-=======
 /*
  * Not at the top of the file due to a direct #include cycle between
  * <asm/fpsimd.h> and <asm/processor.h>.  Deferring this #include
@@ -264,7 +262,6 @@ extern void __init minsigstksz_setup(void);
  */
 #include <asm/fpsimd.h>
 
->>>>>>> linux-next/akpm-base
 /* Userspace interface for PR_SVE_{SET,GET}_VL prctl()s: */
 #define SVE_SET_VL(arg)	sve_set_current_vl(arg)
 #define SVE_GET_VL()	sve_get_current_vl()

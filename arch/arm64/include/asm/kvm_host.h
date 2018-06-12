@@ -220,13 +220,8 @@ struct kvm_vcpu_arch {
 	/* State of various workarounds, see kvm_asm.h for bit assignment */
 	u64 workaround_flags;
 
-<<<<<<< HEAD
-	/* Guest debug state */
-	u64 debug_flags;
-=======
 	/* Miscellaneous vcpu state flags */
 	u64 flags;
->>>>>>> linux-next/akpm-base
 
 	/*
 	 * We maintain more than a single set of debug registers to support

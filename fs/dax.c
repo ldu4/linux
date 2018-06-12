@@ -1043,11 +1043,7 @@ static vm_fault_t dax_load_hole(struct address_space *mapping, void *entry,
 	pfn = page_to_pfn_t(zero_page);
 	dax_insert_mapping_entry(mapping, vmf, entry, pfn, RADIX_DAX_ZERO_PAGE,
 			false);
-<<<<<<< HEAD
 	ret = vmf_insert_mixed(vmf->vma, vaddr, pfn);
-=======
-	vm_insert_mixed(vmf->vma, vaddr, pfn);
->>>>>>> linux-next/akpm-base
 out:
 	trace_dax_load_hole(inode, vmf, ret);
 	return ret;
@@ -1178,19 +1174,9 @@ dax_iomap_actor(struct inode *inode, loff_t pos, loff_t length, void *data,
 		else
 			xfer = dax_copy_to_iter(dax_dev, pgoff, kaddr,
 					map_len, iter);
-<<<<<<< HEAD
-
 		pos += xfer;
 		length -= xfer;
 		done += xfer;
-
-=======
-
-		pos += xfer;
-		length -= xfer;
-		done += xfer;
-
->>>>>>> linux-next/akpm-base
 		if (xfer == 0)
 			ret = -EFAULT;
 		if (xfer < map_len)

@@ -262,11 +262,8 @@ static const struct file_operations fops = {
 #endif
 };
 
-<<<<<<< HEAD
-=======
 static void __remove(struct device *dev) { }
 
->>>>>>> linux-next/akpm-base
 static void cros_ec_sensors_register(struct cros_ec_dev *ec)
 {
 	/*

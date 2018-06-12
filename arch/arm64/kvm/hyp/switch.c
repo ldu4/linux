@@ -512,11 +512,6 @@ int kvm_vcpu_run_vhe(struct kvm_vcpu *vcpu)
 	} while (fixup_guest_exit(vcpu, &exit_code));
 
 	__set_host_arch_workaround_state(vcpu);
-<<<<<<< HEAD
-
-	fp_enabled = fpsimd_enabled_vhe();
-=======
->>>>>>> linux-next/akpm-base
 
 	sysreg_save_guest_state_vhe(guest_ctxt);
 
@@ -571,11 +566,6 @@ int __hyp_text __kvm_vcpu_run_nvhe(struct kvm_vcpu *vcpu)
 	} while (fixup_guest_exit(vcpu, &exit_code));
 
 	__set_host_arch_workaround_state(vcpu);
-<<<<<<< HEAD
-
-	fp_enabled = __fpsimd_enabled_nvhe();
-=======
->>>>>>> linux-next/akpm-base
 
 	__sysreg_save_state_nvhe(guest_ctxt);
 	__sysreg32_save_state(vcpu);

@@ -1119,9 +1119,6 @@ static u32 _emit_load(unsigned int dry_run, u8 buf[],
 				peri);
 		}
 		break;
-<<<<<<< HEAD
-
-=======
 
 	default:
 		/* this code should be unreachable */
@@ -1157,7 +1154,6 @@ static inline u32 _emit_store(unsigned int dry_run, u8 buf[],
 		}
 		break;
 
->>>>>>> linux-next/akpm-base
 	default:
 		/* this code should be unreachable */
 		WARN_ON(1);
@@ -1167,43 +1163,6 @@ static inline u32 _emit_store(unsigned int dry_run, u8 buf[],
 	return off;
 }
 
-<<<<<<< HEAD
-static inline u32 _emit_store(unsigned int dry_run, u8 buf[],
-	enum pl330_cond cond, enum dma_transfer_direction direction,
-	u8 peri)
-{
-	int off = 0;
-
-	switch (direction) {
-	case DMA_MEM_TO_MEM:
-		/* fall through */
-	case DMA_DEV_TO_MEM:
-		off += _emit_ST(dry_run, &buf[off], cond);
-		break;
-
-	case DMA_MEM_TO_DEV:
-		if (cond == ALWAYS) {
-			off += _emit_STP(dry_run, &buf[off], SINGLE,
-				peri);
-			off += _emit_STP(dry_run, &buf[off], BURST,
-				peri);
-		} else {
-			off += _emit_STP(dry_run, &buf[off], cond,
-				peri);
-		}
-		break;
-
-	default:
-		/* this code should be unreachable */
-		WARN_ON(1);
-		break;
-	}
-
-	return off;
-}
-
-=======
->>>>>>> linux-next/akpm-base
 static inline int _ldst_peripheral(struct pl330_dmac *pl330,
 				 unsigned dry_run, u8 buf[],
 				 const struct _xfer_spec *pxs, int cyc,
@@ -1249,7 +1208,6 @@ static int _bursts(struct pl330_dmac *pl330, unsigned dry_run, u8 buf[],
 		off += _ldst_memtomem(dry_run, &buf[off], pxs, cyc);
 		break;
 
-<<<<<<< HEAD
 	default:
 		/* this code should be unreachable */
 		WARN_ON(1);
@@ -1295,53 +1253,6 @@ static int _dregs(struct pl330_dmac *pl330, unsigned int dry_run, u8 buf[],
 	default:
 		/* this code should be unreachable */
 		WARN_ON(1);
-=======
-	default:
-		/* this code should be unreachable */
-		WARN_ON(1);
-		break;
-	}
-
-	return off;
-}
-
-/*
- * transfer dregs with single transfers to peripheral, or a reduced size burst
- * for mem-to-mem.
- */
-static int _dregs(struct pl330_dmac *pl330, unsigned int dry_run, u8 buf[],
-		const struct _xfer_spec *pxs, int transfer_length)
-{
-	int off = 0;
-	int dregs_ccr;
-
-	if (transfer_length == 0)
-		return off;
-
-	switch (pxs->desc->rqtype) {
-	case DMA_MEM_TO_DEV:
-		/* fall through */
-	case DMA_DEV_TO_MEM:
-		off += _ldst_peripheral(pl330, dry_run, &buf[off], pxs,
-			transfer_length, SINGLE);
-		break;
-
-	case DMA_MEM_TO_MEM:
-		dregs_ccr = pxs->ccr;
-		dregs_ccr &= ~((0xf << CC_SRCBRSTLEN_SHFT) |
-			(0xf << CC_DSTBRSTLEN_SHFT));
-		dregs_ccr |= (((transfer_length - 1) & 0xf) <<
-			CC_SRCBRSTLEN_SHFT);
-		dregs_ccr |= (((transfer_length - 1) & 0xf) <<
-			CC_DSTBRSTLEN_SHFT);
-		off += _emit_MOV(dry_run, &buf[off], CCR, dregs_ccr);
-		off += _ldst_memtomem(dry_run, &buf[off], pxs, 1);
-		break;
-
-	default:
-		/* this code should be unreachable */
-		WARN_ON(1);
->>>>>>> linux-next/akpm-base
 		break;
 	}
 

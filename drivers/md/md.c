@@ -5717,11 +5717,8 @@ abort:
 		mempool_destroy(mddev->flush_pool);
 		mddev->flush_pool = NULL;
 	}
-<<<<<<< HEAD
-=======
 	bioset_exit(&mddev->bio_set);
 	bioset_exit(&mddev->sync_set);
->>>>>>> linux-next/akpm-base
 
 	return err;
 }

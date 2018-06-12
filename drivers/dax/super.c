@@ -145,20 +145,11 @@ bool __bdev_dax_supported(struct block_device *bdev, int blocksize)
 		put_dev_pagemap(pgmap);
 	}
 
-<<<<<<< HEAD
-	if (!dax_enabled) {
-		pr_debug("%s: error: dax support not enabled\n",
-				bdevname(bdev, buf));
-		return false;
-	}
-	return true;
-=======
 	if (!dax_enabled)
 		pr_debug("%s: error: dax support not enabled\n",
 				bdevname(bdev, buf));
 
 	return dax_enabled;
->>>>>>> linux-next/akpm-base
 }
 EXPORT_SYMBOL_GPL(__bdev_dax_supported);
 #endif

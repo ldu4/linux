@@ -36,10 +36,7 @@
 #include <linux/delayed_call.h>
 #include <linux/uuid.h>
 #include <linux/errseq.h>
-<<<<<<< HEAD
-=======
 #include <linux/fsnotify_obj.h>
->>>>>>> linux-next/akpm-base
 #include <linux/ioprio.h>
 
 #include <asm/byteorder.h>
