@@ -834,6 +834,18 @@ static void flush_memcg_workqueue(struct kmem_cache *s)
 	s->memcg_params.dying = true;
 	mutex_unlock(&slab_mutex);
 
+	/*
+	 * SLUB deactivates the kmem_caches through call_rcu_sched. Make
+	 * sure all registered rcu callbacks have been invoked.
+	 */
+	if (IS_ENABLED(CONFIG_SLUB))
+		rcu_barrier_sched();
+
+	/*
+	 * SLAB and SLUB create memcg kmem_caches through workqueue and SLUB
+	 * deactivates the memcg kmem_caches through workqueue. Make sure all
+	 * previous workitems on workqueue are processed.
+	 */
 	flush_workqueue(memcg_kmem_cache_wq);
 }
 #else
