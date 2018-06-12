@@ -160,8 +160,9 @@ static inline int __fat_get_block(struct inode *inode, sector_t iblock,
 		return err;
 	if (!phys) {
 		fat_fs_error(sb,
-			     "invalid FAT chain (i_pos %lld, last_block %ld)",
-			     MSDOS_I(inode)->i_pos, last_block);
+			     "invalid FAT chain (i_pos %lld, last_block %llu)",
+			     MSDOS_I(inode)->i_pos,
+			     (unsigned long long)last_block);
 		return -EIO;
 	}
 
