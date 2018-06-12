@@ -1497,11 +1497,19 @@ static int __gup_device_huge_pud(pud_t orig, pud_t *pudp, unsigned long addr,
 {
 	unsigned long fault_pfn;
 	int nr_start = *nr;
+<<<<<<< HEAD
 
 	fault_pfn = pud_pfn(orig) + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
 	if (!__gup_device_huge(fault_pfn, addr, end, pages, nr))
 		return 0;
 
+=======
+
+	fault_pfn = pud_pfn(orig) + ((addr & ~PUD_MASK) >> PAGE_SHIFT);
+	if (!__gup_device_huge(fault_pfn, addr, end, pages, nr))
+		return 0;
+
+>>>>>>> linux-next/akpm-base
 	if (unlikely(pud_val(orig) != pud_val(*pudp))) {
 		undo_dev_pagemap(nr, nr_start, pages);
 		return 0;

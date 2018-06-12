@@ -1419,6 +1419,7 @@ M:	Shawn Guo <shawnguo@kernel.org>
 M:	Sascha Hauer <s.hauer@pengutronix.de>
 R:	Pengutronix Kernel Team <kernel@pengutronix.de>
 R:	Fabio Estevam <fabio.estevam@nxp.com>
+R:	NXP Linux Team <linux-imx@nxp.com>
 L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
 S:	Maintained
 T:	git git://git.kernel.org/pub/scm/linux/kernel/git/shawnguo/linux.git
@@ -1829,7 +1830,7 @@ F:	drivers/spi/spi-qup.c
 F:	drivers/tty/serial/msm_serial.c
 F:	drivers/*/pm8???-*
 F:	drivers/mfd/ssbi.c
-F:	drivers/firmware/qcom_scm.c
+F:	drivers/firmware/qcom_scm*
 T:	git git://git.kernel.org/pub/scm/linux/kernel/git/agross/linux.git
 
 ARM/RADISYS ENP2611 MACHINE SUPPORT
@@ -5952,14 +5953,14 @@ GENERIC GPIO I2C DRIVER
 M:	Haavard Skinnemoen <hskinnemoen@gmail.com>
 S:	Supported
 F:	drivers/i2c/busses/i2c-gpio.c
-F:	include/linux/i2c-gpio.h
+F:	include/linux/platform_data/i2c-gpio.h
 
 GENERIC GPIO I2C MULTIPLEXER DRIVER
 M:	Peter Korsgaard <peter.korsgaard@barco.com>
 L:	linux-i2c@vger.kernel.org
 S:	Supported
 F:	drivers/i2c/muxes/i2c-mux-gpio.c
-F:	include/linux/i2c-mux-gpio.h
+F:	include/linux/platform_data/i2c-mux-gpio.h
 F:	Documentation/i2c/muxes/i2c-mux-gpio
 
 GENERIC HDLC (WAN) DRIVERS
@@ -10389,7 +10390,7 @@ F:	arch/arm/mach-omap1/
 F:	arch/arm/plat-omap/
 F:	arch/arm/configs/omap1_defconfig
 F:	drivers/i2c/busses/i2c-omap.c
-F:	include/linux/i2c-omap.h
+F:	include/linux/platform_data/i2c-omap.h
 
 OMAP2+ SUPPORT
 M:	Tony Lindgren <tony@atomide.com>
@@ -10421,7 +10422,7 @@ F:	drivers/regulator/tps65218-regulator.c
 F:	drivers/regulator/tps65910-regulator.c
 F:	drivers/regulator/twl-regulator.c
 F:	drivers/regulator/twl6030-regulator.c
-F:	include/linux/i2c-omap.h
+F:	include/linux/platform_data/i2c-omap.h
 
 ONION OMEGA2+ BOARD
 M:	Harvey Hunt <harveyhuntnexus@gmail.com>

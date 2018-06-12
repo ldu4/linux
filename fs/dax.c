@@ -319,18 +319,27 @@ static unsigned long dax_radix_end_pfn(void *entry)
 	for (pfn = dax_radix_pfn(entry); \
 			pfn < dax_radix_end_pfn(entry); pfn++)
 
-static void dax_associate_entry(void *entry, struct address_space *mapping)
+/*
+ * TODO: for reflink+dax we need a way to associate a single page with
+ * multiple address_space instances at different linear_page_index()
+ * offsets.
+ */
+static void dax_associate_entry(void *entry, struct address_space *mapping,
+		struct vm_area_struct *vma, unsigned long address)
 {
-	unsigned long pfn;
+	unsigned long size = dax_entry_size(entry), pfn, index;
+	int i = 0;
 
 	if (IS_ENABLED(CONFIG_FS_DAX_LIMITED))
 		return;
 
+	index = linear_page_index(vma, address & ~(size - 1));
 	for_each_mapped_pfn(entry, pfn) {
 		struct page *page = pfn_to_page(pfn);
 
 		WARN_ON_ONCE(page->mapping);
 		page->mapping = mapping;
+		page->index = index + i++;
 	}
 }
 
@@ -348,7 +357,21 @@ static void dax_disassociate_entry(void *entry, struct address_space *mapping,
 		WARN_ON_ONCE(trunc && page_ref_count(page) > 1);
 		WARN_ON_ONCE(page->mapping && page->mapping != mapping);
 		page->mapping = NULL;
+		page->index = 0;
 	}
+}
+
+static struct page *dax_busy_page(void *entry)
+{
+	unsigned long pfn;
+
+	for_each_mapped_pfn(entry, pfn) {
+		struct page *page = pfn_to_page(pfn);
+
+		if (page_ref_count(page) > 1)
+			return page;
+	}
+	return NULL;
 }
 
 static struct page *dax_busy_page(void *entry)
@@ -701,7 +724,7 @@ static void *dax_insert_mapping_entry(struct address_space *mapping,
 	new_entry = dax_radix_locked_entry(pfn, flags);
 	if (dax_entry_size(entry) != dax_entry_size(new_entry)) {
 		dax_disassociate_entry(entry, mapping, false);
-		dax_associate_entry(new_entry, mapping);
+		dax_associate_entry(new_entry, mapping, vmf->vma, vmf->address);
 	}
 
 	if (dax_is_zero_entry(entry) || dax_is_empty_entry(entry)) {
@@ -1020,7 +1043,11 @@ static vm_fault_t dax_load_hole(struct address_space *mapping, void *entry,
 	pfn = page_to_pfn_t(zero_page);
 	dax_insert_mapping_entry(mapping, vmf, entry, pfn, RADIX_DAX_ZERO_PAGE,
 			false);
+<<<<<<< HEAD
 	ret = vmf_insert_mixed(vmf->vma, vaddr, pfn);
+=======
+	vm_insert_mixed(vmf->vma, vaddr, pfn);
+>>>>>>> linux-next/akpm-base
 out:
 	trace_dax_load_hole(inode, vmf, ret);
 	return ret;
@@ -1151,11 +1178,19 @@ dax_iomap_actor(struct inode *inode, loff_t pos, loff_t length, void *data,
 		else
 			xfer = dax_copy_to_iter(dax_dev, pgoff, kaddr,
 					map_len, iter);
+<<<<<<< HEAD
 
 		pos += xfer;
 		length -= xfer;
 		done += xfer;
 
+=======
+
+		pos += xfer;
+		length -= xfer;
+		done += xfer;
+
+>>>>>>> linux-next/akpm-base
 		if (xfer == 0)
 			ret = -EFAULT;
 		if (xfer < map_len)

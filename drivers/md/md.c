@@ -5536,6 +5536,22 @@ int md_run(struct mddev *mddev)
 			goto abort;
 		}
 	}
+	if (mddev->flush_pool == NULL) {
+		mddev->flush_pool = mempool_create(NR_FLUSH_INFOS, flush_info_alloc,
+						flush_info_free, mddev);
+		if (!mddev->flush_pool) {
+			err = -ENOMEM;
+			goto abort;
+		}
+	}
+	if (mddev->flush_bio_pool == NULL) {
+		mddev->flush_bio_pool = mempool_create(NR_FLUSH_BIOS, flush_bio_alloc,
+						flush_bio_free, mddev);
+		if (!mddev->flush_bio_pool) {
+			err = -ENOMEM;
+			goto abort;
+		}
+	}
 
 	spin_lock(&pers_lock);
 	pers = find_pers(mddev->level, mddev->clevel);
@@ -5701,6 +5717,11 @@ abort:
 		mempool_destroy(mddev->flush_pool);
 		mddev->flush_pool = NULL;
 	}
+<<<<<<< HEAD
+=======
+	bioset_exit(&mddev->bio_set);
+	bioset_exit(&mddev->sync_set);
+>>>>>>> linux-next/akpm-base
 
 	return err;
 }
