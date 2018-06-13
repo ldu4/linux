@@ -2912,7 +2912,11 @@ static noinline void kvmppc_run_core(struct kvmppc_vcore *vc)
 
 	srcu_idx = srcu_read_lock(&vc->kvm->srcu);
 
+	this_cpu_disable_ftrace();
+
 	trap = __kvmppc_vcore_entry();
+
+	this_cpu_enable_ftrace();
 
 	srcu_read_unlock(&vc->kvm->srcu, srcu_idx);
 
@@ -3951,8 +3955,7 @@ static int kvmppc_core_init_vm_hv(struct kvm *kvm)
 	 */
 	snprintf(buf, sizeof(buf), "vm%d", current->pid);
 	kvm->arch.debugfs_dir = debugfs_create_dir(buf, kvm_debugfs_dir);
-	if (!IS_ERR_OR_NULL(kvm->arch.debugfs_dir))
-		kvmppc_mmu_debugfs_init(kvm);
+	kvmppc_mmu_debugfs_init(kvm);
 
 	return 0;
 }
