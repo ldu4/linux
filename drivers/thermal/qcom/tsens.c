@@ -140,8 +140,12 @@ static int tsens_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
+<<<<<<< HEAD
 	tmdev = devm_kzalloc(dev,
 			     struct_size(tmdev, sensor, num_sensors),
+=======
+	tmdev = devm_kzalloc(dev, struct_size(tmdev, sensor, num_sensors),
+>>>>>>> linux-next/akpm-base
 			     GFP_KERNEL);
 	if (!tmdev)
 		return -ENOMEM;
