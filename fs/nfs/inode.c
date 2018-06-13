@@ -694,11 +694,7 @@ void nfs_setattr_update_inode(struct inode *inode, struct iattr *attr,
 		if ((attr->ia_valid & ATTR_GID) != 0)
 			inode->i_gid = attr->ia_gid;
 		if (fattr->valid & NFS_ATTR_FATTR_CTIME)
-<<<<<<< HEAD
-			inode->i_ctime = fattr->ctime;
-=======
 			inode->i_ctime = timespec_to_timespec64(fattr->ctime);
->>>>>>> linux-next/akpm-base
 		else
 			nfs_set_cache_invalid(inode, NFS_INO_INVALID_CHANGE
 					| NFS_INO_INVALID_CTIME);
@@ -709,22 +705,14 @@ void nfs_setattr_update_inode(struct inode *inode, struct iattr *attr,
 		NFS_I(inode)->cache_validity &= ~(NFS_INO_INVALID_ATIME
 				| NFS_INO_INVALID_CTIME);
 		if (fattr->valid & NFS_ATTR_FATTR_ATIME)
-<<<<<<< HEAD
-			inode->i_atime = fattr->atime;
-=======
 			inode->i_atime = timespec_to_timespec64(fattr->atime);
->>>>>>> linux-next/akpm-base
 		else if (attr->ia_valid & ATTR_ATIME_SET)
 			inode->i_atime = attr->ia_atime;
 		else
 			nfs_set_cache_invalid(inode, NFS_INO_INVALID_ATIME);
 
 		if (fattr->valid & NFS_ATTR_FATTR_CTIME)
-<<<<<<< HEAD
-			inode->i_ctime = fattr->ctime;
-=======
 			inode->i_ctime = timespec_to_timespec64(fattr->ctime);
->>>>>>> linux-next/akpm-base
 		else
 			nfs_set_cache_invalid(inode, NFS_INO_INVALID_CHANGE
 					| NFS_INO_INVALID_CTIME);
@@ -733,22 +721,14 @@ void nfs_setattr_update_inode(struct inode *inode, struct iattr *attr,
 		NFS_I(inode)->cache_validity &= ~(NFS_INO_INVALID_MTIME
 				| NFS_INO_INVALID_CTIME);
 		if (fattr->valid & NFS_ATTR_FATTR_MTIME)
-<<<<<<< HEAD
-			inode->i_mtime = fattr->mtime;
-=======
 			inode->i_mtime = timespec_to_timespec64(fattr->mtime);
->>>>>>> linux-next/akpm-base
 		else if (attr->ia_valid & ATTR_MTIME_SET)
 			inode->i_mtime = attr->ia_mtime;
 		else
 			nfs_set_cache_invalid(inode, NFS_INO_INVALID_MTIME);
 
 		if (fattr->valid & NFS_ATTR_FATTR_CTIME)
-<<<<<<< HEAD
-			inode->i_ctime = fattr->ctime;
-=======
 			inode->i_ctime = timespec_to_timespec64(fattr->ctime);
->>>>>>> linux-next/akpm-base
 		else
 			nfs_set_cache_invalid(inode, NFS_INO_INVALID_CHANGE
 					| NFS_INO_INVALID_CTIME);
@@ -1420,10 +1400,6 @@ static int nfs_check_inode_attributes(struct inode *inode, struct nfs_fattr *fat
 	unsigned long invalid = 0;
 	struct timespec ts;
 
-<<<<<<< HEAD
-
-=======
->>>>>>> linux-next/akpm-base
 	if (NFS_PROTO(inode)->have_delegation(inode, FMODE_READ))
 		return 0;
 

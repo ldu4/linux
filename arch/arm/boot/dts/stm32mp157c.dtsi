@@ -522,8 +522,6 @@
 			reg = <0x44007000 0x400>;
 			clocks = <&rcc TIM16_K>;
 			clock-names = "int";
-<<<<<<< HEAD
-=======
 			status = "disabled";
 
 			pwm {
@@ -776,7 +774,6 @@
 			clocks = <&rcc LTDC_PX>;
 			clock-names = "lcd";
 			resets = <&rcc LTDC_R>;
->>>>>>> linux-next/akpm-base
 			status = "disabled";
 
 			pwm {
