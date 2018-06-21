@@ -1734,27 +1734,32 @@ int cgroup_show_path(struct seq_file *sf, struct kernfs_node *kf_node,
 	return len;
 }
 
-static int parse_cgroup_root_flags(char *data, unsigned int *root_flags)
+static int cgroup2_parse_option(struct fs_context *fc, char *token)
 {
-	char *token;
+	struct cgroup_fs_context *ctx = cgroup_fc2context(fc);
 
-	*root_flags = 0;
+	if (!strcmp(token, "nsdelegate")) {
+		ctx->flags |= CGRP_ROOT_NS_DELEGATE;
+		return 0;
+	}
 
-	if (!data)
+	if (!strcmp(token, "groupoom")) {
+		ctx->flags |= CGRP_GROUP_OOM;
+		return 0;
+	}
+
+	return -EINVAL;
+}
+
+static int cgroup_show_options(struct seq_file *seq, struct kernfs_root *kf_root)
+{
+	if (current->nsproxy->cgroup_ns != &init_cgroup_ns)
 		return 0;
 
-	while ((token = strsep(&data, ",")) != NULL) {
-		if (!strcmp(token, "nsdelegate")) {
-			*root_flags |= CGRP_ROOT_NS_DELEGATE;
-			continue;
-		} else if (!strcmp(token, "groupoom")) {
-			*root_flags |= CGRP_GROUP_OOM;
-			continue;
-		}
-
-		pr_err("cgroup2: unknown option \"%s\"\n", token);
-		return -EINVAL;
-	}
+	if (cgrp_dfl_root.flags & CGRP_ROOT_NS_DELEGATE)
+		seq_puts(seq, ",nsdelegate");
+	if (cgrp_dfl_root.flags & CGRP_GROUP_OOM)
+		seq_puts(seq, ",groupoom");
 
 	return 0;
 }
@@ -1774,25 +1779,12 @@ static void apply_cgroup_root_flags(unsigned int root_flags)
 	}
 }
 
-static int cgroup_show_options(struct seq_file *seq, struct kernfs_root *kf_root)
+static int
+cgroup_reconfigure(struct kernfs_root *kf_root, struct fs_context *fc)
 {
-	if (cgrp_dfl_root.flags & CGRP_ROOT_NS_DELEGATE)
-		seq_puts(seq, ",nsdelegate");
-	if (cgrp_dfl_root.flags & CGRP_GROUP_OOM)
-		seq_puts(seq, ",groupoom");
-	return 0;
-}
+	struct cgroup_fs_context *ctx = cgroup_fc2context(fc);
 
-static int cgroup_remount(struct kernfs_root *kf_root, int *flags, char *data)
-{
-	unsigned int root_flags;
-	int ret;
-
-	ret = parse_cgroup_root_flags(data, &root_flags);
-	if (ret)
-		return ret;
-
-	apply_cgroup_root_flags(root_flags);
+	apply_cgroup_root_flags(ctx->flags);
 	return 0;
 }
 
