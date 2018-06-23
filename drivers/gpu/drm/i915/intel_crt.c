@@ -382,14 +382,11 @@ static bool hsw_crt_compute_config(struct intel_encoder *encoder,
 
 	if (adjusted_mode->flags & DRM_MODE_FLAG_DBLSCAN)
 		return false;
-<<<<<<< HEAD
-=======
 
 	/* HSW/BDW FDI limited to 4k */
 	if (adjusted_mode->crtc_hdisplay > 4096 ||
 	    adjusted_mode->crtc_hblank_start > 4096)
 		return false;
->>>>>>> linux-next/akpm-base
 
 	pipe_config->has_pch_encoder = true;
 

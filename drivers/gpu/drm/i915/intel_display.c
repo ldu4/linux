@@ -14582,13 +14582,10 @@ static enum drm_mode_status
 intel_mode_valid(struct drm_device *dev,
 		 const struct drm_display_mode *mode)
 {
-<<<<<<< HEAD
-=======
 	struct drm_i915_private *dev_priv = to_i915(dev);
 	int hdisplay_max, htotal_max;
 	int vdisplay_max, vtotal_max;
 
->>>>>>> linux-next/akpm-base
 	/*
 	 * Can't reject DBLSCAN here because Xorg ddxen can add piles
 	 * of DBLSCAN modes to the output's mode list when they detect

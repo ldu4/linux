@@ -2943,7 +2943,6 @@ i915_gem_object_pwrite_gtt(struct drm_i915_gem_object *obj,
 
 static void i915_gem_client_mark_guilty(struct drm_i915_file_private *file_priv,
 					const struct i915_gem_context *ctx)
-<<<<<<< HEAD
 {
 	unsigned int score;
 	unsigned long prev_hang;
@@ -2953,44 +2952,6 @@ static void i915_gem_client_mark_guilty(struct drm_i915_file_private *file_priv,
 	else
 		score = 0;
 
-	prev_hang = xchg(&file_priv->hang_timestamp, jiffies);
-	if (time_before(jiffies, prev_hang + I915_CLIENT_FAST_HANG_JIFFIES))
-		score += I915_CLIENT_SCORE_HANG_FAST;
-
-	if (score) {
-		atomic_add(score, &file_priv->ban_score);
-
-		DRM_DEBUG_DRIVER("client %s: gained %u ban score, now %u\n",
-				 ctx->name, score,
-				 atomic_read(&file_priv->ban_score));
-	}
-}
-
-static void i915_gem_context_mark_guilty(struct i915_gem_context *ctx)
-{
-	unsigned int score;
-	bool banned, bannable;
-=======
-{
-	unsigned int score;
-	unsigned long prev_hang;
->>>>>>> linux-next/akpm-base
-
-	if (i915_gem_context_is_banned(ctx))
-		score = I915_CLIENT_SCORE_CONTEXT_BAN;
-	else
-		score = 0;
-
-<<<<<<< HEAD
-	bannable = i915_gem_context_is_bannable(ctx);
-	score = atomic_add_return(CONTEXT_SCORE_GUILTY, &ctx->ban_score);
-	banned = score >= CONTEXT_SCORE_BAN_THRESHOLD;
-
-	DRM_DEBUG_DRIVER("context %s: guilty %d, score %u, ban %s\n",
-			 ctx->name, atomic_read(&ctx->guilty_count),
-			 score, yesno(banned && bannable));
-
-=======
 	prev_hang = xchg(&file_priv->hang_timestamp, jiffies);
 	if (time_before(jiffies, prev_hang + I915_CLIENT_FAST_HANG_JIFFIES))
 		score += I915_CLIENT_SCORE_HANG_FAST;
@@ -3015,22 +2976,16 @@ static void i915_gem_context_mark_guilty(struct i915_gem_context *ctx)
 	score = atomic_add_return(CONTEXT_SCORE_GUILTY, &ctx->ban_score);
 	banned = score >= CONTEXT_SCORE_BAN_THRESHOLD;
 
->>>>>>> linux-next/akpm-base
 	/* Cool contexts don't accumulate client ban score */
 	if (!bannable)
 		return;
 
-<<<<<<< HEAD
-	if (banned)
-		i915_gem_context_set_banned(ctx);
-=======
 	if (banned) {
 		DRM_DEBUG_DRIVER("context %s: guilty %d, score %u, banned\n",
 				 ctx->name, atomic_read(&ctx->guilty_count),
 				 score);
 		i915_gem_context_set_banned(ctx);
 	}
->>>>>>> linux-next/akpm-base
 
 	if (!IS_ERR_OR_NULL(ctx->file_priv))
 		i915_gem_client_mark_guilty(ctx->file_priv, ctx);
