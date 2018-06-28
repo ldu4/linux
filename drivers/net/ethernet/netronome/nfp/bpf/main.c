@@ -81,10 +81,10 @@ nfp_bpf_xdp_offload(struct nfp_app *app, struct nfp_net *nn,
 
 	ret = nfp_net_bpf_offload(nn, prog, running, extack);
 	/* Stop offload if replace not possible */
-	if (ret && prog)
-		nfp_bpf_xdp_offload(app, nn, NULL, extack);
+	if (ret)
+		return ret;
 
-	nn->dp.bpf_offload_xdp = prog && !ret;
+	nn->dp.bpf_offload_xdp = !!prog;
 	return ret;
 }
 
@@ -206,7 +206,7 @@ static int nfp_bpf_setup_tc_block(struct net_device *netdev,
 	case TC_BLOCK_BIND:
 		return tcf_block_cb_register(f->block,
 					     nfp_bpf_setup_tc_block_cb,
-					     nn, nn);
+					     nn, nn, f->extack);
 	case TC_BLOCK_UNBIND:
 		tcf_block_cb_unregister(f->block,
 					nfp_bpf_setup_tc_block_cb,

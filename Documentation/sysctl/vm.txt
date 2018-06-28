@@ -178,6 +178,18 @@ The total available memory is not equal to total system memory.
 
 ==============================================================
 
+dirtytime_expire_seconds
+
+When a lazytime inode is constantly having its pages dirtied, the inode with
+an updated timestamp will never get chance to be written out.  And, if the
+only thing that has happened on the file system is a dirtytime inode caused
+by an atime update, a worker will be scheduled to make sure that inode
+eventually gets pushed out to disk.  This tunable is used to define when dirty
+inode is old enough to be eligible for writeback by the kernel flusher threads.
+And, it is also used as the interval to wakeup dirtytime_writeback thread.
+
+==============================================================
+
 dirty_writeback_centisecs
 
 The kernel flusher threads will periodically wake up and write `old' data
