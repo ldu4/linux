@@ -418,16 +418,17 @@ static void _tcpm_log(struct tcpm_port *port, const char *fmt, va_list args)
 	u64 ts_nsec = local_clock();
 	unsigned long rem_nsec;
 
+	mutex_lock(&port->logbuffer_lock);
 	if (!port->logbuffer[port->logbuffer_head]) {
 		port->logbuffer[port->logbuffer_head] =
 				kzalloc(LOG_BUFFER_ENTRY_SIZE, GFP_KERNEL);
-		if (!port->logbuffer[port->logbuffer_head])
+		if (!port->logbuffer[port->logbuffer_head]) {
+			mutex_unlock(&port->logbuffer_lock);
 			return;
+		}
 	}
 
 	vsnprintf(tmpbuffer, sizeof(tmpbuffer), fmt, args);
-
-	mutex_lock(&port->logbuffer_lock);
 
 	if (tcpm_log_full(port)) {
 		port->logbuffer_head = max(port->logbuffer_head - 1, 0);
@@ -2431,15 +2432,15 @@ static int tcpm_set_charge(struct tcpm_port *port, bool charge)
 	return 0;
 }
 
-static bool tcpm_start_drp_toggling(struct tcpm_port *port)
+static bool tcpm_start_drp_toggling(struct tcpm_port *port,
+				    enum typec_cc_status cc)
 {
 	int ret;
 
 	if (port->tcpc->start_drp_toggling &&
 	    port->port_type == TYPEC_PORT_DRP) {
 		tcpm_log_force(port, "Start DRP toggling");
-		ret = port->tcpc->start_drp_toggling(port->tcpc,
-						     tcpm_rp_cc(port));
+		ret = port->tcpc->start_drp_toggling(port->tcpc, cc);
 		if (!ret)
 			return true;
 	}
@@ -2747,7 +2748,7 @@ static void run_state_machine(struct tcpm_port *port)
 		if (!port->non_pd_role_swap)
 			tcpm_swap_complete(port, -ENOTCONN);
 		tcpm_src_detach(port);
-		if (tcpm_start_drp_toggling(port)) {
+		if (tcpm_start_drp_toggling(port, tcpm_rp_cc(port))) {
 			tcpm_set_state(port, DRP_TOGGLING, 0);
 			break;
 		}
@@ -2922,7 +2923,7 @@ static void run_state_machine(struct tcpm_port *port)
 			tcpm_swap_complete(port, -ENOTCONN);
 		tcpm_pps_complete(port, -ENOTCONN);
 		tcpm_snk_detach(port);
-		if (tcpm_start_drp_toggling(port)) {
+		if (tcpm_start_drp_toggling(port, TYPEC_CC_RD)) {
 			tcpm_set_state(port, DRP_TOGGLING, 0);
 			break;
 		}
@@ -3043,7 +3044,8 @@ static void run_state_machine(struct tcpm_port *port)
 		    tcpm_port_is_sink(port) &&
 		    time_is_after_jiffies(port->delayed_runtime)) {
 			tcpm_set_state(port, SNK_DISCOVERY,
-				       port->delayed_runtime - jiffies);
+				       jiffies_to_msecs(port->delayed_runtime -
+							jiffies));
 			break;
 		}
 		tcpm_set_state(port, unattached_state(port), 0);
@@ -4236,6 +4238,81 @@ static int tcpm_copy_vdos(u32 *dest_vdo, const u32 *src_vdo,
 	return nr_vdo;
 }
 
+static int tcpm_fw_get_caps(struct tcpm_port *port,
+			    struct fwnode_handle *fwnode)
+{
+	const char *cap_str;
+	int ret;
+	u32 mw;
+
+	if (!fwnode)
+		return -EINVAL;
+
+	/* USB data support is optional */
+	ret = fwnode_property_read_string(fwnode, "data-role", &cap_str);
+	if (ret == 0) {
+		port->typec_caps.data = typec_find_port_data_role(cap_str);
+		if (port->typec_caps.data < 0)
+			return -EINVAL;
+	}
+
+	ret = fwnode_property_read_string(fwnode, "power-role", &cap_str);
+	if (ret < 0)
+		return ret;
+
+	port->typec_caps.type = typec_find_port_power_role(cap_str);
+	if (port->typec_caps.type < 0)
+		return -EINVAL;
+	port->port_type = port->typec_caps.type;
+
+	if (port->port_type == TYPEC_PORT_SNK)
+		goto sink;
+
+	/* Get source pdos */
+	ret = fwnode_property_read_u32_array(fwnode, "source-pdos",
+					     NULL, 0);
+	if (ret <= 0)
+		return -EINVAL;
+
+	port->nr_src_pdo = min(ret, PDO_MAX_OBJECTS);
+	ret = fwnode_property_read_u32_array(fwnode, "source-pdos",
+					     port->src_pdo, port->nr_src_pdo);
+	if ((ret < 0) || tcpm_validate_caps(port, port->src_pdo,
+					    port->nr_src_pdo))
+		return -EINVAL;
+
+	if (port->port_type == TYPEC_PORT_SRC)
+		return 0;
+
+	/* Get the preferred power role for DRP */
+	ret = fwnode_property_read_string(fwnode, "try-power-role", &cap_str);
+	if (ret < 0)
+		return ret;
+
+	port->typec_caps.prefer_role = typec_find_power_role(cap_str);
+	if (port->typec_caps.prefer_role < 0)
+		return -EINVAL;
+sink:
+	/* Get sink pdos */
+	ret = fwnode_property_read_u32_array(fwnode, "sink-pdos",
+					     NULL, 0);
+	if (ret <= 0)
+		return -EINVAL;
+
+	port->nr_snk_pdo = min(ret, PDO_MAX_OBJECTS);
+	ret = fwnode_property_read_u32_array(fwnode, "sink-pdos",
+					     port->snk_pdo, port->nr_snk_pdo);
+	if ((ret < 0) || tcpm_validate_caps(port, port->snk_pdo,
+					    port->nr_snk_pdo))
+		return -EINVAL;
+
+	if (fwnode_property_read_u32(fwnode, "op-sink-microwatt", &mw) < 0)
+		return -EINVAL;
+	port->operating_snk_mw = mw / 1000;
+
+	return 0;
+}
+
 int tcpm_update_source_capabilities(struct tcpm_port *port, const u32 *pdo,
 				    unsigned int nr_pdo)
 {
@@ -4521,12 +4598,36 @@ static int devm_tcpm_psy_register(struct tcpm_port *port)
 	return PTR_ERR_OR_ZERO(port->psy);
 }
 
+static int tcpm_copy_caps(struct tcpm_port *port,
+			  const struct tcpc_config *tcfg)
+{
+	if (tcpm_validate_caps(port, tcfg->src_pdo, tcfg->nr_src_pdo) ||
+	    tcpm_validate_caps(port, tcfg->snk_pdo, tcfg->nr_snk_pdo))
+		return -EINVAL;
+
+	port->nr_src_pdo = tcpm_copy_pdos(port->src_pdo, tcfg->src_pdo,
+					  tcfg->nr_src_pdo);
+	port->nr_snk_pdo = tcpm_copy_pdos(port->snk_pdo, tcfg->snk_pdo,
+					  tcfg->nr_snk_pdo);
+
+	port->nr_snk_vdo = tcpm_copy_vdos(port->snk_vdo, tcfg->snk_vdo,
+					  tcfg->nr_snk_vdo);
+
+	port->operating_snk_mw = tcfg->operating_snk_mw;
+
+	port->typec_caps.prefer_role = tcfg->default_role;
+	port->typec_caps.type = tcfg->type;
+	port->typec_caps.data = tcfg->data;
+
+	return 0;
+}
+
 struct tcpm_port *tcpm_register_port(struct device *dev, struct tcpc_dev *tcpc)
 {
 	struct tcpm_port *port;
 	int i, err;
 
-	if (!dev || !tcpc || !tcpc->config ||
+	if (!dev || !tcpc ||
 	    !tcpc->get_vbus || !tcpc->set_cc || !tcpc->get_cc ||
 	    !tcpc->set_polarity || !tcpc->set_vconn || !tcpc->set_vbus ||
 	    !tcpc->set_pd_rx || !tcpc->set_roles || !tcpc->pd_transmit)
@@ -4556,29 +4657,18 @@ struct tcpm_port *tcpm_register_port(struct device *dev, struct tcpc_dev *tcpc)
 	init_completion(&port->pps_complete);
 	tcpm_debugfs_init(port);
 
-	if (tcpm_validate_caps(port, tcpc->config->src_pdo,
-			       tcpc->config->nr_src_pdo) ||
-	    tcpm_validate_caps(port, tcpc->config->snk_pdo,
-			       tcpc->config->nr_snk_pdo)) {
-		err = -EINVAL;
+	err = tcpm_fw_get_caps(port, tcpc->fwnode);
+	if ((err < 0) && tcpc->config)
+		err = tcpm_copy_caps(port, tcpc->config);
+	if (err < 0)
 		goto out_destroy_wq;
-	}
-	port->nr_src_pdo = tcpm_copy_pdos(port->src_pdo, tcpc->config->src_pdo,
-					  tcpc->config->nr_src_pdo);
-	port->nr_snk_pdo = tcpm_copy_pdos(port->snk_pdo, tcpc->config->snk_pdo,
-					  tcpc->config->nr_snk_pdo);
-	port->nr_snk_vdo = tcpm_copy_vdos(port->snk_vdo, tcpc->config->snk_vdo,
-					  tcpc->config->nr_snk_vdo);
 
-	port->operating_snk_mw = tcpc->config->operating_snk_mw;
-	if (!tcpc->config->try_role_hw)
-		port->try_role = tcpc->config->default_role;
+	if (!tcpc->config || !tcpc->config->try_role_hw)
+		port->try_role = port->typec_caps.prefer_role;
 	else
 		port->try_role = TYPEC_NO_PREFERRED_ROLE;
 
-	port->typec_caps.prefer_role = tcpc->config->default_role;
-	port->typec_caps.type = tcpc->config->type;
-	port->typec_caps.data = tcpc->config->data;
+	port->typec_caps.fwnode = tcpc->fwnode;
 	port->typec_caps.revision = 0x0120;	/* Type-C spec release 1.2 */
 	port->typec_caps.pd_revision = 0x0300;	/* USB-PD spec release 3.0 */
 	port->typec_caps.dr_set = tcpm_dr_set;
@@ -4588,7 +4678,7 @@ struct tcpm_port *tcpm_register_port(struct device *dev, struct tcpc_dev *tcpc)
 	port->typec_caps.port_type_set = tcpm_port_type_set;
 
 	port->partner_desc.identity = &port->partner_ident;
-	port->port_type = tcpc->config->type;
+	port->port_type = port->typec_caps.type;
 
 	port->role_sw = usb_role_switch_get(port->dev);
 	if (IS_ERR(port->role_sw)) {
@@ -4606,7 +4696,7 @@ struct tcpm_port *tcpm_register_port(struct device *dev, struct tcpc_dev *tcpc)
 		goto out_destroy_wq;
 	}
 
-	if (tcpc->config->alt_modes) {
+	if (tcpc->config && tcpc->config->alt_modes) {
 		const struct typec_altmode_desc *paltmode = tcpc->config->alt_modes;
 
 		i = 0;
