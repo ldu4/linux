@@ -189,7 +189,7 @@ static void copy_query_dev_fields(struct ib_uverbs_file *file,
 	resp->max_qp		= attr->max_qp;
 	resp->max_qp_wr		= attr->max_qp_wr;
 	resp->device_cap_flags	= lower_32_bits(attr->device_cap_flags);
-	resp->max_sge		= attr->max_sge;
+	resp->max_sge		= min(attr->max_send_sge, attr->max_recv_sge);
 	resp->max_sge_rd	= attr->max_sge_rd;
 	resp->max_cq		= attr->max_cq;
 	resp->max_cqe		= attr->max_cqe;
@@ -1968,7 +1968,7 @@ static int modify_qp(struct ib_uverbs_file *file,
 	struct ib_qp *qp;
 	int ret;
 
-	attr = kmalloc(sizeof *attr, GFP_KERNEL);
+	attr = kzalloc(sizeof(*attr), GFP_KERNEL);
 	if (!attr)
 		return -ENOMEM;
 
@@ -2552,7 +2552,7 @@ ssize_t ib_uverbs_create_ah(struct ib_uverbs_file *file,
 	struct ib_uobject		*uobj;
 	struct ib_pd			*pd;
 	struct ib_ah			*ah;
-	struct rdma_ah_attr		attr;
+	struct rdma_ah_attr		attr = {};
 	int ret;
 	struct ib_udata                   udata;
 
@@ -2761,29 +2761,27 @@ static struct ib_uflow_resources *flow_resources_alloc(size_t num_specs)
 	resources = kzalloc(sizeof(*resources), GFP_KERNEL);
 
 	if (!resources)
-		goto err_res;
+		return NULL;
+
+	if (!num_specs)
+		goto out;
 
 	resources->counters =
 		kcalloc(num_specs, sizeof(*resources->counters), GFP_KERNEL);
-
-	if (!resources->counters)
-		goto err_cnt;
-
 	resources->collection =
 		kcalloc(num_specs, sizeof(*resources->collection), GFP_KERNEL);
 
-	if (!resources->collection)
-		goto err_collection;
+	if (!resources->counters || !resources->collection)
+		goto err;
 
+out:
 	resources->max = num_specs;
-
 	return resources;
 
-err_collection:
+err:
 	kfree(resources->counters);
-err_cnt:
 	kfree(resources);
-err_res:
+
 	return NULL;
 }
 
@@ -3041,9 +3039,6 @@ static int kern_spec_to_ib_spec_filter(struct ib_uverbs_flow_spec *kern_spec,
 	ssize_t kern_filter_sz;
 	void *kern_spec_mask;
 	void *kern_spec_val;
-
-	if (kern_spec->reserved)
-		return -EINVAL;
 
 	kern_filter_sz = kern_spec_filter_sz(&kern_spec->hdr);
 
@@ -3488,8 +3483,8 @@ int ib_uverbs_ex_create_flow(struct ib_uverbs_file *file,
 	struct ib_flow_attr		  *flow_attr;
 	struct ib_qp			  *qp;
 	struct ib_uflow_resources	  *uflow_res;
+	struct ib_uverbs_flow_spec_hdr	  *kern_spec;
 	int err = 0;
-	void *kern_spec;
 	void *ib_spec;
 	int i;
 
@@ -3538,8 +3533,8 @@ int ib_uverbs_ex_create_flow(struct ib_uverbs_file *file,
 		if (!kern_flow_attr)
 			return -ENOMEM;
 
-		memcpy(kern_flow_attr, &cmd.flow_attr, sizeof(*kern_flow_attr));
-		err = ib_copy_from_udata(kern_flow_attr + 1, ucore,
+		*kern_flow_attr = cmd.flow_attr;
+		err = ib_copy_from_udata(&kern_flow_attr->flow_specs, ucore,
 					 cmd.flow_attr.size);
 		if (err)
 			goto err_free_attr;
@@ -3557,6 +3552,16 @@ int ib_uverbs_ex_create_flow(struct ib_uverbs_file *file,
 	if (!qp) {
 		err = -EINVAL;
 		goto err_uobj;
+	}
+
+	if (qp->qp_type != IB_QPT_UD && qp->qp_type != IB_QPT_RAW_PACKET) {
+		err = -EINVAL;
+		goto err_put;
+	}
+
+	if (!qp->device->create_flow) {
+		err = -EOPNOTSUPP;
+		goto err_put;
 	}
 
 	flow_attr = kzalloc(struct_size(flow_attr, flows,
@@ -3578,21 +3583,22 @@ int ib_uverbs_ex_create_flow(struct ib_uverbs_file *file,
 	flow_attr->flags = kern_flow_attr->flags;
 	flow_attr->size = sizeof(*flow_attr);
 
-	kern_spec = kern_flow_attr + 1;
+	kern_spec = kern_flow_attr->flow_specs;
 	ib_spec = flow_attr + 1;
 	for (i = 0; i < flow_attr->num_of_specs &&
-	     cmd.flow_attr.size > offsetof(struct ib_uverbs_flow_spec, reserved) &&
-	     cmd.flow_attr.size >=
-	     ((struct ib_uverbs_flow_spec *)kern_spec)->size; i++) {
-		err = kern_spec_to_ib_spec(file->ucontext, kern_spec, ib_spec,
-					   uflow_res);
+			cmd.flow_attr.size > sizeof(*kern_spec) &&
+			cmd.flow_attr.size >= kern_spec->size;
+	     i++) {
+		err = kern_spec_to_ib_spec(
+				file->ucontext, (struct ib_uverbs_flow_spec *)kern_spec,
+				ib_spec, uflow_res);
 		if (err)
 			goto err_free;
 
 		flow_attr->size +=
 			((union ib_flow_spec *) ib_spec)->size;
-		cmd.flow_attr.size -= ((struct ib_uverbs_flow_spec *)kern_spec)->size;
-		kern_spec += ((struct ib_uverbs_flow_spec *) kern_spec)->size;
+		cmd.flow_attr.size -= kern_spec->size;
+		kern_spec = ((void *)kern_spec) + kern_spec->size;
 		ib_spec += ((union ib_flow_spec *) ib_spec)->size;
 	}
 	if (cmd.flow_attr.size || (i != flow_attr->num_of_specs)) {
@@ -3631,7 +3637,8 @@ int ib_uverbs_ex_create_flow(struct ib_uverbs_file *file,
 		kfree(kern_flow_attr);
 	return 0;
 err_copy:
-	ib_destroy_flow(flow_id);
+	if (!qp->device->destroy_flow(flow_id))
+		atomic_dec(&qp->usecnt);
 err_free:
 	ib_uverbs_flow_resources_free(uflow_res);
 err_free_flow_attr:
