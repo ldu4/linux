@@ -118,7 +118,7 @@ struct task_group;
  * the comment with set_special_state().
  */
 #define is_special_task_state(state)				\
-	((state) & (__TASK_STOPPED | __TASK_TRACED | TASK_DEAD))
+	((state) & (__TASK_STOPPED | __TASK_TRACED | TASK_PARKED | TASK_DEAD))
 
 #define __set_current_state(state_value)			\
 	do {							\
@@ -1183,6 +1183,11 @@ struct task_struct {
 #ifdef CONFIG_SECURITY
 	/* Used by LSM modules for access restriction: */
 	void				*security;
+#endif
+
+#ifdef CONFIG_GCC_PLUGIN_STACKLEAK
+	unsigned long			lowest_stack;
+	unsigned long			prev_lowest_stack;
 #endif
 
 	/*

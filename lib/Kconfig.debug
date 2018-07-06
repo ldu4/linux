@@ -1718,7 +1718,7 @@ config KPROBES_SANITY_TEST
 	default n
 	help
 	  This option provides for testing basic kprobes functionality on
-	  boot. A sample kprobe, jprobe and kretprobe are inserted and
+	  boot. Samples of kprobe and kretprobe are inserted and
 	  verified for functionality.
 
 	  Say N if you are unsure.
@@ -1802,8 +1802,18 @@ config TEST_BITMAP
 
 	  If unsure, say N.
 
+config TEST_BITFIELD
+	tristate "Test bitfield functions at runtime"
+	help
+	  Enable this option to test the bitfield functions at boot.
+
+	  If unsure, say N.
+
 config TEST_UUID
 	tristate "Test functions located in the uuid module at runtime"
+
+config TEST_XARRAY
+	tristate "Test the XArray code at runtime"
 
 config TEST_OVERFLOW
 	tristate "Test check_*_overflow() functions at runtime"
@@ -1826,6 +1836,9 @@ config TEST_HASH
 
 	  This is intended to help people writing architecture-specific
 	  optimized versions.  If unsure, say N.
+
+config TEST_IDA
+	tristate "Perform selftest on IDA functions"
 
 config TEST_PARMAN
 	tristate "Perform selftest on priority array manager"
