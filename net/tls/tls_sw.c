@@ -701,6 +701,10 @@ static int decrypt_skb(struct sock *sk, struct sk_buff *skb,
 	nsg = skb_to_sgvec(skb, &sgin[1],
 			   rxm->offset + tls_ctx->rx.prepend_size,
 			   rxm->full_len - tls_ctx->rx.prepend_size);
+	if (nsg < 0) {
+		ret = nsg;
+		goto out;
+	}
 
 	tls_make_aad(ctx->rx_aad_ciphertext,
 		     rxm->full_len - tls_ctx->rx.overhead_size,
@@ -712,6 +716,7 @@ static int decrypt_skb(struct sock *sk, struct sk_buff *skb,
 				rxm->full_len - tls_ctx->rx.overhead_size,
 				skb, sk->sk_allocation);
 
+out:
 	if (sgin != &sgin_arr[0])
 		kfree(sgin);
 
@@ -942,7 +947,7 @@ static int tls_read_size(struct strparser *strp, struct sk_buff *skb)
 {
 	struct tls_context *tls_ctx = tls_get_ctx(strp->sk);
 	struct tls_sw_context_rx *ctx = tls_sw_ctx_rx(tls_ctx);
-	char header[tls_ctx->rx.prepend_size];
+	char header[TLS_HEADER_SIZE + MAX_IV_SIZE];
 	struct strp_msg *rxm = strp_msg(skb);
 	size_t cipher_overhead;
 	size_t data_len = 0;
@@ -951,6 +956,12 @@ static int tls_read_size(struct strparser *strp, struct sk_buff *skb)
 	/* Verify that we have a full TLS header, or wait for more data */
 	if (rxm->offset + tls_ctx->rx.prepend_size > skb->len)
 		return 0;
+
+	/* Sanity-check size of on-stack buffer. */
+	if (WARN_ON(tls_ctx->rx.prepend_size > sizeof(header))) {
+		ret = -EINVAL;
+		goto read_failure;
+	}
 
 	/* Linearize header to local buffer */
 	ret = skb_copy_bits(skb, rxm->offset, header, tls_ctx->rx.prepend_size);
@@ -991,9 +1002,6 @@ static void tls_queue(struct strparser *strp, struct sk_buff *skb)
 {
 	struct tls_context *tls_ctx = tls_get_ctx(strp->sk);
 	struct tls_sw_context_rx *ctx = tls_sw_ctx_rx(tls_ctx);
-	struct strp_msg *rxm;
-
-	rxm = strp_msg(skb);
 
 	ctx->decrypted = false;
 
@@ -1112,7 +1120,7 @@ int tls_set_sw_offload(struct sock *sk, struct tls_context *ctx, int tx)
 	}
 
 	/* Sanity-check the IV size for stack allocations. */
-	if (iv_size > MAX_IV_SIZE) {
+	if (iv_size > MAX_IV_SIZE || nonce_size > MAX_IV_SIZE) {
 		rc = -EINVAL;
 		goto free_priv;
 	}

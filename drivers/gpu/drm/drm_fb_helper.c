@@ -368,7 +368,6 @@ static int restore_fbdev_mode_atomic(struct drm_fb_helper *fb_helper, bool activ
 	struct drm_plane *plane;
 	struct drm_atomic_state *state;
 	int i, ret;
-	unsigned int plane_mask;
 	struct drm_modeset_acquire_ctx ctx;
 
 	drm_modeset_acquire_init(&ctx, 0);
@@ -381,7 +380,6 @@ static int restore_fbdev_mode_atomic(struct drm_fb_helper *fb_helper, bool activ
 
 	state->acquire_ctx = &ctx;
 retry:
-	plane_mask = 0;
 	drm_for_each_plane(plane, dev) {
 		plane_state = drm_atomic_get_plane_state(state, plane);
 		if (IS_ERR(plane_state)) {
@@ -390,9 +388,6 @@ retry:
 		}
 
 		plane_state->rotation = DRM_MODE_ROTATE_0;
-
-		plane->old_fb = plane->fb;
-		plane_mask |= 1 << drm_plane_index(plane);
 
 		/* disable non-primary: */
 		if (plane->type == DRM_PLANE_TYPE_PRIMARY)
@@ -430,8 +425,6 @@ retry:
 	ret = drm_atomic_commit(state);
 
 out_state:
-	drm_atomic_clean_old_fb(dev, plane_mask, ret);
-
 	if (ret == -EDEADLK)
 		goto backoff;
 
@@ -1164,7 +1157,7 @@ EXPORT_SYMBOL(drm_fb_helper_sys_imageblit);
  * @info: fbdev registered by the helper
  * @rect: info about rectangle to fill
  *
- * A wrapper around cfb_imageblit implemented by fbdev core
+ * A wrapper around cfb_fillrect implemented by fbdev core
  */
 void drm_fb_helper_cfb_fillrect(struct fb_info *info,
 				const struct fb_fillrect *rect)
@@ -2330,6 +2323,20 @@ retry:
 	return true;
 }
 
+static bool connector_has_possible_crtc(struct drm_connector *connector,
+					struct drm_crtc *crtc)
+{
+	struct drm_encoder *encoder;
+	int i;
+
+	drm_connector_for_each_possible_encoder(connector, encoder, i) {
+		if (encoder->possible_crtcs & drm_crtc_mask(crtc))
+			return true;
+	}
+
+	return false;
+}
+
 static int drm_pick_crtcs(struct drm_fb_helper *fb_helper,
 			  struct drm_fb_helper_crtc **best_crtcs,
 			  struct drm_display_mode **modes,
@@ -2338,7 +2345,6 @@ static int drm_pick_crtcs(struct drm_fb_helper *fb_helper,
 	int c, o;
 	struct drm_connector *connector;
 	const struct drm_connector_helper_funcs *connector_funcs;
-	struct drm_encoder *encoder;
 	int my_score, best_score, score;
 	struct drm_fb_helper_crtc **crtcs, *crtc;
 	struct drm_fb_helper_connector *fb_helper_conn;
@@ -2370,27 +2376,14 @@ static int drm_pick_crtcs(struct drm_fb_helper *fb_helper,
 	connector_funcs = connector->helper_private;
 
 	/*
-	 * If the DRM device implements atomic hooks and ->best_encoder() is
-	 * NULL we fallback to the default drm_atomic_helper_best_encoder()
-	 * helper.
-	 */
-	if (drm_drv_uses_atomic_modeset(fb_helper->dev) &&
-	    !connector_funcs->best_encoder)
-		encoder = drm_atomic_helper_best_encoder(connector);
-	else
-		encoder = connector_funcs->best_encoder(connector);
-
-	if (!encoder)
-		goto out;
-
-	/*
 	 * select a crtc for this connector and then attempt to configure
 	 * remaining connectors
 	 */
 	for (c = 0; c < fb_helper->crtc_count; c++) {
 		crtc = &fb_helper->crtc_info[c];
 
-		if ((encoder->possible_crtcs & (1 << c)) == 0)
+		if (!connector_has_possible_crtc(connector,
+						 crtc->mode_set.crtc))
 			continue;
 
 		for (o = 0; o < n; o++)
@@ -2417,7 +2410,7 @@ static int drm_pick_crtcs(struct drm_fb_helper *fb_helper,
 			       sizeof(struct drm_fb_helper_crtc *));
 		}
 	}
-out:
+
 	kfree(crtcs);
 	return best_score;
 }
