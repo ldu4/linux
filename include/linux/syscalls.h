@@ -49,6 +49,7 @@ struct stat64;
 struct statfs;
 struct statfs64;
 struct statx;
+struct fsinfo_params;
 struct __sysctl_args;
 struct sysinfo;
 struct timespec;
@@ -505,9 +506,9 @@ asmlinkage long sys_sync_file_range(int fd, loff_t offset, loff_t nbytes,
 /* fs/timerfd.c */
 asmlinkage long sys_timerfd_create(int clockid, int flags);
 asmlinkage long sys_timerfd_settime(int ufd, int flags,
-				    const struct itimerspec __user *utmr,
-				    struct itimerspec __user *otmr);
-asmlinkage long sys_timerfd_gettime(int ufd, struct itimerspec __user *otmr);
+				    const struct __kernel_itimerspec __user *utmr,
+				    struct __kernel_itimerspec __user *otmr);
+asmlinkage long sys_timerfd_gettime(int ufd, struct __kernel_itimerspec __user *otmr);
 
 /* fs/utimes.c */
 asmlinkage long sys_utimensat(int dfd, const char __user *filename,
@@ -572,10 +573,10 @@ asmlinkage long sys_timer_create(clockid_t which_clock,
 				 struct sigevent __user *timer_event_spec,
 				 timer_t __user * created_timer_id);
 asmlinkage long sys_timer_gettime(timer_t timer_id,
-				struct itimerspec __user *setting);
+				struct __kernel_itimerspec __user *setting);
 asmlinkage long sys_timer_getoverrun(timer_t timer_id);
 asmlinkage long sys_timer_settime(timer_t timer_id, int flags,
-				const struct itimerspec __user *new_setting,
+				const struct __kernel_itimerspec __user *new_setting,
 				struct itimerspec __user *old_setting);
 asmlinkage long sys_timer_delete(timer_t timer_id);
 asmlinkage long sys_clock_settime(clockid_t which_clock,
@@ -904,6 +905,16 @@ asmlinkage long sys_statx(int dfd, const char __user *path, unsigned flags,
 			  unsigned mask, struct statx __user *buffer);
 asmlinkage long sys_rseq(struct rseq __user *rseq, uint32_t rseq_len,
 			 int flags, uint32_t sig);
+asmlinkage long sys_open_tree(int dfd, const char __user *path, unsigned flags);
+asmlinkage long sys_move_mount(int from_dfd, const char __user *from_path,
+			       int to_dfd, const char __user *to_path,
+			       unsigned int ms_flags);
+asmlinkage long sys_fsopen(const char __user *fs_name, unsigned int flags);
+asmlinkage long sys_fsmount(int fs_fd, unsigned int flags, unsigned int ms_flags);
+asmlinkage long sys_fspick(int dfd, const char __user *path, unsigned int flags);
+asmlinkage long sys_fsinfo(int dfd, const char __user *path,
+			   struct fsinfo_params __user *params,
+			   void __user *buffer, size_t buf_size);
 
 /*
  * Architecture-specific system calls

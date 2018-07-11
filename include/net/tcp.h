@@ -828,6 +828,10 @@ struct tcp_skb_cb {
 
 #define TCP_SKB_CB(__skb)	((struct tcp_skb_cb *)&((__skb)->cb[0]))
 
+static inline void bpf_compute_data_end_sk_skb(struct sk_buff *skb)
+{
+	TCP_SKB_CB(skb)->bpf.data_end = skb->data + skb_headlen(skb);
+}
 
 #if IS_ENABLED(CONFIG_IPV6)
 /* This is the variant of inet6_iif() that must be used by TCP,
@@ -1183,6 +1187,17 @@ static inline bool tcp_is_cwnd_limited(const struct sock *sk)
 		return tp->snd_cwnd < 2 * tp->max_packets_out;
 
 	return tp->is_cwnd_limited;
+}
+
+/* BBR congestion control needs pacing.
+ * Same remark for SO_MAX_PACING_RATE.
+ * sch_fq packet scheduler is efficiently handling pacing,
+ * but is not always installed/used.
+ * Return true if TCP stack should pace packets itself.
+ */
+static inline bool tcp_needs_internal_pacing(const struct sock *sk)
+{
+	return smp_load_acquire(&sk->sk_pacing_status) == SK_PACING_NEEDED;
 }
 
 /* Something is really bad, we could not queue an additional packet,
@@ -1778,7 +1793,7 @@ void tcp_v4_destroy_sock(struct sock *sk);
 
 struct sk_buff *tcp_gso_segment(struct sk_buff *skb,
 				netdev_features_t features);
-struct sk_buff **tcp_gro_receive(struct sk_buff **head, struct sk_buff *skb);
+struct sk_buff *tcp_gro_receive(struct list_head *head, struct sk_buff *skb);
 int tcp_gro_complete(struct sk_buff *skb);
 
 void __tcp_v4_send_check(struct sk_buff *skb, __be32 saddr, __be32 daddr);

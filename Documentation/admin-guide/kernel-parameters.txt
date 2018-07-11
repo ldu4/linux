@@ -748,6 +748,15 @@
 
 	debug		[KNL] Enable kernel debugging (events log level).
 
+	debug_boot_weak_hash
+			[KNL] Enable printing pointers early in the boot
+			sequence.  If enabled, we use a weak hash instead of
+			siphash to hash pointers.  Use this option if you need
+			to see pointer values during early boot (i.e you are
+			seeing instances of '(___ptrval___)').
+			Cryptographically insecure, please do not use on
+			production kernels.
+
 	debug_locks_verbose=
 			[KNL] verbose self-tests
 			Format=<0|1>
@@ -2995,7 +3004,7 @@
 			See also Documentation/blockdev/paride.txt.
 
 	pci=option[,option...]	[PCI] various PCI subsystem options:
-		earlydump	[X86] dump PCI config space before the kernel
+		earlydump	dump PCI config space before the kernel
 				changes anything
 		off		[X86] don't probe for the PCI bus
 		bios		[X86-32] force use of PCI BIOS, don't access
@@ -3632,8 +3641,8 @@
 			Set time (s) after boot for CPU-hotplug testing.
 
 	rcutorture.onoff_interval= [KNL]
-			Set time (s) between CPU-hotplug operations, or
-			zero to disable CPU-hotplug testing.
+			Set time (jiffies) between CPU-hotplug operations,
+			or zero to disable CPU-hotplug testing.
 
 	rcutorture.shuffle_interval= [KNL]
 			Set task-shuffle interval (s).  Shuffling tasks
@@ -4846,3 +4855,8 @@
 	xirc2ps_cs=	[NET,PCMCIA]
 			Format:
 			<irq>,<irq_mask>,<io>,<full_duplex>,<do_sound>,<lockup_hack>[,<irq2>[,<irq3>[,<irq4>]]]
+
+	xhci-hcd.quirks		[USB,KNL]
+			A hex value specifying bitmask with supplemental xhci
+			host controller quirks. Meaning of each bit can be
+			consulted in header drivers/usb/host/xhci.h.
