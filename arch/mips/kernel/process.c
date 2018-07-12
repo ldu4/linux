@@ -30,10 +30,7 @@
 #include <linux/random.h>
 #include <linux/prctl.h>
 #include <linux/nmi.h>
-<<<<<<< HEAD
-=======
 #include <linux/cpu.h>
->>>>>>> linux-next/akpm-base
 
 #include <asm/asm.h>
 #include <asm/bootinfo.h>
