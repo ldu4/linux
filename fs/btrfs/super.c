@@ -64,7 +64,8 @@ static const struct super_operations btrfs_super_ops;
 static struct file_system_type btrfs_fs_type;
 static struct file_system_type btrfs_root_fs_type;
 
-static int btrfs_remount(struct super_block *sb, int *flags, char *data);
+static int btrfs_remount(struct super_block *sb, int *flags,
+			 char *data, size_t data_size);
 
 const char *btrfs_decode_error(int errno)
 {
@@ -546,9 +547,10 @@ int btrfs_parse_options(struct btrfs_fs_info *info, char *options,
 				btrfs_clear_opt(info->mount_opt, NODATASUM);
 				btrfs_set_fs_incompat(info, COMPRESS_LZO);
 				no_compress = 0;
-			} else if (strcmp(args[0].from, "zstd") == 0) {
+			} else if (strncmp(args[0].from, "zstd", 4) == 0) {
 				compress_type = "zstd";
 				info->compress_type = BTRFS_COMPRESS_ZSTD;
+				info->compress_level = btrfs_compress_str2level(args[0].from);
 				btrfs_set_opt(info->mount_opt, COMPRESS);
 				btrfs_clear_opt(info->mount_opt, NODATACOW);
 				btrfs_clear_opt(info->mount_opt, NODATASUM);
@@ -760,6 +762,7 @@ int btrfs_parse_options(struct btrfs_fs_info *info, char *options,
 		case Opt_recovery:
 			btrfs_warn(info,
 				   "'recovery' is deprecated, use 'usebackuproot' instead");
+			/* fall through */
 		case Opt_usebackuproot:
 			btrfs_info(info,
 				   "trying to use backup root at mount time");
@@ -891,6 +894,8 @@ static int btrfs_parse_early_options(const char *options, fmode_t flags,
 	substring_t args[MAX_OPT_ARGS];
 	char *device_name, *opts, *orig, *p;
 	int error = 0;
+
+	lockdep_assert_held(&uuid_mutex);
 
 	if (!options)
 		return 0;
@@ -1456,7 +1461,7 @@ out:
 	return root;
 }
 
-static int parse_security_options(char *orig_opts,
+static int parse_security_options(char *orig_opts, size_t data_size,
 				  struct security_mnt_opts *sec_opts)
 {
 	char *secdata = NULL;
@@ -1465,7 +1470,7 @@ static int parse_security_options(char *orig_opts,
 	secdata = alloc_secdata();
 	if (!secdata)
 		return -ENOMEM;
-	ret = security_sb_copy_data(orig_opts, secdata);
+	ret = security_sb_copy_data(orig_opts, data_size, secdata);
 	if (ret) {
 		free_secdata(secdata);
 		return ret;
@@ -1513,7 +1518,8 @@ static int setup_security_options(struct btrfs_fs_info *fs_info,
  *       for multiple device setup.  Make sure to keep it in sync.
  */
 static struct dentry *btrfs_mount_root(struct file_system_type *fs_type,
-		int flags, const char *device_name, void *data)
+				       int flags, const char *device_name,
+				       void *data, size_t data_size)
 {
 	struct block_device *bdev = NULL;
 	struct super_block *s;
@@ -1526,22 +1532,12 @@ static struct dentry *btrfs_mount_root(struct file_system_type *fs_type,
 	if (!(flags & SB_RDONLY))
 		mode |= FMODE_WRITE;
 
-	error = btrfs_parse_early_options(data, mode, fs_type,
-					  &fs_devices);
-	if (error) {
-		return ERR_PTR(error);
-	}
-
 	security_init_mnt_opts(&new_sec_opts);
 	if (data) {
-		error = parse_security_options(data, &new_sec_opts);
+		error = parse_security_options(data, data_size, &new_sec_opts);
 		if (error)
 			return ERR_PTR(error);
 	}
-
-	error = btrfs_scan_one_device(device_name, mode, fs_type, &fs_devices);
-	if (error)
-		goto error_sec_opts;
 
 	/*
 	 * Setup a dummy root and fs_info for test/set super.  This is because
@@ -1555,8 +1551,6 @@ static struct dentry *btrfs_mount_root(struct file_system_type *fs_type,
 		goto error_sec_opts;
 	}
 
-	fs_info->fs_devices = fs_devices;
-
 	fs_info->super_copy = kzalloc(BTRFS_SUPER_INFO_SIZE, GFP_KERNEL);
 	fs_info->super_for_commit = kzalloc(BTRFS_SUPER_INFO_SIZE, GFP_KERNEL);
 	security_init_mnt_opts(&fs_info->security_opts);
@@ -1565,7 +1559,23 @@ static struct dentry *btrfs_mount_root(struct file_system_type *fs_type,
 		goto error_fs_info;
 	}
 
+	mutex_lock(&uuid_mutex);
+	error = btrfs_parse_early_options(data, mode, fs_type, &fs_devices);
+	if (error) {
+		mutex_unlock(&uuid_mutex);
+		goto error_fs_info;
+	}
+
+	error = btrfs_scan_one_device(device_name, mode, fs_type, &fs_devices);
+	if (error) {
+		mutex_unlock(&uuid_mutex);
+		goto error_fs_info;
+	}
+
+	fs_info->fs_devices = fs_devices;
+
 	error = btrfs_open_devices(fs_devices, mode, fs_type);
+	mutex_unlock(&uuid_mutex);
 	if (error)
 		goto error_fs_info;
 
@@ -1638,7 +1648,7 @@ error_sec_opts:
  *      "btrfs subvolume set-default", mount_subvol() is called always.
  */
 static struct dentry *btrfs_mount(struct file_system_type *fs_type, int flags,
-		const char *device_name, void *data)
+		const char *device_name, void *data, size_t data_size)
 {
 	struct vfsmount *mnt_root;
 	struct dentry *root;
@@ -1658,21 +1668,24 @@ static struct dentry *btrfs_mount(struct file_system_type *fs_type, int flags,
 	}
 
 	/* mount device's root (/) */
-	mnt_root = vfs_kern_mount(&btrfs_root_fs_type, flags, device_name, data);
+	mnt_root = vfs_kern_mount(&btrfs_root_fs_type, flags, device_name,
+				  data, data_size);
 	if (PTR_ERR_OR_ZERO(mnt_root) == -EBUSY) {
 		if (flags & SB_RDONLY) {
 			mnt_root = vfs_kern_mount(&btrfs_root_fs_type,
-				flags & ~SB_RDONLY, device_name, data);
+				flags & ~SB_RDONLY, device_name,
+				data, data_size);
 		} else {
 			mnt_root = vfs_kern_mount(&btrfs_root_fs_type,
-				flags | SB_RDONLY, device_name, data);
+				flags | SB_RDONLY, device_name,
+				data, data_size);
 			if (IS_ERR(mnt_root)) {
 				root = ERR_CAST(mnt_root);
 				goto out;
 			}
 
 			down_write(&mnt_root->mnt_sb->s_umount);
-			error = btrfs_remount(mnt_root->mnt_sb, &flags, NULL);
+			error = btrfs_remount(mnt_root->mnt_sb, &flags, NULL, 0);
 			up_write(&mnt_root->mnt_sb->s_umount);
 			if (error < 0) {
 				root = ERR_PTR(error);
@@ -1754,7 +1767,8 @@ static inline void btrfs_remount_cleanup(struct btrfs_fs_info *fs_info,
 	clear_bit(BTRFS_FS_STATE_REMOUNTING, &fs_info->fs_state);
 }
 
-static int btrfs_remount(struct super_block *sb, int *flags, char *data)
+static int btrfs_remount(struct super_block *sb, int *flags,
+			 char *data, size_t data_size)
 {
 	struct btrfs_fs_info *fs_info = btrfs_sb(sb);
 	struct btrfs_root *root = fs_info->tree_root;
@@ -1773,7 +1787,7 @@ static int btrfs_remount(struct super_block *sb, int *flags, char *data)
 		struct security_mnt_opts new_sec_opts;
 
 		security_init_mnt_opts(&new_sec_opts);
-		ret = parse_security_options(data, &new_sec_opts);
+		ret = parse_security_options(data, data_size, &new_sec_opts);
 		if (ret)
 			goto restore;
 		ret = setup_security_options(fs_info, sb,
@@ -2234,15 +2248,21 @@ static long btrfs_control_ioctl(struct file *file, unsigned int cmd,
 
 	switch (cmd) {
 	case BTRFS_IOC_SCAN_DEV:
+		mutex_lock(&uuid_mutex);
 		ret = btrfs_scan_one_device(vol->name, FMODE_READ,
 					    &btrfs_root_fs_type, &fs_devices);
+		mutex_unlock(&uuid_mutex);
 		break;
 	case BTRFS_IOC_DEVICES_READY:
+		mutex_lock(&uuid_mutex);
 		ret = btrfs_scan_one_device(vol->name, FMODE_READ,
 					    &btrfs_root_fs_type, &fs_devices);
-		if (ret)
+		if (ret) {
+			mutex_unlock(&uuid_mutex);
 			break;
+		}
 		ret = !(fs_devices->num_devices == fs_devices->total_devices);
+		mutex_unlock(&uuid_mutex);
 		break;
 	case BTRFS_IOC_GET_SUPPORTED_FEATURES:
 		ret = btrfs_ioctl_get_supported_features((void __user*)arg);
@@ -2331,7 +2351,6 @@ static const struct super_operations btrfs_super_ops = {
 	.sync_fs	= btrfs_sync_fs,
 	.show_options	= btrfs_show_options,
 	.show_devname	= btrfs_show_devname,
-	.write_inode	= btrfs_write_inode,
 	.alloc_inode	= btrfs_alloc_inode,
 	.destroy_inode	= btrfs_destroy_inode,
 	.statfs		= btrfs_statfs,
@@ -2369,7 +2388,7 @@ static __cold void btrfs_interface_exit(void)
 
 static void __init btrfs_print_mod_info(void)
 {
-	pr_info("Btrfs loaded, crc32c=%s"
+	static const char options[] = ""
 #ifdef CONFIG_BTRFS_DEBUG
 			", debug=on"
 #endif
@@ -2382,8 +2401,8 @@ static void __init btrfs_print_mod_info(void)
 #ifdef CONFIG_BTRFS_FS_REF_VERIFY
 			", ref-verify=on"
 #endif
-			"\n",
-			crc32c_impl());
+			;
+	pr_info("Btrfs loaded, crc32c=%s%s\n", crc32c_impl(), options);
 }
 
 static int __init init_btrfs_fs(void)
