@@ -3534,14 +3534,11 @@ int ib_uverbs_ex_create_flow(struct ib_uverbs_file *file,
 		goto err_put;
 	}
 
-<<<<<<< HEAD
-=======
 	if (!qp->device->create_flow) {
 		err = -EOPNOTSUPP;
 		goto err_put;
 	}
 
->>>>>>> linux-next/akpm-base
 	flow_attr = kzalloc(struct_size(flow_attr, flows,
 				cmd.flow_attr.num_of_specs), GFP_KERNEL);
 	if (!flow_attr) {
@@ -3568,11 +3565,7 @@ int ib_uverbs_ex_create_flow(struct ib_uverbs_file *file,
 			cmd.flow_attr.size >= kern_spec->size;
 	     i++) {
 		err = kern_spec_to_ib_spec(
-<<<<<<< HEAD
-				file->ucontext, (struct ib_uverbs_flow_spec *)kern_spec,
-=======
 				file, (struct ib_uverbs_flow_spec *)kern_spec,
->>>>>>> linux-next/akpm-base
 				ib_spec, uflow_res);
 		if (err)
 			goto err_free;
