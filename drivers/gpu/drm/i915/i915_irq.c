@@ -2038,7 +2038,6 @@ static u32 i9xx_hpd_irq_ack(struct drm_i915_private *dev_priv)
 			DP_AUX_CHANNEL_MASK_INT_STATUS_G4X;
 	else
 		hotplug_status_mask = HOTPLUG_INT_STATUS_I915;
-<<<<<<< HEAD
 
 	/*
 	 * We absolutely have to clear all the pending interrupt
@@ -2055,24 +2054,6 @@ static u32 i9xx_hpd_irq_ack(struct drm_i915_private *dev_priv)
 		if (tmp == 0)
 			return hotplug_status;
 
-=======
-
-	/*
-	 * We absolutely have to clear all the pending interrupt
-	 * bits in PORT_HOTPLUG_STAT. Otherwise the ISR port
-	 * interrupt bit won't have an edge, and the i965/g4x
-	 * edge triggered IIR will not notice that an interrupt
-	 * is still pending. We can't use PORT_HOTPLUG_EN to
-	 * guarantee the edge as the act of toggling the enable
-	 * bits can itself generate a new hotplug interrupt :(
-	 */
-	for (i = 0; i < 10; i++) {
-		u32 tmp = I915_READ(PORT_HOTPLUG_STAT) & hotplug_status_mask;
-
-		if (tmp == 0)
-			return hotplug_status;
-
->>>>>>> linux-next/akpm-base
 		hotplug_status |= tmp;
 		I915_WRITE(PORT_HOTPLUG_STAT, hotplug_status);
 	}
