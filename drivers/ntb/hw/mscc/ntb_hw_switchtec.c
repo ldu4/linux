@@ -19,6 +19,7 @@
 #include <linux/kthread.h>
 #include <linux/module.h>
 #include <linux/ntb.h>
+#include <linux/pci.h>
 #include <linux/switchtec.h>
 
 MODULE_DESCRIPTION("Microsemi Switchtec(tm) NTB Driver");
