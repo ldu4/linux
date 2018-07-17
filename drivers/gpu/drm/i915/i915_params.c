@@ -92,7 +92,7 @@ i915_param_named_unsafe(enable_ppgtt, int, 0400,
 
 i915_param_named_unsafe(enable_psr, int, 0600,
 	"Enable PSR "
-	"(0=disabled, 1=enabled - link mode chosen per-platform, 2=force link-standby mode, 3=force link-off mode) "
+	"(0=disabled, 1=enabled) "
 	"Default: -1 (use per-chip default)");
 
 i915_param_named_unsafe(alpha_support, bool, 0400,
@@ -129,9 +129,6 @@ i915_param_named_unsafe(invert_brightness, int, 0600,
 
 i915_param_named(disable_display, bool, 0400,
 	"Disable display (default: false)");
-
-i915_param_named_unsafe(enable_cmd_parser, bool, 0400,
-	"Enable command parsing (true=enabled [default], false=disabled)");
 
 i915_param_named(mmio_debug, int, 0600,
 	"Enable the MMIO debug code for the first N failures (default: off). "

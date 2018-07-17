@@ -35,13 +35,7 @@
 #include "amdgpu_dm_irq.h"
 #include "amdgpu_pm.h"
 
-unsigned long long dm_get_timestamp(struct dc_context *ctx)
-{
-	struct timespec64 time;
 
-	getrawmonotonic64(&time);
-	return timespec64_to_ns(&time);
-}
 
 unsigned long long dm_get_elapse_time_in_ns(struct dc_context *ctx,
 		unsigned long long current_time_stamp,
@@ -80,6 +74,7 @@ bool dm_read_persistent_data(struct dc_context *ctx,
 
 /**** power component interfaces ****/
 
+<<<<<<< HEAD
 bool dm_pp_apply_display_requirements(
 		const struct dc_context *ctx,
 		const struct dm_pp_display_configuration *pp_display_cfg)
@@ -402,5 +397,6 @@ void dm_pp_get_funcs_rv(
 		struct dc_context *ctx,
 		struct pp_smu_funcs_rv *funcs)
 {}
+=======
+>>>>>>> linux-next/akpm-base
 
-/**** end of power component interfaces ****/

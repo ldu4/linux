@@ -70,12 +70,13 @@ static void ext4_mark_recovery_complete(struct super_block *sb,
 static void ext4_clear_journal_err(struct super_block *sb,
 				   struct ext4_super_block *es);
 static int ext4_sync_fs(struct super_block *sb, int wait);
-static int ext4_remount(struct super_block *sb, int *flags, char *data);
+static int ext4_remount(struct super_block *sb, int *flags,
+			char *data, size_t data_size);
 static int ext4_statfs(struct dentry *dentry, struct kstatfs *buf);
 static int ext4_unfreeze(struct super_block *sb);
 static int ext4_freeze(struct super_block *sb);
 static struct dentry *ext4_mount(struct file_system_type *fs_type, int flags,
-		       const char *dev_name, void *data);
+		       const char *dev_name, void *data, size_t data_size);
 static inline int ext2_feature_set_ok(struct super_block *sb);
 static inline int ext3_feature_set_ok(struct super_block *sb);
 static int ext4_feature_set_ok(struct super_block *sb, int readonly);
@@ -2342,7 +2343,7 @@ static int ext4_check_descriptors(struct super_block *sb,
 	struct ext4_sb_info *sbi = EXT4_SB(sb);
 	ext4_fsblk_t first_block = le32_to_cpu(sbi->s_es->s_first_data_block);
 	ext4_fsblk_t last_block;
-	ext4_fsblk_t last_bg_block = sb_block + ext4_bg_num_gdb(sb, 0) + 1;
+	ext4_fsblk_t last_bg_block = sb_block + ext4_bg_num_gdb(sb, 0);
 	ext4_fsblk_t block_bitmap;
 	ext4_fsblk_t inode_bitmap;
 	ext4_fsblk_t inode_table;
@@ -3474,7 +3475,8 @@ static void ext4_set_resv_clusters(struct super_block *sb)
 	atomic64_set(&sbi->s_resv_clusters, resv_clusters);
 }
 
-static int ext4_fill_super(struct super_block *sb, void *data, int silent)
+static int ext4_fill_super(struct super_block *sb, void *data, size_t data_size,
+			   int silent)
 {
 	struct dax_device *dax_dev = fs_dax_get_by_bdev(sb->s_bdev);
 	char *orig_data = kstrdup(data, GFP_KERNEL);
@@ -4085,13 +4087,12 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
 			goto failed_mount2;
 		}
 	}
+	sbi->s_gdb_count = db_count;
 	if (!ext4_check_descriptors(sb, logical_sb_block, &first_not_zeroed)) {
 		ext4_msg(sb, KERN_ERR, "group descriptors corrupted!");
 		ret = -EFSCORRUPTED;
 		goto failed_mount2;
 	}
-
-	sbi->s_gdb_count = db_count;
 
 	timer_setup(&sbi->s_err_report, print_daily_error_info, 0);
 
@@ -5072,7 +5073,8 @@ struct ext4_mount_options {
 #endif
 };
 
-static int ext4_remount(struct super_block *sb, int *flags, char *data)
+static int ext4_remount(struct super_block *sb, int *flags,
+			char *data, size_t data_size)
 {
 	struct ext4_super_block *es;
 	struct ext4_sb_info *sbi = EXT4_SB(sb);
@@ -5213,6 +5215,8 @@ static int ext4_remount(struct super_block *sb, int *flags, char *data)
 
 			if (sbi->s_journal)
 				ext4_mark_recovery_complete(sb, es);
+			if (sbi->s_mmp_tsk)
+				kthread_stop(sbi->s_mmp_tsk);
 		} else {
 			/* Make sure we can mount this feature set readwrite */
 			if (ext4_has_feature_readonly(sb) ||
@@ -5839,9 +5843,10 @@ static int ext4_get_next_id(struct super_block *sb, struct kqid *qid)
 #endif
 
 static struct dentry *ext4_mount(struct file_system_type *fs_type, int flags,
-		       const char *dev_name, void *data)
+		       const char *dev_name, void *data, size_t data_size)
 {
-	return mount_bdev(fs_type, flags, dev_name, data, ext4_fill_super);
+	return mount_bdev(fs_type, flags, dev_name, data, data_size,
+			  ext4_fill_super);
 }
 
 #if !defined(CONFIG_EXT2_FS) && !defined(CONFIG_EXT2_FS_MODULE) && defined(CONFIG_EXT4_USE_FOR_EXT2)
