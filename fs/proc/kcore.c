@@ -63,7 +63,7 @@ static DEFINE_RWLOCK(kclist_lock);
 static int kcore_need_update = 1;
 
 /* This doesn't grab kclist_lock, so it should only be used at init time. */
-void
+void __init
 kclist_add(struct kcore_list *new, void *addr, size_t size, int type)
 {
 	new->addr = (unsigned long)addr;
