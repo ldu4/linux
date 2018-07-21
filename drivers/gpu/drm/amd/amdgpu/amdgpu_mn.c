@@ -174,46 +174,44 @@ void amdgpu_mn_unlock(struct amdgpu_mn *mn)
 }
 
 /**
- * amdgpu_mn_read_lock - take the rmn read lock
+ * amdgpu_mn_read_lock - take the read side lock for this notifier
  *
- * @rmn: our notifier
- *
- * Take the rmn read side lock.
+ * @amn: our notifier
  */
-static int amdgpu_mn_read_lock(struct amdgpu_mn *rmn, bool blockable)
+static int amdgpu_mn_read_lock(struct amdgpu_mn *amn, bool blockable)
 {
 	if (blockable)
-		mutex_lock(&rmn->read_lock);
-	else if (!mutex_trylock(&rmn->read_lock))
+		mutex_lock(&amn->read_lock);
+	else if (!mutex_trylock(&amn->read_lock))
 		return -EAGAIN;
 
-	if (atomic_inc_return(&rmn->recursion) == 1)
-		down_read_non_owner(&rmn->lock);
-	mutex_unlock(&rmn->read_lock);
+	if (atomic_inc_return(&amn->recursion) == 1)
+		down_read_non_owner(&amn->lock);
+	mutex_unlock(&amn->read_lock);
 
 	return 0;
 }
 
 /**
- * amdgpu_mn_read_unlock - drop the rmn read lock
+ * amdgpu_mn_read_unlock - drop the read side lock for this notifier
  *
- * @rmn: our notifier
- *
- * Drop the rmn read side lock.
+ * @amn: our notifier
  */
-static void amdgpu_mn_read_unlock(struct amdgpu_mn *rmn)
+static void amdgpu_mn_read_unlock(struct amdgpu_mn *amn)
 {
-	if (atomic_dec_return(&rmn->recursion) == 0)
-		up_read_non_owner(&rmn->lock);
+	if (atomic_dec_return(&amn->recursion) == 0)
+		up_read_non_owner(&amn->lock);
 }
 
 /**
  * amdgpu_mn_invalidate_node - unmap all BOs of a node
  *
  * @node: the node with the BOs to unmap
+ * @start: start of address range affected
+ * @end: end of address range affected
  *
- * We block for all BOs and unmap them by move them
- * into system domain again.
+ * Block for operations on BOs to finish and mark pages as accessed and
+ * potentially dirty.
  */
 static void amdgpu_mn_invalidate_node(struct amdgpu_mn_node *node,
 				      unsigned long start,
@@ -240,12 +238,12 @@ static void amdgpu_mn_invalidate_node(struct amdgpu_mn_node *node,
  * amdgpu_mn_invalidate_range_start_gfx - callback to notify about mm change
  *
  * @mn: our notifier
- * @mn: the mm this callback is about
+ * @mm: the mm this callback is about
  * @start: start of updated range
  * @end: end of updated range
  *
- * We block for all BOs between start and end to be idle and
- * unmap them by move them into system domain again.
+ * Block for operations on BOs to finish and mark pages as accessed and
+ * potentially dirty.
  */
 static int amdgpu_mn_invalidate_range_start_gfx(struct mmu_notifier *mn,
 						 struct mm_struct *mm,
@@ -253,7 +251,7 @@ static int amdgpu_mn_invalidate_range_start_gfx(struct mmu_notifier *mn,
 						 unsigned long end,
 						 bool blockable)
 {
-	struct amdgpu_mn *rmn = container_of(mn, struct amdgpu_mn, mn);
+	struct amdgpu_mn *amn = container_of(mn, struct amdgpu_mn, mn);
 	struct interval_tree_node *it;
 
 	/* notification is exclusive, but interval is inclusive */
@@ -262,15 +260,15 @@ static int amdgpu_mn_invalidate_range_start_gfx(struct mmu_notifier *mn,
 	/* TODO we should be able to split locking for interval tree and
 	 * amdgpu_mn_invalidate_node
 	 */
-	if (amdgpu_mn_read_lock(rmn, blockable))
+	if (amdgpu_mn_read_lock(amn, blockable))
 		return -EAGAIN;
 
-	it = interval_tree_iter_first(&rmn->objects, start, end);
+	it = interval_tree_iter_first(&amn->objects, start, end);
 	while (it) {
 		struct amdgpu_mn_node *node;
 
 		if (!blockable) {
-			amdgpu_mn_read_unlock(rmn);
+			amdgpu_mn_read_unlock(amn);
 			return -EAGAIN;
 		}
 
@@ -301,22 +299,22 @@ static int amdgpu_mn_invalidate_range_start_hsa(struct mmu_notifier *mn,
 						 unsigned long end,
 						 bool blockable)
 {
-	struct amdgpu_mn *rmn = container_of(mn, struct amdgpu_mn, mn);
+	struct amdgpu_mn *amn = container_of(mn, struct amdgpu_mn, mn);
 	struct interval_tree_node *it;
 
 	/* notification is exclusive, but interval is inclusive */
 	end -= 1;
 
-	if (amdgpu_mn_read_lock(rmn, blockable))
+	if (amdgpu_mn_read_lock(amn, blockable))
 		return -EAGAIN;
 
-	it = interval_tree_iter_first(&rmn->objects, start, end);
+	it = interval_tree_iter_first(&amn->objects, start, end);
 	while (it) {
 		struct amdgpu_mn_node *node;
 		struct amdgpu_bo *bo;
 
 		if (!blockable) {
-			amdgpu_mn_read_unlock(rmn);
+			amdgpu_mn_read_unlock(amn);
 			return -EAGAIN;
 		}
 
