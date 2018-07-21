@@ -138,7 +138,8 @@ static void fuse_evict_inode(struct inode *inode)
 	}
 }
 
-static int fuse_remount_fs(struct super_block *sb, int *flags, char *data)
+static int fuse_remount_fs(struct super_block *sb, int *flags,
+			   char *data, size_t data_size)
 {
 	sync_filesystem(sb);
 	if (*flags & SB_MANDLOCK)
@@ -208,7 +209,7 @@ void fuse_change_attributes(struct inode *inode, struct fuse_attr *attr,
 	struct fuse_inode *fi = get_fuse_inode(inode);
 	bool is_wb = fc->writeback_cache;
 	loff_t oldsize;
-	struct timespec old_mtime;
+	struct timespec64 old_mtime;
 
 	spin_lock(&fc->lock);
 	if ((attr_version != 0 && fi->attr_version > attr_version) ||
@@ -217,7 +218,7 @@ void fuse_change_attributes(struct inode *inode, struct fuse_attr *attr,
 		return;
 	}
 
-	old_mtime = timespec64_to_timespec(inode->i_mtime);
+	old_mtime = inode->i_mtime;
 	fuse_change_attributes_common(inode, attr, attr_valid);
 
 	oldsize = inode->i_size;
@@ -237,7 +238,7 @@ void fuse_change_attributes(struct inode *inode, struct fuse_attr *attr,
 			truncate_pagecache(inode, attr->size);
 			inval = true;
 		} else if (fc->auto_inval_data) {
-			struct timespec new_mtime = {
+			struct timespec64 new_mtime = {
 				.tv_sec = attr->mtime,
 				.tv_nsec = attr->mtimensec,
 			};
@@ -246,7 +247,7 @@ void fuse_change_attributes(struct inode *inode, struct fuse_attr *attr,
 			 * Auto inval mode also checks and invalidates if mtime
 			 * has changed.
 			 */
-			if (!timespec_equal(&old_mtime, &new_mtime))
+			if (!timespec64_equal(&old_mtime, &new_mtime))
 				inval = true;
 		}
 
@@ -357,15 +358,21 @@ int fuse_reverse_inval_inode(struct super_block *sb, u64 nodeid,
 	return 0;
 }
 
-void fuse_lock_inode(struct inode *inode)
+bool fuse_lock_inode(struct inode *inode)
 {
-	if (!get_fuse_conn(inode)->parallel_dirops)
+	bool locked = false;
+
+	if (!get_fuse_conn(inode)->parallel_dirops) {
 		mutex_lock(&get_fuse_inode(inode)->mutex);
+		locked = true;
+	}
+
+	return locked;
 }
 
-void fuse_unlock_inode(struct inode *inode)
+void fuse_unlock_inode(struct inode *inode, bool locked)
 {
-	if (!get_fuse_conn(inode)->parallel_dirops)
+	if (locked)
 		mutex_unlock(&get_fuse_inode(inode)->mutex);
 }
 
@@ -1049,7 +1056,8 @@ void fuse_dev_free(struct fuse_dev *fud)
 }
 EXPORT_SYMBOL_GPL(fuse_dev_free);
 
-static int fuse_fill_super(struct super_block *sb, void *data, int silent)
+static int fuse_fill_super(struct super_block *sb, void *data, size_t data_size,
+			   int silent)
 {
 	struct fuse_dev *fud;
 	struct fuse_conn *fc;
@@ -1205,9 +1213,10 @@ static int fuse_fill_super(struct super_block *sb, void *data, int silent)
 
 static struct dentry *fuse_mount(struct file_system_type *fs_type,
 		       int flags, const char *dev_name,
-		       void *raw_data)
+		       void *raw_data, size_t data_size)
 {
-	return mount_nodev(fs_type, flags, raw_data, fuse_fill_super);
+	return mount_nodev(fs_type, flags, raw_data, data_size,
+			   fuse_fill_super);
 }
 
 static void fuse_kill_sb_anon(struct super_block *sb)
@@ -1235,9 +1244,10 @@ MODULE_ALIAS_FS("fuse");
 #ifdef CONFIG_BLOCK
 static struct dentry *fuse_mount_blk(struct file_system_type *fs_type,
 			   int flags, const char *dev_name,
-			   void *raw_data)
+			   void *raw_data, size_t data_size)
 {
-	return mount_bdev(fs_type, flags, dev_name, raw_data, fuse_fill_super);
+	return mount_bdev(fs_type, flags, dev_name, raw_data, data_size,
+			  fuse_fill_super);
 }
 
 static void fuse_kill_sb_blk(struct super_block *sb)
