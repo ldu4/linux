@@ -106,6 +106,7 @@ enum intel_platform {
 	func(has_resource_streamer); \
 	func(has_runtime_pm); \
 	func(has_snoop); \
+	func(has_coherent_ggtt); \
 	func(unfenced_needs_alignment); \
 	func(cursor_needs_physical); \
 	func(hws_needs_physical); \
@@ -186,6 +187,7 @@ struct intel_device_info {
 
 struct intel_driver_caps {
 	unsigned int scheduler;
+	bool has_logical_contexts:1;
 };
 
 static inline unsigned int sseu_subslice_total(const struct sseu_dev_info *sseu)
