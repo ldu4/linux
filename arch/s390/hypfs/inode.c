@@ -36,7 +36,7 @@ struct hypfs_sb_info {
 	kuid_t uid;			/* uid used for files and dirs */
 	kgid_t gid;			/* gid used for files and dirs */
 	struct dentry *update_file;	/* file to trigger update */
-	time_t last_update;		/* last update time in secs since 1970 */
+	time64_t last_update;		/* last update, CLOCK_MONOTONIC time */
 	struct mutex lock;		/* lock to protect update process */
 };
 
@@ -52,7 +52,7 @@ static void hypfs_update_update(struct super_block *sb)
 	struct hypfs_sb_info *sb_info = sb->s_fs_info;
 	struct inode *inode = d_inode(sb_info->update_file);
 
-	sb_info->last_update = get_seconds();
+	sb_info->last_update = ktime_get_seconds();
 	inode->i_atime = inode->i_mtime = inode->i_ctime = current_time(inode);
 }
 
@@ -179,7 +179,7 @@ static ssize_t hypfs_write_iter(struct kiocb *iocb, struct iov_iter *from)
 	 *    to restart data collection in this case.
 	 */
 	mutex_lock(&fs_info->lock);
-	if (fs_info->last_update == get_seconds()) {
+	if (fs_info->last_update == ktime_get_seconds()) {
 		rc = -EBUSY;
 		goto out;
 	}
@@ -266,7 +266,8 @@ static int hypfs_show_options(struct seq_file *s, struct dentry *root)
 	return 0;
 }
 
-static int hypfs_fill_super(struct super_block *sb, void *data, int silent)
+static int hypfs_fill_super(struct super_block *sb,
+			    void *data, size_t data_size, int silent)
 {
 	struct inode *root_inode;
 	struct dentry *root_dentry;
@@ -309,9 +310,9 @@ static int hypfs_fill_super(struct super_block *sb, void *data, int silent)
 }
 
 static struct dentry *hypfs_mount(struct file_system_type *fst, int flags,
-			const char *devname, void *data)
+			const char *devname, void *data, size_t data_size)
 {
-	return mount_single(fst, flags, data, hypfs_fill_super);
+	return mount_single(fst, flags, data, data_size, hypfs_fill_super);
 }
 
 static void hypfs_kill_super(struct super_block *sb)
