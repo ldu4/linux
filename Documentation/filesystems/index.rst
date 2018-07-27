@@ -2,6 +2,14 @@
 Linux Filesystems API
 =====================
 
+The documentation in this section are provided by specific filesystem
+subprojects.
+
+.. toctree::
+   :maxdepth: 2
+
+   ext4/index
+
 The Linux VFS
 =============
 
@@ -69,6 +77,39 @@ Other Functions
    :export:
 
 .. kernel-doc:: fs/block_dev.c
+   :export:
+
+.. kernel-doc:: fs/anon_inodes.c
+   :export:
+
+.. kernel-doc:: fs/attr.c
+   :export:
+
+.. kernel-doc:: fs/d_path.c
+   :export:
+
+.. kernel-doc:: fs/dax.c
+   :export:
+
+.. kernel-doc:: fs/direct-io.c
+   :export:
+
+.. kernel-doc:: fs/file_table.c
+   :export:
+
+.. kernel-doc:: fs/libfs.c
+   :export:
+
+.. kernel-doc:: fs/posix_acl.c
+   :export:
+
+.. kernel-doc:: fs/stat.c
+   :export:
+
+.. kernel-doc:: fs/sync.c
+   :export:
+
+.. kernel-doc:: fs/xattr.c
    :export:
 
 The proc filesystem
