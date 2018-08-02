@@ -69,8 +69,10 @@
 #include <asm/kexec.h>
 #include <asm/isa-bridge.h>
 #include <asm/security_features.h>
+#include <asm/asm-const.h>
 
 #include "pseries.h"
+#include "../../../../drivers/pci/pci.h"
 
 int CMO_PrPSP = -1;
 int CMO_SecPSP = -1;
@@ -646,6 +648,15 @@ void of_pci_parse_iov_addrs(struct pci_dev *dev, const int *indexes)
 	}
 }
 
+static void pseries_disable_sriov_resources(struct pci_dev *pdev)
+{
+	int i;
+
+	pci_warn(pdev, "No hypervisor support for SR-IOV on this device, IOV BARs disabled.\n");
+	for (i = 0; i < PCI_SRIOV_NUM_BARS; i++)
+		pdev->resource[i + PCI_IOV_RESOURCES].flags = 0;
+}
+
 static void pseries_pci_fixup_resources(struct pci_dev *pdev)
 {
 	const int *indexes;
@@ -653,10 +664,10 @@ static void pseries_pci_fixup_resources(struct pci_dev *pdev)
 
 	/*Firmware must support open sriov otherwise dont configure*/
 	indexes = of_get_property(dn, "ibm,open-sriov-vf-bar-info", NULL);
-	if (!indexes)
-		return;
-	/* Assign the addresses from device tree*/
-	of_pci_set_vf_bar_size(pdev, indexes);
+	if (indexes)
+		of_pci_set_vf_bar_size(pdev, indexes);
+	else
+		pseries_disable_sriov_resources(pdev);
 }
 
 static void pseries_pci_fixup_iov_resources(struct pci_dev *pdev)
@@ -664,14 +675,14 @@ static void pseries_pci_fixup_iov_resources(struct pci_dev *pdev)
 	const int *indexes;
 	struct device_node *dn = pci_device_to_OF_node(pdev);
 
-	if (!pdev->is_physfn || pdev->is_added)
+	if (!pdev->is_physfn || pci_dev_is_added(pdev))
 		return;
 	/*Firmware must support open sriov otherwise dont configure*/
 	indexes = of_get_property(dn, "ibm,open-sriov-vf-bar-info", NULL);
-	if (!indexes)
-		return;
-	/* Assign the addresses from device tree*/
-	of_pci_parse_iov_addrs(pdev, indexes);
+	if (indexes)
+		of_pci_parse_iov_addrs(pdev, indexes);
+	else
+		pseries_disable_sriov_resources(pdev);
 }
 
 static resource_size_t pseries_pci_iov_resource_alignment(struct pci_dev *pdev,

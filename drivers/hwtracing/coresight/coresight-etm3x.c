@@ -230,10 +230,8 @@ void etm_set_default(struct etm_config *config)
 
 	config->seq_curr_state = 0x0;
 	config->ctxid_idx = 0x0;
-	for (i = 0; i < ETM_MAX_CTXID_CMP; i++) {
+	for (i = 0; i < ETM_MAX_CTXID_CMP; i++)
 		config->ctxid_pid[i] = 0x0;
-		config->ctxid_vpid[i] = 0x0;
-	}
 
 	config->ctxid_mask = 0x0;
 	/* Setting default to 1024 as per TRM recommendation */
@@ -503,7 +501,7 @@ static int etm_enable_sysfs(struct coresight_device *csdev)
 	drvdata->sticky_enable = true;
 	spin_unlock(&drvdata->spinlock);
 
-	dev_info(drvdata->dev, "ETM tracing enabled\n");
+	dev_dbg(drvdata->dev, "ETM tracing enabled\n");
 	return 0;
 
 err:
@@ -606,7 +604,7 @@ static void etm_disable_sysfs(struct coresight_device *csdev)
 	spin_unlock(&drvdata->spinlock);
 	cpus_read_unlock();
 
-	dev_info(drvdata->dev, "ETM tracing disabled\n");
+	dev_dbg(drvdata->dev, "ETM tracing disabled\n");
 }
 
 static void etm_disable(struct coresight_device *csdev,

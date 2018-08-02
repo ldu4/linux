@@ -238,10 +238,13 @@ mt76x2_bss_info_changed(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	if (changed & BSS_CHANGED_BSSID)
 		mt76x2_mac_set_bssid(dev, mvif->idx, info->bssid);
 
-	if (changed & BSS_CHANGED_BEACON_INT)
+	if (changed & BSS_CHANGED_BEACON_INT) {
 		mt76_rmw_field(dev, MT_BEACON_TIME_CFG,
 			       MT_BEACON_TIME_CFG_INTVAL,
 			       info->beacon_int << 4);
+		dev->beacon_int = info->beacon_int;
+		dev->tbtt_count = 0;
+	}
 
 	if (changed & BSS_CHANGED_BEACON_ENABLED) {
 		tasklet_disable(&dev->pre_tbtt_tasklet);
@@ -290,6 +293,8 @@ mt76x2_sta_add(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 
 	if (vif->type == NL80211_IFTYPE_AP)
 		set_bit(MT_WCID_FLAG_CHECK_PS, &msta->wcid.flags);
+
+	ewma_signal_init(&msta->rssi);
 
 	rcu_assign_pointer(dev->wcid[idx], &msta->wcid);
 
@@ -600,6 +605,21 @@ static int mt76x2_get_antenna(struct ieee80211_hw *hw, u32 *tx_ant,
 	return 0;
 }
 
+static int
+mt76x2_set_rts_threshold(struct ieee80211_hw *hw, u32 val)
+{
+	struct mt76x2_dev *dev = hw->priv;
+
+	if (val != ~0 && val > 0xffff)
+		return -EINVAL;
+
+	mutex_lock(&dev->mutex);
+	mt76x2_mac_set_tx_protection(dev, val);
+	mutex_unlock(&dev->mutex);
+
+	return 0;
+}
+
 const struct ieee80211_ops mt76x2_ops = {
 	.tx = mt76x2_tx,
 	.start = mt76x2_start,
@@ -626,5 +646,6 @@ const struct ieee80211_ops mt76x2_ops = {
 	.set_tim = mt76x2_set_tim,
 	.set_antenna = mt76x2_set_antenna,
 	.get_antenna = mt76x2_get_antenna,
+	.set_rts_threshold = mt76x2_set_rts_threshold,
 };
 

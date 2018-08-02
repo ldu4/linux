@@ -83,6 +83,9 @@ EXPORT_SYMBOL_GPL(cgroup_mutex);
 EXPORT_SYMBOL_GPL(css_set_lock);
 #endif
 
+DEFINE_SPINLOCK(trace_cgroup_path_lock);
+char trace_cgroup_path[TRACE_CGROUP_PATH_LEN];
+
 /*
  * Protects cgroup_idr and css_idr so that IDs can be released without
  * grabbing cgroup_mutex.
@@ -1734,25 +1737,23 @@ int cgroup_show_path(struct seq_file *sf, struct kernfs_node *kf_node,
 	return len;
 }
 
-static int parse_cgroup_root_flags(char *data, unsigned int *root_flags)
+static int cgroup2_parse_option(struct fs_context *fc, char *token)
 {
-	char *token;
+	struct cgroup_fs_context *ctx = cgroup_fc2context(fc);
 
-	*root_flags = 0;
-
-	if (!data)
+	if (!strcmp(token, "nsdelegate")) {
+		ctx->flags |= CGRP_ROOT_NS_DELEGATE;
 		return 0;
-
-	while ((token = strsep(&data, ",")) != NULL) {
-		if (!strcmp(token, "nsdelegate")) {
-			*root_flags |= CGRP_ROOT_NS_DELEGATE;
-			continue;
-		}
-
-		pr_err("cgroup2: unknown option \"%s\"\n", token);
-		return -EINVAL;
 	}
 
+	return -EINVAL;
+}
+
+static int cgroup_show_options(struct seq_file *seq, struct kernfs_root *kf_root)
+{
+	if (current->nsproxy->cgroup_ns == &init_cgroup_ns &&
+	    cgrp_dfl_root.flags & CGRP_ROOT_NS_DELEGATE)
+		seq_puts(seq, ",nsdelegate");
 	return 0;
 }
 
@@ -1766,23 +1767,11 @@ static void apply_cgroup_root_flags(unsigned int root_flags)
 	}
 }
 
-static int cgroup_show_options(struct seq_file *seq, struct kernfs_root *kf_root)
+static int cgroup_reconfigure(struct kernfs_root *kf_root, struct fs_context *fc)
 {
-	if (cgrp_dfl_root.flags & CGRP_ROOT_NS_DELEGATE)
-		seq_puts(seq, ",nsdelegate");
-	return 0;
-}
+	struct cgroup_fs_context *ctx = cgroup_fc2context(fc);
 
-static int cgroup_remount(struct kernfs_root *kf_root, int *flags, char *data)
-{
-	unsigned int root_flags;
-	int ret;
-
-	ret = parse_cgroup_root_flags(data, &root_flags);
-	if (ret)
-		return ret;
-
-	apply_cgroup_root_flags(root_flags);
+	apply_cgroup_root_flags(ctx->flags);
 	return 0;
 }
 
@@ -1870,8 +1859,9 @@ static void init_cgroup_housekeeping(struct cgroup *cgrp)
 	INIT_WORK(&cgrp->release_agent_work, cgroup1_release_agent);
 }
 
-void init_cgroup_root(struct cgroup_root *root, struct cgroup_sb_opts *opts)
+void init_cgroup_root(struct cgroup_fs_context *ctx)
 {
+	struct cgroup_root *root = ctx->root;
 	struct cgroup *cgrp = &root->cgrp;
 
 	INIT_LIST_HEAD(&root->root_list);
@@ -1880,12 +1870,12 @@ void init_cgroup_root(struct cgroup_root *root, struct cgroup_sb_opts *opts)
 	init_cgroup_housekeeping(cgrp);
 	idr_init(&root->cgroup_idr);
 
-	root->flags = opts->flags;
-	if (opts->release_agent)
-		strscpy(root->release_agent_path, opts->release_agent, PATH_MAX);
-	if (opts->name)
-		strscpy(root->name, opts->name, MAX_CGROUP_ROOT_NAMELEN);
-	if (opts->cpuset_clone_children)
+	root->flags = ctx->flags;
+	if (ctx->release_agent)
+		strscpy(root->release_agent_path, ctx->release_agent, PATH_MAX);
+	if (ctx->name)
+		strscpy(root->name, ctx->name, MAX_CGROUP_ROOT_NAMELEN);
+	if (ctx->cpuset_clone_children)
 		set_bit(CGRP_CPUSET_CLONE_CHILDREN, &root->cgrp.flags);
 }
 
@@ -1990,57 +1980,53 @@ out:
 	return ret;
 }
 
-struct dentry *cgroup_do_mount(struct file_system_type *fs_type, int flags,
-			       struct cgroup_root *root, unsigned long magic,
-			       struct cgroup_namespace *ns)
+int cgroup_do_get_tree(struct fs_context *fc)
 {
-	struct dentry *dentry;
-	bool new_sb;
+	struct cgroup_fs_context *ctx = cgroup_fc2context(fc);
+	int ret;
 
-	dentry = kernfs_mount(fs_type, flags, root->kf_root, magic, &new_sb);
+	ctx->kfc.root = ctx->root->kf_root;
+
+	ret = kernfs_get_tree(fc);
+	if (ret < 0)
+		goto out_cgrp;
 
 	/*
 	 * In non-init cgroup namespace, instead of root cgroup's dentry,
 	 * we return the dentry corresponding to the cgroupns->root_cgrp.
 	 */
-	if (!IS_ERR(dentry) && ns != &init_cgroup_ns) {
+	if (ctx->ns != &init_cgroup_ns) {
 		struct dentry *nsdentry;
 		struct cgroup *cgrp;
 
 		mutex_lock(&cgroup_mutex);
 		spin_lock_irq(&css_set_lock);
 
-		cgrp = cset_cgroup_from_root(ns->root_cset, root);
+		cgrp = cset_cgroup_from_root(ctx->ns->root_cset, ctx->root);
 
 		spin_unlock_irq(&css_set_lock);
 		mutex_unlock(&cgroup_mutex);
 
-		nsdentry = kernfs_node_dentry(cgrp->kn, dentry->d_sb);
-		dput(dentry);
-		dentry = nsdentry;
+		nsdentry = kernfs_node_dentry(cgrp->kn, fc->root->d_sb);
+		if (IS_ERR(nsdentry))
+			return PTR_ERR(nsdentry);
+		dput(fc->root);
+		fc->root = nsdentry;
 	}
 
-	if (IS_ERR(dentry) || !new_sb)
-		cgroup_put(&root->cgrp);
+	ret = 0;
+	if (ctx->kfc.new_sb_created)
+		goto out_cgrp;
+	apply_cgroup_root_flags(ctx->flags);
+	return 0;
 
-	return dentry;
+out_cgrp:
+	return ret;
 }
 
-static struct dentry *cgroup_mount(struct file_system_type *fs_type,
-			 int flags, const char *unused_dev_name,
-			 void *data)
+static int cgroup_get_tree(struct fs_context *fc)
 {
-	struct cgroup_namespace *ns = current->nsproxy->cgroup_ns;
-	struct dentry *dentry;
-	int ret;
-
-	get_cgroup_ns(ns);
-
-	/* Check if the caller has permission to mount. */
-	if (!ns_capable(ns->user_ns, CAP_SYS_ADMIN)) {
-		put_cgroup_ns(ns);
-		return ERR_PTR(-EPERM);
-	}
+	struct cgroup_fs_context *ctx = cgroup_fc2context(fc);
 
 	/*
 	 * The first time anyone tries to mount a cgroup, enable the list
@@ -2049,29 +2035,87 @@ static struct dentry *cgroup_mount(struct file_system_type *fs_type,
 	if (!use_task_css_set_links)
 		cgroup_enable_task_cg_lists();
 
-	if (fs_type == &cgroup2_fs_type) {
-		unsigned int root_flags;
+	switch (ctx->version) {
+	case 1:
+		return cgroup1_get_tree(fc);
 
-		ret = parse_cgroup_root_flags(data, &root_flags);
-		if (ret) {
-			put_cgroup_ns(ns);
-			return ERR_PTR(ret);
-		}
-
+	case 2:
 		cgrp_dfl_visible = true;
 		cgroup_get_live(&cgrp_dfl_root.cgrp);
 
-		dentry = cgroup_do_mount(&cgroup2_fs_type, flags, &cgrp_dfl_root,
-					 CGROUP2_SUPER_MAGIC, ns);
-		if (!IS_ERR(dentry))
-			apply_cgroup_root_flags(root_flags);
-	} else {
-		dentry = cgroup1_mount(&cgroup_fs_type, flags, data,
-				       CGROUP_SUPER_MAGIC, ns);
-	}
+		ctx->root = &cgrp_dfl_root;
+		return cgroup_do_get_tree(fc);
 
-	put_cgroup_ns(ns);
-	return dentry;
+	default:
+		BUG();
+	}
+}
+
+static int cgroup_parse_option(struct fs_context *fc, char *opt, size_t len)
+{
+	struct cgroup_fs_context *ctx = cgroup_fc2context(fc);
+
+	if (ctx->version == 1)
+		return cgroup1_parse_option(fc, opt);
+
+	return cgroup2_parse_option(fc, opt);
+}
+
+static int cgroup_validate(struct fs_context *fc)
+{
+	struct cgroup_fs_context *ctx = cgroup_fc2context(fc);
+
+	if (ctx->version == 1)
+		return cgroup1_validate(fc);
+	return 0;
+}
+
+/*
+ * Destroy a cgroup filesystem context.
+ */
+static void cgroup_fs_context_free(struct fs_context *fc)
+{
+	struct cgroup_fs_context *ctx = cgroup_fc2context(fc);
+
+	kfree(ctx->name);
+	kfree(ctx->release_agent);
+	if (ctx->root)
+		cgroup_put(&ctx->root->cgrp);
+	put_cgroup_ns(ctx->ns);
+	kernfs_free_fs_context(fc);
+	kfree(ctx);
+}
+
+static const struct fs_context_operations cgroup_fs_context_ops = {
+	.free		= cgroup_fs_context_free,
+	.parse_option	= cgroup_parse_option,
+	.validate	= cgroup_validate,
+	.get_tree	= cgroup_get_tree,
+};
+
+/*
+ * Initialise the cgroup filesystem creation/reconfiguration context.  Notably,
+ * we select the namespace we're going to use.
+ */
+static int cgroup_init_fs_context(struct fs_context *fc, struct dentry *reference)
+{
+	struct cgroup_fs_context *ctx;
+	struct cgroup_namespace *ns = current->nsproxy->cgroup_ns;
+
+	/* Check if the caller has permission to mount. */
+	if (!ns_capable(ns->user_ns, CAP_SYS_ADMIN))
+		return -EPERM;
+
+	ctx = kzalloc(sizeof(struct cgroup_fs_context), GFP_KERNEL);
+	if (!ctx)
+		return -ENOMEM;
+
+	ctx->ns = get_cgroup_ns(ns);
+	ctx->version = (fc->fs_type == &cgroup2_fs_type) ? 2 : 1;
+	ctx->kfc.magic = (ctx->version == 2) ? CGROUP2_SUPER_MAGIC : CGROUP_SUPER_MAGIC;
+	fc->fs_private = &ctx->kfc;
+	fc->ops = &cgroup_fs_context_ops;
+	return 0;
 }
 
 static void cgroup_kill_sb(struct super_block *sb)
@@ -2096,17 +2140,17 @@ static void cgroup_kill_sb(struct super_block *sb)
 }
 
 struct file_system_type cgroup_fs_type = {
-	.name = "cgroup",
-	.mount = cgroup_mount,
-	.kill_sb = cgroup_kill_sb,
-	.fs_flags = FS_USERNS_MOUNT,
+	.name			= "cgroup",
+	.init_fs_context	= cgroup_init_fs_context,
+	.kill_sb		= cgroup_kill_sb,
+	.fs_flags		= FS_USERNS_MOUNT,
 };
 
 static struct file_system_type cgroup2_fs_type = {
-	.name = "cgroup2",
-	.mount = cgroup_mount,
-	.kill_sb = cgroup_kill_sb,
-	.fs_flags = FS_USERNS_MOUNT,
+	.name			= "cgroup2",
+	.init_fs_context	= cgroup_init_fs_context,
+	.kill_sb		= cgroup_kill_sb,
+	.fs_flags		= FS_USERNS_MOUNT,
 };
 
 int cgroup_path_ns_locked(struct cgroup *cgrp, char *buf, size_t buflen,
@@ -2638,7 +2682,7 @@ int cgroup_attach_task(struct cgroup *dst_cgrp, struct task_struct *leader,
 	cgroup_migrate_finish(&mgctx);
 
 	if (!ret)
-		trace_cgroup_attach_task(dst_cgrp, leader, threadgroup);
+		TRACE_CGROUP_PATH(attach_task, dst_cgrp, leader, threadgroup);
 
 	return ret;
 }
@@ -3557,7 +3601,9 @@ static int cgroup_add_file(struct cgroup_subsys_state *css, struct cgroup *cgrp,
 	key = &cft->lockdep_key;
 #endif
 	kn = __kernfs_create_file(cgrp->kn, cgroup_file_name(cgrp, cft, name),
-				  cgroup_file_mode(cft), 0, cft->kf_ops, cft,
+				  cgroup_file_mode(cft),
+				  GLOBAL_ROOT_UID, GLOBAL_ROOT_GID,
+				  0, cft->kf_ops, cft,
 				  NULL, key);
 	if (IS_ERR(kn))
 		return PTR_ERR(kn);
@@ -4634,7 +4680,7 @@ static void css_release_work_fn(struct work_struct *work)
 		struct cgroup *tcgrp;
 
 		/* cgroup release path */
-		trace_cgroup_release(cgrp);
+		TRACE_CGROUP_PATH(release, cgrp);
 
 		if (cgroup_on_dfl(cgrp))
 			cgroup_rstat_flush(cgrp);
@@ -4977,7 +5023,7 @@ int cgroup_mkdir(struct kernfs_node *parent_kn, const char *name, umode_t mode)
 	if (ret)
 		goto out_destroy;
 
-	trace_cgroup_mkdir(cgrp);
+	TRACE_CGROUP_PATH(mkdir, cgrp);
 
 	/* let's create and online css's */
 	kernfs_activate(kn);
@@ -5165,9 +5211,8 @@ int cgroup_rmdir(struct kernfs_node *kn)
 		return 0;
 
 	ret = cgroup_destroy_locked(cgrp);
-
 	if (!ret)
-		trace_cgroup_rmdir(cgrp);
+		TRACE_CGROUP_PATH(rmdir, cgrp);
 
 	cgroup_kn_unlock(kn);
 	return ret;
@@ -5175,7 +5220,7 @@ int cgroup_rmdir(struct kernfs_node *kn)
 
 static struct kernfs_syscall_ops cgroup_kf_syscall_ops = {
 	.show_options		= cgroup_show_options,
-	.remount_fs		= cgroup_remount,
+	.reconfigure		= cgroup_reconfigure,
 	.mkdir			= cgroup_mkdir,
 	.rmdir			= cgroup_rmdir,
 	.show_path		= cgroup_show_path,
@@ -5242,11 +5287,12 @@ static void __init cgroup_init_subsys(struct cgroup_subsys *ss, bool early)
  */
 int __init cgroup_init_early(void)
 {
-	static struct cgroup_sb_opts __initdata opts;
+	static struct cgroup_fs_context __initdata ctx;
 	struct cgroup_subsys *ss;
 	int i;
 
-	init_cgroup_root(&cgrp_dfl_root, &opts);
+	ctx.root = &cgrp_dfl_root;
+	init_cgroup_root(&ctx);
 	cgrp_dfl_root.cgrp.self.flags |= CSS_NO_REF;
 
 	RCU_INIT_POINTER(init_task.cgroups, &init_css_set);
