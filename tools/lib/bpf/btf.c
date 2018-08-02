@@ -37,17 +37,6 @@ struct btf {
 	int fd;
 };
 
-<<<<<<< HEAD
-static const char *btf_name_by_offset(const struct btf *btf, __u32 offset)
-{
-	if (offset < btf->hdr->str_len)
-		return &btf->strings[offset];
-	else
-		return NULL;
-}
-
-=======
->>>>>>> linux-next/akpm-base
 static int btf_add_type(struct btf *btf, struct btf_type *t)
 {
 	if (btf->types_size - btf->nr_types < 2) {
@@ -277,10 +266,6 @@ __s64 btf__resolve_size(const struct btf *btf, __u32 type_id)
 	return nelems * size;
 }
 
-<<<<<<< HEAD
-__s32 btf__find_by_name(const struct btf *btf, const char *type_name)
-{
-=======
 int btf__resolve_type(const struct btf *btf, __u32 type_id)
 {
 	const struct btf_type *t;
@@ -303,7 +288,6 @@ int btf__resolve_type(const struct btf *btf, __u32 type_id)
 
 __s32 btf__find_by_name(const struct btf *btf, const char *type_name)
 {
->>>>>>> linux-next/akpm-base
 	__u32 i;
 
 	if (!strcmp(type_name, "void"))
