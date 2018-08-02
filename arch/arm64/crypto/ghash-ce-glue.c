@@ -204,7 +204,6 @@ static struct shash_alg ghash_alg = {
 	.base.cra_name		= "ghash",
 	.base.cra_driver_name	= "ghash-ce",
 	.base.cra_priority	= 200,
-	.base.cra_flags		= CRYPTO_ALG_TYPE_SHASH,
 	.base.cra_blocksize	= GHASH_BLOCK_SIZE,
 	.base.cra_ctxsize	= sizeof(struct ghash_key),
 	.base.cra_module	= THIS_MODULE,
@@ -488,9 +487,13 @@ static int gcm_decrypt(struct aead_request *req)
 			err = skcipher_walk_done(&walk,
 						 walk.nbytes % AES_BLOCK_SIZE);
 		}
-		if (walk.nbytes)
-			pmull_gcm_encrypt_block(iv, iv, NULL,
+		if (walk.nbytes) {
+			kernel_neon_begin();
+			pmull_gcm_encrypt_block(iv, iv, ctx->aes_key.key_enc,
 						num_rounds(&ctx->aes_key));
+			kernel_neon_end();
+		}
+
 	} else {
 		__aes_arm64_encrypt(ctx->aes_key.key_enc, tag, iv,
 				    num_rounds(&ctx->aes_key));
