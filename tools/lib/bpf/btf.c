@@ -16,6 +16,11 @@
 
 #define BTF_MAX_NR_TYPES 65535
 
+#define IS_MODIFIER(k) (((k) == BTF_KIND_TYPEDEF) || \
+		((k) == BTF_KIND_VOLATILE) || \
+		((k) == BTF_KIND_CONST) || \
+		((k) == BTF_KIND_RESTRICT))
+
 static struct btf_type btf_void;
 
 struct btf {
@@ -32,6 +37,7 @@ struct btf {
 	int fd;
 };
 
+<<<<<<< HEAD
 static const char *btf_name_by_offset(const struct btf *btf, __u32 offset)
 {
 	if (offset < btf->hdr->str_len)
@@ -40,6 +46,8 @@ static const char *btf_name_by_offset(const struct btf *btf, __u32 offset)
 		return NULL;
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 static int btf_add_type(struct btf *btf, struct btf_type *t)
 {
 	if (btf->types_size - btf->nr_types < 2) {
@@ -269,8 +277,33 @@ __s64 btf__resolve_size(const struct btf *btf, __u32 type_id)
 	return nelems * size;
 }
 
+<<<<<<< HEAD
 __s32 btf__find_by_name(const struct btf *btf, const char *type_name)
 {
+=======
+int btf__resolve_type(const struct btf *btf, __u32 type_id)
+{
+	const struct btf_type *t;
+	int depth = 0;
+
+	t = btf__type_by_id(btf, type_id);
+	while (depth < MAX_RESOLVE_DEPTH &&
+	       !btf_type_is_void_or_null(t) &&
+	       IS_MODIFIER(BTF_INFO_KIND(t->info))) {
+		type_id = t->type;
+		t = btf__type_by_id(btf, type_id);
+		depth++;
+	}
+
+	if (depth == MAX_RESOLVE_DEPTH || btf_type_is_void_or_null(t))
+		return -EINVAL;
+
+	return type_id;
+}
+
+__s32 btf__find_by_name(const struct btf *btf, const char *type_name)
+{
+>>>>>>> linux-next/akpm-base
 	__u32 i;
 
 	if (!strcmp(type_name, "void"))
@@ -278,7 +311,7 @@ __s32 btf__find_by_name(const struct btf *btf, const char *type_name)
 
 	for (i = 1; i <= btf->nr_types; i++) {
 		const struct btf_type *t = btf->types[i];
-		const char *name = btf_name_by_offset(btf, t->name_off);
+		const char *name = btf__name_by_offset(btf, t->name_off);
 
 		if (name && !strcmp(type_name, name))
 			return i;
@@ -367,4 +400,12 @@ done:
 int btf__fd(const struct btf *btf)
 {
 	return btf->fd;
+}
+
+const char *btf__name_by_offset(const struct btf *btf, __u32 offset)
+{
+	if (offset < btf->hdr->str_len)
+		return &btf->strings[offset];
+	else
+		return NULL;
 }

@@ -581,8 +581,15 @@ nfs4_async_handle_exception(struct rpc_task *task, struct nfs_server *server,
 		ret = -EIO;
 	return ret;
 out_retry:
-	if (ret == 0)
+	if (ret == 0) {
 		exception->retry = 1;
+		/*
+		 * For NFS4ERR_MOVED, the client transport will need to
+		 * be recomputed after migration recovery has completed.
+		 */
+		if (errorcode == -NFS4ERR_MOVED)
+			rpc_task_release_transport(task);
+	}
 	return ret;
 }
 
@@ -1773,6 +1780,10 @@ nfs4_opendata_check_deleg(struct nfs4_opendata *data, struct nfs4_state *state)
 				data->o_res.delegation_type,
 				&data->o_res.delegation,
 				data->o_res.pagemod_limit);
+
+	if (data->o_res.do_recall)
+		nfs_async_inode_return_delegation(state->inode,
+						  &data->o_res.delegation);
 }
 
 /*
@@ -2843,6 +2854,9 @@ static int _nfs4_open_and_get_state(struct nfs4_opendata *opendata,
 				nfs_save_change_attribute(d_inode(opendata->dir)));
 	}
 
+	/* Parse layoutget results before we check for access */
+	pnfs_parse_lgopen(state->inode, opendata->lgp, ctx);
+
 	ret = nfs4_opendata_access(sp->so_cred, opendata, state, fmode, flags);
 	if (ret != 0)
 		goto out;
@@ -2851,8 +2865,6 @@ static int _nfs4_open_and_get_state(struct nfs4_opendata *opendata,
 		nfs_inode_attach_open_context(ctx);
 		if (read_seqcount_retry(&sp->so_reclaim_seqcount, seq))
 			nfs4_schedule_stateid_recovery(server, state);
-		else
-			pnfs_parse_lgopen(state->inode, opendata->lgp, ctx);
 	}
 
 out:
@@ -2951,7 +2963,7 @@ static int _nfs4_do_open(struct inode *dir,
 		}
 	}
 	if (opened && opendata->file_created)
-		*opened |= FILE_CREATED;
+		*opened = 1;
 
 	if (pnfs_use_threshold(ctx_th, opendata->f_attr.mdsthreshold, server)) {
 		*ctx_th = opendata->f_attr.mdsthreshold;
