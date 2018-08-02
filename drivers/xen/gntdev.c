@@ -479,7 +479,7 @@ static const struct vm_operations_struct gntdev_vmops = {
 
 /* ------------------------------------------------------------------ */
 
-static bool in_range(struct grant_map *map,
+static bool in_range(struct gntdev_grant_map *map,
 			      unsigned long start, unsigned long end)
 {
 	if (!map->vma)
@@ -516,7 +516,7 @@ static int mn_invl_range_start(struct mmu_notifier *mn,
 				bool blockable)
 {
 	struct gntdev_priv *priv = container_of(mn, struct gntdev_priv, mn);
-	struct grant_map *map;
+	struct gntdev_grant_map *map;
 	int ret = 0;
 
 	/* TODO do we really need a mutex here? */
