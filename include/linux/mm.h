@@ -389,13 +389,6 @@ enum page_entry_size {
  * These are the virtual MM functions - opening of an area, closing and
  * unmapping it (needed to keep files on disk up-to-date etc), pointer
  * to the functions called when a no-page or a wp-page exception occurs.
- *
- * Note, when a new function is introduced to vm_operations_struct and
- * added to hugetlb_vm_ops, please consider adding the function to
- * shm_vm_ops. This is because under System V memory model, though
- * mappings created via shmget/shmat with "huge page" specified are
- * backed by hugetlbfs files, their original vm_ops are overwritten with
- * shm_vm_ops.
  */
 struct vm_operations_struct {
 	void (*open)(struct vm_area_struct * area);
