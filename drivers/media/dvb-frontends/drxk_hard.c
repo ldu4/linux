@@ -213,7 +213,7 @@ static inline u32 log10times100(u32 value)
 
 static int drxk_i2c_lock(struct drxk_state *state)
 {
-	i2c_lock_adapter(state->i2c);
+	i2c_lock_bus(state->i2c, I2C_LOCK_SEGMENT);
 	state->drxk_i2c_exclusive_lock = true;
 
 	return 0;
@@ -224,7 +224,7 @@ static void drxk_i2c_unlock(struct drxk_state *state)
 	if (!state->drxk_i2c_exclusive_lock)
 		return;
 
-	i2c_unlock_adapter(state->i2c);
+	i2c_unlock_bus(state->i2c, I2C_LOCK_SEGMENT);
 	state->drxk_i2c_exclusive_lock = false;
 }
 
@@ -6744,13 +6744,13 @@ static const struct dvb_frontend_ops drxk_ops = {
 	/* .delsys will be filled dynamically */
 	.info = {
 		.name = "DRXK",
-		.frequency_min = 47000000,
-		.frequency_max = 865000000,
+		.frequency_min_hz =  47 * MHz,
+		.frequency_max_hz = 865 * MHz,
 		 /* For DVB-C */
-		.symbol_rate_min = 870000,
+		.symbol_rate_min =   870000,
 		.symbol_rate_max = 11700000,
 		/* For DVB-T */
-		.frequency_stepsize = 166667,
+		.frequency_stepsize_hz = 166667,
 
 		.caps = FE_CAN_QAM_16 | FE_CAN_QAM_32 | FE_CAN_QAM_64 |
 			FE_CAN_QAM_128 | FE_CAN_QAM_256 | FE_CAN_FEC_AUTO |
