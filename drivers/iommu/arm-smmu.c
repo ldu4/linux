@@ -2103,12 +2103,16 @@ static int arm_smmu_device_probe(struct platform_device *pdev)
 	if (err)
 		return err;
 
-	if (smmu->version == ARM_SMMU_V2 &&
-	    smmu->num_context_banks != smmu->num_context_irqs) {
-		dev_err(dev,
-			"found only %d context interrupt(s) but %d required\n",
-			smmu->num_context_irqs, smmu->num_context_banks);
-		return -ENODEV;
+	if (smmu->version == ARM_SMMU_V2) {
+		if (smmu->num_context_banks > smmu->num_context_irqs) {
+			dev_err(dev,
+			      "found only %d context irq(s) but %d required\n",
+			      smmu->num_context_irqs, smmu->num_context_banks);
+			return -ENODEV;
+		}
+
+		/* Ignore superfluous interrupts */
+		smmu->num_context_irqs = smmu->num_context_banks;
 	}
 
 	for (i = 0; i < smmu->num_global_irqs; ++i) {
@@ -2210,13 +2214,6 @@ static struct platform_driver arm_smmu_driver = {
 	.shutdown = arm_smmu_device_shutdown,
 };
 module_platform_driver(arm_smmu_driver);
-
-IOMMU_OF_DECLARE(arm_smmuv1, "arm,smmu-v1");
-IOMMU_OF_DECLARE(arm_smmuv2, "arm,smmu-v2");
-IOMMU_OF_DECLARE(arm_mmu400, "arm,mmu-400");
-IOMMU_OF_DECLARE(arm_mmu401, "arm,mmu-401");
-IOMMU_OF_DECLARE(arm_mmu500, "arm,mmu-500");
-IOMMU_OF_DECLARE(cavium_smmuv2, "cavium,smmu-v2");
 
 MODULE_DESCRIPTION("IOMMU API for ARM architected SMMU implementations");
 MODULE_AUTHOR("Will Deacon <will.deacon@arm.com>");

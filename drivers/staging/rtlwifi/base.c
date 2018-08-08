@@ -685,9 +685,8 @@ static void _rtl_query_protection_mode(struct ieee80211_hw *hw,
 	}
 }
 
-u8 rtl_mrate_idx_to_arfr_id(
-	struct ieee80211_hw *hw, u8 rate_index,
-	enum wireless_mode wirelessmode)
+u8 rtl_mrate_idx_to_arfr_id(struct ieee80211_hw *hw, u8 rate_index,
+			    enum wireless_mode wirelessmode)
 {
 	struct rtl_priv *rtlpriv = rtl_priv(hw);
 	struct rtl_phy *rtlphy = &rtlpriv->phy;
@@ -1838,7 +1837,7 @@ void rtl_rx_ampdu_apply(struct rtl_priv *rtlpriv)
 		 reject_agg, ctrl_agg_size, agg_size);
 
 	rtlpriv->hw->max_rx_aggregation_subframes =
-		(ctrl_agg_size ? agg_size : IEEE80211_MAX_AMPDU_BUF);
+		(ctrl_agg_size ? agg_size : IEEE80211_MAX_AMPDU_BUF_HT);
 }
 
 /*********************************************************
