@@ -870,6 +870,7 @@ Committed_AS:   100056 kB
 VmallocTotal:   112216 kB
 VmallocUsed:       428 kB
 VmallocChunk:   111088 kB
+HardwareCorrupted:   0 kB
 Percpu:          62080 kB
 AnonHugePages:   49152 kB
 ShmemHugePages:      0 kB
