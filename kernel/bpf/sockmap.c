@@ -725,10 +725,7 @@ static int bpf_tcp_sendmsg_do_redirect(struct sock *sk, int send,
 {
 	bool ingress = !!(md->flags & BPF_F_INGRESS);
 	struct smap_psock *psock;
-	struct scatterlist *sg;
 	int err = 0;
-
-	sg = md->sg_data;
 
 	rcu_read_lock();
 	psock = smap_psock_sk(sk);
@@ -1048,12 +1045,12 @@ static int bpf_tcp_sendmsg(struct sock *sk, struct msghdr *msg, size_t size)
 	timeo = sock_sndtimeo(sk, msg->msg_flags & MSG_DONTWAIT);
 
 	while (msg_data_left(msg)) {
-		struct sk_msg_buff *m;
+		struct sk_msg_buff *m = NULL;
 		bool enospc = false;
 		int copy;
 
 		if (sk->sk_err) {
-			err = sk->sk_err;
+			err = -sk->sk_err;
 			goto out_err;
 		}
 
@@ -1116,8 +1113,11 @@ wait_for_sndbuf:
 		set_bit(SOCK_NOSPACE, &sk->sk_socket->flags);
 wait_for_memory:
 		err = sk_stream_wait_memory(sk, &timeo);
-		if (err)
+		if (err) {
+			if (m && m != psock->cork)
+				free_start_sg(sk, m);
 			goto out_err;
+		}
 	}
 out_err:
 	if (err < 0)

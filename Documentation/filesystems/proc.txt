@@ -916,6 +916,8 @@ MemAvailable: An estimate of how much memory is available for starting new
        Dirty: Memory which is waiting to get written back to the disk
    Writeback: Memory which is actively being written back to the disk
    AnonPages: Non-file backed pages mapped into userspace page tables
+HardwareCorrupted: The amount of RAM/memory in KB, the kernel identifies as
+	      corrupted.
 AnonHugePages: Non-file backed huge pages mapped into userspace page tables
       Mapped: files which have been mmaped, such as libraries
        Shmem: Total memory used by shared memory (shmem) and tmpfs
