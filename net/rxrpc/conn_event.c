@@ -250,13 +250,9 @@ static int rxrpc_abort_connection(struct rxrpc_connection *conn,
 		return -EAGAIN;
 	}
 
-<<<<<<< HEAD
-	conn->params.peer->last_tx_at = ktime_get_seconds();
-=======
 	trace_rxrpc_tx_packet(conn->debug_id, &whdr, rxrpc_tx_point_conn_abort);
 
 	conn->params.peer->last_tx_at = ktime_get_real();
->>>>>>> linux-next/akpm-base
 
 	_leave(" = 0");
 	return 0;
