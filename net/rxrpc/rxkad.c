@@ -670,13 +670,9 @@ static int rxkad_issue_challenge(struct rxrpc_connection *conn)
 		return -EAGAIN;
 	}
 
-<<<<<<< HEAD
-	conn->params.peer->last_tx_at = ktime_get_seconds();
-=======
 	conn->params.peer->last_tx_at = ktime_get_real();
 	trace_rxrpc_tx_packet(conn->debug_id, &whdr,
 			      rxrpc_tx_point_rxkad_challenge);
->>>>>>> linux-next/akpm-base
 	_leave(" = 0");
 	return 0;
 }
@@ -732,12 +728,8 @@ static int rxkad_send_response(struct rxrpc_connection *conn,
 		return -EAGAIN;
 	}
 
-<<<<<<< HEAD
-	conn->params.peer->last_tx_at = ktime_get_seconds();
-=======
 	conn->params.peer->last_tx_at = ktime_get_real();
 	trace_rxrpc_tx_packet(0, &whdr, rxrpc_tx_point_rxkad_response);
->>>>>>> linux-next/akpm-base
 	_leave(" = 0");
 	return 0;
 }

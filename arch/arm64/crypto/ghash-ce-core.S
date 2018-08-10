@@ -398,16 +398,6 @@ ENDPROC(pmull_ghash_update_p8)
 	.endm
 
 	.macro		pmull_gcm_do_crypt, enc
-<<<<<<< HEAD
-	ld1		{SHASH.2d}, [x4]
-	ld1		{XL.2d}, [x1]
-	ldr		x8, [x5, #8]			// load lower counter
-
-	load_round_keys	w7, x6
-
-	movi		MASK.16b, #0xe1
-	ext		SHASH2.16b, SHASH.16b, SHASH.16b, #8
-=======
 	ld1		{SHASH.2d}, [x4], #16
 	ld1		{HH.2d}, [x4]
 	ld1		{XL.2d}, [x1]
@@ -416,28 +406,12 @@ ENDPROC(pmull_ghash_update_p8)
 	movi		MASK.16b, #0xe1
 	trn1		SHASH2.2d, SHASH.2d, HH.2d
 	trn2		T1.2d, SHASH.2d, HH.2d
->>>>>>> linux-next/akpm-base
 CPU_LE(	rev		x8, x8		)
 	shl		MASK.2d, MASK.2d, #57
 	eor		SHASH2.16b, SHASH2.16b, T1.16b
 
 	.if		\enc == 1
 	ldr		x10, [sp]
-<<<<<<< HEAD
-	ld1		{KS.16b}, [x10]
-	.endif
-
-0:	ld1		{CTR.8b}, [x5]			// load upper counter
-	ld1		{INP.16b}, [x3], #16
-	rev		x9, x8
-	add		x8, x8, #1
-	sub		w0, w0, #1
-	ins		CTR.d[1], x9			// set lower counter
-
-	.if		\enc == 1
-	eor		INP.16b, INP.16b, KS.16b	// encrypt input
-	st1		{INP.16b}, [x2], #16
-=======
 	ld1		{KS0.16b-KS1.16b}, [x10]
 	.endif
 
@@ -452,7 +426,6 @@ CPU_LE(	rev		x8, x8		)
 	.if		\enc == 1
 	eor		INP0.16b, INP0.16b, KS0.16b	// encrypt input
 	eor		INP1.16b, INP1.16b, KS1.16b
->>>>>>> linux-next/akpm-base
 	.endif
 
 	ld1		{KS0.8b}, [x5]			// load upper counter
@@ -462,17 +435,10 @@ CPU_LE(	rev		x8, x8		)
 	ins		KS0.d[1], x9			// set lower counter
 	ins		KS1.d[1], x11
 
-<<<<<<< HEAD
-	cmp		w7, #12
-	b.ge		2f				// AES-192/256?
-
-1:	enc_round	CTR, v21
-=======
 	rev64		T1.16b, INP1.16b
 
 	cmp		w7, #12
 	b.ge		2f				// AES-192/256?
->>>>>>> linux-next/akpm-base
 
 1:	enc_round	KS0, v21
 	ext		IN1.16b, T1.16b, T1.16b, #8
@@ -548,20 +514,6 @@ CPU_LE(	rev		x8, x8		)
 	eor		XL.16b, XL.16b, T2.16b
 
 	.if		\enc == 0
-<<<<<<< HEAD
-	eor		INP.16b, INP.16b, KS.16b
-	st1		{INP.16b}, [x2], #16
-	.endif
-
-	cbnz		w0, 0b
-
-CPU_LE(	rev		x8, x8		)
-	st1		{XL.2d}, [x1]
-	str		x8, [x5, #8]			// store lower counter
-
-	.if		\enc == 1
-	st1		{KS.16b}, [x10]
-=======
 	eor		INP0.16b, INP0.16b, KS0.16b
 	eor		INP1.16b, INP1.16b, KS1.16b
 	.endif
@@ -576,19 +528,11 @@ CPU_LE(	rev		x8, x8		)
 
 	.if		\enc == 1
 	st1		{KS0.16b-KS1.16b}, [x10]
->>>>>>> linux-next/akpm-base
 	.endif
 
 	ret
 
 2:	b.eq		3f				// AES-192?
-<<<<<<< HEAD
-	enc_round	CTR, v17
-	enc_round	CTR, v18
-3:	enc_round	CTR, v19
-	enc_round	CTR, v20
-	b		1b
-=======
 	enc_round	KS0, v17
 	enc_round	KS1, v17
 	enc_round	KS0, v18
@@ -601,7 +545,6 @@ CPU_LE(	rev		x8, x8		)
 
 4:	load_round_keys	w7, x6
 	b		0b
->>>>>>> linux-next/akpm-base
 	.endm
 
 	/*
