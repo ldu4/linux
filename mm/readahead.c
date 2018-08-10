@@ -19,6 +19,7 @@
 #include <linux/syscalls.h>
 #include <linux/file.h>
 #include <linux/mm_inline.h>
+#include <linux/blk-cgroup.h>
 
 #include "internal.h"
 
@@ -174,10 +175,8 @@ unsigned int __do_page_cache_readahead(struct address_space *mapping,
 		if (page_offset > end_index)
 			break;
 
-		rcu_read_lock();
-		page = radix_tree_lookup(&mapping->i_pages, page_offset);
-		rcu_read_unlock();
-		if (page && !radix_tree_exceptional_entry(page)) {
+		page = xa_load(&mapping->i_pages, page_offset);
+		if (page && !xa_is_value(page)) {
 			/*
 			 * Page already present?  Kick off the current batch of
 			 * contiguous pages before continuing with the next
@@ -334,7 +333,7 @@ static pgoff_t count_history_pages(struct address_space *mapping,
 	pgoff_t head;
 
 	rcu_read_lock();
-	head = page_cache_prev_hole(mapping, offset - 1, max);
+	head = page_cache_prev_gap(mapping, offset - 1, max);
 	rcu_read_unlock();
 
 	return offset - 1 - head;
@@ -385,6 +384,7 @@ ondemand_readahead(struct address_space *mapping,
 {
 	struct backing_dev_info *bdi = inode_to_bdi(mapping->host);
 	unsigned long max_pages = ra->ra_pages;
+	unsigned long add_pages;
 	pgoff_t prev_offset;
 
 	/*
@@ -422,7 +422,7 @@ ondemand_readahead(struct address_space *mapping,
 		pgoff_t start;
 
 		rcu_read_lock();
-		start = page_cache_next_hole(mapping, offset + 1, max_pages);
+		start = page_cache_next_gap(mapping, offset + 1, max_pages);
 		rcu_read_unlock();
 
 		if (!start || start - offset > max_pages)
@@ -474,10 +474,17 @@ readit:
 	 * Will this read hit the readahead marker made by itself?
 	 * If so, trigger the readahead marker hit now, and merge
 	 * the resulted next readahead window into the current one.
+	 * Take care of maximum IO pages as above.
 	 */
 	if (offset == ra->start && ra->size == ra->async_size) {
-		ra->async_size = get_next_ra_size(ra, max_pages);
-		ra->size += ra->async_size;
+		add_pages = get_next_ra_size(ra, max_pages);
+		if (ra->size + add_pages <= max_pages) {
+			ra->async_size = add_pages;
+			ra->size += add_pages;
+		} else {
+			ra->size = max_pages;
+			ra->async_size = max_pages >> 1;
+		}
 	}
 
 	return ra_submit(ra, mapping, filp);
@@ -503,6 +510,9 @@ void page_cache_sync_readahead(struct address_space *mapping,
 {
 	/* no read-ahead */
 	if (!ra->ra_pages)
+		return;
+
+	if (blk_cgroup_congested())
 		return;
 
 	/* be dumb */
@@ -553,6 +563,9 @@ page_cache_async_readahead(struct address_space *mapping,
 	 * Defer asynchronous read-ahead on IO congestion.
 	 */
 	if (inode_read_congested(mapping->host))
+		return;
+
+	if (blk_cgroup_congested())
 		return;
 
 	/* do read-ahead */

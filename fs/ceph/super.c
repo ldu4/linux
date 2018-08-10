@@ -219,8 +219,7 @@ static int parse_fsopt_token(char *c, void *private)
 	if (token < Opt_last_int) {
 		ret = match_int(&argstr[0], &intval);
 		if (ret < 0) {
-			pr_err("bad mount option arg (not int) "
-			       "at '%s'\n", c);
+			pr_err("bad option arg (not int) at '%s'\n", c);
 			return ret;
 		}
 		dout("got int token %d val %d\n", token, intval);
@@ -941,11 +940,12 @@ static int ceph_set_super(struct super_block *s, void *data)
 	dout("set_super %p data %p\n", s, data);
 
 	s->s_flags = fsc->mount_options->sb_flags;
-	s->s_maxbytes = 1ULL << 40;  /* temp value until we get mdsmap */
+	s->s_maxbytes = MAX_LFS_FILESIZE;
 
 	s->s_xattr = ceph_xattr_handlers;
 	s->s_fs_info = fsc;
 	fsc->sb = s;
+	fsc->max_file_size = 1ULL << 40; /* temp value until we get mdsmap */
 
 	s->s_op = &ceph_super_ops;
 	s->s_d_op = &ceph_dentry_ops;
@@ -1017,7 +1017,8 @@ static int ceph_setup_bdi(struct super_block *sb, struct ceph_fs_client *fsc)
 }
 
 static struct dentry *ceph_mount(struct file_system_type *fs_type,
-		       int flags, const char *dev_name, void *data)
+				 int flags, const char *dev_name,
+				 void *data, size_t data_size)
 {
 	struct super_block *sb;
 	struct ceph_fs_client *fsc;

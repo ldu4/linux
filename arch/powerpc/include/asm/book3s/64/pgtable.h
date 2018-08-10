@@ -479,9 +479,8 @@ static inline pte_t ptep_get_and_clear_full(struct mm_struct *mm,
 {
 	if (full && radix_enabled()) {
 		/*
-		 * Let's skip the DD1 style pte update here. We know that
-		 * this is a full mm pte clear and hence can be sure there is
-		 * no parallel set_pte.
+		 * We know that this is a full mm pte clear and
+		 * hence can be sure there is no parallel set_pte.
 		 */
 		return radix__ptep_get_and_clear_full(mm, addr, ptep, full);
 	}
@@ -708,9 +707,7 @@ static inline bool pte_user(pte_t pte)
 	BUILD_BUG_ON(_PAGE_HPTEFLAGS & (0x1f << _PAGE_BIT_SWAP_TYPE)); \
 	BUILD_BUG_ON(_PAGE_HPTEFLAGS & _PAGE_SWP_SOFT_DIRTY);	\
 	} while (0)
-/*
- * on pte we don't need handle RADIX_TREE_EXCEPTIONAL_SHIFT;
- */
+
 #define SWP_TYPE_BITS 5
 #define __swp_type(x)		(((x).val >> _PAGE_BIT_SWAP_TYPE) \
 				& ((1UL << SWP_TYPE_BITS) - 1))
