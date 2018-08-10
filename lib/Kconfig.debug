@@ -2050,3 +2050,7 @@ config DEBUG_AID_FOR_SYZBOT
        default n
        help
          This option is intended for testing by syzbot.
+
+source "arch/$(SRCARCH)/Kconfig.debug"
+
+endmenu # Kernel hacking
