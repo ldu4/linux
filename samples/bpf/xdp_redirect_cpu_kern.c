@@ -14,7 +14,7 @@
 #include <uapi/linux/bpf.h>
 #include "bpf_helpers.h"
 
-#define MAX_CPUS 12 /* WARNING - sync with _user.c */
+#define MAX_CPUS 64 /* WARNING - sync with _user.c */
 
 /* Special map type that can XDP_REDIRECT frames to another CPU */
 struct bpf_map_def SEC("maps") cpu_map = {
@@ -134,7 +134,16 @@ bool parse_eth(struct ethhdr *eth, void *data_end,
 			return false;
 		eth_type = vlan_hdr->h_vlan_encapsulated_proto;
 	}
-	/* TODO: Handle double VLAN tagged packet */
+	/* Handle double VLAN tagged packet */
+	if (eth_type == htons(ETH_P_8021Q) || eth_type == htons(ETH_P_8021AD)) {
+		struct vlan_hdr *vlan_hdr;
+
+		vlan_hdr = (void *)eth + offset;
+		offset += sizeof(*vlan_hdr);
+		if ((void *)eth + offset > data_end)
+			return false;
+		eth_type = vlan_hdr->h_vlan_encapsulated_proto;
+	}
 
 	*eth_proto = ntohs(eth_type);
 	*l3_offset = offset;
