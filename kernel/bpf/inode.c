@@ -196,19 +196,21 @@ static void *map_seq_next(struct seq_file *m, void *v, loff_t *pos)
 {
 	struct bpf_map *map = seq_file_to_map(m);
 	void *key = map_iter(m)->key;
+	void *prev_key;
 
 	if (map_iter(m)->done)
 		return NULL;
 
 	if (unlikely(v == SEQ_START_TOKEN))
-		goto done;
+		prev_key = NULL;
+	else
+		prev_key = key;
 
-	if (map->ops->map_get_next_key(map, key, key)) {
+	if (map->ops->map_get_next_key(map, prev_key, key)) {
 		map_iter(m)->done = true;
 		return NULL;
 	}
 
-done:
 	++(*pos);
 	return key;
 }
@@ -332,7 +334,8 @@ static int bpf_mkmap(struct dentry *dentry, umode_t mode, void *arg)
 	struct bpf_map *map = arg;
 
 	return bpf_mkobj_ops(dentry, mode, arg, &bpf_map_iops,
-			     map->btf ? &bpffs_map_fops : &bpffs_obj_fops);
+			     bpf_map_support_seq_show(map) ?
+			     &bpffs_map_fops : &bpffs_obj_fops);
 }
 
 static struct dentry *
@@ -626,7 +629,7 @@ static int bpf_parse_options(char *data, struct bpf_mount_opts *opts)
 	return 0;
 }
 
-static int bpf_fill_super(struct super_block *sb, void *data, int silent)
+static int bpf_fill_super(struct super_block *sb, void *data, size_t data_size, int silent)
 {
 	static const struct tree_descr bpf_rfiles[] = { { "" } };
 	struct bpf_mount_opts opts;
@@ -652,9 +655,10 @@ static int bpf_fill_super(struct super_block *sb, void *data, int silent)
 }
 
 static struct dentry *bpf_mount(struct file_system_type *type, int flags,
-				const char *dev_name, void *data)
+				const char *dev_name, void *data,
+				size_t data_size)
 {
-	return mount_nodev(type, flags, data, bpf_fill_super);
+	return mount_nodev(type, flags, data, data_size, bpf_fill_super);
 }
 
 static struct file_system_type bpf_fs_type = {

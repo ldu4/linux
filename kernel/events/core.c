@@ -1334,7 +1334,7 @@ static u32 perf_event_pid_type(struct perf_event *event, struct task_struct *p,
 
 static u32 perf_event_pid(struct perf_event *event, struct task_struct *p)
 {
-	return perf_event_pid_type(event, p, __PIDTYPE_TGID);
+	return perf_event_pid_type(event, p, PIDTYPE_TGID);
 }
 
 static u32 perf_event_tid(struct perf_event *event, struct task_struct *p)
@@ -5246,8 +5246,8 @@ void perf_event_update_userpage(struct perf_event *event)
 
 	userpg = rb->user_page;
 	/*
-	 * Disable preemption so as to not let the corresponding user-space
-	 * spin too long if we get preempted.
+	 * Disable preemption to guarantee consistent time stamps are stored to
+	 * the user page.
 	 */
 	preempt_disable();
 	++userpg->lock;

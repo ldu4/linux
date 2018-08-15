@@ -46,7 +46,6 @@ config X86
 	#
 	select ACPI_LEGACY_TABLES_LOOKUP	if ACPI
 	select ACPI_SYSTEM_POWER_STATES_SUPPORT	if ACPI
-	select ANON_INODES
 	select ARCH_CLOCKSOURCE_DATA
 	select ARCH_DISCARD_MEMBLOCK
 	select ARCH_HAS_ACPI_TABLE_UPGRADE	if ACPI
@@ -75,6 +74,7 @@ config X86
 	select ARCH_MIGHT_HAVE_ACPI_PDC		if ACPI
 	select ARCH_MIGHT_HAVE_PC_PARPORT
 	select ARCH_MIGHT_HAVE_PC_SERIO
+	select ARCH_SUPPORTS_ACPI
 	select ARCH_SUPPORTS_ATOMIC_RMW
 	select ARCH_SUPPORTS_NUMA_BALANCING	if X86_64
 	select ARCH_USE_BUILTIN_BSWAP
@@ -126,6 +126,7 @@ config X86
 	select HAVE_ARCH_PREL32_RELOCATIONS
 	select HAVE_ARCH_SECCOMP_FILTER
 	select HAVE_ARCH_THREAD_STRUCT_WHITELIST
+	select HAVE_ARCH_STACKLEAK
 	select HAVE_ARCH_TRACEHOOK
 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD if X86_64
@@ -347,8 +348,6 @@ config PGTABLE_LEVELS
 	default 3 if X86_PAE
 	default 2
 
-source "init/Kconfig"
-
 config CC_HAS_SANE_STACKPROTECTOR
 	bool
 	default $(success,$(srctree)/scripts/gcc-x86_64-has-stack-protector.sh $(CC)) if 64BIT
@@ -356,8 +355,6 @@ config CC_HAS_SANE_STACKPROTECTOR
 	help
 	   We have to make sure stack protector is unconditionally disabled if
 	   the compiler produces broken code.
-
-source "kernel/Kconfig.freezer"
 
 menu "Processor type and features"
 
@@ -1045,8 +1042,6 @@ config SCHED_MC_PRIO
 
 	  If unsure say Y here.
 
-source "kernel/Kconfig.preempt"
-
 config UP_LATE_INIT
        def_bool y
        depends on !SMP && X86_LOCAL_APIC
@@ -1639,8 +1634,6 @@ config ILLEGAL_POINTER_VALUE
        hex
        default 0 if X86_32
        default 0xdead000000000000 if X86_64
-
-source "mm/Kconfig"
 
 config X86_PMEM_LEGACY_DEVICE
 	bool
@@ -2867,9 +2860,7 @@ config X86_SYSFB
 endmenu
 
 
-menu "Executable file formats / Emulations"
-
-source "fs/Kconfig.binfmt"
+menu "Binary Emulations"
 
 config IA32_EMULATION
 	bool "IA32 Emulation"
@@ -2939,20 +2930,6 @@ config X86_DMA_REMAP
 config HAVE_GENERIC_GUP
 	def_bool y
 
-source "net/Kconfig"
-
-source "drivers/Kconfig"
-
 source "drivers/firmware/Kconfig"
 
-source "fs/Kconfig"
-
-source "arch/x86/Kconfig.debug"
-
-source "security/Kconfig"
-
-source "crypto/Kconfig"
-
 source "arch/x86/kvm/Kconfig"
-
-source "lib/Kconfig"
