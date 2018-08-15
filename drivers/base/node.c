@@ -465,8 +465,6 @@ void unregister_mem_sect_under_nodes(struct memory_block *mem_blk,
 
 		if (nid < 0)
 			continue;
-		if (!node_online(nid))
-			continue;
 		/*
 		 * It is possible that NODEMASK_ALLOC fails due to memory
 		 * pressure.
