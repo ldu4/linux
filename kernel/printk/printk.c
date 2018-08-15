@@ -1,4 +1,4 @@
-/*
+q/*
  *  linux/kernel/printk.c
  *
  *  Copyright (C) 1991, 1992  Linus Torvalds
@@ -1884,7 +1884,6 @@ int vprintk_store(int facility, int level,
 
 	if (suppress_message_printing(level))
 		lflags |= LOG_NOCONS;
-<<<<<<< HEAD
 
 	return log_output(facility, level, lflags,
 			  dict, dictlen, text, text_len);
@@ -1903,26 +1902,6 @@ asmlinkage int vprintk_emit(int facility, int level,
 		in_sched = true;
 	}
 
-=======
-
-	return log_output(facility, level, lflags,
-			  dict, dictlen, text, text_len);
-}
-
-asmlinkage int vprintk_emit(int facility, int level,
-			    const char *dict, size_t dictlen,
-			    const char *fmt, va_list args)
-{
-	int printed_len;
-	bool in_sched = false;
-	unsigned long flags;
-
-	if (level == LOGLEVEL_SCHED) {
-		level = LOGLEVEL_DEFAULT;
-		in_sched = true;
-	}
-
->>>>>>> linux-next/akpm-base
 	boot_delay_msec(level);
 	printk_delay();
 

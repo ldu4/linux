@@ -25,8 +25,6 @@ gcc-plugin-cflags-$(CONFIG_GCC_PLUGIN_RANDSTRUCT)		\
 		+= -DRANDSTRUCT_PLUGIN
 gcc-plugin-cflags-$(CONFIG_GCC_PLUGIN_RANDSTRUCT_PERFORMANCE)	\
 		+= -fplugin-arg-randomize_layout_plugin-performance-mode
-<<<<<<< HEAD
-=======
 
 gcc-plugin-$(CONFIG_GCC_PLUGIN_STACKLEAK)	+= stackleak_plugin.so
 gcc-plugin-cflags-$(CONFIG_GCC_PLUGIN_STACKLEAK)		\
@@ -37,7 +35,6 @@ ifdef CONFIG_GCC_PLUGIN_STACKLEAK
     DISABLE_STACKLEAK_PLUGIN += -fplugin-arg-stackleak_plugin-disable
 endif
 export DISABLE_STACKLEAK_PLUGIN
->>>>>>> linux-next/akpm-base
 
 # All the plugin CFLAGS are collected here in case a build target needs to
 # filter them out of the KBUILD_CFLAGS.
