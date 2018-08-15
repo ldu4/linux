@@ -479,7 +479,7 @@ static const struct vm_operations_struct gntdev_vmops = {
 
 /* ------------------------------------------------------------------ */
 
-static bool in_range(struct grant_map *map,
+static bool in_range(struct gntdev_grant_map *map,
 			      unsigned long start, unsigned long end)
 {
 	if (!map->vma)
