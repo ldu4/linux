@@ -52,12 +52,8 @@ static void file_free_rcu(struct rcu_head *head)
 static inline void file_free(struct file *f)
 {
 	security_file_free(f);
-<<<<<<< HEAD
-	percpu_counter_dec(&nr_files);
-=======
 	if (!(f->f_mode & FMODE_NOACCOUNT))
 		percpu_counter_dec(&nr_files);
->>>>>>> linux-next/akpm-base
 	call_rcu(&f->f_u.fu_rcuhead, file_free_rcu);
 }
 
@@ -151,33 +147,10 @@ struct file *alloc_empty_file(int flags, const struct cred *cred)
 			goto over;
 	}
 
-<<<<<<< HEAD
-	f = kmem_cache_zalloc(filp_cachep, GFP_KERNEL);
-	if (unlikely(!f))
-		return ERR_PTR(-ENOMEM);
-
-	f->f_cred = get_cred(cred);
-	error = security_file_alloc(f);
-	if (unlikely(error)) {
-		file_free_rcu(&f->f_u.fu_rcuhead);
-		return ERR_PTR(error);
-	}
-
-	atomic_long_set(&f->f_count, 1);
-	rwlock_init(&f->f_owner.lock);
-	spin_lock_init(&f->f_lock);
-	mutex_init(&f->f_pos_lock);
-	eventpoll_init_file(f);
-	f->f_flags = flags;
-	f->f_mode = OPEN_FMODE(flags);
-	/* f->f_version: 0 */
-	percpu_counter_inc(&nr_files);
-=======
 	f = __alloc_file(flags, cred);
 	if (!IS_ERR(f))
 		percpu_counter_inc(&nr_files);
 
->>>>>>> linux-next/akpm-base
 	return f;
 
 over:
@@ -319,11 +292,8 @@ static void __fput(struct file *file)
 		put_write_access(inode);
 		__mnt_drop_write(mnt);
 	}
-<<<<<<< HEAD
-=======
 	if (unlikely(mode & FMODE_NEED_UNMOUNT))
 		dissolve_on_fput(mnt);
->>>>>>> linux-next/akpm-base
 	dput(dentry);
 	mntput(mnt);
 out:

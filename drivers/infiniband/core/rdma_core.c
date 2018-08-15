@@ -122,12 +122,8 @@ static int uverbs_try_lock_object(struct ib_uobject *uobj,
 	 * concurrently, setting the counter to zero is enough for releasing
 	 * this lock.
 	 */
-<<<<<<< HEAD
-	if (!exclusive)
-=======
 	switch (mode) {
 	case UVERBS_LOOKUP_READ:
->>>>>>> linux-next/akpm-base
 		return atomic_fetch_add_unless(&uobj->usecnt, 1, -1) == -1 ?
 			-EBUSY : 0;
 	case UVERBS_LOOKUP_WRITE:

@@ -491,8 +491,6 @@ int ima_post_read_file(struct file *file, void *buf, loff_t size,
 	security_task_getsecid(current, &secid);
 	return process_measurement(file, current_cred(), secid, buf, size,
 				   MAY_READ, func);
-<<<<<<< HEAD
-=======
 }
 
 /**
@@ -536,7 +534,6 @@ int ima_load_data(enum kernel_load_data_id id)
 		break;
 	}
 	return 0;
->>>>>>> linux-next/akpm-base
 }
 
 static int __init init_ima(void)

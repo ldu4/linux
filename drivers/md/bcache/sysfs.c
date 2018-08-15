@@ -150,11 +150,7 @@ SHOW(__bch_cached_dev)
 {
 	struct cached_dev *dc = container_of(kobj, struct cached_dev,
 					     disk.kobj);
-<<<<<<< HEAD
-	const char *states[] = { "no cache", "clean", "dirty", "inconsistent" };
-=======
 	char const *states[] = { "no cache", "clean", "dirty", "inconsistent" };
->>>>>>> linux-next/akpm-base
 	int wb = dc->writeback_running;
 
 #define var(stat)		(dc->stat)

@@ -48,7 +48,7 @@ static time64_t cuda_read_time(void)
 		cuda_poll();
 
 	time = (u32)((req.reply[3] << 24) | (req.reply[4] << 16) |
-		     (req.reply[5] << 8) | req.reply[6]);
+		     (rqeq.reply[5] << 8) | req.reply[6]);
 
 	return time - RTC_OFFSET;
 }
@@ -90,11 +90,7 @@ static void cuda_write_pram(int offset, __u8 data)
 }
 #endif /* CONFIG_ADB_CUDA */
 
-<<<<<<< HEAD
-#ifdef CONFIG_ADB_PMU68K
-=======
 #ifdef CONFIG_ADB_PMU
->>>>>>> linux-next/akpm-base
 static time64_t pmu_read_time(void)
 {
 	struct adb_request req;

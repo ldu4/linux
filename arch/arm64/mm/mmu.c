@@ -978,11 +978,7 @@ int pmd_clear_huge(pmd_t *pmdp)
 	return 1;
 }
 
-<<<<<<< HEAD
-int pud_free_pmd_page(pud_t *pud, unsigned long addr)
-=======
 int pmd_free_pte_page(pmd_t *pmdp, unsigned long addr)
->>>>>>> linux-next/akpm-base
 {
 	pte_t *table;
 	pmd_t pmd;
@@ -1002,11 +998,7 @@ int pmd_free_pte_page(pmd_t *pmdp, unsigned long addr)
 	return 1;
 }
 
-<<<<<<< HEAD
-int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
-=======
 int pud_free_pmd_page(pud_t *pudp, unsigned long addr)
->>>>>>> linux-next/akpm-base
 {
 	pmd_t *table;
 	pmd_t *pmdp;

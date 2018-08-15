@@ -519,11 +519,7 @@ struct cache_set {
 	int			caches_loaded;
 
 	struct bcache_device	**devices;
-<<<<<<< HEAD
-	unsigned		devices_max_used;
-=======
 	unsigned int		devices_max_used;
->>>>>>> linux-next/akpm-base
 	atomic_t		attached_dev_nr;
 	struct list_head	cached_devs;
 	uint64_t		cached_dev_sectors;

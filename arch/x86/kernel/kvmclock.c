@@ -27,10 +27,6 @@
 #include <linux/sched.h>
 #include <linux/sched/clock.h>
 #include <linux/mm.h>
-<<<<<<< HEAD
-#include <linux/slab.h>
-=======
->>>>>>> linux-next/akpm-base
 
 #include <asm/hypervisor.h>
 #include <asm/mem_encrypt.h>

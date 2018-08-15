@@ -71,13 +71,6 @@ config STACKTRACE_SUPPORT
 config LOCKDEP_SUPPORT
 	def_bool  y
 
-<<<<<<< HEAD
-source "init/Kconfig"
-
-source "kernel/Kconfig.freezer"
-
-=======
->>>>>>> linux-next/akpm-base
 menu "Processor type and features"
 
 choice

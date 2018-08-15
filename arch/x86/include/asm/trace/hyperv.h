@@ -43,8 +43,6 @@ TRACE_EVENT(hyperv_send_ipi_mask,
 		      __entry->ncpus, __entry->vector)
 	);
 
-<<<<<<< HEAD
-=======
 TRACE_EVENT(hyperv_nested_flush_guest_mapping,
 	    TP_PROTO(u64 as, int ret),
 	    TP_ARGS(as, ret),
@@ -59,7 +57,6 @@ TRACE_EVENT(hyperv_nested_flush_guest_mapping,
 	    TP_printk("address space %llx ret %d", __entry->as, __entry->ret)
 	);
 
->>>>>>> linux-next/akpm-base
 #endif /* CONFIG_HYPERV */
 
 #undef TRACE_INCLUDE_PATH

@@ -372,11 +372,7 @@ EXPORT_SYMBOL(bch_btree_keys_init);
  * return array index next to j when does in-order traverse
  * of a binary tree which is stored in a linear array
  */
-<<<<<<< HEAD
-static unsigned inorder_next(unsigned j, unsigned size)
-=======
 static unsigned int inorder_next(unsigned int j, unsigned int size)
->>>>>>> linux-next/akpm-base
 {
 	if (j * 2 + 1 < size) {
 		j = j * 2 + 1;
@@ -393,11 +389,7 @@ static unsigned int inorder_next(unsigned int j, unsigned int size)
  * return array index previous to j when does in-order traverse
  * of a binary tree which is stored in a linear array
  */
-<<<<<<< HEAD
-static unsigned inorder_prev(unsigned j, unsigned size)
-=======
 static unsigned int inorder_prev(unsigned int j, unsigned int size)
->>>>>>> linux-next/akpm-base
 {
 	if (j * 2 < size) {
 		j = j * 2;
@@ -446,11 +438,7 @@ static unsigned int __to_inorder(unsigned int j,
  * Return the cacheline index in bset_tree->data, where j is index
  * from a linear array which stores the auxiliar binary tree
  */
-<<<<<<< HEAD
-static unsigned to_inorder(unsigned j, struct bset_tree *t)
-=======
 static unsigned int to_inorder(unsigned int j, struct bset_tree *t)
->>>>>>> linux-next/akpm-base
 {
 	return __to_inorder(j, t->size, t->extra);
 }
@@ -476,11 +464,7 @@ static unsigned int __inorder_to_tree(unsigned int j,
  * Return an index from a linear array which stores the auxiliar binary
  * tree, j is the cacheline index of t->data.
  */
-<<<<<<< HEAD
-static unsigned inorder_to_tree(unsigned j, struct bset_tree *t)
-=======
 static unsigned int inorder_to_tree(unsigned int j, struct bset_tree *t)
->>>>>>> linux-next/akpm-base
 {
 	return __inorder_to_tree(j, t->size, t->extra);
 }
@@ -601,11 +585,7 @@ static inline uint64_t shrd128(uint64_t high, uint64_t low, uint8_t shift)
  * See make_bfloat() to check when most significant bit of f->exponent
  * is set or not.
  */
-<<<<<<< HEAD
-static inline unsigned bfloat_mantissa(const struct bkey *k,
-=======
 static inline unsigned int bfloat_mantissa(const struct bkey *k,
->>>>>>> linux-next/akpm-base
 				       struct bkey_float *f)
 {
 	const uint64_t *p = &k->low - (f->exponent >> 6);
@@ -991,12 +971,8 @@ static struct bset_search_iter bset_search_tree(struct bset_tree *t,
 		 *		p = 0;
 		 * but a branch instruction is avoided.
 		 */
-<<<<<<< HEAD
-		unsigned p = n << 4;
-=======
 		unsigned int p = n << 4;
 
->>>>>>> linux-next/akpm-base
 		p &= ((int) (p - t->size)) >> 31;
 
 		prefetch(&t->tree[p]);

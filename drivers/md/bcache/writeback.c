@@ -718,11 +718,7 @@ static int bch_writeback_thread(void *arg)
 
 struct sectors_dirty_init {
 	struct btree_op	op;
-<<<<<<< HEAD
-	unsigned	inode;
-=======
 	unsigned int	inode;
->>>>>>> linux-next/akpm-base
 	size_t		count;
 	struct bkey	start;
 };

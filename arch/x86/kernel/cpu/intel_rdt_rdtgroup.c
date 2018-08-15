@@ -1839,20 +1839,8 @@ static int rdt_get_tree(struct fs_context *fc)
 	}
 
 	ret = rdt_pseudo_lock_init();
-<<<<<<< HEAD
-	if (ret) {
-		dentry = ERR_PTR(ret);
-		goto out_mondata;
-	}
-
-	dentry = kernfs_mount(fs_type, flags, rdt_root,
-			      RDTGROUP_SUPER_MAGIC, NULL);
-	if (IS_ERR(dentry))
-		goto out_psl;
-=======
 	if (ret)
 		goto out_mondata;
->>>>>>> linux-next/akpm-base
 
 	ret = kernfs_get_tree(fc);
 	if (ret < 0)

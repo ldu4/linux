@@ -28,11 +28,7 @@ static inline uint64_t bcache_dev_sectors_dirty(struct bcache_device *d)
 	return ret;
 }
 
-<<<<<<< HEAD
-static inline unsigned offset_to_stripe(struct bcache_device *d,
-=======
 static inline unsigned int offset_to_stripe(struct bcache_device *d,
->>>>>>> linux-next/akpm-base
 					uint64_t offset)
 {
 	do_div(offset, d->stripe_size);

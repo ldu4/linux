@@ -877,11 +877,7 @@ EXPORT_SYMBOL(file_path);
 int vfs_open(const struct path *path, struct file *file)
 {
 	file->f_path = *path;
-<<<<<<< HEAD
-	return do_dentry_open(file, d_backing_inode(dentry), NULL);
-=======
 	return do_dentry_open(file, d_backing_inode(path->dentry), NULL);
->>>>>>> linux-next/akpm-base
 }
 
 struct file *dentry_open(const struct path *path, int flags,

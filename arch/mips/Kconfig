@@ -2986,13 +2986,6 @@ config PGTABLE_LEVELS
 
 config MIPS_AUTO_PFN_OFFSET
 	bool
-<<<<<<< HEAD
-
-source "init/Kconfig"
-
-source "kernel/Kconfig.freezer"
-=======
->>>>>>> linux-next/akpm-base
 
 menu "Bus options (PCI, PCMCIA, EISA, ISA, TC)"
 

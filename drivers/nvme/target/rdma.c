@@ -435,10 +435,6 @@ static void nvmet_rdma_free_rsps(struct nvmet_rdma_queue *queue)
 static int nvmet_rdma_post_recv(struct nvmet_rdma_device *ndev,
 		struct nvmet_rdma_cmd *cmd)
 {
-<<<<<<< HEAD
-	struct ib_recv_wr *bad_wr;
-=======
->>>>>>> linux-next/akpm-base
 	int ret;
 
 	ib_dma_sync_single_for_device(ndev->device,
@@ -446,15 +442,9 @@ static int nvmet_rdma_post_recv(struct nvmet_rdma_device *ndev,
 		DMA_FROM_DEVICE);
 
 	if (ndev->srq)
-<<<<<<< HEAD
-		ret = ib_post_srq_recv(ndev->srq, &cmd->wr, &bad_wr);
-	else
-		ret = ib_post_recv(cmd->queue->cm_id->qp, &cmd->wr, &bad_wr);
-=======
 		ret = ib_post_srq_recv(ndev->srq, &cmd->wr, NULL);
 	else
 		ret = ib_post_recv(cmd->queue->cm_id->qp, &cmd->wr, NULL);
->>>>>>> linux-next/akpm-base
 
 	if (unlikely(ret))
 		pr_err("post_recv cmd failed\n");
@@ -562,11 +552,7 @@ static void nvmet_rdma_queue_response(struct nvmet_req *req)
 		rsp->send_sge.addr, rsp->send_sge.length,
 		DMA_TO_DEVICE);
 
-<<<<<<< HEAD
-	if (unlikely(ib_post_send(cm_id->qp, first_wr, &bad_wr))) {
-=======
 	if (unlikely(ib_post_send(cm_id->qp, first_wr, NULL))) {
->>>>>>> linux-next/akpm-base
 		pr_err("sending cmd response failed\n");
 		nvmet_rdma_release_rsp(rsp);
 	}
@@ -905,11 +891,7 @@ nvmet_rdma_find_get_device(struct rdma_cm_id *cm_id)
 
 	inline_page_count = num_pages(port->inline_data_size);
 	inline_sge_count = max(cm_id->device->attrs.max_sge_rd,
-<<<<<<< HEAD
-				cm_id->device->attrs.max_sge) - 1;
-=======
 				cm_id->device->attrs.max_recv_sge) - 1;
->>>>>>> linux-next/akpm-base
 	if (inline_page_count > inline_sge_count) {
 		pr_warn("inline_data_size %d cannot be supported by device %s. Reducing to %lu.\n",
 			port->inline_data_size, cm_id->device->name,

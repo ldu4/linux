@@ -1330,13 +1330,10 @@ struct device_link *device_link_add(struct device *consumer,
 				    struct device *supplier, u32 flags);
 void device_link_del(struct device_link *link);
 void device_link_remove(void *consumer, struct device *supplier);
-<<<<<<< HEAD
-=======
 
 #ifndef dev_fmt
 #define dev_fmt(fmt) fmt
 #endif
->>>>>>> linux-next/akpm-base
 
 #ifdef CONFIG_PRINTK
 

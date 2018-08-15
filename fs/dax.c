@@ -566,43 +566,6 @@ struct page *dax_layout_busy_page(struct address_space *mapping)
 	 */
 	unmap_mapping_range(mapping, 0, 0, 1);
 
-<<<<<<< HEAD
-	while (index < end && pagevec_lookup_entries(&pvec, mapping, index,
-				min(end - index, (pgoff_t)PAGEVEC_SIZE),
-				indices)) {
-		for (i = 0; i < pagevec_count(&pvec); i++) {
-			struct page *pvec_ent = pvec.pages[i];
-			void *entry;
-
-			index = indices[i];
-			if (index >= end)
-				break;
-
-			if (WARN_ON_ONCE(
-			     !radix_tree_exceptional_entry(pvec_ent)))
-				continue;
-
-			xa_lock_irq(&mapping->i_pages);
-			entry = get_unlocked_mapping_entry(mapping, index, NULL);
-			if (entry)
-				page = dax_busy_page(entry);
-			put_unlocked_mapping_entry(mapping, index, entry);
-			xa_unlock_irq(&mapping->i_pages);
-			if (page)
-				break;
-		}
-
-		/*
-		 * We don't expect normal struct page entries to exist in our
-		 * tree, but we keep these pagevec calls so that this code is
-		 * consistent with the common pattern for handling pagevecs
-		 * throughout the kernel.
-		 */
-		pagevec_remove_exceptionals(&pvec);
-		pagevec_release(&pvec);
-		index++;
-
-=======
 	xas_lock_irq(&xas);
 	xas_for_each(&xas, entry, ULONG_MAX) {
 		if (WARN_ON_ONCE(!xa_is_value(entry)))
@@ -612,7 +575,6 @@ struct page *dax_layout_busy_page(struct address_space *mapping)
 		if (entry)
 			page = dax_busy_page(entry);
 		put_unlocked_entry(&xas, entry);
->>>>>>> linux-next/akpm-base
 		if (page)
 			break;
 		if (++scanned % XA_CHECK_SCHED)
