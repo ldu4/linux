@@ -40,6 +40,7 @@ show up in /proc/sys/kernel:
 - hung_task_timeout_secs
 - hung_task_check_interval_secs
 - hung_task_warnings
+- hyperv_record_panic_msg
 - kexec_load_disabled
 - kptr_restrict
 - l2cr                        [ PPC only ]
@@ -88,6 +89,7 @@ show up in /proc/sys/kernel:
 - shmmni
 - softlockup_all_cpu_backtrace
 - soft_watchdog
+- stack_erasing
 - stop-a                      [ SPARC only ]
 - sysrq                       ==> Documentation/admin-guide/sysrq.rst
 - sysctl_writes_strict
@@ -384,6 +386,16 @@ When this value reaches 0, no more warnings will be reported.
 This file shows up if CONFIG_DETECT_HUNG_TASK is enabled.
 
 -1: report an infinite number of warnings.
+
+==============================================================
+
+hyperv_record_panic_msg:
+
+Controls whether the panic kmsg data should be reported to Hyper-V.
+
+0: do not report panic kmsg data.
+
+1: report the panic kmsg data. This is the default behavior.
 
 ==============================================================
 
@@ -973,6 +985,23 @@ from running. The mechanism depends on the CPUs ability to respond to timer
 interrupts which are needed for the 'watchdog/N' threads to be woken up by
 the watchdog timer function, otherwise the NMI watchdog - if enabled - can
 detect a hard lockup condition.
+
+==============================================================
+
+stack_erasing
+
+This parameter can be used to control kernel stack erasing at the end
+of syscalls for kernels built with CONFIG_GCC_PLUGIN_STACKLEAK.
+
+That erasing reduces the information which kernel stack leak bugs
+can reveal and blocks some uninitialized stack variable attacks.
+The tradeoff is the performance impact: on a single CPU system kernel
+compilation sees a 1% slowdown, other systems and workloads may vary.
+
+  0: kernel stack erasing is disabled, STACKLEAK_METRICS are not updated.
+
+  1: kernel stack erasing is enabled (default), it is performed before
+     returning to the userspace at the end of syscalls.
 
 ==============================================================
 

@@ -137,7 +137,8 @@ static const struct super_operations aafs_super_ops = {
 	.show_path = aafs_show_path,
 };
 
-static int fill_super(struct super_block *sb, void *data, int silent)
+static int fill_super(struct super_block *sb, void *data, size_t data_size,
+		      int silent)
 {
 	static struct tree_descr files[] = { {""} };
 	int error;
@@ -151,9 +152,10 @@ static int fill_super(struct super_block *sb, void *data, int silent)
 }
 
 static struct dentry *aafs_mount(struct file_system_type *fs_type,
-				 int flags, const char *dev_name, void *data)
+				 int flags, const char *dev_name, void *data,
+				 size_t data_size)
 {
-	return mount_single(fs_type, flags, data, fill_super);
+	return mount_single(fs_type, flags, data, data_size, fill_super);
 }
 
 static struct file_system_type aafs_ops = {
@@ -603,7 +605,7 @@ static const struct file_operations aa_fs_ns_revision_fops = {
 static void profile_query_cb(struct aa_profile *profile, struct aa_perms *perms,
 			     const char *match_str, size_t match_len)
 {
-	struct aa_perms tmp;
+	struct aa_perms tmp = { };
 	struct aa_dfa *dfa;
 	unsigned int state = 0;
 
@@ -613,7 +615,6 @@ static void profile_query_cb(struct aa_profile *profile, struct aa_perms *perms,
 		dfa = profile->file.dfa;
 		state = aa_dfa_match_len(dfa, profile->file.start,
 					 match_str + 1, match_len - 1);
-		tmp = nullperms;
 		if (state) {
 			struct path_cond cond = { };
 
@@ -627,8 +628,6 @@ static void profile_query_cb(struct aa_profile *profile, struct aa_perms *perms,
 					 match_str, match_len);
 		if (state)
 			aa_compute_perms(dfa, state, &tmp);
-		else
-			tmp = nullperms;
 	}
 	aa_apply_modes_to_perms(profile, &tmp);
 	aa_perms_accum_raw(perms, &tmp);
