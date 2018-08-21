@@ -509,7 +509,6 @@ static int fat_validate_dir(struct inode *dir)
 int fat_fill_inode(struct inode *inode, struct msdos_dir_entry *de)
 {
 	struct msdos_sb_info *sbi = MSDOS_SB(inode->i_sb);
-	struct timespec64 ts;
 	int error;
 
 	MSDOS_I(inode)->i_pos = 0;
@@ -559,14 +558,11 @@ int fat_fill_inode(struct inode *inode, struct msdos_dir_entry *de)
 	inode->i_blocks = ((inode->i_size + (sbi->cluster_size - 1))
 			   & ~((loff_t)sbi->cluster_size - 1)) >> 9;
 
-	fat_time_fat2unix(sbi, &ts, de->time, de->date, 0);
-	inode->i_mtime = ts;
+	fat_time_fat2unix(sbi, &inode->i_mtime, de->time, de->date, 0);
 	if (sbi->options.isvfat) {
-		fat_time_fat2unix(sbi, &ts, de->ctime,
+		fat_time_fat2unix(sbi, &inode->i_ctime, de->ctime,
 				  de->cdate, de->ctime_cs);
-		inode->i_ctime = ts;
-		fat_time_fat2unix(sbi, &ts, 0, de->adate, 0);
-		inode->i_atime = ts;
+		fat_time_fat2unix(sbi, &inode->i_atime, 0, de->adate, 0);
 	} else
 		inode->i_ctime = inode->i_atime = inode->i_mtime;
 

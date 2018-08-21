@@ -180,7 +180,7 @@ int fat_chain_add(struct inode *inode, int new_dclus, int nr_cluster)
 #define IS_LEAP_YEAR(y)	(!((y) & 3) && (y) != YEAR_2100)
 
 /* Linear day numbers of the respective 1sts in non-leap years. */
-static time64_t days_in_year[] = {
+static long days_in_year[] = {
 	/* Jan  Feb  Mar  Apr  May  Jun  Jul  Aug  Sep  Oct  Nov  Dec */
 	0,   0,  31,  59,  90, 120, 151, 181, 212, 243, 273, 304, 334, 0, 0, 0,
 };
@@ -191,8 +191,7 @@ void fat_time_fat2unix(struct msdos_sb_info *sbi, struct timespec64 *ts,
 {
 	u16 time = le16_to_cpu(__time), date = le16_to_cpu(__date);
 	time64_t second;
-	long day, leap_day, month;
-	long long year;
+	long day, leap_day, month, year;
 
 	year  = date >> 9;
 	month = max(1, (date >> 5) & 0xf);
@@ -207,7 +206,7 @@ void fat_time_fat2unix(struct msdos_sb_info *sbi, struct timespec64 *ts,
 	second =  (time & 0x1f) << 1;
 	second += ((time >> 5) & 0x3f) * SECS_PER_MIN;
 	second += (time >> 11) * SECS_PER_HOUR;
-	second += (year * 365 + leap_day
+	second += (time64_t)(year * 365 + leap_day
 		   + days_in_year[month] + day
 		   + DAYS_DELTA) * SECS_PER_DAY;
 
