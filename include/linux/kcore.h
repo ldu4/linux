@@ -12,11 +12,13 @@ enum kcore_type {
 	KCORE_VMEMMAP,
 	KCORE_USER,
 	KCORE_OTHER,
+	KCORE_REMAP,
 };
 
 struct kcore_list {
 	struct list_head list;
 	unsigned long addr;
+	unsigned long vaddr;
 	size_t size;
 	int type;
 };

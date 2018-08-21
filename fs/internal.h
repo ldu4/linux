@@ -52,8 +52,15 @@ int __generic_write_end(struct inode *inode, loff_t pos, unsigned copied,
 extern void __init chrdev_init(void);
 
 /*
+ * fs_context.c
+ */
+extern const struct fs_context_operations legacy_fs_context_ops;
+
+/*
  * namei.c
  */
+extern int filename_lookup(int dfd, struct filename *name, unsigned flags,
+			   struct path *path, struct path *root);
 extern int user_path_mountpoint_at(int, const char __user *, unsigned int, struct path *);
 extern int vfs_path_lookup(struct dentry *, struct vfsmount *,
 			   const char *, unsigned int, struct path *);
@@ -82,11 +89,10 @@ extern void __init mnt_init(void);
 
 extern int __mnt_want_write(struct vfsmount *);
 extern int __mnt_want_write_file(struct file *);
-extern int mnt_want_write_file_path(struct file *);
 extern void __mnt_drop_write(struct vfsmount *);
 extern void __mnt_drop_write_file(struct file *);
-extern void mnt_drop_write_file_path(struct file *);
 
+extern void dissolve_on_fput(struct vfsmount *);
 /*
  * fs_struct.c
  */
@@ -96,14 +102,14 @@ extern void chroot_fs_refs(const struct path *, const struct path *);
  * file_table.c
  */
 extern struct file *alloc_empty_file(int, const struct cred *);
+extern struct file *alloc_empty_file_noaccount(int, const struct cred *);
 
 /*
  * super.c
  */
-extern int do_remount_sb(struct super_block *, int, void *, int);
+extern int do_remount_sb(struct super_block *, int, void *, size_t, int,
+			 struct fs_context *);
 extern bool trylock_super(struct super_block *sb);
-extern struct dentry *mount_fs(struct file_system_type *,
-			       int, const char *, void *);
 extern struct super_block *user_get_super(dev_t);
 
 /*
@@ -135,13 +141,6 @@ extern int vfs_open(const struct path *, struct file *);
 extern long prune_icache_sb(struct super_block *sb, struct shrink_control *sc);
 extern void inode_add_lru(struct inode *inode);
 extern int dentry_needs_remove_privs(struct dentry *dentry);
-
-extern bool __atime_needs_update(const struct path *, struct inode *, bool);
-static inline bool atime_needs_update_rcu(const struct path *path,
-					  struct inode *inode)
-{
-	return __atime_needs_update(path, inode, true);
-}
 
 /*
  * fs-writeback.c
@@ -185,7 +184,6 @@ extern const struct dentry_operations ns_dentry_operations;
  */
 extern int do_vfs_ioctl(struct file *file, unsigned int fd, unsigned int cmd,
 		    unsigned long arg);
-extern long vfs_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 
 /*
  * iomap support:
