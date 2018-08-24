@@ -67,9 +67,6 @@ extern void __chk_io_ptr(const volatile void __iomem *);
 #endif
 
 /*
-<<<<<<< HEAD
- * Generic compiler-independent macros required for kernel
-=======
  * Some architectures need to provide custom definitions of macros provided
  * by linux/compiler-*.h, and can do so using asm/compiler.h. We include that
  * conditionally rather than using an asm-generic wrapper in order to avoid
@@ -83,7 +80,6 @@ extern void __chk_io_ptr(const volatile void __iomem *);
 
 /*
  * Generic compiler-dependent macros required for kernel
->>>>>>> linux-next/akpm-base
  * build go below this comment. Actual compiler/compiler version
  * specific implementations come from the above header files
  */
