@@ -1,12 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * DMA support for Internal DMAC with SDHI SD/SDIO controller
  *
  * Copyright (C) 2016-17 Renesas Electronics Corporation
  * Copyright (C) 2016-17 Horms Solutions, Simon Horman
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
  */
 
 #include <linux/bitops.h>
@@ -35,8 +32,8 @@
 
 /* DM_CM_DTRAN_MODE */
 #define DTRAN_MODE_CH_NUM_CH0	0	/* "downstream" = for write commands */
-#define DTRAN_MODE_CH_NUM_CH1	BIT(16)	/* "uptream" = for read commands */
-#define DTRAN_MODE_BUS_WID_TH	(BIT(5) | BIT(4))
+#define DTRAN_MODE_CH_NUM_CH1	BIT(16)	/* "upstream" = for read commands */
+#define DTRAN_MODE_BUS_WIDTH	(BIT(5) | BIT(4))
 #define DTRAN_MODE_ADDR_MODE	BIT(0)	/* 1 = Increment address */
 
 /* DM_CM_DTRAN_CTRL */
@@ -45,14 +42,16 @@
 /* DM_CM_RST */
 #define RST_DTRANRST1		BIT(9)
 #define RST_DTRANRST0		BIT(8)
-#define RST_RESERVED_BITS	GENMASK_ULL(32, 0)
+#define RST_RESERVED_BITS	GENMASK_ULL(31, 0)
 
 /* DM_CM_INFO1 and DM_CM_INFO1_MASK */
 #define INFO1_CLEAR		0
+#define INFO1_MASK_CLEAR	GENMASK_ULL(31, 0)
 #define INFO1_DTRANEND1		BIT(17)
 #define INFO1_DTRANEND0		BIT(16)
 
 /* DM_CM_INFO2 and DM_CM_INFO2_MASK */
+#define INFO2_MASK_CLEAR	GENMASK_ULL(31, 0)
 #define INFO2_DTRANERR1		BIT(17)
 #define INFO2_DTRANERR0		BIT(16)
 
@@ -172,7 +171,7 @@ renesas_sdhi_internal_dmac_start_dma(struct tmio_mmc_host *host,
 				     struct mmc_data *data)
 {
 	struct scatterlist *sg = host->sg_ptr;
-	u32 dtran_mode = DTRAN_MODE_BUS_WID_TH | DTRAN_MODE_ADDR_MODE;
+	u32 dtran_mode = DTRAN_MODE_BUS_WIDTH | DTRAN_MODE_ADDR_MODE;
 
 	if (!dma_map_sg(&host->pdev->dev, sg, host->sg_len,
 			mmc_get_dma_dir(data)))
@@ -252,6 +251,12 @@ renesas_sdhi_internal_dmac_request_dma(struct tmio_mmc_host *host,
 {
 	struct renesas_sdhi *priv = host_to_priv(host);
 
+	/* Disable DMAC interrupts, we don't use them */
+	renesas_sdhi_internal_dmac_dm_write(host, DM_CM_INFO1_MASK,
+					    INFO1_MASK_CLEAR);
+	renesas_sdhi_internal_dmac_dm_write(host, DM_CM_INFO2_MASK,
+					    INFO2_MASK_CLEAR);
+
 	/* Each value is set to non-zero to assume "enabling" each DMA */
 	host->chan_rx = host->chan_tx = (void *)0xdeadbeaf;
 
@@ -290,9 +295,11 @@ static const struct soc_device_attribute gen3_soc_whitelist[] = {
 	{ .soc_id = "r8a7796", .revision = "ES1.0",
 	  .data = (void *)BIT(SDHI_INTERNAL_DMAC_ONE_RX_ONLY) },
 	/* generic ones */
+	{ .soc_id = "r8a774a1" },
 	{ .soc_id = "r8a7795" },
 	{ .soc_id = "r8a7796" },
 	{ .soc_id = "r8a77965" },
+	{ .soc_id = "r8a77970" },
 	{ .soc_id = "r8a77980" },
 	{ .soc_id = "r8a77995" },
 	{ /* sentinel */ }
