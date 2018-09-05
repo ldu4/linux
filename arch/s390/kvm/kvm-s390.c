@@ -695,7 +695,9 @@ static int kvm_vm_ioctl_enable_cap(struct kvm *kvm, struct kvm_enable_cap *cap)
 			r = -EINVAL;
 		else {
 			r = 0;
+			down_write(&kvm->mm->mmap_sem);
 			kvm->mm->context.allow_gmap_hpage_1m = 1;
+			up_write(&kvm->mm->mmap_sem);
 			/*
 			 * We might have to create fake 4k page
 			 * tables. To avoid that the hardware works on
@@ -2682,6 +2684,8 @@ int kvm_arch_vcpu_setup(struct kvm_vcpu *vcpu)
 	}
 	hrtimer_init(&vcpu->arch.ckc_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	vcpu->arch.ckc_timer.function = kvm_s390_idle_wakeup;
+
+	vcpu->arch.sie_block->hpid = HPID_KVM;
 
 	kvm_s390_vcpu_crypto_setup(vcpu);
 
