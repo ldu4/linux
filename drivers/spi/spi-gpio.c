@@ -300,8 +300,8 @@ static int spi_gpio_request(struct device *dev,
 		*mflags |= SPI_MASTER_NO_RX;
 
 	spi_gpio->sck = devm_gpiod_get(dev, "sck", GPIOD_OUT_LOW);
-	if (IS_ERR(spi_gpio->mosi))
-		return PTR_ERR(spi_gpio->mosi);
+	if (IS_ERR(spi_gpio->sck))
+		return PTR_ERR(spi_gpio->sck);
 
 	for (i = 0; i < num_chipselects; i++) {
 		spi_gpio->cs_gpios[i] = devm_gpiod_get_index(dev, "cs",
@@ -447,10 +447,8 @@ static int spi_gpio_probe(struct platform_device *pdev)
 static int spi_gpio_remove(struct platform_device *pdev)
 {
 	struct spi_gpio			*spi_gpio;
-	struct spi_gpio_platform_data	*pdata;
 
 	spi_gpio = platform_get_drvdata(pdev);
-	pdata = dev_get_platdata(&pdev->dev);
 
 	/* stop() unregisters child devices too */
 	spi_bitbang_stop(&spi_gpio->bitbang);

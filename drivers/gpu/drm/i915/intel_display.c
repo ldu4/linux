@@ -46,6 +46,7 @@
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_plane_helper.h>
 #include <drm/drm_rect.h>
+#include <drm/drm_atomic_uapi.h>
 #include <linux/dma_remapping.h>
 #include <linux/reservation.h>
 
@@ -12896,6 +12897,8 @@ static const struct drm_crtc_funcs intel_crtc_funcs = {
 	.atomic_duplicate_state = intel_crtc_duplicate_state,
 	.atomic_destroy_state = intel_crtc_destroy_state,
 	.set_crc_source = intel_crtc_set_crc_source,
+	.verify_crc_source = intel_crtc_verify_crc_source,
+	.get_crc_sources = intel_crtc_get_crc_sources,
 };
 
 struct wait_rps_boost {
