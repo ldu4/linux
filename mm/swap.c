@@ -737,8 +737,8 @@ void release_pages(struct page **pages, int nr)
 		 * same pgdat. The lock is held only if pgdat != NULL.
 		 */
 		if (locked_pgdat && ++lock_batch == SWAP_CLUSTER_MAX) {
-			write_unlock_irqrestore(&locked_pgdat->lru_lock,
-						flags);
+			read_unlock_irqrestore(&locked_pgdat->lru_lock,
+					       flags);
 			locked_pgdat = NULL;
 		}
 
@@ -748,9 +748,8 @@ void release_pages(struct page **pages, int nr)
 		/* Device public page can not be huge page */
 		if (is_device_public_page(page)) {
 			if (locked_pgdat) {
-				write_unlock_irqrestore(
-						      &locked_pgdat->lru_lock,
-						      flags);
+				read_unlock_irqrestore(&locked_pgdat->lru_lock,
+						       flags);
 				locked_pgdat = NULL;
 			}
 			put_zone_device_private_or_public_page(page);
@@ -763,9 +762,8 @@ void release_pages(struct page **pages, int nr)
 
 		if (PageCompound(page)) {
 			if (locked_pgdat) {
-				write_unlock_irqrestore(
-						      &locked_pgdat->lru_lock,
-						      flags);
+				read_unlock_irqrestore(&locked_pgdat->lru_lock,
+						       flags);
 				locked_pgdat = NULL;
 			}
 			__put_compound_page(page);
@@ -776,14 +774,14 @@ void release_pages(struct page **pages, int nr)
 			struct pglist_data *pgdat = page_pgdat(page);
 
 			if (pgdat != locked_pgdat) {
-				if (locked_pgdat) {
-					write_unlock_irqrestore(
-					      &locked_pgdat->lru_lock, flags);
-				}
+				if (locked_pgdat)
+					read_unlock_irqrestore(
+						      &locked_pgdat->lru_lock,
+						      flags);
 				lock_batch = 0;
 				locked_pgdat = pgdat;
-				write_lock_irqsave(&locked_pgdat->lru_lock,
-						   flags);
+				read_lock_irqsave(&locked_pgdat->lru_lock,
+						  flags);
 			}
 
 			lruvec = mem_cgroup_page_lruvec(page, locked_pgdat);
@@ -800,7 +798,7 @@ void release_pages(struct page **pages, int nr)
 		list_add(&page->lru, &pages_to_free);
 	}
 	if (locked_pgdat)
-		write_unlock_irqrestore(&locked_pgdat->lru_lock, flags);
+		read_unlock_irqrestore(&locked_pgdat->lru_lock, flags);
 
 	mem_cgroup_uncharge_list(&pages_to_free);
 	free_unref_page_list(&pages_to_free);
