@@ -99,7 +99,8 @@ struct mem_cgroup_reclaim_iter {
 };
 
 struct lruvec_stat {
-	long count[NR_VM_NODE_STAT_ITEMS];
+	long node[NR_VM_NODE_STAT_ITEMS];
+	long lru_zone_size[MAX_NR_ZONES][NR_LRU_LISTS];
 };
 
 /*
@@ -109,9 +110,8 @@ struct mem_cgroup_per_node {
 	struct lruvec		lruvec;
 
 	struct lruvec_stat __percpu *lruvec_stat_cpu;
-	atomic_long_t		lruvec_stat[NR_VM_NODE_STAT_ITEMS];
-
-	unsigned long		lru_zone_size[MAX_NR_ZONES][NR_LRU_LISTS];
+	atomic_long_t		node_stat[NR_VM_NODE_STAT_ITEMS];
+	atomic_long_t		lru_zone_size[MAX_NR_ZONES][NR_LRU_LISTS];
 
 	struct mem_cgroup_reclaim_iter	iter[DEF_PRIORITY + 1];
 
@@ -446,7 +446,7 @@ unsigned long mem_cgroup_get_lru_size(struct lruvec *lruvec, enum lru_list lru)
 
 	mz = container_of(lruvec, struct mem_cgroup_per_node, lruvec);
 	for (zid = 0; zid < MAX_NR_ZONES; zid++)
-		nr_pages += mz->lru_zone_size[zid][lru];
+		nr_pages += atomic64_read(&mz->lru_zone_size[zid][lru]);
 	return nr_pages;
 }
 
@@ -457,7 +457,7 @@ unsigned long mem_cgroup_get_zone_lru_size(struct lruvec *lruvec,
 	struct mem_cgroup_per_node *mz;
 
 	mz = container_of(lruvec, struct mem_cgroup_per_node, lruvec);
-	return mz->lru_zone_size[zone_idx][lru];
+	return atomic64_read(&mz->lru_zone_size[zone_idx][lru]);
 }
 
 void mem_cgroup_handle_over_high(void);
@@ -575,7 +575,7 @@ static inline unsigned long lruvec_page_state(struct lruvec *lruvec,
 		return node_page_state(lruvec_pgdat(lruvec), idx);
 
 	pn = container_of(lruvec, struct mem_cgroup_per_node, lruvec);
-	x = atomic_long_read(&pn->lruvec_stat[idx]);
+	x = atomic_long_read(&pn->node_stat[idx]);
 #ifdef CONFIG_SMP
 	if (x < 0)
 		x = 0;
@@ -601,12 +601,12 @@ static inline void __mod_lruvec_state(struct lruvec *lruvec,
 	__mod_memcg_state(pn->memcg, idx, val);
 
 	/* Update lruvec */
-	x = val + __this_cpu_read(pn->lruvec_stat_cpu->count[idx]);
+	x = val + __this_cpu_read(pn->lruvec_stat_cpu->node[idx]);
 	if (unlikely(abs(x) > MEMCG_CHARGE_BATCH)) {
-		atomic_long_add(x, &pn->lruvec_stat[idx]);
+		atomic_long_add(x, &pn->node_stat[idx]);
 		x = 0;
 	}
-	__this_cpu_write(pn->lruvec_stat_cpu->count[idx], x);
+	__this_cpu_write(pn->lruvec_stat_cpu->node[idx], x);
 }
 
 static inline void mod_lruvec_state(struct lruvec *lruvec,
@@ -617,6 +617,29 @@ static inline void mod_lruvec_state(struct lruvec *lruvec,
 	local_irq_save(flags);
 	__mod_lruvec_state(lruvec, idx, val);
 	local_irq_restore(flags);
+}
+
+/**
+ * __mod_lru_zone_size - update memcg lru statistics in batches
+ *
+ * Updates memcg lru statistics using per-cpu counters that spill into atomics
+ * above a threshold.
+ *
+ * Assumes that the caller has disabled preemption.  IRQs may be enabled
+ * because this function is not called from irq context.
+ */
+static inline void __mod_lru_zone_size(struct mem_cgroup_per_node *pn,
+				       enum lru_list lru, int zid, int val)
+{
+	long x;
+	struct lruvec_stat __percpu *lruvec_stat_cpu = pn->lruvec_stat_cpu;
+
+	x = val + __this_cpu_read(lruvec_stat_cpu->lru_zone_size[zid][lru]);
+	if (unlikely(abs(x) > MEMCG_CHARGE_BATCH)) {
+		atomic_long_add(x, &pn->lru_zone_size[zid][lru]);
+		x = 0;
+	}
+	__this_cpu_write(lruvec_stat_cpu->lru_zone_size[zid][lru], x);
 }
 
 static inline void __mod_lruvec_page_state(struct page *page,
