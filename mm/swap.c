@@ -999,9 +999,9 @@ void __pagevec_lru_add(struct pagevec *pvec)
 		 */
 		if (pagepgdat != pgdat) {
 			if (pgdat)
-				write_unlock_irqrestore(&pgdat->lru_lock, flags);
+				read_unlock_irqrestore(&pgdat->lru_lock, flags);
 			pgdat = pagepgdat;
-			write_lock_irqsave(&pgdat->lru_lock, flags);
+			read_lock_irqsave(&pgdat->lru_lock, flags);
 		}
 
 		lruvec = mem_cgroup_page_lruvec(page, pagepgdat);
@@ -1016,11 +1016,15 @@ void __pagevec_lru_add(struct pagevec *pvec)
 
 		if (splice->pgdat != pgdat) {
 			if (pgdat)
-				write_unlock_irqrestore(&pgdat->lru_lock, flags);
+				read_unlock_irqrestore(&pgdat->lru_lock, flags);
 			pgdat = splice->pgdat;
-			write_lock_irqsave(&pgdat->lru_lock, flags);
+			read_lock_irqsave(&pgdat->lru_lock, flags);
 		}
 		smp_list_splice(&splice->list, splice->lru);
+	}
+	if (pgdat) {
+		read_unlock_irqrestore(&pgdat->lru_lock, flags);
+		pgdat = NULL;
 	}
 
 	while (!list_empty(&singletons)) {
