@@ -229,6 +229,12 @@ struct zone_reclaim_stat {
 	 *
 	 * The anon LRU stats live in [0], file LRU stats in [1]
 	 */
+	atomic_long_t		recent_rotated[2];
+	atomic_long_t		recent_scanned[2];
+};
+
+/* These spill into the counters in struct zone_reclaim_stat beyond a cutoff. */
+struct zone_reclaim_stat_cpu {
 	unsigned long		recent_rotated[2];
 	unsigned long		recent_scanned[2];
 };
@@ -236,6 +242,7 @@ struct zone_reclaim_stat {
 struct lruvec {
 	struct list_head		lists[NR_LRU_LISTS];
 	struct zone_reclaim_stat	reclaim_stat;
+	struct zone_reclaim_stat_cpu __percpu *reclaim_stat_cpu;
 	/* Evictions & activations on the inactive file list */
 	atomic_long_t			inactive_age;
 	/* Refaults at the time of last reclaim cycle */
@@ -244,6 +251,47 @@ struct lruvec {
 	struct pglist_data *pgdat;
 #endif
 };
+
+#define	RECLAIM_STAT_BATCH	32U	/* From SWAP_CLUSTER_MAX */
+
+/*
+ * Callers of the below three functions that update reclaim stats must hold
+ * lru_lock and have preemption disabled.  Use percpu counters that spill into
+ * atomics to allow concurrent updates when multiple readers hold lru_lock.
+ */
+
+static inline void __update_page_reclaim_stat(unsigned long count,
+					      unsigned long *percpu_stat,
+					      atomic_long_t *stat)
+{
+	unsigned long val = *percpu_stat + count;
+
+	if (unlikely(val > RECLAIM_STAT_BATCH)) {
+		atomic_long_add(val, stat);
+		val = 0;
+	}
+	*percpu_stat = val;
+}
+
+static inline void update_reclaim_stat_scanned(struct lruvec *lruvec, int file,
+					       unsigned long count)
+{
+	struct zone_reclaim_stat_cpu __percpu *percpu_stat =
+					 this_cpu_ptr(lruvec->reclaim_stat_cpu);
+
+	__update_page_reclaim_stat(count, &percpu_stat->recent_scanned[file],
+				   &lruvec->reclaim_stat.recent_scanned[file]);
+}
+
+static inline void update_reclaim_stat_rotated(struct lruvec *lruvec, int file,
+					       unsigned long count)
+{
+	struct zone_reclaim_stat_cpu __percpu *percpu_stat =
+					 this_cpu_ptr(lruvec->reclaim_stat_cpu);
+
+	__update_page_reclaim_stat(count, &percpu_stat->recent_rotated[file],
+				   &lruvec->reclaim_stat.recent_rotated[file]);
+}
 
 /* Mask used at gathering information at once (see memcontrol.c) */
 #define LRU_ALL_FILE (BIT(LRU_INACTIVE_FILE) | BIT(LRU_ACTIVE_FILE))
@@ -795,6 +843,8 @@ extern void init_currently_empty_zone(struct zone *zone, unsigned long start_pfn
 				     unsigned long size);
 
 extern void lruvec_init(struct lruvec *lruvec);
+extern void lruvec_init_late(struct lruvec *lruvec);
+extern void lruvecs_init_late(void);
 
 static inline struct pglist_data *lruvec_pgdat(struct lruvec *lruvec)
 {

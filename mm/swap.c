@@ -34,6 +34,7 @@
 #include <linux/uio.h>
 #include <linux/hugetlb.h>
 #include <linux/page_idle.h>
+#include <linux/mmzone.h>
 
 #include "internal.h"
 
@@ -260,14 +261,19 @@ void rotate_reclaimable_page(struct page *page)
 	}
 }
 
+/*
+ * Updates page reclaim statistics using per-cpu counters that spill into
+ * atomics above a threshold.
+ *
+ * Assumes that the caller has disabled preemption.  IRQs may be enabled
+ * because this function is not called from irq context.
+ */
 static void update_page_reclaim_stat(struct lruvec *lruvec,
 				     int file, int rotated)
 {
-	struct zone_reclaim_stat *reclaim_stat = &lruvec->reclaim_stat;
-
-	reclaim_stat->recent_scanned[file]++;
+	update_reclaim_stat_scanned(lruvec, file, 1);
 	if (rotated)
-		reclaim_stat->recent_rotated[file]++;
+		update_reclaim_stat_rotated(lruvec, file, 1);
 }
 
 static void __activate_page(struct page *page, struct lruvec *lruvec,

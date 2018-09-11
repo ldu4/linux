@@ -3152,22 +3152,22 @@ static int memcg_stat_show(struct seq_file *m, void *v)
 		pg_data_t *pgdat;
 		struct mem_cgroup_per_node *mz;
 		struct zone_reclaim_stat *rstat;
-		unsigned long recent_rotated[2] = {0, 0};
-		unsigned long recent_scanned[2] = {0, 0};
+		unsigned long rota[2] = {0, 0};
+		unsigned long scan[2] = {0, 0};
 
 		for_each_online_pgdat(pgdat) {
 			mz = mem_cgroup_nodeinfo(memcg, pgdat->node_id);
 			rstat = &mz->lruvec.reclaim_stat;
 
-			recent_rotated[0] += rstat->recent_rotated[0];
-			recent_rotated[1] += rstat->recent_rotated[1];
-			recent_scanned[0] += rstat->recent_scanned[0];
-			recent_scanned[1] += rstat->recent_scanned[1];
+			rota[0] += atomic_long_read(&rstat->recent_rotated[0]);
+			rota[1] += atomic_long_read(&rstat->recent_rotated[1]);
+			scan[0] += atomic_long_read(&rstat->recent_scanned[0]);
+			scan[1] += atomic_long_read(&rstat->recent_scanned[1]);
 		}
-		seq_printf(m, "recent_rotated_anon %lu\n", recent_rotated[0]);
-		seq_printf(m, "recent_rotated_file %lu\n", recent_rotated[1]);
-		seq_printf(m, "recent_scanned_anon %lu\n", recent_scanned[0]);
-		seq_printf(m, "recent_scanned_file %lu\n", recent_scanned[1]);
+		seq_printf(m, "recent_rotated_anon %lu\n", rota[0]);
+		seq_printf(m, "recent_rotated_file %lu\n", rota[1]);
+		seq_printf(m, "recent_scanned_anon %lu\n", scan[0]);
+		seq_printf(m, "recent_scanned_file %lu\n", scan[1]);
 	}
 #endif
 

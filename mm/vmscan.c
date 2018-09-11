@@ -1655,7 +1655,6 @@ static int too_many_isolated(struct pglist_data *pgdat, int file,
 static noinline_for_stack void
 putback_inactive_pages(struct lruvec *lruvec, struct list_head *page_list)
 {
-	struct zone_reclaim_stat *reclaim_stat = &lruvec->reclaim_stat;
 	struct pglist_data *pgdat = lruvec_pgdat(lruvec);
 	LIST_HEAD(pages_to_free);
 
@@ -1684,7 +1683,7 @@ putback_inactive_pages(struct lruvec *lruvec, struct list_head *page_list)
 		if (is_active_lru(lru)) {
 			int file = is_file_lru(lru);
 			int numpages = hpage_nr_pages(page);
-			reclaim_stat->recent_rotated[file] += numpages;
+			update_reclaim_stat_rotated(lruvec, file, numpages);
 		}
 		if (put_page_testzero(page)) {
 			__ClearPageLRU(page);
@@ -1736,7 +1735,6 @@ shrink_inactive_list(unsigned long nr_to_scan, struct lruvec *lruvec,
 	isolate_mode_t isolate_mode = 0;
 	int file = is_file_lru(lru);
 	struct pglist_data *pgdat = lruvec_pgdat(lruvec);
-	struct zone_reclaim_stat *reclaim_stat = &lruvec->reclaim_stat;
 	bool stalled = false;
 
 	while (unlikely(too_many_isolated(pgdat, file, sc))) {
@@ -1763,7 +1761,7 @@ shrink_inactive_list(unsigned long nr_to_scan, struct lruvec *lruvec,
 				     &nr_scanned, sc, isolate_mode, lru);
 
 	__mod_node_page_state(pgdat, NR_ISOLATED_ANON + file, nr_taken);
-	reclaim_stat->recent_scanned[file] += nr_taken;
+	update_reclaim_stat_scanned(lruvec, file, nr_taken);
 
 	if (current_is_kswapd()) {
 		if (global_reclaim(sc))
@@ -1914,7 +1912,6 @@ static void shrink_active_list(unsigned long nr_to_scan,
 	LIST_HEAD(l_active);
 	LIST_HEAD(l_inactive);
 	struct page *page;
-	struct zone_reclaim_stat *reclaim_stat = &lruvec->reclaim_stat;
 	unsigned nr_deactivate, nr_activate;
 	unsigned nr_rotated = 0;
 	isolate_mode_t isolate_mode = 0;
@@ -1932,7 +1929,7 @@ static void shrink_active_list(unsigned long nr_to_scan,
 				     &nr_scanned, sc, isolate_mode, lru);
 
 	__mod_node_page_state(pgdat, NR_ISOLATED_ANON + file, nr_taken);
-	reclaim_stat->recent_scanned[file] += nr_taken;
+	update_reclaim_stat_scanned(lruvec, file, nr_taken);
 
 	__count_vm_events(PGREFILL, nr_scanned);
 	count_memcg_events(lruvec_memcg(lruvec), PGREFILL, nr_scanned);
@@ -1989,7 +1986,7 @@ static void shrink_active_list(unsigned long nr_to_scan,
 	 * helps balance scan pressure between file and anonymous pages in
 	 * get_scan_count.
 	 */
-	reclaim_stat->recent_rotated[file] += nr_rotated;
+	update_reclaim_stat_rotated(lruvec, file, nr_rotated);
 
 	nr_activate = move_active_pages_to_lru(lruvec, &l_active, &l_hold, lru);
 	nr_deactivate = move_active_pages_to_lru(lruvec, &l_inactive, &l_hold, lru - LRU_ACTIVE);
@@ -2116,7 +2113,7 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 			   unsigned long *lru_pages)
 {
 	int swappiness = mem_cgroup_swappiness(memcg);
-	struct zone_reclaim_stat *reclaim_stat = &lruvec->reclaim_stat;
+	struct zone_reclaim_stat *rstat = &lruvec->reclaim_stat;
 	u64 fraction[2];
 	u64 denominator = 0;	/* gcc */
 	struct pglist_data *pgdat = lruvec_pgdat(lruvec);
@@ -2125,6 +2122,7 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 	unsigned long anon, file;
 	unsigned long ap, fp;
 	enum lru_list lru;
+	long recent_scanned[2], recent_rotated[2];
 
 	/* If we have no swap space, do not bother scanning anon pages. */
 	if (!sc->may_swap || mem_cgroup_get_nr_swap_pages(memcg) <= 0) {
@@ -2238,14 +2236,22 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 		lruvec_lru_size(lruvec, LRU_INACTIVE_FILE, MAX_NR_ZONES);
 
 	spin_lock_irq(&pgdat->lru_lock);
-	if (unlikely(reclaim_stat->recent_scanned[0] > anon / 4)) {
-		reclaim_stat->recent_scanned[0] /= 2;
-		reclaim_stat->recent_rotated[0] /= 2;
+	recent_scanned[0] = atomic_long_read(&rstat->recent_scanned[0]);
+	recent_rotated[0] = atomic_long_read(&rstat->recent_rotated[0]);
+	if (unlikely(recent_scanned[0] > anon / 4)) {
+		recent_scanned[0] /= 2;
+		recent_rotated[0] /= 2;
+		atomic_long_set(&rstat->recent_scanned[0], recent_scanned[0]);
+		atomic_long_set(&rstat->recent_rotated[0], recent_rotated[0]);
 	}
 
-	if (unlikely(reclaim_stat->recent_scanned[1] > file / 4)) {
-		reclaim_stat->recent_scanned[1] /= 2;
-		reclaim_stat->recent_rotated[1] /= 2;
+	recent_scanned[1] = atomic_long_read(&rstat->recent_scanned[1]);
+	recent_rotated[1] = atomic_long_read(&rstat->recent_rotated[1]);
+	if (unlikely(recent_scanned[1] > file / 4)) {
+		recent_scanned[1] /= 2;
+		recent_rotated[1] /= 2;
+		atomic_long_set(&rstat->recent_scanned[1], recent_scanned[1]);
+		atomic_long_set(&rstat->recent_rotated[1], recent_rotated[1]);
 	}
 
 	/*
@@ -2253,11 +2259,11 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 	 * proportional to the fraction of recently scanned pages on
 	 * each list that were recently referenced and in active use.
 	 */
-	ap = anon_prio * (reclaim_stat->recent_scanned[0] + 1);
-	ap /= reclaim_stat->recent_rotated[0] + 1;
+	ap = anon_prio * (recent_scanned[0] + 1);
+	ap /= recent_rotated[0] + 1;
 
-	fp = file_prio * (reclaim_stat->recent_scanned[1] + 1);
-	fp /= reclaim_stat->recent_rotated[1] + 1;
+	fp = file_prio * (recent_scanned[1] + 1);
+	fp /= recent_rotated[1] + 1;
 	spin_unlock_irq(&pgdat->lru_lock);
 
 	fraction[0] = ap;

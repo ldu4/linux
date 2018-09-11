@@ -526,6 +526,7 @@ static void __init mm_init(void)
 	init_espfix_bsp();
 	/* Should be run after espfix64 is set up. */
 	pti_init();
+	lruvecs_init_late();
 }
 
 asmlinkage __visible void __init start_kernel(void)

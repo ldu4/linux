@@ -9,6 +9,7 @@
 #include <linux/stddef.h>
 #include <linux/mm.h>
 #include <linux/mmzone.h>
+#include <linux/percpu.h>
 
 struct pglist_data *first_online_pgdat(void)
 {
@@ -94,6 +95,19 @@ void lruvec_init(struct lruvec *lruvec)
 
 	for_each_lru(lru)
 		INIT_LIST_HEAD(&lruvec->lists[lru]);
+}
+
+void lruvec_init_late(struct lruvec *lruvec)
+{
+	lruvec->reclaim_stat_cpu = alloc_percpu(struct zone_reclaim_stat_cpu);
+}
+
+void lruvecs_init_late(void)
+{
+	pg_data_t *pgdat;
+
+	for_each_online_pgdat(pgdat)
+		lruvec_init_late(node_lruvec(pgdat));
 }
 
 #if defined(CONFIG_NUMA_BALANCING) && !defined(LAST_CPUPID_NOT_IN_PAGE_FLAGS)
