@@ -4,6 +4,7 @@
 
 #include <linux/huge_mm.h>
 #include <linux/swap.h>
+#include <linux/list.h>
 
 /**
  * page_is_file_cache - should the page be on a file LRU or anon LRU?
@@ -62,6 +63,33 @@ static __always_inline void del_page_from_lru_list(struct page *page,
 				struct lruvec *lruvec, enum lru_list lru)
 {
 	list_del(&page->lru);
+	update_lru_size(lruvec, lru, page_zonenum(page), -hpage_nr_pages(page));
+}
+
+/**
+ * smp_del_page_from_lru_list - thread-safe del_page_from_lru_list
+ * @page: page to delete from the LRU
+ * @lruvec: vector of LRUs
+ * @lru: type of LRU list to delete from within the lruvec
+ *
+ * Requires lru_lock to be held, preferably as reader for greater concurrency
+ * with other LRU operations but writers are also correct.
+ *
+ * Holding lru_lock as reader, the only unprotected shared state is @page's
+ * lru links, which smp_list_del safely handles.  lru_lock excludes other
+ * writers, and the atomics and per-cpu counters in update_lru_size serialize
+ * racing stat updates.
+ *
+ * Concurrent removal of adjacent pages is expected to be rare.  In
+ * will-it-scale/page_fault1, the ratio of iterations of any while loop in
+ * smp_list_del to calls to that function was less than 0.009% (and 0.009% was
+ * an outlier on an oversubscribed 44 core system).
+ */
+static __always_inline void smp_del_page_from_lru_list(struct page *page,
+						       struct lruvec *lruvec,
+						       enum lru_list lru)
+{
+	smp_list_del(&page->lru);
 	update_lru_size(lruvec, lru, page_zonenum(page), -hpage_nr_pages(page));
 }
 
