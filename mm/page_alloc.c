@@ -6222,7 +6222,7 @@ static void __paginginit free_area_init_core(struct pglist_data *pgdat)
 	init_waitqueue_head(&pgdat->kcompactd_wait);
 #endif
 	pgdat_page_ext_init(pgdat);
-	spin_lock_init(&pgdat->lru_lock);
+	rwlock_init(&pgdat->lru_lock);
 	lruvec_init(node_lruvec(pgdat));
 
 	pgdat->per_cpu_nodestats = &boot_nodestats;
