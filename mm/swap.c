@@ -35,6 +35,7 @@
 #include <linux/hugetlb.h>
 #include <linux/page_idle.h>
 #include <linux/mmzone.h>
+#include <linux/list.h>
 
 #include "internal.h"
 
@@ -1019,7 +1020,7 @@ void __pagevec_lru_add(struct pagevec *pvec)
 			pgdat = splice->pgdat;
 			write_lock_irqsave(&pgdat->lru_lock, flags);
 		}
-		list_splice(&splice->list, splice->lru);
+		smp_list_splice(&splice->list, splice->lru);
 	}
 
 	while (!list_empty(&singletons)) {
