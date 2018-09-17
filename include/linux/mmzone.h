@@ -18,6 +18,7 @@
 #include <linux/pageblock-flags.h>
 #include <linux/page-flags-layout.h>
 #include <linux/atomic.h>
+#include <linux/percpu.h>
 #include <asm/page.h>
 
 /* Free memory management - zoned buddy allocator.  */
