@@ -156,13 +156,7 @@ gm200_devinit_post(struct nvkm_devinit *base, bool post)
 			return -ETIMEDOUT;
 	}
 
-<<<<<<< HEAD
-	/* Optional: Execute PRE_OS application on PMU, which should at
-	 * least take care of fans until a full PMU has been loaded.
-	 */
-=======
 	/* load and execute some other ucode image (bios therm?) */
->>>>>>> linux-next/akpm-base
 	pmu_load(init, 0x01, post, NULL, NULL);
 	return 0;
 }
