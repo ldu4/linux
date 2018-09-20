@@ -295,24 +295,12 @@ struct rsnd_mod_ops {
 	int (*fallback)(struct rsnd_mod *mod,
 			struct rsnd_dai_stream *io,
 			struct rsnd_priv *priv);
-<<<<<<< HEAD
-	int (*nolock_start)(struct rsnd_mod *mod,
-		    struct rsnd_dai_stream *io,
-		    struct rsnd_priv *priv);
-	int (*nolock_stop)(struct rsnd_mod *mod,
-		    struct rsnd_dai_stream *io,
-		    struct rsnd_priv *priv);
-	int (*prepare)(struct rsnd_mod *mod,
-		       struct rsnd_dai_stream *io,
-		       struct rsnd_priv *priv);
-=======
 	int (*prepare)(struct rsnd_mod *mod,
 		       struct rsnd_dai_stream *io,
 		       struct rsnd_priv *priv);
 	int (*cleanup)(struct rsnd_mod *mod,
 		       struct rsnd_dai_stream *io,
 		       struct rsnd_priv *priv);
->>>>>>> linux-next/akpm-base
 };
 
 struct rsnd_dai_stream;
@@ -387,12 +375,6 @@ struct rsnd_mod {
 #define __rsnd_mod_call_fallback	0
 #define __rsnd_mod_call_hw_params	0
 #define __rsnd_mod_call_pointer		0
-<<<<<<< HEAD
-#define __rsnd_mod_call_nolock_start	0
-#define __rsnd_mod_call_nolock_stop	1
-#define __rsnd_mod_call_prepare		0
-=======
->>>>>>> linux-next/akpm-base
 
 #define rsnd_mod_to_priv(mod)	((mod)->priv)
 #define rsnd_mod_name(mod)	((mod)->ops->name)

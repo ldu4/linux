@@ -3617,11 +3617,7 @@ static int snd_soc_dai_link_event(struct snd_soc_dapm_widget *w,
 	struct snd_soc_dapm_path *path;
 	struct snd_soc_dai *source, *sink;
 	struct snd_soc_pcm_runtime *rtd = w->priv;
-<<<<<<< HEAD
-	const struct snd_soc_pcm_stream *config = w->params + w->params_select;
-=======
 	const struct snd_soc_pcm_stream *config;
->>>>>>> linux-next/akpm-base
 	struct snd_pcm_substream substream;
 	struct snd_pcm_hw_params *params = NULL;
 	struct snd_pcm_runtime *runtime = NULL;
@@ -3888,19 +3884,10 @@ outfree_w_param:
 	return NULL;
 }
 
-<<<<<<< HEAD
-int snd_soc_dapm_new_pcm(struct snd_soc_card *card,
-			 struct snd_soc_pcm_runtime *rtd,
-			 const struct snd_soc_pcm_stream *params,
-			 unsigned int num_params,
-			 struct snd_soc_dapm_widget *source,
-			 struct snd_soc_dapm_widget *sink)
-=======
 static struct snd_soc_dapm_widget *
 snd_soc_dapm_new_dai(struct snd_soc_card *card, struct snd_soc_pcm_runtime *rtd,
 		     struct snd_soc_dapm_widget *source,
 		     struct snd_soc_dapm_widget *sink)
->>>>>>> linux-next/akpm-base
 {
 	struct snd_soc_dapm_widget template;
 	struct snd_soc_dapm_widget *w;
@@ -3955,11 +3942,6 @@ snd_soc_dapm_new_dai(struct snd_soc_card *card, struct snd_soc_pcm_runtime *rtd,
 		goto outfree_kcontrol_news;
 	}
 
-<<<<<<< HEAD
-	w->params = params;
-	w->num_params = num_params;
-=======
->>>>>>> linux-next/akpm-base
 	w->priv = rtd;
 
 	return w;
