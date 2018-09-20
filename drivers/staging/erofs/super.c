@@ -81,7 +81,7 @@ static int superblock_read(struct super_block *sb)
 	struct erofs_sb_info *sbi;
 	struct buffer_head *bh;
 	struct erofs_super_block *layout;
-	unsigned blkszbits;
+	unsigned int blkszbits;
 	int ret;
 
 	bh = sb_bread(sb, 0);
@@ -116,9 +116,10 @@ static int superblock_read(struct super_block *sb)
 #endif
 	sbi->islotbits = ffs(sizeof(struct erofs_inode_v1)) - 1;
 #ifdef CONFIG_EROFS_FS_ZIP
-	sbi->clusterbits = 12;
+	/* TODO: clusterbits should be related to inode */
+	sbi->clusterbits = blkszbits;
 
-	if (1 << (sbi->clusterbits - 12) > Z_EROFS_CLUSTER_MAX_PAGES)
+	if (1 << (sbi->clusterbits - PAGE_SHIFT) > Z_EROFS_CLUSTER_MAX_PAGES)
 		errln("clusterbits %u is not supported on this kernel",
 			sbi->clusterbits);
 #endif
@@ -237,16 +238,18 @@ static int parse_options(struct super_block *sb, char *options)
 			infoln("noacl options not supported");
 			break;
 #endif
+#ifdef CONFIG_EROFS_FAULT_INJECTION
 		case Opt_fault_injection:
 			if (args->from && match_int(args, &arg))
 				return -EINVAL;
-#ifdef CONFIG_EROFS_FAULT_INJECTION
 			erofs_build_fault_attr(EROFS_SB(sb), arg);
 			set_opt(EROFS_SB(sb), FAULT_INJECTION);
-#else
-			infoln("FAULT_INJECTION was not selected");
-#endif
 			break;
+#else
+		case Opt_fault_injection:
+			infoln("fault_injection options not supported");
+			break;
+#endif
 		default:
 			errln("Unrecognized mount option \"%s\" "
 					"or missing value", p);
@@ -480,7 +483,7 @@ struct erofs_mount_private {
 
 /* support mount_bdev() with options */
 static int erofs_fill_super(struct super_block *sb,
-	void *_priv, int silent)
+	void *_priv, size_t data_size, int silent)
 {
 	struct erofs_mount_private *priv = _priv;
 
@@ -488,9 +491,9 @@ static int erofs_fill_super(struct super_block *sb,
 		priv->options, silent);
 }
 
-static struct dentry *erofs_mount(
-	struct file_system_type *fs_type, int flags,
-	const char *dev_name, void *data)
+static struct dentry *erofs_mount(struct file_system_type *fs_type,
+				  int flags, const char *dev_name,
+				  void *data, size_t data_size)
 {
 	struct erofs_mount_private priv = {
 		.dev_name = dev_name,
@@ -498,7 +501,7 @@ static struct dentry *erofs_mount(
 	};
 
 	return mount_bdev(fs_type, flags, dev_name,
-		&priv, erofs_fill_super);
+		&priv, sizeof(priv), erofs_fill_super);
 }
 
 static void erofs_kill_sb(struct super_block *sb)
@@ -623,7 +626,8 @@ static int erofs_show_options(struct seq_file *seq, struct dentry *root)
 	return 0;
 }
 
-static int erofs_remount(struct super_block *sb, int *flags, char *data)
+static int erofs_remount(struct super_block *sb, int *flags,
+			 char *data, size_t data_size)
 {
 	BUG_ON(!sb_rdonly(sb));
 

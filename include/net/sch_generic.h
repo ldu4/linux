@@ -19,6 +19,7 @@ struct Qdisc_ops;
 struct qdisc_walker;
 struct tcf_walker;
 struct module;
+struct bpf_flow_keys;
 
 typedef int tc_setup_cb_t(enum tc_setup_type type,
 			  void *type_data, void *cb_priv);
@@ -307,9 +308,14 @@ struct tcf_proto {
 };
 
 struct qdisc_skb_cb {
-	unsigned int		pkt_len;
-	u16			slave_dev_queue_mapping;
-	u16			tc_classid;
+	union {
+		struct {
+			unsigned int		pkt_len;
+			u16			slave_dev_queue_mapping;
+			u16			tc_classid;
+		};
+		struct bpf_flow_keys *flow_keys;
+	};
 #define QDISC_CB_PRIV_LEN 20
 	unsigned char		data[QDISC_CB_PRIV_LEN];
 };
@@ -362,7 +368,7 @@ static inline void tcf_block_offload_dec(struct tcf_block *block, u32 *flags)
 }
 
 static inline void
-tc_cls_offload_cnt_update(struct tcf_block *block, unsigned int *cnt,
+tc_cls_offload_cnt_update(struct tcf_block *block, u32 *cnt,
 			  u32 *flags, bool add)
 {
 	if (add) {
@@ -828,8 +834,8 @@ static inline void qdisc_skb_head_init(struct qdisc_skb_head *qh)
 	qh->qlen = 0;
 }
 
-static inline int __qdisc_enqueue_tail(struct sk_buff *skb, struct Qdisc *sch,
-				       struct qdisc_skb_head *qh)
+static inline void __qdisc_enqueue_tail(struct sk_buff *skb,
+					struct qdisc_skb_head *qh)
 {
 	struct sk_buff *last = qh->tail;
 
@@ -842,14 +848,24 @@ static inline int __qdisc_enqueue_tail(struct sk_buff *skb, struct Qdisc *sch,
 		qh->head = skb;
 	}
 	qh->qlen++;
-	qdisc_qstats_backlog_inc(sch, skb);
-
-	return NET_XMIT_SUCCESS;
 }
 
 static inline int qdisc_enqueue_tail(struct sk_buff *skb, struct Qdisc *sch)
 {
-	return __qdisc_enqueue_tail(skb, sch, &sch->q);
+	__qdisc_enqueue_tail(skb, &sch->q);
+	qdisc_qstats_backlog_inc(sch, skb);
+	return NET_XMIT_SUCCESS;
+}
+
+static inline void __qdisc_enqueue_head(struct sk_buff *skb,
+					struct qdisc_skb_head *qh)
+{
+	skb->next = qh->head;
+
+	if (!qh->head)
+		qh->tail = skb;
+	qh->head = skb;
+	qh->qlen++;
 }
 
 static inline struct sk_buff *__qdisc_dequeue_head(struct qdisc_skb_head *qh)
