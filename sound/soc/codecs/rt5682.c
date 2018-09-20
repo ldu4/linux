@@ -750,10 +750,6 @@ static bool rt5682_readable_register(struct device *dev, unsigned int reg)
 	}
 }
 
-<<<<<<< HEAD
-static const DECLARE_TLV_DB_SCALE(hp_vol_tlv, -2250, 150, 0);
-=======
->>>>>>> linux-next/akpm-base
 static const DECLARE_TLV_DB_SCALE(dac_vol_tlv, -6525, 75, 0);
 static const DECLARE_TLV_DB_SCALE(adc_vol_tlv, -1725, 75, 0);
 static const DECLARE_TLV_DB_SCALE(adc_bst_tlv, 0, 1200, 0);
