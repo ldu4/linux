@@ -553,8 +553,6 @@ static const struct sun8i_mixer_cfg sun8i_v3s_mixer_cfg = {
 	.mod_rate = 150000000,
 };
 
-<<<<<<< HEAD
-=======
 static const struct sun8i_mixer_cfg sun50i_a64_mixer0_cfg = {
 	.ccsc		= 0,
 	.mod_rate	= 297000000,
@@ -571,7 +569,6 @@ static const struct sun8i_mixer_cfg sun50i_a64_mixer1_cfg = {
 	.vi_num		= 1,
 };
 
->>>>>>> linux-next/akpm-base
 static const struct of_device_id sun8i_mixer_of_table[] = {
 	{
 		.compatible = "allwinner,sun8i-a83t-de2-mixer-0",
@@ -588,8 +585,6 @@ static const struct of_device_id sun8i_mixer_of_table[] = {
 	{
 		.compatible = "allwinner,sun8i-v3s-de2-mixer",
 		.data = &sun8i_v3s_mixer_cfg,
-<<<<<<< HEAD
-=======
 	},
 	{
 		.compatible = "allwinner,sun50i-a64-de2-mixer-0",
@@ -598,7 +593,6 @@ static const struct of_device_id sun8i_mixer_of_table[] = {
 	{
 		.compatible = "allwinner,sun50i-a64-de2-mixer-1",
 		.data = &sun50i_a64_mixer1_cfg,
->>>>>>> linux-next/akpm-base
 	},
 	{ }
 };
