@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * DMA support use of SYS DMAC with SDHI SD/SDIO controller
  *
@@ -5,10 +6,6 @@
  * Copyright (C) 2016-17 Sang Engineering, Wolfram Sang
  * Copyright (C) 2017 Horms Solutions, Simon Horman
  * Copyright (C) 2010-2011 Guennadi Liakhovetski
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
  */
 
 #include <linux/device.h>
@@ -498,7 +495,8 @@ static const struct soc_device_attribute gen3_soc_whitelist[] = {
 
 static int renesas_sdhi_sys_dmac_probe(struct platform_device *pdev)
 {
-	if (of_device_get_match_data(&pdev->dev) == &of_rcar_gen3_compatible &&
+	if ((of_device_get_match_data(&pdev->dev) == &of_rcar_gen3_compatible ||
+	    of_device_get_match_data(&pdev->dev) == &of_rcar_r8a7795_compatible) &&
 	    !soc_device_match(gen3_soc_whitelist))
 		return -ENODEV;
 
