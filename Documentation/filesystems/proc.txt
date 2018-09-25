@@ -490,9 +490,17 @@ manner. The codes are the following:
     dd  - do not include area into core dump
     sd  - soft-dirty flag
     mm  - mixed map area
-    hg  - huge page advise flag
-    nh  - no-huge page advise flag
+    hg  - eligible for transparent hugepages [*]
+    nh  - not eligible for transparent hugepages [*]
     mg  - mergable advise flag
+
+ [*] A process mapping is eligible to be backed by transparent hugepages (thp)
+     depending on system-wide settings and the mapping itself.  See
+     Documentation/admin-guide/mm/transhuge.rst for default behavior.  If a
+     mapping has a flag of "nh", it is not eligible to be backed by hugepages
+     in any condition, either because of prctl(PR_SET_THP_DISABLE) or
+     madvise(MADV_NOHUGEPAGE).  PR_SET_THP_DISABLE takes precedence over any
+     MADV_HUGEPAGE.
 
 Note that there is no guarantee that every flag and associated mnemonic will
 be present in all further kernel releases. Things get changed, the flags may
