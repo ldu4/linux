@@ -247,12 +247,6 @@ static inline unsigned long of_read_ulong(const __be32 *cell, int size)
 #include <asm/prom.h>
 #endif
 
-/* Default #address and #size cells.  Allow arch asm/prom.h to override */
-#if !defined(OF_ROOT_NODE_ADDR_CELLS_DEFAULT)
-#define OF_ROOT_NODE_ADDR_CELLS_DEFAULT 1
-#define OF_ROOT_NODE_SIZE_CELLS_DEFAULT 1
-#endif
-
 #define OF_IS_DYNAMIC(x) test_bit(OF_DYNAMIC, &x->_flags)
 #define OF_MARK_DYNAMIC(x) set_bit(OF_DYNAMIC, &x->_flags)
 
@@ -392,6 +386,9 @@ extern int of_phandle_iterator_args(struct of_phandle_iterator *it,
 extern void of_alias_scan(void * (*dt_alloc)(u64 size, u64 align));
 extern int of_alias_get_id(struct device_node *np, const char *stem);
 extern int of_alias_get_highest_id(const char *stem);
+extern int of_alias_get_alias_list(const struct of_device_id *matches,
+				   const char *stem, unsigned long *bitmap,
+				   unsigned int nbits);
 
 extern int of_machine_is_compatible(const char *compat);
 
@@ -889,6 +886,13 @@ static inline int of_alias_get_id(struct device_node *np, const char *stem)
 }
 
 static inline int of_alias_get_highest_id(const char *stem)
+{
+	return -ENOSYS;
+}
+
+static inline int of_alias_get_alias_list(const struct of_device_id *matches,
+					  const char *stem, unsigned long *bitmap,
+					  unsigned int nbits)
 {
 	return -ENOSYS;
 }
