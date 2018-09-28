@@ -138,7 +138,8 @@ static void fuse_evict_inode(struct inode *inode)
 	}
 }
 
-static int fuse_remount_fs(struct super_block *sb, int *flags, char *data)
+static int fuse_remount_fs(struct super_block *sb, int *flags,
+			   char *data, size_t data_size)
 {
 	sync_filesystem(sb);
 	if (*flags & SB_MANDLOCK)
@@ -594,9 +595,11 @@ static void fuse_iqueue_init(struct fuse_iqueue *fiq)
 
 static void fuse_pqueue_init(struct fuse_pqueue *fpq)
 {
-	memset(fpq, 0, sizeof(struct fuse_pqueue));
+	unsigned int i;
+
 	spin_lock_init(&fpq->lock);
-	INIT_LIST_HEAD(&fpq->processing);
+	for (i = 0; i < FUSE_PQ_HASH_SIZE; i++)
+		INIT_LIST_HEAD(&fpq->processing[i]);
 	INIT_LIST_HEAD(&fpq->io);
 	fpq->connected = 1;
 }
@@ -1022,16 +1025,25 @@ static int fuse_bdi_init(struct fuse_conn *fc, struct super_block *sb)
 struct fuse_dev *fuse_dev_alloc(struct fuse_conn *fc)
 {
 	struct fuse_dev *fud;
+	struct list_head *pq;
 
 	fud = kzalloc(sizeof(struct fuse_dev), GFP_KERNEL);
-	if (fud) {
-		fud->fc = fuse_conn_get(fc);
-		fuse_pqueue_init(&fud->pq);
+	if (!fud)
+		return NULL;
 
-		spin_lock(&fc->lock);
-		list_add_tail(&fud->entry, &fc->devices);
-		spin_unlock(&fc->lock);
+	pq = kcalloc(FUSE_PQ_HASH_SIZE, sizeof(struct list_head), GFP_KERNEL);
+	if (!pq) {
+		kfree(fud);
+		return NULL;
 	}
+
+	fud->pq.processing = pq;
+	fud->fc = fuse_conn_get(fc);
+	fuse_pqueue_init(&fud->pq);
+
+	spin_lock(&fc->lock);
+	list_add_tail(&fud->entry, &fc->devices);
+	spin_unlock(&fc->lock);
 
 	return fud;
 }
@@ -1052,7 +1064,8 @@ void fuse_dev_free(struct fuse_dev *fud)
 }
 EXPORT_SYMBOL_GPL(fuse_dev_free);
 
-static int fuse_fill_super(struct super_block *sb, void *data, int silent)
+static int fuse_fill_super(struct super_block *sb, void *data, size_t data_size,
+			   int silent)
 {
 	struct fuse_dev *fud;
 	struct fuse_conn *fc;
@@ -1208,9 +1221,10 @@ static int fuse_fill_super(struct super_block *sb, void *data, int silent)
 
 static struct dentry *fuse_mount(struct file_system_type *fs_type,
 		       int flags, const char *dev_name,
-		       void *raw_data)
+		       void *raw_data, size_t data_size)
 {
-	return mount_nodev(fs_type, flags, raw_data, fuse_fill_super);
+	return mount_nodev(fs_type, flags, raw_data, data_size,
+			   fuse_fill_super);
 }
 
 static void fuse_sb_destroy(struct super_block *sb)
@@ -1247,9 +1261,10 @@ MODULE_ALIAS_FS("fuse");
 #ifdef CONFIG_BLOCK
 static struct dentry *fuse_mount_blk(struct file_system_type *fs_type,
 			   int flags, const char *dev_name,
-			   void *raw_data)
+			   void *raw_data, size_t data_size)
 {
-	return mount_bdev(fs_type, flags, dev_name, raw_data, fuse_fill_super);
+	return mount_bdev(fs_type, flags, dev_name, raw_data, data_size,
+			  fuse_fill_super);
 }
 
 static void fuse_kill_sb_blk(struct super_block *sb)

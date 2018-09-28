@@ -338,55 +338,6 @@ static int add_roce_gid(struct ib_gid_table_entry *entry)
 }
 
 /**
- * add_modify_gid - Add or modify GID table entry
- *
- * @table:	GID table in which GID to be added or modified
- * @attr:	Attributes of the GID
- *
- * Returns 0 on success or appropriate error code. It accepts zero
- * GID addition for non RoCE ports for HCA's who report them as valid
- * GID. However such zero GIDs are not added to the cache.
- */
-static int add_modify_gid(struct ib_gid_table *table,
-			  const struct ib_gid_attr *attr)
-{
-	struct ib_gid_table_entry *entry;
-	int ret = 0;
-
-	/*
-	 * Invalidate any old entry in the table to make it safe to write to
-	 * this index.
-	 */
-	if (is_gid_entry_valid(table->data_vec[attr->index]))
-		put_gid_entry(table->data_vec[attr->index]);
-
-	/*
-	 * Some HCA's report multiple GID entries with only one valid GID, and
-	 * leave other unused entries as the zero GID. Convert zero GIDs to
-	 * empty table entries instead of storing them.
-	 */
-	if (rdma_is_zero_gid(&attr->gid))
-		return 0;
-
-	entry = alloc_gid_entry(attr);
-	if (!entry)
-		return -ENOMEM;
-
-	if (rdma_protocol_roce(attr->device, attr->port_num)) {
-		ret = add_roce_gid(entry);
-		if (ret)
-			goto done;
-	}
-
-	store_gid_entry(table, entry);
-	return 0;
-
-done:
-	put_gid_entry(entry);
-	return ret;
-}
-
-/**
  * del_gid - Delete GID table entry
  *
  * @ib_dev:	IB device whose GID entry to be deleted
@@ -417,6 +368,55 @@ static void del_gid(struct ib_device *ib_dev, u8 port,
 	write_unlock_irq(&table->rwlock);
 
 	put_gid_entry_locked(entry);
+}
+
+/**
+ * add_modify_gid - Add or modify GID table entry
+ *
+ * @table:	GID table in which GID to be added or modified
+ * @attr:	Attributes of the GID
+ *
+ * Returns 0 on success or appropriate error code. It accepts zero
+ * GID addition for non RoCE ports for HCA's who report them as valid
+ * GID. However such zero GIDs are not added to the cache.
+ */
+static int add_modify_gid(struct ib_gid_table *table,
+			  const struct ib_gid_attr *attr)
+{
+	struct ib_gid_table_entry *entry;
+	int ret = 0;
+
+	/*
+	 * Invalidate any old entry in the table to make it safe to write to
+	 * this index.
+	 */
+	if (is_gid_entry_valid(table->data_vec[attr->index]))
+		del_gid(attr->device, attr->port_num, table, attr->index);
+
+	/*
+	 * Some HCA's report multiple GID entries with only one valid GID, and
+	 * leave other unused entries as the zero GID. Convert zero GIDs to
+	 * empty table entries instead of storing them.
+	 */
+	if (rdma_is_zero_gid(&attr->gid))
+		return 0;
+
+	entry = alloc_gid_entry(attr);
+	if (!entry)
+		return -ENOMEM;
+
+	if (rdma_protocol_roce(attr->device, attr->port_num)) {
+		ret = add_roce_gid(entry);
+		if (ret)
+			goto done;
+	}
+
+	store_gid_entry(table, entry);
+	return 0;
+
+done:
+	put_gid_entry(entry);
+	return ret;
 }
 
 /* rwlock should be read locked, or lock should be held */
@@ -1251,6 +1251,39 @@ void rdma_hold_gid_attr(const struct ib_gid_attr *attr)
 	get_gid_entry(entry);
 }
 EXPORT_SYMBOL(rdma_hold_gid_attr);
+
+/**
+ * rdma_read_gid_attr_ndev_rcu - Read GID attribute netdevice
+ * which must be in UP state.
+ *
+ * @attr:Pointer to the GID attribute
+ *
+ * Returns pointer to netdevice if the netdevice was attached to GID and
+ * netdevice is in UP state. Caller must hold RCU lock as this API
+ * reads the netdev flags which can change while netdevice migrates to
+ * different net namespace. Returns ERR_PTR with error code otherwise.
+ *
+ */
+struct net_device *rdma_read_gid_attr_ndev_rcu(const struct ib_gid_attr *attr)
+{
+	struct ib_gid_table_entry *entry =
+			container_of(attr, struct ib_gid_table_entry, attr);
+	struct ib_device *device = entry->attr.device;
+	struct net_device *ndev = ERR_PTR(-ENODEV);
+	u8 port_num = entry->attr.port_num;
+	struct ib_gid_table *table;
+	unsigned long flags;
+	bool valid;
+
+	table = rdma_gid_table(device, port_num);
+
+	read_lock_irqsave(&table->rwlock, flags);
+	valid = is_gid_entry_valid(table->data_vec[attr->index]);
+	if (valid && attr->ndev && (READ_ONCE(attr->ndev->flags) & IFF_UP))
+		ndev = attr->ndev;
+	read_unlock_irqrestore(&table->rwlock, flags);
+	return ndev;
+}
 
 static int config_non_roce_gid_cache(struct ib_device *device,
 				     u8 port, int gid_tbl_len)
