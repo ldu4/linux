@@ -16,6 +16,7 @@
 #include <linux/prefetch.h>		/* prefetchw			*/
 #include <linux/context_tracking.h>	/* exception_enter(), ...	*/
 #include <linux/uaccess.h>		/* faulthandler_disabled()	*/
+#include <linux/efi.h>			/* efi_recover_from_page_fault()*/
 #include <linux/mm_types.h>
 
 #include <asm/cpufeature.h>		/* boot_cpu_has, ...		*/
@@ -25,6 +26,7 @@
 #include <asm/vsyscall.h>		/* emulate_vsyscall		*/
 #include <asm/vm86.h>			/* struct vm86			*/
 #include <asm/mmu_context.h>		/* vma_pkey()			*/
+#include <asm/efi.h>			/* efi_recover_from_page_fault()*/
 
 #define CREATE_TRACE_POINTS
 #include <asm/trace/exceptions.h>
@@ -44,17 +46,19 @@ kmmio_fault(struct pt_regs *regs, unsigned long addr)
 
 static nokprobe_inline int kprobes_fault(struct pt_regs *regs)
 {
-	int ret = 0;
-
-	/* kprobe_running() needs smp_processor_id() */
-	if (kprobes_built_in() && !user_mode(regs)) {
-		preempt_disable();
-		if (kprobe_running() && kprobe_fault_handler(regs, 14))
-			ret = 1;
-		preempt_enable();
-	}
-
-	return ret;
+	if (!kprobes_built_in())
+		return 0;
+	if (user_mode(regs))
+		return 0;
+	/*
+	 * To be potentially processing a kprobe fault and to be allowed to call
+	 * kprobe_running(), we have to be non-preemptible.
+	 */
+	if (preemptible())
+		return 0;
+	if (!kprobe_running())
+		return 0;
+	return kprobe_fault_handler(regs, X86_TRAP_PF);
 }
 
 /*
@@ -151,79 +155,6 @@ is_prefetch(struct pt_regs *regs, unsigned long error_code, unsigned long addr)
 			break;
 	}
 	return prefetch;
-}
-
-/*
- * A protection key fault means that the PKRU value did not allow
- * access to some PTE.  Userspace can figure out what PKRU was
- * from the XSAVE state, and this function fills out a field in
- * siginfo so userspace can discover which protection key was set
- * on the PTE.
- *
- * If we get here, we know that the hardware signaled a X86_PF_PK
- * fault and that there was a VMA once we got in the fault
- * handler.  It does *not* guarantee that the VMA we find here
- * was the one that we faulted on.
- *
- * 1. T1   : mprotect_key(foo, PAGE_SIZE, pkey=4);
- * 2. T1   : set PKRU to deny access to pkey=4, touches page
- * 3. T1   : faults...
- * 4.    T2: mprotect_key(foo, PAGE_SIZE, pkey=5);
- * 5. T1   : enters fault handler, takes mmap_sem, etc...
- * 6. T1   : reaches here, sees vma_pkey(vma)=5, when we really
- *	     faulted on a pte with its pkey=4.
- */
-static void fill_sig_info_pkey(int si_signo, int si_code, siginfo_t *info,
-		u32 *pkey)
-{
-	/* This is effectively an #ifdef */
-	if (!boot_cpu_has(X86_FEATURE_OSPKE))
-		return;
-
-	/* Fault not from Protection Keys: nothing to do */
-	if ((si_code != SEGV_PKUERR) || (si_signo != SIGSEGV))
-		return;
-	/*
-	 * force_sig_info_fault() is called from a number of
-	 * contexts, some of which have a VMA and some of which
-	 * do not.  The X86_PF_PK handing happens after we have a
-	 * valid VMA, so we should never reach this without a
-	 * valid VMA.
-	 */
-	if (!pkey) {
-		WARN_ONCE(1, "PKU fault with no VMA passed in");
-		info->si_pkey = 0;
-		return;
-	}
-	/*
-	 * si_pkey should be thought of as a strong hint, but not
-	 * absolutely guranteed to be 100% accurate because of
-	 * the race explained above.
-	 */
-	info->si_pkey = *pkey;
-}
-
-static void
-force_sig_info_fault(int si_signo, int si_code, unsigned long address,
-		     struct task_struct *tsk, u32 *pkey, int fault)
-{
-	unsigned lsb = 0;
-	siginfo_t info;
-
-	clear_siginfo(&info);
-	info.si_signo	= si_signo;
-	info.si_errno	= 0;
-	info.si_code	= si_code;
-	info.si_addr	= (void __user *)address;
-	if (fault & VM_FAULT_HWPOISON_LARGE)
-		lsb = hstate_index_to_shift(VM_FAULT_GET_HINDEX(fault)); 
-	if (fault & VM_FAULT_HWPOISON)
-		lsb = PAGE_SHIFT;
-	info.si_addr_lsb = lsb;
-
-	fill_sig_info_pkey(si_signo, si_code, &info, pkey);
-
-	force_sig_info(si_signo, &info, tsk);
 }
 
 DEFINE_SPINLOCK(pgd_lock);
@@ -709,7 +640,7 @@ no_context(struct pt_regs *regs, unsigned long error_code,
 	int sig;
 
 	/* Are we prepared to handle this kernel fault? */
-	if (fixup_exception(regs, X86_TRAP_PF)) {
+	if (fixup_exception(regs, X86_TRAP_PF, error_code, address)) {
 		/*
 		 * Any interrupt that takes a fault gets the fixup. This makes
 		 * the below recursive fault logic only apply to a faults from
@@ -730,8 +661,8 @@ no_context(struct pt_regs *regs, unsigned long error_code,
 			tsk->thread.cr2 = address;
 
 			/* XXX: hwpoison faults will set the wrong code. */
-			force_sig_info_fault(signal, si_code, address,
-					     tsk, NULL, 0);
+			force_sig_fault(signal, si_code, (void __user *)address,
+					tsk);
 		}
 
 		/*
@@ -789,6 +720,13 @@ no_context(struct pt_regs *regs, unsigned long error_code,
 		return;
 
 	/*
+	 * Buggy firmware could access regions which might page fault, try to
+	 * recover from such faults.
+	 */
+	if (IS_ENABLED(CONFIG_EFI))
+		efi_recover_from_page_fault(address);
+
+	/*
 	 * Oops. The kernel tried to access some bad page. We'll have to
 	 * terminate things with extreme prejudice:
 	 */
@@ -842,7 +780,7 @@ show_signal_msg(struct pt_regs *regs, unsigned long error_code,
 
 static void
 __bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
-		       unsigned long address, u32 *pkey, int si_code)
+		       unsigned long address, u32 pkey, int si_code)
 {
 	struct task_struct *tsk = current;
 
@@ -890,7 +828,10 @@ __bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
 		tsk->thread.error_code	= error_code;
 		tsk->thread.trap_nr	= X86_TRAP_PF;
 
-		force_sig_info_fault(SIGSEGV, si_code, address, tsk, pkey, 0);
+		if (si_code == SEGV_PKUERR)
+			force_sig_pkuerr((void __user *)address, pkey);
+
+		force_sig_fault(SIGSEGV, si_code, (void __user *)address, tsk);
 
 		return;
 	}
@@ -903,35 +844,29 @@ __bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
 
 static noinline void
 bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
-		     unsigned long address, u32 *pkey)
+		     unsigned long address)
 {
-	__bad_area_nosemaphore(regs, error_code, address, pkey, SEGV_MAPERR);
+	__bad_area_nosemaphore(regs, error_code, address, 0, SEGV_MAPERR);
 }
 
 static void
 __bad_area(struct pt_regs *regs, unsigned long error_code,
-	   unsigned long address,  struct vm_area_struct *vma, int si_code)
+	   unsigned long address, u32 pkey, int si_code)
 {
 	struct mm_struct *mm = current->mm;
-	u32 pkey;
-
-	if (vma)
-		pkey = vma_pkey(vma);
-
 	/*
 	 * Something tried to access memory that isn't in our memory map..
 	 * Fix it, but check if it's kernel or user first..
 	 */
 	up_read(&mm->mmap_sem);
 
-	__bad_area_nosemaphore(regs, error_code, address,
-			       (vma) ? &pkey : NULL, si_code);
+	__bad_area_nosemaphore(regs, error_code, address, pkey, si_code);
 }
 
 static noinline void
 bad_area(struct pt_regs *regs, unsigned long error_code, unsigned long address)
 {
-	__bad_area(regs, error_code, address, NULL, SEGV_MAPERR);
+	__bad_area(regs, error_code, address, 0, SEGV_MAPERR);
 }
 
 static inline bool bad_area_access_from_pkeys(unsigned long error_code,
@@ -960,18 +895,40 @@ bad_area_access_error(struct pt_regs *regs, unsigned long error_code,
 	 * But, doing it this way allows compiler optimizations
 	 * if pkeys are compiled out.
 	 */
-	if (bad_area_access_from_pkeys(error_code, vma))
-		__bad_area(regs, error_code, address, vma, SEGV_PKUERR);
-	else
-		__bad_area(regs, error_code, address, vma, SEGV_ACCERR);
+	if (bad_area_access_from_pkeys(error_code, vma)) {
+		/*
+		 * A protection key fault means that the PKRU value did not allow
+		 * access to some PTE.  Userspace can figure out what PKRU was
+		 * from the XSAVE state.  This function captures the pkey from
+		 * the vma and passes it to userspace so userspace can discover
+		 * which protection key was set on the PTE.
+		 *
+		 * If we get here, we know that the hardware signaled a X86_PF_PK
+		 * fault and that there was a VMA once we got in the fault
+		 * handler.  It does *not* guarantee that the VMA we find here
+		 * was the one that we faulted on.
+		 *
+		 * 1. T1   : mprotect_key(foo, PAGE_SIZE, pkey=4);
+		 * 2. T1   : set PKRU to deny access to pkey=4, touches page
+		 * 3. T1   : faults...
+		 * 4.    T2: mprotect_key(foo, PAGE_SIZE, pkey=5);
+		 * 5. T1   : enters fault handler, takes mmap_sem, etc...
+		 * 6. T1   : reaches here, sees vma_pkey(vma)=5, when we really
+		 *	     faulted on a pte with its pkey=4.
+		 */
+		u32 pkey = vma_pkey(vma);
+
+		__bad_area(regs, error_code, address, pkey, SEGV_PKUERR);
+	} else {
+		__bad_area(regs, error_code, address, 0, SEGV_ACCERR);
+	}
 }
 
 static void
 do_sigbus(struct pt_regs *regs, unsigned long error_code, unsigned long address,
-	  u32 *pkey, unsigned int fault)
+	  unsigned int fault)
 {
 	struct task_struct *tsk = current;
-	int code = BUS_ADRERR;
 
 	/* Kernel mode? Handle exceptions or die: */
 	if (!(error_code & X86_PF_USER)) {
@@ -989,18 +946,25 @@ do_sigbus(struct pt_regs *regs, unsigned long error_code, unsigned long address,
 
 #ifdef CONFIG_MEMORY_FAILURE
 	if (fault & (VM_FAULT_HWPOISON|VM_FAULT_HWPOISON_LARGE)) {
-		printk(KERN_ERR
+		unsigned lsb = 0;
+
+		pr_err(
 	"MCE: Killing %s:%d due to hardware memory corruption fault at %lx\n",
 			tsk->comm, tsk->pid, address);
-		code = BUS_MCEERR_AR;
+		if (fault & VM_FAULT_HWPOISON_LARGE)
+			lsb = hstate_index_to_shift(VM_FAULT_GET_HINDEX(fault));
+		if (fault & VM_FAULT_HWPOISON)
+			lsb = PAGE_SHIFT;
+		force_sig_mceerr(BUS_MCEERR_AR, (void __user *)address, lsb, tsk);
+		return;
 	}
 #endif
-	force_sig_info_fault(SIGBUS, code, address, tsk, pkey, fault);
+	force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)address, tsk);
 }
 
 static noinline void
 mm_fault_error(struct pt_regs *regs, unsigned long error_code,
-	       unsigned long address, u32 *pkey, vm_fault_t fault)
+	       unsigned long address, vm_fault_t fault)
 {
 	if (fatal_signal_pending(current) && !(error_code & X86_PF_USER)) {
 		no_context(regs, error_code, address, 0, 0);
@@ -1024,9 +988,9 @@ mm_fault_error(struct pt_regs *regs, unsigned long error_code,
 	} else {
 		if (fault & (VM_FAULT_SIGBUS|VM_FAULT_HWPOISON|
 			     VM_FAULT_HWPOISON_LARGE))
-			do_sigbus(regs, error_code, address, pkey, fault);
+			do_sigbus(regs, error_code, address, fault);
 		else if (fault & VM_FAULT_SIGSEGV)
-			bad_area_nosemaphore(regs, error_code, address, pkey);
+			bad_area_nosemaphore(regs, error_code, address);
 		else
 			BUG();
 	}
@@ -1216,7 +1180,6 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
 	struct mm_struct *mm;
 	vm_fault_t fault, major = 0;
 	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
-	u32 pkey;
 
 	tsk = current;
 	mm = tsk->mm;
@@ -1256,7 +1219,7 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
 		 * Don't take the mm semaphore here. If we fixup a prefetch
 		 * fault we could otherwise deadlock:
 		 */
-		bad_area_nosemaphore(regs, error_code, address, NULL);
+		bad_area_nosemaphore(regs, error_code, address);
 
 		return;
 	}
@@ -1269,7 +1232,7 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
 		pgtable_bad(regs, error_code, address);
 
 	if (unlikely(smap_violation(error_code, regs))) {
-		bad_area_nosemaphore(regs, error_code, address, NULL);
+		bad_area_nosemaphore(regs, error_code, address);
 		return;
 	}
 
@@ -1278,7 +1241,7 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
 	 * in a region with pagefaults disabled then we must not take the fault
 	 */
 	if (unlikely(faulthandler_disabled() || !mm)) {
-		bad_area_nosemaphore(regs, error_code, address, NULL);
+		bad_area_nosemaphore(regs, error_code, address);
 		return;
 	}
 
@@ -1324,7 +1287,7 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
 	if (unlikely(!down_read_trylock(&mm->mmap_sem))) {
 		if (!(error_code & X86_PF_USER) &&
 		    !search_exception_tables(regs->ip)) {
-			bad_area_nosemaphore(regs, error_code, address, NULL);
+			bad_area_nosemaphore(regs, error_code, address);
 			return;
 		}
 retry:
@@ -1388,10 +1351,7 @@ good_area:
 	 * (potentially after handling any pending signal during the return to
 	 * userland). The return to userland is identified whenever
 	 * FAULT_FLAG_USER|FAULT_FLAG_KILLABLE are both set in flags.
-	 * Thus we have to be careful about not touching vma after handling the
-	 * fault, so we read the pkey beforehand.
 	 */
-	pkey = vma_pkey(vma);
 	fault = handle_mm_fault(vma, address, flags);
 	major |= fault & VM_FAULT_MAJOR;
 
@@ -1420,7 +1380,7 @@ good_area:
 
 	up_read(&mm->mmap_sem);
 	if (unlikely(fault & VM_FAULT_ERROR)) {
-		mm_fault_error(regs, error_code, address, &pkey, fault);
+		mm_fault_error(regs, error_code, address, fault);
 		return;
 	}
 

@@ -39,7 +39,8 @@
 #include "acl.h"
 
 static void ext2_write_super(struct super_block *sb);
-static int ext2_remount (struct super_block * sb, int * flags, char * data);
+static int ext2_remount (struct super_block * sb, int * flags,
+			 char * data, size_t data_size);
 static int ext2_statfs (struct dentry * dentry, struct kstatfs * buf);
 static int ext2_sync_fs(struct super_block *sb, int wait);
 static int ext2_freeze(struct super_block *sb);
@@ -309,20 +310,17 @@ static int ext2_show_options(struct seq_file *seq, struct dentry *root)
 	if (test_opt(sb, NOBH))
 		seq_puts(seq, ",nobh");
 
-#if defined(CONFIG_QUOTA)
 	if (sbi->s_mount_opt & EXT2_MOUNT_USRQUOTA)
 		seq_puts(seq, ",usrquota");
 
 	if (sbi->s_mount_opt & EXT2_MOUNT_GRPQUOTA)
 		seq_puts(seq, ",grpquota");
-#endif
 
-#ifdef CONFIG_FS_DAX
 	if (sbi->s_mount_opt & EXT2_MOUNT_XIP)
 		seq_puts(seq, ",xip");
+
 	if (sbi->s_mount_opt & EXT2_MOUNT_DAX)
 		seq_puts(seq, ",dax");
-#endif
 
 	if (!test_opt(sb, RESERVATION))
 		seq_puts(seq, ",noreservation");
@@ -819,7 +817,8 @@ static unsigned long descriptor_loc(struct super_block *sb,
 	return ext2_group_first_block_no(sb, bg) + has_super;
 }
 
-static int ext2_fill_super(struct super_block *sb, void *data, int silent)
+static int ext2_fill_super(struct super_block *sb, void *data, size_t data_size,
+			   int silent)
 {
 	struct dax_device *dax_dev = fs_dax_get_by_bdev(sb->s_bdev);
 	struct buffer_head * bh;
@@ -1324,7 +1323,8 @@ static void ext2_write_super(struct super_block *sb)
 		ext2_sync_fs(sb, 1);
 }
 
-static int ext2_remount (struct super_block * sb, int * flags, char * data)
+static int ext2_remount (struct super_block * sb, int * flags,
+			 char *data, size_t data_size)
 {
 	struct ext2_sb_info * sbi = EXT2_SB(sb);
 	struct ext2_super_block * es;
@@ -1475,9 +1475,10 @@ static int ext2_statfs (struct dentry * dentry, struct kstatfs * buf)
 }
 
 static struct dentry *ext2_mount(struct file_system_type *fs_type,
-	int flags, const char *dev_name, void *data)
+	int flags, const char *dev_name, void *data, size_t data_size)
 {
-	return mount_bdev(fs_type, flags, dev_name, data, ext2_fill_super);
+	return mount_bdev(fs_type, flags, dev_name, data, data_size,
+			  ext2_fill_super);
 }
 
 #ifdef CONFIG_QUOTA
