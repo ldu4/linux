@@ -831,8 +831,6 @@ static inline int acpi_dma_configure(struct device *dev,
 	return 0;
 }
 
-static inline void acpi_dma_deconfigure(struct device *dev) { }
-
 #define ACPI_PTR(_ptr)	(NULL)
 
 static inline void acpi_device_set_enumerated(struct acpi_device *adev)
@@ -948,9 +946,6 @@ acpi_handle_printk(const char *level, void *handle, const char *fmt, ...) {}
 #if defined(CONFIG_ACPI) && defined(CONFIG_DYNAMIC_DEBUG)
 __printf(3, 4)
 void __acpi_handle_debug(struct _ddebug *descriptor, acpi_handle handle, const char *fmt, ...);
-#else
-#define __acpi_handle_debug(descriptor, handle, fmt, ...)		\
-	acpi_handle_printk(KERN_DEBUG, handle, fmt, ##__VA_ARGS__);
 #endif
 
 /*
@@ -982,7 +977,7 @@ void __acpi_handle_debug(struct _ddebug *descriptor, acpi_handle handle, const c
 #define acpi_handle_debug(handle, fmt, ...)				\
 do {									\
 	DEFINE_DYNAMIC_DEBUG_METADATA(descriptor, fmt);			\
-	if (unlikely(descriptor.flags & _DPRINTK_FLAGS_PRINT))		\
+	if (DYNAMIC_DEBUG_BRANCH(descriptor))				\
 		__acpi_handle_debug(&descriptor, handle, pr_fmt(fmt),	\
 				##__VA_ARGS__);				\
 } while (0)
@@ -1073,6 +1068,15 @@ static inline int acpi_node_get_property_reference(
 	return __acpi_node_get_property_reference(fwnode, name, index,
 		NR_FWNODE_REFERENCE_ARGS, args);
 }
+
+static inline bool acpi_dev_has_props(const struct acpi_device *adev)
+{
+	return !list_empty(&adev->data.properties);
+}
+
+struct acpi_device_properties *
+acpi_data_add_props(struct acpi_device_data *data, const guid_t *guid,
+		    const union acpi_object *properties);
 
 int acpi_node_prop_get(const struct fwnode_handle *fwnode, const char *propname,
 		       void **valptr);

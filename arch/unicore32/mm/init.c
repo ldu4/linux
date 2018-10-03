@@ -182,9 +182,6 @@ void __init bootmem_init(void)
 
 	node_set_online(0);
 
-#ifdef CONFIG_SWIOTLB
-	swiotlb_init(1);
-#endif
 	/*
 	 * Sparsemem tries to allocate bootmem in memory_present(),
 	 * so must be done after the fixed reservations

@@ -201,6 +201,15 @@ cfg80211_get_dev_from_info(struct net *netns, struct genl_info *info)
 }
 
 /* policy for the attributes */
+static const struct nla_policy
+nl80211_ftm_responder_policy[NL80211_FTM_RESP_ATTR_MAX + 1] = {
+	[NL80211_FTM_RESP_ATTR_ENABLED] = { .type = NLA_FLAG, },
+	[NL80211_FTM_RESP_ATTR_LCI] = { .type = NLA_BINARY,
+					.len = U8_MAX },
+	[NL80211_FTM_RESP_ATTR_CIVICLOC] = { .type = NLA_BINARY,
+					     .len = U8_MAX },
+};
+
 static const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
 	[NL80211_ATTR_WIPHY] = { .type = NLA_U32 },
 	[NL80211_ATTR_WIPHY_NAME] = { .type = NLA_NUL_STRING,
@@ -430,6 +439,11 @@ static const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
 	[NL80211_ATTR_TXQ_QUANTUM] = { .type = NLA_U32 },
 	[NL80211_ATTR_HE_CAPABILITY] = { .type = NLA_BINARY,
 					 .len = NL80211_HE_MAX_CAPABILITY_LEN },
+
+	[NL80211_ATTR_FTM_RESPONDER] = {
+		.type = NLA_NESTED,
+		.validation_data = nl80211_ftm_responder_policy,
+	},
 };
 
 /* policy for the key attributes */
@@ -567,8 +581,7 @@ nl80211_packet_pattern_policy[MAX_NL80211_PKTPAT + 1] = {
 	[NL80211_PKTPAT_OFFSET] = { .type = NLA_U32 },
 };
 
-static int nl80211_prepare_wdev_dump(struct sk_buff *skb,
-				     struct netlink_callback *cb,
+static int nl80211_prepare_wdev_dump(struct netlink_callback *cb,
 				     struct cfg80211_registered_device **rdev,
 				     struct wireless_dev **wdev)
 {
@@ -582,7 +595,7 @@ static int nl80211_prepare_wdev_dump(struct sk_buff *skb,
 			return err;
 
 		*wdev = __cfg80211_wdev_from_attrs(
-					sock_net(skb->sk),
+					sock_net(cb->skb->sk),
 					genl_family_attrbuf(&nl80211_fam));
 		if (IS_ERR(*wdev))
 			return PTR_ERR(*wdev);
@@ -3252,15 +3265,7 @@ static int nl80211_new_interface(struct sk_buff *skb, struct genl_info *info)
 		 * P2P Device and NAN do not have a netdev, so don't go
 		 * through the netdev notifier and must be added here
 		 */
-		mutex_init(&wdev->mtx);
-		INIT_LIST_HEAD(&wdev->event_list);
-		spin_lock_init(&wdev->event_lock);
-		INIT_LIST_HEAD(&wdev->mgmt_registrations);
-		spin_lock_init(&wdev->mgmt_registrations_lock);
-
-		wdev->identifier = ++rdev->wdev_id;
-		list_add_rcu(&wdev->list, &rdev->wiphy.wdev_list);
-		rdev->devlist_generation++;
+		cfg80211_init_wdev(rdev, wdev);
 		break;
 	default:
 		break;
@@ -3359,7 +3364,7 @@ static void get_key_callback(void *c, struct key_params *params)
 			 params->cipher)))
 		goto nla_put_failure;
 
-	if (nla_put_u8(cookie->msg, NL80211_ATTR_KEY_IDX, cookie->idx))
+	if (nla_put_u8(cookie->msg, NL80211_KEY_IDX, cookie->idx))
 		goto nla_put_failure;
 
 	nla_nest_end(cookie->msg, key);
@@ -3756,6 +3761,7 @@ static bool ht_rateset_to_mask(struct ieee80211_supported_band *sband,
 			return false;
 
 		/* check availability */
+		ridx = array_index_nospec(ridx, IEEE80211_HT_MCS_MASK_LEN);
 		if (sband->ht_cap.mcs.rx_mask[ridx] & rbit)
 			mcs[ridx] |= rbit;
 		else
@@ -3997,10 +4003,12 @@ static int validate_beacon_tx_rate(struct cfg80211_registered_device *rdev,
 	return 0;
 }
 
-static int nl80211_parse_beacon(struct nlattr *attrs[],
+static int nl80211_parse_beacon(struct cfg80211_registered_device *rdev,
+				struct nlattr *attrs[],
 				struct cfg80211_beacon_data *bcn)
 {
 	bool haveinfo = false;
+	int err;
 
 	if (!is_valid_ie_attr(attrs[NL80211_ATTR_BEACON_TAIL]) ||
 	    !is_valid_ie_attr(attrs[NL80211_ATTR_IE]) ||
@@ -4051,6 +4059,35 @@ static int nl80211_parse_beacon(struct nlattr *attrs[],
 		bcn->probe_resp_len = nla_len(attrs[NL80211_ATTR_PROBE_RESP]);
 	}
 
+	if (attrs[NL80211_ATTR_FTM_RESPONDER]) {
+		struct nlattr *tb[NL80211_FTM_RESP_ATTR_MAX + 1];
+
+		err = nla_parse_nested(tb, NL80211_FTM_RESP_ATTR_MAX,
+				       attrs[NL80211_ATTR_FTM_RESPONDER],
+				       NULL, NULL);
+		if (err)
+			return err;
+
+		if (tb[NL80211_FTM_RESP_ATTR_ENABLED] &&
+		    wiphy_ext_feature_isset(&rdev->wiphy,
+					    NL80211_EXT_FEATURE_ENABLE_FTM_RESPONDER))
+			bcn->ftm_responder = 1;
+		else
+			return -EOPNOTSUPP;
+
+		if (tb[NL80211_FTM_RESP_ATTR_LCI]) {
+			bcn->lci = nla_data(tb[NL80211_FTM_RESP_ATTR_LCI]);
+			bcn->lci_len = nla_len(tb[NL80211_FTM_RESP_ATTR_LCI]);
+		}
+
+		if (tb[NL80211_FTM_RESP_ATTR_CIVICLOC]) {
+			bcn->civicloc = nla_data(tb[NL80211_FTM_RESP_ATTR_CIVICLOC]);
+			bcn->civicloc_len = nla_len(tb[NL80211_FTM_RESP_ATTR_CIVICLOC]);
+		}
+	} else {
+		bcn->ftm_responder = -1;
+	}
+
 	return 0;
 }
 
@@ -4095,6 +4132,9 @@ static void nl80211_calculate_ap_params(struct cfg80211_ap_settings *params)
 	cap = cfg80211_find_ie(WLAN_EID_VHT_CAPABILITY, ies, ies_len);
 	if (cap && cap[1] >= sizeof(*params->vht_cap))
 		params->vht_cap = (void *)(cap + 2);
+	cap = cfg80211_find_ext_ie(WLAN_EID_EXT_HE_CAPABILITY, ies, ies_len);
+	if (cap && cap[1] >= sizeof(*params->he_cap) + 1)
+		params->he_cap = (void *)(cap + 3);
 }
 
 static bool nl80211_get_ap_channel(struct cfg80211_registered_device *rdev,
@@ -4194,7 +4234,7 @@ static int nl80211_start_ap(struct sk_buff *skb, struct genl_info *info)
 	    !info->attrs[NL80211_ATTR_BEACON_HEAD])
 		return -EINVAL;
 
-	err = nl80211_parse_beacon(info->attrs, &params.beacon);
+	err = nl80211_parse_beacon(rdev, info->attrs, &params.beacon);
 	if (err)
 		return err;
 
@@ -4378,7 +4418,7 @@ static int nl80211_set_beacon(struct sk_buff *skb, struct genl_info *info)
 	if (!wdev->beacon_interval)
 		return -EINVAL;
 
-	err = nl80211_parse_beacon(info->attrs, &params);
+	err = nl80211_parse_beacon(rdev, info->attrs, &params);
 	if (err)
 		return err;
 
@@ -4724,10 +4764,11 @@ static int nl80211_send_station(struct sk_buff *msg, u32 cmd, u32 portid,
 	PUT_SINFO_U64(RX_DROP_MISC, rx_dropped_misc);
 	PUT_SINFO_U64(BEACON_RX, rx_beacon);
 	PUT_SINFO(BEACON_SIGNAL_AVG, rx_beacon_signal_avg, u8);
-	PUT_SINFO(ACK_SIGNAL, ack_signal, u8);
 	if (wiphy_ext_feature_isset(&rdev->wiphy,
-				    NL80211_EXT_FEATURE_DATA_ACK_SIGNAL_SUPPORT))
-		PUT_SINFO(DATA_ACK_SIGNAL_AVG, avg_ack_signal, s8);
+				    NL80211_EXT_FEATURE_ACK_SIGNAL_SUPPORT)) {
+		PUT_SINFO(ACK_SIGNAL, ack_signal, u8);
+		PUT_SINFO(ACK_SIGNAL_AVG, avg_ack_signal, s8);
+	}
 
 #undef PUT_SINFO
 #undef PUT_SINFO_U64
@@ -4806,7 +4847,7 @@ static int nl80211_dump_station(struct sk_buff *skb,
 	int err;
 
 	rtnl_lock();
-	err = nl80211_prepare_wdev_dump(skb, cb, &rdev, &wdev);
+	err = nl80211_prepare_wdev_dump(cb, &rdev, &wdev);
 	if (err)
 		goto out_err;
 
@@ -5657,7 +5698,7 @@ static int nl80211_dump_mpath(struct sk_buff *skb,
 	int err;
 
 	rtnl_lock();
-	err = nl80211_prepare_wdev_dump(skb, cb, &rdev, &wdev);
+	err = nl80211_prepare_wdev_dump(cb, &rdev, &wdev);
 	if (err)
 		goto out_err;
 
@@ -5853,7 +5894,7 @@ static int nl80211_dump_mpp(struct sk_buff *skb,
 	int err;
 
 	rtnl_lock();
-	err = nl80211_prepare_wdev_dump(skb, cb, &rdev, &wdev);
+	err = nl80211_prepare_wdev_dump(cb, &rdev, &wdev);
 	if (err)
 		goto out_err;
 
@@ -7939,7 +7980,7 @@ static int nl80211_channel_switch(struct sk_buff *skb, struct genl_info *info)
 	if (!need_new_beacon)
 		goto skip_beacons;
 
-	err = nl80211_parse_beacon(info->attrs, &params.beacon_after);
+	err = nl80211_parse_beacon(rdev, info->attrs, &params.beacon_after);
 	if (err)
 		return err;
 
@@ -7949,7 +7990,7 @@ static int nl80211_channel_switch(struct sk_buff *skb, struct genl_info *info)
 	if (err)
 		return err;
 
-	err = nl80211_parse_beacon(csa_attrs, &params.beacon_csa);
+	err = nl80211_parse_beacon(rdev, csa_attrs, &params.beacon_csa);
 	if (err)
 		return err;
 
@@ -8186,7 +8227,7 @@ static int nl80211_dump_scan(struct sk_buff *skb, struct netlink_callback *cb)
 	int err;
 
 	rtnl_lock();
-	err = nl80211_prepare_wdev_dump(skb, cb, &rdev, &wdev);
+	err = nl80211_prepare_wdev_dump(cb, &rdev, &wdev);
 	if (err) {
 		rtnl_unlock();
 		return err;
@@ -8307,7 +8348,7 @@ static int nl80211_dump_survey(struct sk_buff *skb, struct netlink_callback *cb)
 	bool radio_stats;
 
 	rtnl_lock();
-	res = nl80211_prepare_wdev_dump(skb, cb, &rdev, &wdev);
+	res = nl80211_prepare_wdev_dump(cb, &rdev, &wdev);
 	if (res)
 		goto out_err;
 
@@ -10230,7 +10271,7 @@ static int cfg80211_cqm_rssi_update(struct cfg80211_registered_device *rdev,
 	struct wireless_dev *wdev = dev->ieee80211_ptr;
 	s32 last, low, high;
 	u32 hyst;
-	int i, n;
+	int i, n, low_index;
 	int err;
 
 	/* RSSI reporting disabled? */
@@ -10267,10 +10308,19 @@ static int cfg80211_cqm_rssi_update(struct cfg80211_registered_device *rdev,
 		if (last < wdev->cqm_config->rssi_thresholds[i])
 			break;
 
-	low = i > 0 ?
-		(wdev->cqm_config->rssi_thresholds[i - 1] - hyst) : S32_MIN;
-	high = i < n ?
-		(wdev->cqm_config->rssi_thresholds[i] + hyst - 1) : S32_MAX;
+	low_index = i - 1;
+	if (low_index >= 0) {
+		low_index = array_index_nospec(low_index, n);
+		low = wdev->cqm_config->rssi_thresholds[low_index] - hyst;
+	} else {
+		low = S32_MIN;
+	}
+	if (i < n) {
+		i = array_index_nospec(i, n);
+		high = wdev->cqm_config->rssi_thresholds[i] + hyst - 1;
+	} else {
+		high = S32_MAX;
+	}
 
 	return rdev_set_cqm_rssi_range_config(rdev, dev, low, high);
 }
@@ -10686,8 +10736,7 @@ static int nl80211_send_wowlan_nd(struct sk_buff *msg,
 		if (!scan_plan)
 			return -ENOBUFS;
 
-		if (!scan_plan ||
-		    nla_put_u32(msg, NL80211_SCHED_SCAN_PLAN_INTERVAL,
+		if (nla_put_u32(msg, NL80211_SCHED_SCAN_PLAN_INTERVAL,
 				req->scan_plans[i].interval) ||
 		    (req->scan_plans[i].iterations &&
 		     nla_put_u32(msg, NL80211_SCHED_SCAN_PLAN_ITERATIONS,
@@ -12989,6 +13038,76 @@ static int nl80211_tx_control_port(struct sk_buff *skb, struct genl_info *info)
 	return err;
 }
 
+static int nl80211_get_ftm_responder_stats(struct sk_buff *skb,
+					   struct genl_info *info)
+{
+	struct cfg80211_registered_device *rdev = info->user_ptr[0];
+	struct net_device *dev = info->user_ptr[1];
+	struct wireless_dev *wdev = dev->ieee80211_ptr;
+	struct cfg80211_ftm_responder_stats ftm_stats = {};
+	struct sk_buff *msg;
+	void *hdr;
+	struct nlattr *ftm_stats_attr;
+	int err;
+
+	if (wdev->iftype != NL80211_IFTYPE_AP || !wdev->beacon_interval)
+		return -EOPNOTSUPP;
+
+	err = rdev_get_ftm_responder_stats(rdev, dev, &ftm_stats);
+	if (err)
+		return err;
+
+	if (!ftm_stats.filled)
+		return -ENODATA;
+
+	msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
+	if (!msg)
+		return -ENOMEM;
+
+	hdr = nl80211hdr_put(msg, info->snd_portid, info->snd_seq, 0,
+			     NL80211_CMD_GET_FTM_RESPONDER_STATS);
+	if (!hdr)
+		return -ENOBUFS;
+
+	if (nla_put_u32(msg, NL80211_ATTR_IFINDEX, dev->ifindex))
+		goto nla_put_failure;
+
+	ftm_stats_attr = nla_nest_start(msg, NL80211_ATTR_FTM_RESPONDER_STATS);
+	if (!ftm_stats_attr)
+		goto nla_put_failure;
+
+#define SET_FTM(field, name, type)					 \
+	do { if ((ftm_stats.filled & BIT(NL80211_FTM_STATS_ ## name)) && \
+	    nla_put_ ## type(msg, NL80211_FTM_STATS_ ## name,		 \
+			     ftm_stats.field))				 \
+		goto nla_put_failure; } while (0)
+#define SET_FTM_U64(field, name)					 \
+	do { if ((ftm_stats.filled & BIT(NL80211_FTM_STATS_ ## name)) && \
+	    nla_put_u64_64bit(msg, NL80211_FTM_STATS_ ## name,		 \
+			      ftm_stats.field, NL80211_FTM_STATS_PAD))	 \
+		goto nla_put_failure; } while (0)
+
+	SET_FTM(success_num, SUCCESS_NUM, u32);
+	SET_FTM(partial_num, PARTIAL_NUM, u32);
+	SET_FTM(failed_num, FAILED_NUM, u32);
+	SET_FTM(asap_num, ASAP_NUM, u32);
+	SET_FTM(non_asap_num, NON_ASAP_NUM, u32);
+	SET_FTM_U64(total_duration_ms, TOTAL_DURATION_MSEC);
+	SET_FTM(unknown_triggers_num, UNKNOWN_TRIGGERS_NUM, u32);
+	SET_FTM(reschedule_requests_num, RESCHEDULE_REQUESTS_NUM, u32);
+	SET_FTM(out_of_window_triggers_num, OUT_OF_WINDOW_TRIGGERS_NUM, u32);
+#undef SET_FTM
+
+	nla_nest_end(msg, ftm_stats_attr);
+
+	genlmsg_end(msg, hdr);
+	return genlmsg_reply(msg, info);
+
+nla_put_failure:
+	nlmsg_free(msg);
+	return -ENOBUFS;
+}
+
 #define NL80211_FLAG_NEED_WIPHY		0x01
 #define NL80211_FLAG_NEED_NETDEV	0x02
 #define NL80211_FLAG_NEED_RTNL		0x04
@@ -13898,6 +14017,13 @@ static const struct genl_ops nl80211_ops[] = {
 		.policy = nl80211_policy,
 		.flags = GENL_UNS_ADMIN_PERM,
 		.internal_flags = NL80211_FLAG_NEED_NETDEV_UP |
+				  NL80211_FLAG_NEED_RTNL,
+	},
+	{
+		.cmd = NL80211_CMD_GET_FTM_RESPONDER_STATS,
+		.doit = nl80211_get_ftm_responder_stats,
+		.policy = nl80211_policy,
+		.internal_flags = NL80211_FLAG_NEED_NETDEV |
 				  NL80211_FLAG_NEED_RTNL,
 	},
 };

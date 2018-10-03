@@ -163,10 +163,7 @@ enum mlx5_dcbx_oper_mode {
 };
 
 enum mlx5_dct_atomic_mode {
-	MLX5_ATOMIC_MODE_DCT_OFF        = 20,
-	MLX5_ATOMIC_MODE_DCT_NONE       = 0 << MLX5_ATOMIC_MODE_DCT_OFF,
-	MLX5_ATOMIC_MODE_DCT_IB_COMP    = 1 << MLX5_ATOMIC_MODE_DCT_OFF,
-	MLX5_ATOMIC_MODE_DCT_CX         = 2 << MLX5_ATOMIC_MODE_DCT_OFF,
+	MLX5_ATOMIC_MODE_DCT_CX         = 2,
 };
 
 enum {
@@ -477,6 +474,7 @@ struct mlx5_core_srq {
 
 	atomic_t		refcount;
 	struct completion	free;
+	u16		uid;
 };
 
 struct mlx5_eq_table {
@@ -583,10 +581,11 @@ struct mlx5_irq_info {
 };
 
 struct mlx5_fc_stats {
-	struct rb_root counters;
-	struct list_head addlist;
-	/* protect addlist add/splice operations */
-	spinlock_t addlist_lock;
+	spinlock_t counters_idr_lock; /* protects counters_idr */
+	struct idr counters_idr;
+	struct list_head counters;
+	struct llist_head addlist;
+	struct llist_head dellist;
 
 	struct workqueue_struct *wq;
 	struct delayed_work work;
@@ -804,7 +803,7 @@ struct mlx5_pps {
 };
 
 struct mlx5_clock {
-	rwlock_t                   lock;
+	seqlock_t                  lock;
 	struct cyclecounter        cycles;
 	struct timecounter         tc;
 	struct hwtstamp_config     hwtstamp_config;
@@ -837,6 +836,7 @@ struct mlx5_core_dev {
 		u32 fpga[MLX5_ST_SZ_DW(fpga_cap)];
 		u32 qcam[MLX5_ST_SZ_DW(qcam_reg)];
 	} caps;
+	u64			sys_image_guid;
 	phys_addr_t		iseg_base;
 	struct mlx5_init_seg __iomem *iseg;
 	enum mlx5_device_state	state;

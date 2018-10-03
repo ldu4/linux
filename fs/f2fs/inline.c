@@ -1,11 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * fs/f2fs/inline.c
  * Copyright (c) 2013, Intel Corporation
  * Authors: Huajun Li <huajun.li@intel.com>
  *          Haicheng Li <haicheng.li@intel.com>
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
  */
 
 #include <linux/fs.h>
@@ -245,7 +243,7 @@ int f2fs_write_inline_data(struct inode *inode, struct page *page)
 	kunmap_atomic(src_addr);
 	set_page_dirty(dn.inode_page);
 
-	f2fs_clear_radix_tree_dirty_tag(page);
+	f2fs_clear_page_cache_dirty_tag(page);
 
 	set_inode_flag(inode, FI_APPEND_WRITE);
 	set_inode_flag(inode, FI_DATA_EXIST);
