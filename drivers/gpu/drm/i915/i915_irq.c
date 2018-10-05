@@ -3096,19 +3096,11 @@ gen11_gu_misc_irq_ack(struct drm_i915_private *dev_priv, const u32 master_ctl)
 
 	if (!(master_ctl & GEN11_GU_MISC_IRQ))
 		return 0;
-<<<<<<< HEAD
 
 	iir = raw_reg_read(regs, GEN11_GU_MISC_IIR);
 	if (likely(iir))
 		raw_reg_write(regs, GEN11_GU_MISC_IIR, iir);
 
-=======
-
-	iir = raw_reg_read(regs, GEN11_GU_MISC_IIR);
-	if (likely(iir))
-		raw_reg_write(regs, GEN11_GU_MISC_IIR, iir);
-
->>>>>>> linux-next/akpm-base
 	return iir;
 }
 

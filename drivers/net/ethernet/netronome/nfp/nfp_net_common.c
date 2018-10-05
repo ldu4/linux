@@ -2097,11 +2097,7 @@ static void nfp_ctrl_poll(unsigned long arg)
 	spin_lock(&r_vec->lock);
 	nfp_net_tx_complete(r_vec->tx_ring, 0);
 	__nfp_ctrl_tx_queued(r_vec);
-<<<<<<< HEAD
-	spin_unlock_bh(&r_vec->lock);
-=======
 	spin_unlock(&r_vec->lock);
->>>>>>> linux-next/akpm-base
 
 	if (nfp_ctrl_rx(r_vec)) {
 		nfp_net_irq_unmask(r_vec->nfp_net, r_vec->irq_entry);

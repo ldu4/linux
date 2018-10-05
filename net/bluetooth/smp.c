@@ -2430,19 +2430,11 @@ int smp_cancel_and_remove_pairing(struct hci_dev *hdev, bdaddr_t *bdaddr,
 
 	err = hci_remove_ltk(hdev, bdaddr, addr_type);
 	hci_remove_irk(hdev, bdaddr, addr_type);
-<<<<<<< HEAD
 
 	hcon = hci_conn_hash_lookup_le(hdev, bdaddr, addr_type);
 	if (!hcon)
 		goto done;
 
-=======
-
-	hcon = hci_conn_hash_lookup_le(hdev, bdaddr, addr_type);
-	if (!hcon)
-		goto done;
-
->>>>>>> linux-next/akpm-base
 	conn = hcon->l2cap_data;
 	if (!conn)
 		goto done;

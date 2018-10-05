@@ -50,42 +50,7 @@ static void mt76x0_stop(struct ieee80211_hw *hw)
 	clear_bit(MT76_STATE_RUNNING, &dev->mt76.state);
 	mt76x0_mac_stop(dev);
 
-<<<<<<< HEAD
-	mutex_unlock(&dev->mutex);
-}
-
-
-static int mt76x0_add_interface(struct ieee80211_hw *hw,
-				 struct ieee80211_vif *vif)
-{
-	struct mt76x0_dev *dev = hw->priv;
-	struct mt76_vif *mvif = (struct mt76_vif *) vif->drv_priv;
-	unsigned int idx;
-
-	idx = ffs(~dev->vif_mask);
-	if (!idx || idx > 8)
-		return -ENOSPC;
-
-	idx--;
-	dev->vif_mask |= BIT(idx);
-
-	mvif->idx = idx;
-	mvif->group_wcid.idx = GROUP_WCID(idx);
-	mvif->group_wcid.hw_key_idx = -1;
-
-	return 0;
-}
-
-static void mt76x0_remove_interface(struct ieee80211_hw *hw,
-				     struct ieee80211_vif *vif)
-{
-	struct mt76x0_dev *dev = hw->priv;
-	struct mt76_vif *mvif = (struct mt76_vif *) vif->drv_priv;
-
-	dev->vif_mask &= ~BIT(mvif->idx);
-=======
 	mutex_unlock(&dev->mt76.mutex);
->>>>>>> linux-next/akpm-base
 }
 
 static int mt76x0_config(struct ieee80211_hw *hw, u32 changed)

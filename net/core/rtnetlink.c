@@ -1910,15 +1910,9 @@ static int rtnl_dump_ifinfo(struct sk_buff *skb, struct netlink_callback *cb)
 
 	if (nlmsg_parse(cb->nlh, hdrlen, tb, IFLA_MAX,
 			ifla_policy, NULL) >= 0) {
-<<<<<<< HEAD
-		if (tb[IFLA_IF_NETNSID]) {
-			netnsid = nla_get_s32(tb[IFLA_IF_NETNSID]);
-			tgt_net = get_target_net(skb->sk, netnsid);
-=======
 		if (tb[IFLA_TARGET_NETNSID]) {
 			netnsid = nla_get_s32(tb[IFLA_TARGET_NETNSID]);
 			tgt_net = rtnl_get_net_ns_capable(skb->sk, netnsid);
->>>>>>> linux-next/akpm-base
 			if (IS_ERR(tgt_net))
 				return PTR_ERR(tgt_net);
 		}
