@@ -1495,11 +1495,6 @@ static struct skcipher_edesc *skcipher_edesc_alloc(struct skcipher_request *req,
 	edesc->sec4_sg_bytes = sec4_sg_bytes;
 	edesc->sec4_sg = (struct sec4_sg_entry *)((u8 *)edesc->hw_desc +
 						  desc_bytes);
-<<<<<<< HEAD
-	edesc->iv_dir = DMA_TO_DEVICE;
-=======
->>>>>>> linux-next/akpm-base
-
 	/* Make sure IV is located in a DMAable area */
 	iv = (u8 *)edesc->hw_desc + desc_bytes + sec4_sg_bytes;
 	memcpy(iv, req->iv, ivsize);
