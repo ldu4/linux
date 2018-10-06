@@ -143,7 +143,6 @@ void *devm_memremap_pages(struct device *dev, struct dev_pagemap *pgmap)
 	struct resource *res = &pgmap->res;
 	struct dev_pagemap *conflict_pgmap;
 	pgprot_t pgprot = PAGE_KERNEL;
-	unsigned long pgoff, order;
 	int error, nid, is_ram;
 
 	align_start = res->start & ~(SECTION_SIZE - 1);
