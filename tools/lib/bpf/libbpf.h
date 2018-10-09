@@ -20,8 +20,8 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not,  see <http://www.gnu.org/licenses>
  */
-#ifndef __BPF_LIBBPF_H
-#define __BPF_LIBBPF_H
+#ifndef __LIBBPF_LIBBPF_H
+#define __LIBBPF_LIBBPF_H
 
 #include <stdio.h>
 #include <stdint.h>
@@ -46,6 +46,7 @@ enum libbpf_errno {
 	LIBBPF_ERRNO__PROGTYPE,	/* Kernel doesn't support this program type */
 	LIBBPF_ERRNO__WRNGPID,	/* Wrong pid in netlink message */
 	LIBBPF_ERRNO__INVSEQ,	/* Invalid netlink sequence */
+	LIBBPF_ERRNO__NLPARSE,	/* netlink parsing error */
 	__LIBBPF_ERRNO__END,
 };
 
@@ -103,6 +104,8 @@ void *bpf_object__priv(struct bpf_object *prog);
 
 int libbpf_prog_type_by_name(const char *name, enum bpf_prog_type *prog_type,
 			     enum bpf_attach_type *expected_attach_type);
+int libbpf_attach_type_by_name(const char *name,
+			       enum bpf_attach_type *attach_type);
 
 /* Accessors of bpf_program */
 struct bpf_program;
@@ -125,10 +128,13 @@ void bpf_program__set_ifindex(struct bpf_program *prog, __u32 ifindex);
 
 const char *bpf_program__title(struct bpf_program *prog, bool needs_copy);
 
+int bpf_program__load(struct bpf_program *prog, char *license,
+		      __u32 kern_version);
 int bpf_program__fd(struct bpf_program *prog);
 int bpf_program__pin_instance(struct bpf_program *prog, const char *path,
 			      int instance);
 int bpf_program__pin(struct bpf_program *prog, const char *path);
+void bpf_program__unload(struct bpf_program *prog);
 
 struct bpf_insn;
 
@@ -297,4 +303,16 @@ int bpf_perf_event_read_simple(void *mem, unsigned long size,
 			       unsigned long page_size,
 			       void **buf, size_t *buf_len,
 			       bpf_perf_event_print_t fn, void *priv);
-#endif
+
+struct nlattr;
+typedef int (*libbpf_dump_nlmsg_t)(void *cookie, void *msg, struct nlattr **tb);
+int libbpf_netlink_open(unsigned int *nl_pid);
+int libbpf_nl_get_link(int sock, unsigned int nl_pid,
+		       libbpf_dump_nlmsg_t dump_link_nlmsg, void *cookie);
+int libbpf_nl_get_class(int sock, unsigned int nl_pid, int ifindex,
+			libbpf_dump_nlmsg_t dump_class_nlmsg, void *cookie);
+int libbpf_nl_get_qdisc(int sock, unsigned int nl_pid, int ifindex,
+			libbpf_dump_nlmsg_t dump_qdisc_nlmsg, void *cookie);
+int libbpf_nl_get_filter(int sock, unsigned int nl_pid, int ifindex, int handle,
+			 libbpf_dump_nlmsg_t dump_filter_nlmsg, void *cookie);
+#endif /* __LIBBPF_LIBBPF_H */
