@@ -33,6 +33,21 @@
 #define RMID_VAL_ERROR			BIT_ULL(63)
 #define RMID_VAL_UNAVAIL		BIT_ULL(62)
 
+
+struct rdt_fs_context {
+	struct kernfs_fs_context	kfc;
+	bool				enable_cdpl2;
+	bool				enable_cdpl3;
+	bool				enable_mba_mbps;
+};
+
+static inline struct rdt_fs_context *rdt_fc2context(struct fs_context *fc)
+{
+	struct kernfs_fs_context *kfc = fc->fs_private;
+
+	return container_of(kfc, struct rdt_fs_context, kfc);
+}
+
 DECLARE_STATIC_KEY_FALSE(rdt_enable_key);
 
 /**
@@ -529,14 +544,14 @@ ssize_t rdtgroup_schemata_write(struct kernfs_open_file *of,
 int rdtgroup_schemata_show(struct kernfs_open_file *of,
 			   struct seq_file *s, void *v);
 bool rdtgroup_cbm_overlaps(struct rdt_resource *r, struct rdt_domain *d,
-			   u32 _cbm, int closid, bool exclusive);
+			   unsigned long cbm, int closid, bool exclusive);
 unsigned int rdtgroup_cbm_to_size(struct rdt_resource *r, struct rdt_domain *d,
-				  u32 cbm);
+				  unsigned long cbm);
 enum rdtgrp_mode rdtgroup_mode_by_closid(int closid);
 int rdtgroup_tasks_assigned(struct rdtgroup *r);
 int rdtgroup_locksetup_enter(struct rdtgroup *rdtgrp);
 int rdtgroup_locksetup_exit(struct rdtgroup *rdtgrp);
-bool rdtgroup_cbm_overlaps_pseudo_locked(struct rdt_domain *d, u32 _cbm);
+bool rdtgroup_cbm_overlaps_pseudo_locked(struct rdt_domain *d, unsigned long cbm);
 bool rdtgroup_pseudo_locked_in_hierarchy(struct rdt_domain *d);
 int rdt_pseudo_lock_init(void);
 void rdt_pseudo_lock_release(void);

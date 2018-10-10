@@ -102,24 +102,18 @@ static void check_if_tm_restore_required(struct task_struct *tsk)
 	}
 }
 
-static inline bool msr_tm_active(unsigned long msr)
-{
-	return MSR_TM_ACTIVE(msr);
-}
-
 static bool tm_active_with_fp(struct task_struct *tsk)
 {
-	return msr_tm_active(tsk->thread.regs->msr) &&
+	return MSR_TM_ACTIVE(tsk->thread.regs->msr) &&
 		(tsk->thread.ckpt_regs.msr & MSR_FP);
 }
 
 static bool tm_active_with_altivec(struct task_struct *tsk)
 {
-	return msr_tm_active(tsk->thread.regs->msr) &&
+	return MSR_TM_ACTIVE(tsk->thread.regs->msr) &&
 		(tsk->thread.ckpt_regs.msr & MSR_VEC);
 }
 #else
-static inline bool msr_tm_active(unsigned long msr) { return false; }
 static inline void check_if_tm_restore_required(struct task_struct *tsk) { }
 static inline bool tm_active_with_fp(struct task_struct *tsk) { return false; }
 static inline bool tm_active_with_altivec(struct task_struct *tsk) { return false; }
@@ -247,7 +241,8 @@ void enable_kernel_fp(void)
 		 * giveup as this would save  to the 'live' structure not the
 		 * checkpointed structure.
 		 */
-		if(!msr_tm_active(cpumsr) && msr_tm_active(current->thread.regs->msr))
+		if (!MSR_TM_ACTIVE(cpumsr) &&
+		     MSR_TM_ACTIVE(current->thread.regs->msr))
 			return;
 		__giveup_fpu(current);
 	}
@@ -311,7 +306,8 @@ void enable_kernel_altivec(void)
 		 * giveup as this would save  to the 'live' structure not the
 		 * checkpointed structure.
 		 */
-		if(!msr_tm_active(cpumsr) && msr_tm_active(current->thread.regs->msr))
+		if (!MSR_TM_ACTIVE(cpumsr) &&
+		     MSR_TM_ACTIVE(current->thread.regs->msr))
 			return;
 		__giveup_altivec(current);
 	}
@@ -397,7 +393,8 @@ void enable_kernel_vsx(void)
 		 * giveup as this would save  to the 'live' structure not the
 		 * checkpointed structure.
 		 */
-		if(!msr_tm_active(cpumsr) && msr_tm_active(current->thread.regs->msr))
+		if (!MSR_TM_ACTIVE(cpumsr) &&
+		     MSR_TM_ACTIVE(current->thread.regs->msr))
 			return;
 		__giveup_vsx(current);
 	}
@@ -530,7 +527,7 @@ void restore_math(struct pt_regs *regs)
 {
 	unsigned long msr;
 
-	if (!msr_tm_active(regs->msr) &&
+	if (!MSR_TM_ACTIVE(regs->msr) &&
 		!current->thread.load_fp && !loadvec(current->thread))
 		return;
 
@@ -620,8 +617,6 @@ void do_send_trap(struct pt_regs *regs, unsigned long address,
 void do_break (struct pt_regs *regs, unsigned long address,
 		    unsigned long error_code)
 {
-	siginfo_t info;
-
 	current->thread.trap_nr = TRAP_HWBKPT;
 	if (notify_die(DIE_DABR_MATCH, "dabr_match", regs, error_code,
 			11, SIGSEGV) == NOTIFY_STOP)
@@ -634,12 +629,7 @@ void do_break (struct pt_regs *regs, unsigned long address,
 	hw_breakpoint_disable();
 
 	/* Deliver the signal to userspace */
-	clear_siginfo(&info);
-	info.si_signo = SIGTRAP;
-	info.si_errno = 0;
-	info.si_code = TRAP_HWBKPT;
-	info.si_addr = (void __user *)address;
-	force_sig_info(SIGTRAP, &info, current);
+	force_sig_fault(SIGTRAP, TRAP_HWBKPT, (void __user *)address, current);
 }
 #endif	/* CONFIG_PPC_ADV_DEBUG_REGS */
 
