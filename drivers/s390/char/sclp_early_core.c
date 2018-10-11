@@ -237,8 +237,6 @@ void sclp_early_printk(const char *str)
 void sclp_early_printk_force(const char *str)
 {
 	__sclp_early_printk(str, strlen(str), 1);
-<<<<<<< HEAD
-=======
 }
 
 int __init sclp_early_read_info(void)
@@ -351,5 +349,4 @@ int __init sclp_early_read_storage_info(void)
 fail:
 	mem_detect.count = 0;
 	return -EIO;
->>>>>>> linux-next/akpm-base
 }
