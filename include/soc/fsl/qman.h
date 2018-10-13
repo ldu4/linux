@@ -1194,8 +1194,6 @@ int qman_release_cgrid(u32 id);
  */
 int qman_is_probed(void);
 
-<<<<<<< HEAD
-=======
 /**
  * qman_dqrr_get_ithresh - Get coalesce interrupt threshold
  * @portal: portal to get the value for
@@ -1224,5 +1222,4 @@ void qman_portal_get_iperiod(struct qman_portal *portal, u32 *iperiod);
  */
 void qman_portal_set_iperiod(struct qman_portal *portal, u32 iperiod);
 
->>>>>>> linux-next/akpm-base
 #endif	/* __FSL_QMAN_H */

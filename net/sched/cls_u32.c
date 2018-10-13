@@ -687,42 +687,7 @@ static int u32_delete(struct tcf_proto *tp, void *arg, bool *last,
 	}
 
 out:
-<<<<<<< HEAD
-	*last = true;
-	if (root_ht) {
-		if (root_ht->refcnt > 2) {
-			*last = false;
-			goto ret;
-		}
-		if (root_ht->refcnt == 2) {
-			if (!ht_empty(root_ht)) {
-				*last = false;
-				goto ret;
-			}
-		}
-	}
-
-	if (tp_c->refcnt > 1) {
-		*last = false;
-		goto ret;
-	}
-
-	if (tp_c->refcnt == 1) {
-		struct tc_u_hnode *ht;
-
-		for (ht = rtnl_dereference(tp_c->hlist);
-		     ht;
-		     ht = rtnl_dereference(ht->next))
-			if (!ht_empty(ht)) {
-				*last = false;
-				break;
-			}
-	}
-
-ret:
-=======
 	*last = tp_c->refcnt == 1 && tp_c->knodes == 0;
->>>>>>> linux-next/akpm-base
 	return ret;
 }
 
