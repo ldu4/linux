@@ -71,13 +71,16 @@ static const char * const map_type_name[] = {
 	[BPF_MAP_TYPE_XSKMAP]           = "xskmap",
 	[BPF_MAP_TYPE_SOCKHASH]		= "sockhash",
 	[BPF_MAP_TYPE_CGROUP_STORAGE]	= "cgroup_storage",
+	[BPF_MAP_TYPE_REUSEPORT_SOCKARRAY] = "reuseport_sockarray",
+	[BPF_MAP_TYPE_PERCPU_CGROUP_STORAGE]	= "percpu_cgroup_storage",
 };
 
 static bool map_is_per_cpu(__u32 type)
 {
 	return type == BPF_MAP_TYPE_PERCPU_HASH ||
 	       type == BPF_MAP_TYPE_PERCPU_ARRAY ||
-	       type == BPF_MAP_TYPE_LRU_PERCPU_HASH;
+	       type == BPF_MAP_TYPE_LRU_PERCPU_HASH ||
+	       type == BPF_MAP_TYPE_PERCPU_CGROUP_STORAGE;
 }
 
 static bool map_is_map_of_maps(__u32 type)
@@ -170,9 +173,28 @@ static int do_dump_btf(const struct btf_dumper *d,
 	if (ret)
 		goto err_end_obj;
 
-	jsonw_name(d->jw, "value");
+	if (!map_is_per_cpu(map_info->type)) {
+		jsonw_name(d->jw, "value");
+		ret = btf_dumper_type(d, map_info->btf_value_type_id, value);
+	} else {
+		unsigned int i, n, step;
 
-	ret = btf_dumper_type(d, map_info->btf_value_type_id, value);
+		jsonw_name(d->jw, "values");
+		jsonw_start_array(d->jw);
+		n = get_possible_cpus();
+		step = round_up(map_info->value_size, 8);
+		for (i = 0; i < n; i++) {
+			jsonw_start_object(d->jw);
+			jsonw_int_field(d->jw, "cpu", i);
+			jsonw_name(d->jw, "value");
+			ret = btf_dumper_type(d, map_info->btf_value_type_id,
+					      value + i * step);
+			jsonw_end_object(d->jw);
+			if (ret)
+				break;
+		}
+		jsonw_end_array(d->jw);
+	}
 
 err_end_obj:
 	/* end of key-value pair */
@@ -299,9 +321,38 @@ static void print_entry_json(struct bpf_map_info *info, unsigned char *key,
 			jsonw_end_object(json_wtr);
 		}
 		jsonw_end_array(json_wtr);
+		if (btf) {
+			struct btf_dumper d = {
+				.btf = btf,
+				.jw = json_wtr,
+				.is_plain_text = false,
+			};
+
+			jsonw_name(json_wtr, "formatted");
+			do_dump_btf(&d, info, key, value);
+		}
 	}
 
 	jsonw_end_object(json_wtr);
+}
+
+static void print_entry_error(struct bpf_map_info *info, unsigned char *key,
+			      const char *value)
+{
+	int value_size = strlen(value);
+	bool single_line, break_names;
+
+	break_names = info->key_size > 16 || value_size > 16;
+	single_line = info->key_size + value_size <= 24 && !break_names;
+
+	printf("key:%c", break_names ? '\n' : ' ');
+	fprint_hex(stdout, key, info->key_size, " ");
+
+	printf(single_line ? "  " : "\n");
+
+	printf("value:%c%s", break_names ? '\n' : ' ', value);
+
+	printf("\n");
 }
 
 static void print_entry_plain(struct bpf_map_info *info, unsigned char *key,
@@ -626,6 +677,54 @@ static int do_show(int argc, char **argv)
 	return errno == ENOENT ? 0 : -1;
 }
 
+static int dump_map_elem(int fd, void *key, void *value,
+			 struct bpf_map_info *map_info, struct btf *btf,
+			 json_writer_t *btf_wtr)
+{
+	int num_elems = 0;
+	int lookup_errno;
+
+	if (!bpf_map_lookup_elem(fd, key, value)) {
+		if (json_output) {
+			print_entry_json(map_info, key, value, btf);
+		} else {
+			if (btf) {
+				struct btf_dumper d = {
+					.btf = btf,
+					.jw = btf_wtr,
+					.is_plain_text = true,
+				};
+
+				do_dump_btf(&d, map_info, key, value);
+			} else {
+				print_entry_plain(map_info, key, value);
+			}
+			num_elems++;
+		}
+		return num_elems;
+	}
+
+	/* lookup error handling */
+	lookup_errno = errno;
+
+	if (map_is_map_of_maps(map_info->type) ||
+	    map_is_map_of_progs(map_info->type))
+		return 0;
+
+	if (json_output) {
+		jsonw_name(json_wtr, "key");
+		print_hex_data_json(key, map_info->key_size);
+		jsonw_name(json_wtr, "value");
+		jsonw_start_object(json_wtr);
+		jsonw_string_field(json_wtr, "error", strerror(lookup_errno));
+		jsonw_end_object(json_wtr);
+	} else {
+		print_entry_error(map_info, key, strerror(lookup_errno));
+	}
+
+	return 0;
+}
+
 static int do_dump(int argc, char **argv)
 {
 	struct bpf_map_info info = {};
@@ -643,12 +742,6 @@ static int do_dump(int argc, char **argv)
 	fd = map_parse_fd_and_info(&argc, &argv, &info, &len);
 	if (fd < 0)
 		return -1;
-
-	if (map_is_map_of_maps(info.type) || map_is_map_of_progs(info.type)) {
-		p_err("Dumping maps of maps and program maps not supported");
-		close(fd);
-		return -1;
-	}
 
 	key = malloc(info.key_size);
 	value = alloc_value(&info);
@@ -687,40 +780,8 @@ static int do_dump(int argc, char **argv)
 				err = 0;
 			break;
 		}
-
-		if (!bpf_map_lookup_elem(fd, key, value)) {
-			if (json_output)
-				print_entry_json(&info, key, value, btf);
-			else
-				if (btf) {
-					struct btf_dumper d = {
-						.btf = btf,
-						.jw = btf_wtr,
-						.is_plain_text = true,
-					};
-
-					do_dump_btf(&d, &info, key, value);
-				} else {
-					print_entry_plain(&info, key, value);
-				}
-		} else {
-			if (json_output) {
-				jsonw_name(json_wtr, "key");
-				print_hex_data_json(key, info.key_size);
-				jsonw_name(json_wtr, "value");
-				jsonw_start_object(json_wtr);
-				jsonw_string_field(json_wtr, "error",
-						   "can't lookup element");
-				jsonw_end_object(json_wtr);
-			} else {
-				p_info("can't lookup element with key: ");
-				fprint_hex(stderr, key, info.key_size, " ");
-				fprintf(stderr, "\n");
-			}
-		}
-
+		num_elems += dump_map_elem(fd, key, value, &info, btf, btf_wtr);
 		prev_key = key;
-		num_elems++;
 	}
 
 	if (json_output)

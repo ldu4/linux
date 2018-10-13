@@ -12,6 +12,8 @@
  *	(at your option) any later version.
  */
 
+#define pr_fmt(fmt) "LSM: " fmt
+
 #include <linux/bpf.h>
 #include <linux/capability.h>
 #include <linux/dcache.h>
@@ -30,8 +32,6 @@
 #include <linux/string.h>
 #include <net/flow.h>
 
-#include <trace/events/initcall.h>
-
 #define MAX_LSM_EVM_XATTR	2
 
 /* Maximum number of letters for an LSM name string */
@@ -45,20 +45,22 @@ char *lsm_names;
 static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] =
 	CONFIG_DEFAULT_SECURITY;
 
-static void __init do_security_initcalls(void)
-{
-	int ret;
-	initcall_t call;
-	initcall_entry_t *ce;
+static __initdata bool debug;
+#define init_debug(...)						\
+	do {							\
+		if (debug)					\
+			pr_info(__VA_ARGS__);			\
+	} while (0)
 
-	ce = __security_initcall_start;
-	trace_initcall_level("security");
-	while (ce < __security_initcall_end) {
-		call = initcall_from_entry(ce);
-		trace_initcall_start(call);
-		ret = call();
-		trace_initcall_finish(call, ret);
-		ce++;
+static void __init major_lsm_init(void)
+{
+	struct lsm_info *lsm;
+	int ret;
+
+	for (lsm = __start_lsm_info; lsm < __end_lsm_info; lsm++) {
+		init_debug("initializing %s\n", lsm->name);
+		ret = lsm->init();
+		WARN(ret, "%s failed to initialize: %d\n", lsm->name, ret);
 	}
 }
 
@@ -72,10 +74,11 @@ int __init security_init(void)
 	int i;
 	struct hlist_head *list = (struct hlist_head *) &security_hook_heads;
 
+	pr_info("Security Framework initializing\n");
+
 	for (i = 0; i < sizeof(security_hook_heads) / sizeof(struct hlist_head);
 	     i++)
 		INIT_HLIST_HEAD(&list[i]);
-	pr_info("Security Framework initialized\n");
 
 	/*
 	 * Load minor LSMs, with the capability module always first.
@@ -87,7 +90,7 @@ int __init security_init(void)
 	/*
 	 * Load all the remaining security modules.
 	 */
-	do_security_initcalls();
+	major_lsm_init();
 
 	return 0;
 }
@@ -99,6 +102,14 @@ static int __init choose_lsm(char *str)
 	return 1;
 }
 __setup("security=", choose_lsm);
+
+/* Enable LSM order debugging. */
+static int __init enable_debug(char *str)
+{
+	debug = true;
+	return 1;
+}
+__setup("lsm.debug", enable_debug);
 
 static bool match_last_lsm(const char *list, const char *lsm)
 {
@@ -363,6 +374,47 @@ void security_bprm_committed_creds(struct linux_binprm *bprm)
 	call_void_hook(bprm_committed_creds, bprm);
 }
 
+int security_fs_context_alloc(struct fs_context *fc, struct dentry *reference)
+{
+	return call_int_hook(fs_context_alloc, 0, fc, reference);
+}
+
+int security_fs_context_dup(struct fs_context *fc, struct fs_context *src_fc)
+{
+	return call_int_hook(fs_context_dup, 0, fc, src_fc);
+}
+
+void security_fs_context_free(struct fs_context *fc)
+{
+	call_void_hook(fs_context_free, fc);
+}
+
+int security_fs_context_parse_param(struct fs_context *fc, struct fs_parameter *param)
+{
+	return call_int_hook(fs_context_parse_param, -ENOPARAM, fc, param);
+}
+
+int security_fs_context_validate(struct fs_context *fc)
+{
+	return call_int_hook(fs_context_validate, 0, fc);
+}
+
+int security_sb_get_tree(struct fs_context *fc)
+{
+	return call_int_hook(sb_get_tree, 0, fc);
+}
+
+void security_sb_reconfigure(struct fs_context *fc)
+{
+	call_void_hook(sb_reconfigure, fc);
+}
+
+int security_sb_mountpoint(struct fs_context *fc, struct path *mountpoint,
+			   unsigned int mnt_flags)
+{
+	return call_int_hook(sb_mountpoint, 0, fc, mountpoint, mnt_flags);
+}
+
 int security_sb_alloc(struct super_block *sb)
 {
 	return call_int_hook(sb_alloc_security, 0, sb);
@@ -373,21 +425,11 @@ void security_sb_free(struct super_block *sb)
 	call_void_hook(sb_free_security, sb);
 }
 
-int security_sb_copy_data(char *orig, char *copy)
+int security_sb_copy_data(char *orig, size_t data_size, char *copy)
 {
-	return call_int_hook(sb_copy_data, 0, orig, copy);
+	return call_int_hook(sb_copy_data, 0, orig, data_size, copy);
 }
 EXPORT_SYMBOL(security_sb_copy_data);
-
-int security_sb_remount(struct super_block *sb, void *data)
-{
-	return call_int_hook(sb_remount, 0, sb, data);
-}
-
-int security_sb_kern_mount(struct super_block *sb, int flags, void *data)
-{
-	return call_int_hook(sb_kern_mount, 0, sb, flags, data);
-}
 
 int security_sb_show_options(struct seq_file *m, struct super_block *sb)
 {
@@ -400,9 +442,11 @@ int security_sb_statfs(struct dentry *dentry)
 }
 
 int security_sb_mount(const char *dev_name, const struct path *path,
-                       const char *type, unsigned long flags, void *data)
+		      const char *type, unsigned long flags,
+		      void *data, size_t data_size)
 {
-	return call_int_hook(sb_mount, 0, dev_name, path, type, flags, data);
+	return call_int_hook(sb_mount, 0, dev_name, path, type, flags,
+			     data, data_size);
 }
 
 int security_sb_umount(struct vfsmount *mnt, int flags)
@@ -441,6 +485,11 @@ int security_sb_parse_opts_str(char *options, struct security_mnt_opts *opts)
 	return call_int_hook(sb_parse_opts_str, 0, options, opts);
 }
 EXPORT_SYMBOL(security_sb_parse_opts_str);
+
+int security_move_mount(const struct path *from_path, const struct path *to_path)
+{
+	return call_int_hook(move_mount, 0, from_path, to_path);
+}
 
 int security_inode_alloc(struct inode *inode)
 {
@@ -1147,7 +1196,7 @@ int security_task_movememory(struct task_struct *p)
 	return call_int_hook(task_movememory, 0, p);
 }
 
-int security_task_kill(struct task_struct *p, struct siginfo *info,
+int security_task_kill(struct task_struct *p, struct kernel_siginfo *info,
 			int sig, const struct cred *cred)
 {
 	return call_int_hook(task_kill, 0, p, info, sig, cred);
