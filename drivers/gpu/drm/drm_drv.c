@@ -419,7 +419,8 @@ static const struct super_operations drm_fs_sops = {
 };
 
 static struct dentry *drm_fs_mount(struct file_system_type *fs_type, int flags,
-				   const char *dev_name, void *data)
+				   const char *dev_name,
+				   void *data, size_t data_size)
 {
 	return mount_pseudo(fs_type,
 			    "drm:",
@@ -505,6 +506,9 @@ int drm_dev_init(struct drm_device *dev,
 	kref_init(&dev->ref);
 	dev->dev = parent;
 	dev->driver = driver;
+
+	/* no per-device feature limits by default */
+	dev->driver_features = ~0u;
 
 	INIT_LIST_HEAD(&dev->filelist);
 	INIT_LIST_HEAD(&dev->filelist_internal);

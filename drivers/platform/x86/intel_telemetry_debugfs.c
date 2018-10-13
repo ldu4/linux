@@ -1,16 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * Intel SOC Telemetry debugfs Driver: Currently supports APL
  * Copyright (c) 2015, Intel Corporation.
  * All Rights Reserved.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
  *
  * This file provides the debugfs interfaces for telemetry.
  * /sys/kernel/debug/telemetry/pss_info: Shows Primary Control Sub-Sys Counters
@@ -320,7 +312,7 @@ static struct telemetry_debugfs_conf telem_apl_debugfs_conf = {
 
 static const struct x86_cpu_id telemetry_debugfs_cpu_ids[] = {
 	TELEM_DEBUGFS_CPU(INTEL_FAM6_ATOM_GOLDMONT, telem_apl_debugfs_conf),
-	TELEM_DEBUGFS_CPU(INTEL_FAM6_ATOM_GEMINI_LAKE, telem_apl_debugfs_conf),
+	TELEM_DEBUGFS_CPU(INTEL_FAM6_ATOM_GOLDMONT_PLUS, telem_apl_debugfs_conf),
 	{}
 };
 
@@ -1037,4 +1029,4 @@ module_exit(telemetry_debugfs_exit);
 MODULE_AUTHOR("Souvik Kumar Chakravarty <souvik.k.chakravarty@intel.com>");
 MODULE_DESCRIPTION("Intel SoC Telemetry debugfs Interface");
 MODULE_VERSION(DRIVER_VERSION);
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("GPL v2");

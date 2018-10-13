@@ -318,7 +318,7 @@ extern uint64_t orangefs_features;
 struct dentry *orangefs_mount(struct file_system_type *fst,
 			   int flags,
 			   const char *devname,
-			   void *data);
+			   void *data, size_t data_size);
 
 void orangefs_kill_sb(struct super_block *sb);
 int orangefs_remount(struct orangefs_sb_info_s *);
@@ -329,11 +329,8 @@ void fsid_key_table_finalize(void);
 /*
  * defined in inode.c
  */
-struct inode *orangefs_new_inode(struct super_block *sb,
-			      struct inode *dir,
-			      int mode,
-			      dev_t dev,
-			      struct orangefs_object_kref *ref);
+int orangefs_new_inode(struct inode *, struct super_block *, struct inode *,
+    int, dev_t, struct orangefs_object_kref *);
 
 int orangefs_setattr(struct dentry *dentry, struct iattr *iattr);
 

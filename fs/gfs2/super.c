@@ -854,10 +854,10 @@ static int gfs2_make_fs_ro(struct gfs2_sbd *sdp)
 	if (error && !test_bit(SDF_SHUTDOWN, &sdp->sd_flags))
 		return error;
 
+	flush_workqueue(gfs2_delete_workqueue);
 	kthread_stop(sdp->sd_quotad_process);
 	kthread_stop(sdp->sd_logd_process);
 
-	flush_workqueue(gfs2_delete_workqueue);
 	gfs2_quota_sync(sdp->sd_vfs, 0);
 	gfs2_statfs_sync(sdp->sd_vfs, 0);
 
@@ -1228,11 +1228,13 @@ static int gfs2_statfs(struct dentry *dentry, struct kstatfs *buf)
  * @sb:  the filesystem
  * @flags:  the remount flags
  * @data:  extra data passed in (not used right now)
+ * @data_size: size of the extra data
  *
  * Returns: errno
  */
 
-static int gfs2_remount_fs(struct super_block *sb, int *flags, char *data)
+static int gfs2_remount_fs(struct super_block *sb, int *flags,
+			   char *data, size_t data_size)
 {
 	struct gfs2_sbd *sdp = sb->s_fs_info;
 	struct gfs2_args args = sdp->sd_args; /* Default to current settings */
