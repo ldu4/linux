@@ -212,7 +212,7 @@ static void __init request_standard_resources(void)
 	kernel_data.end     = __pa_symbol(_end - 1);
 
 	for_each_memblock(memory, region) {
-		res = memblock_alloc_low(sizeof(*res), 0);
+		res = memblock_alloc_low(sizeof(*res), SMP_CACHE_BYTES);
 		if (memblock_is_nomap(region)) {
 			res->name  = "reserved";
 			res->flags = IORESOURCE_MEM;
