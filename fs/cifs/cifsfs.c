@@ -81,6 +81,14 @@ module_param(cifs_max_pending, uint, 0444);
 MODULE_PARM_DESC(cifs_max_pending, "Simultaneous requests to server for "
 				   "CIFS/SMB1 dialect (N/A for SMB3) "
 				   "Default: 32767 Range: 2 to 32767.");
+#ifdef CONFIG_CIFS_STATS2
+unsigned int slow_rsp_threshold = 1;
+module_param(slow_rsp_threshold, uint, 0644);
+MODULE_PARM_DESC(slow_rsp_threshold, "Amount of time (in seconds) to wait "
+				   "before logging that a response is delayed. "
+				   "Default: 1 (if set to 0 disables msg).");
+#endif /* STATS2 */
+
 module_param(enable_oplocks, bool, 0644);
 MODULE_PARM_DESC(enable_oplocks, "Enable or disable oplocks. Default: y/Y/1");
 
@@ -492,6 +500,8 @@ cifs_show_options(struct seq_file *s, struct dentry *root)
 		seq_puts(s, ",unix");
 	else
 		seq_puts(s, ",nounix");
+	if (cifs_sb->mnt_cifs_flags & CIFS_MOUNT_NO_DFS)
+		seq_puts(s, ",nodfs");
 	if (cifs_sb->mnt_cifs_flags & CIFS_MOUNT_POSIX_PATHS)
 		seq_puts(s, ",posixpaths");
 	if (cifs_sb->mnt_cifs_flags & CIFS_MOUNT_SET_UID)
@@ -595,7 +605,8 @@ static int cifs_show_stats(struct seq_file *s, struct dentry *root)
 }
 #endif
 
-static int cifs_remount(struct super_block *sb, int *flags, char *data)
+static int cifs_remount(struct super_block *sb, int *flags,
+			char *data, size_t data_size)
 {
 	sync_filesystem(sb);
 	*flags |= SB_NODIRATIME;
@@ -698,7 +709,8 @@ static int cifs_set_super(struct super_block *sb, void *data)
 
 static struct dentry *
 cifs_smb3_do_mount(struct file_system_type *fs_type,
-	      int flags, const char *dev_name, void *data, bool is_smb3)
+		   int flags, const char *dev_name, void *data, size_t data_size,
+		   bool is_smb3)
 {
 	int rc;
 	struct super_block *sb;
@@ -707,7 +719,14 @@ cifs_smb3_do_mount(struct file_system_type *fs_type,
 	struct cifs_mnt_data mnt_data;
 	struct dentry *root;
 
-	cifs_dbg(FYI, "Devname: %s flags: %d\n", dev_name, flags);
+	/*
+	 * Prints in Kernel / CIFS log the attempted mount operation
+	 *	If CIFS_DEBUG && cifs_FYI
+	 */
+	if (cifsFYI)
+		cifs_dbg(FYI, "Devname: %s flags: %d\n", dev_name, flags);
+	else
+		cifs_info("Attempting to mount %s\n", dev_name);
 
 	volume_info = cifs_get_volume_info((char *)data, dev_name, is_smb3);
 	if (IS_ERR(volume_info))
@@ -719,7 +738,7 @@ cifs_smb3_do_mount(struct file_system_type *fs_type,
 		goto out_nls;
 	}
 
-	cifs_sb->mountdata = kstrndup(data, PAGE_SIZE, GFP_KERNEL);
+	cifs_sb->mountdata = kstrndup(data, data_size, GFP_KERNEL);
 	if (cifs_sb->mountdata == NULL) {
 		root = ERR_PTR(-ENOMEM);
 		goto out_free;
@@ -791,16 +810,18 @@ out_nls:
 
 static struct dentry *
 smb3_do_mount(struct file_system_type *fs_type,
-	      int flags, const char *dev_name, void *data)
+	      int flags, const char *dev_name, void *data, size_t data_size)
 {
-	return cifs_smb3_do_mount(fs_type, flags, dev_name, data, true);
+	return cifs_smb3_do_mount(fs_type, flags, dev_name, data, data_size,
+				  true);
 }
 
 static struct dentry *
 cifs_do_mount(struct file_system_type *fs_type,
-	      int flags, const char *dev_name, void *data)
+	      int flags, const char *dev_name, void *data, size_t data_size)
 {
-	return cifs_smb3_do_mount(fs_type, flags, dev_name, data, false);
+	return cifs_smb3_do_mount(fs_type, flags, dev_name, data, data_size,
+				  false);
 }
 
 static ssize_t
@@ -1418,6 +1439,11 @@ init_cifs(void)
 #ifdef CONFIG_CIFS_STATS2
 	atomic_set(&totBufAllocCount, 0);
 	atomic_set(&totSmBufAllocCount, 0);
+	if (slow_rsp_threshold < 1)
+		cifs_dbg(FYI, "slow_response_threshold msgs disabled\n");
+	else if (slow_rsp_threshold > 32767)
+		cifs_dbg(VFS,
+		       "slow response threshold set higher than recommended (0 to 32767)\n");
 #endif /* CONFIG_CIFS_STATS2 */
 
 	atomic_set(&midCount, 0);
@@ -1538,11 +1564,11 @@ exit_cifs(void)
 	cifs_proc_clean();
 }
 
-MODULE_AUTHOR("Steve French <sfrench@us.ibm.com>");
+MODULE_AUTHOR("Steve French");
 MODULE_LICENSE("GPL");	/* combination of LGPL + GPL source behaves as GPL */
 MODULE_DESCRIPTION
-    ("VFS to access servers complying with the SNIA CIFS Specification "
-     "e.g. Samba and Windows");
+	("VFS to access SMB3 servers e.g. Samba, Macs, Azure and Windows (and "
+	"also older servers complying with the SNIA CIFS Specification)");
 MODULE_VERSION(CIFS_VERSION);
 MODULE_SOFTDEP("pre: arc4");
 MODULE_SOFTDEP("pre: des");
