@@ -1,16 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * i.MX IPUv3 DP Overlay Planes
  *
  * Copyright (C) 2013 Philipp Zabel, Pengutronix
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  */
 
 #include <drm/drmP.h>
@@ -281,16 +273,13 @@ static void ipu_plane_state_reset(struct drm_plane *plane)
 		ipu_state = to_ipu_plane_state(plane->state);
 		__drm_atomic_helper_plane_destroy_state(plane->state);
 		kfree(ipu_state);
+		plane->state = NULL;
 	}
 
 	ipu_state = kzalloc(sizeof(*ipu_state), GFP_KERNEL);
 
-	if (ipu_state) {
-		ipu_state->base.plane = plane;
-		ipu_state->base.rotation = DRM_MODE_ROTATE_0;
-	}
-
-	plane->state = &ipu_state->base;
+	if (ipu_state)
+		__drm_atomic_helper_plane_reset(plane, &ipu_state->base);
 }
 
 static struct drm_plane_state *
