@@ -1683,7 +1683,6 @@ int try_to_free_swap(struct page *page)
 	SetPageDirty(page);
 	return 1;
 }
-EXPORT_SYMBOL_GPL(add_swap_extent);
 
 /*
  * Free the swap entry like above, but also try to

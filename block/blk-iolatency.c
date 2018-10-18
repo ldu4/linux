@@ -257,7 +257,8 @@ static inline void iolat_update_total_lat_avg(struct iolatency_grp *iolat,
 	exp_idx = min_t(int, BLKIOLATENCY_NR_EXP_FACTORS - 1,
 			div64_u64(iolat->cur_win_nsec,
 				  BLKIOLATENCY_EXP_BUCKET_SIZE));
-	CALC_LOAD(iolat->lat_avg, iolatency_exp_factors[exp_idx], stat->rqs.mean);
+	iolat->lat_avg = calc_load(iolat->lat_avg,
+				   iolatency_exp_factors[exp_idx], stat->rqs.mean);
 }
 
 static inline bool iolatency_may_queue(struct iolatency_grp *iolat,
@@ -562,42 +563,36 @@ static void iolatency_check_latencies(struct iolatency_grp *iolat, u64 now)
 
 	lat_info = &parent->child_lat;
 
-	/*
-	 * calc_load() takes in a number stored in fixed point representation.
-	 * Because we are using this for IO time in ns, the values stored
-	 * are significantly larger than the FIXED_1 denominator (2048).
-	 * Therefore, rounding errors in the calculation are negligible and
-	 * can be ignored.
-	 */
-	exp_idx = min_t(int, BLKIOLATENCY_NR_EXP_FACTORS - 1,
-			div64_u64(iolat->cur_win_nsec,
-				  BLKIOLATENCY_EXP_BUCKET_SIZE));
-	iolat->lat_avg = calc_load(iolat->lat_avg,
-				   iolatency_exp_factors[exp_idx], stat.mean);
+	iolat_update_total_lat_avg(iolat, &stat);
 
 	/* Everything is ok and we don't need to adjust the scale. */
-	if (stat.mean <= iolat->min_lat_nsec &&
+	if (latency_sum_ok(iolat, &stat) &&
 	    atomic_read(&lat_info->scale_cookie) == DEFAULT_SCALE_COOKIE)
 		return;
 
 	/* Somebody beat us to the punch, just bail. */
 	spin_lock_irqsave(&lat_info->lock, flags);
-	lat_info->nr_samples -= iolat->nr_samples;
-	lat_info->nr_samples += stat.nr_samples;
-	iolat->nr_samples = stat.nr_samples;
+
+	latency_stat_sum(iolat, &iolat->cur_stat, &stat);
+ 	lat_info->nr_samples -= iolat->nr_samples;
+	lat_info->nr_samples += latency_stat_samples(iolat, &iolat->cur_stat);
+	iolat->nr_samples = latency_stat_samples(iolat, &iolat->cur_stat);
 
 	if ((lat_info->last_scale_event >= now ||
-	    now - lat_info->last_scale_event < BLKIOLATENCY_MIN_ADJUST_TIME) &&
-	    lat_info->scale_lat <= iolat->min_lat_nsec)
+	    now - lat_info->last_scale_event < BLKIOLATENCY_MIN_ADJUST_TIME))
 		goto out;
 
-	if (stat.mean <= iolat->min_lat_nsec &&
-	    stat.nr_samples >= BLKIOLATENCY_MIN_GOOD_SAMPLES) {
+	if (latency_sum_ok(iolat, &iolat->cur_stat) &&
+	    latency_sum_ok(iolat, &stat)) {
+		if (latency_stat_samples(iolat, &iolat->cur_stat) <
+		    BLKIOLATENCY_MIN_GOOD_SAMPLES)
+			goto out;
 		if (lat_info->scale_grp == iolat) {
 			lat_info->last_scale_event = now;
 			scale_cookie_change(iolat->blkiolat, lat_info, true);
 		}
-	} else if (stat.mean > iolat->min_lat_nsec) {
+	} else if (lat_info->scale_lat == 0 ||
+		   lat_info->scale_lat >= iolat->min_lat_nsec) {
 		lat_info->last_scale_event = now;
 		if (!lat_info->scale_grp ||
 		    lat_info->scale_lat > iolat->min_lat_nsec) {
