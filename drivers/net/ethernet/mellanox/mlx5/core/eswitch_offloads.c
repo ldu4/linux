@@ -127,8 +127,8 @@ mlx5_eswitch_add_offloaded_rule(struct mlx5_eswitch *esw,
 	if (flow_act.action & MLX5_FLOW_CONTEXT_ACTION_MOD_HDR)
 		flow_act.modify_id = attr->mod_hdr_id;
 
-	if (flow_act.action & MLX5_FLOW_CONTEXT_ACTION_ENCAP)
-		flow_act.encap_id = attr->encap_id;
+	if (flow_act.action & MLX5_FLOW_CONTEXT_ACTION_PACKET_REFORMAT)
+		flow_act.reformat_id = attr->encap_id;
 
 	rule = mlx5_add_flow_rules(ft, spec, &flow_act, dest, i);
 	if (IS_ERR(rule))
@@ -529,7 +529,8 @@ static int esw_create_offloads_fast_fdb_table(struct mlx5_eswitch *esw)
 		esw_size >>= 1;
 
 	if (esw->offloads.encap != DEVLINK_ESWITCH_ENCAP_MODE_NONE)
-		flags |= MLX5_FLOW_TABLE_TUNNEL_EN;
+		flags |= (MLX5_FLOW_TABLE_TUNNEL_EN_REFORMAT |
+			  MLX5_FLOW_TABLE_TUNNEL_EN_DECAP);
 
 	fdb = mlx5_create_auto_grouped_flow_table(root_ns, FDB_FAST_PATH,
 						  esw_size,
@@ -775,10 +776,10 @@ static void esw_destroy_vport_rx_group(struct mlx5_eswitch *esw)
 }
 
 struct mlx5_flow_handle *
-mlx5_eswitch_create_vport_rx_rule(struct mlx5_eswitch *esw, int vport, u32 tirn)
+mlx5_eswitch_create_vport_rx_rule(struct mlx5_eswitch *esw, int vport,
+				  struct mlx5_flow_destination *dest)
 {
 	struct mlx5_flow_act flow_act = {0};
-	struct mlx5_flow_destination dest = {};
 	struct mlx5_flow_handle *flow_rule;
 	struct mlx5_flow_spec *spec;
 	void *misc;
@@ -796,12 +797,10 @@ mlx5_eswitch_create_vport_rx_rule(struct mlx5_eswitch *esw, int vport, u32 tirn)
 	MLX5_SET_TO_ONES(fte_match_set_misc, misc, source_port);
 
 	spec->match_criteria_enable = MLX5_MATCH_MISC_PARAMETERS;
-	dest.type = MLX5_FLOW_DESTINATION_TYPE_TIR;
-	dest.tir_num = tirn;
 
 	flow_act.action = MLX5_FLOW_CONTEXT_ACTION_FWD_DEST;
 	flow_rule = mlx5_add_flow_rules(esw->offloads.ft_offloads, spec,
-					&flow_act, &dest, 1);
+					&flow_act, dest, 1);
 	if (IS_ERR(flow_rule)) {
 		esw_warn(esw->dev, "fs offloads: Failed to add vport rx rule err %ld\n", PTR_ERR(flow_rule));
 		goto out;
@@ -812,29 +811,35 @@ out:
 	return flow_rule;
 }
 
-static int esw_offloads_start(struct mlx5_eswitch *esw)
+static int esw_offloads_start(struct mlx5_eswitch *esw,
+			      struct netlink_ext_ack *extack)
 {
 	int err, err1, num_vfs = esw->dev->priv.sriov.num_vfs;
 
 	if (esw->mode != SRIOV_LEGACY) {
-		esw_warn(esw->dev, "Can't set offloads mode, SRIOV legacy not enabled\n");
+		NL_SET_ERR_MSG_MOD(extack,
+				   "Can't set offloads mode, SRIOV legacy not enabled");
 		return -EINVAL;
 	}
 
 	mlx5_eswitch_disable_sriov(esw);
 	err = mlx5_eswitch_enable_sriov(esw, num_vfs, SRIOV_OFFLOADS);
 	if (err) {
-		esw_warn(esw->dev, "Failed setting eswitch to offloads, err %d\n", err);
+		NL_SET_ERR_MSG_MOD(extack,
+				   "Failed setting eswitch to offloads");
 		err1 = mlx5_eswitch_enable_sriov(esw, num_vfs, SRIOV_LEGACY);
-		if (err1)
-			esw_warn(esw->dev, "Failed setting eswitch back to legacy, err %d\n", err1);
+		if (err1) {
+			NL_SET_ERR_MSG_MOD(extack,
+					   "Failed setting eswitch back to legacy");
+		}
 	}
 	if (esw->offloads.inline_mode == MLX5_INLINE_MODE_NONE) {
 		if (mlx5_eswitch_inline_mode_get(esw,
 						 num_vfs,
 						 &esw->offloads.inline_mode)) {
 			esw->offloads.inline_mode = MLX5_INLINE_MODE_L2;
-			esw_warn(esw->dev, "Inline mode is different between vports\n");
+			NL_SET_ERR_MSG_MOD(extack,
+					   "Inline mode is different between vports");
 		}
 	}
 	return err;
@@ -975,17 +980,20 @@ create_ft_err:
 	return err;
 }
 
-static int esw_offloads_stop(struct mlx5_eswitch *esw)
+static int esw_offloads_stop(struct mlx5_eswitch *esw,
+			     struct netlink_ext_ack *extack)
 {
 	int err, err1, num_vfs = esw->dev->priv.sriov.num_vfs;
 
 	mlx5_eswitch_disable_sriov(esw);
 	err = mlx5_eswitch_enable_sriov(esw, num_vfs, SRIOV_LEGACY);
 	if (err) {
-		esw_warn(esw->dev, "Failed setting eswitch to legacy, err %d\n", err);
+		NL_SET_ERR_MSG_MOD(extack, "Failed setting eswitch to legacy");
 		err1 = mlx5_eswitch_enable_sriov(esw, num_vfs, SRIOV_OFFLOADS);
-		if (err1)
-			esw_warn(esw->dev, "Failed setting eswitch back to offloads, err %d\n", err);
+		if (err1) {
+			NL_SET_ERR_MSG_MOD(extack,
+					   "Failed setting eswitch back to offloads");
+		}
 	}
 
 	/* enable back PF RoCE */
@@ -1094,7 +1102,8 @@ static int mlx5_devlink_eswitch_check(struct devlink *devlink)
 	return 0;
 }
 
-int mlx5_devlink_eswitch_mode_set(struct devlink *devlink, u16 mode)
+int mlx5_devlink_eswitch_mode_set(struct devlink *devlink, u16 mode,
+				  struct netlink_ext_ack *extack)
 {
 	struct mlx5_core_dev *dev = devlink_priv(devlink);
 	u16 cur_mlx5_mode, mlx5_mode = 0;
@@ -1113,9 +1122,9 @@ int mlx5_devlink_eswitch_mode_set(struct devlink *devlink, u16 mode)
 		return 0;
 
 	if (mode == DEVLINK_ESWITCH_MODE_SWITCHDEV)
-		return esw_offloads_start(dev->priv.eswitch);
+		return esw_offloads_start(dev->priv.eswitch, extack);
 	else if (mode == DEVLINK_ESWITCH_MODE_LEGACY)
-		return esw_offloads_stop(dev->priv.eswitch);
+		return esw_offloads_stop(dev->priv.eswitch, extack);
 	else
 		return -EINVAL;
 }
@@ -1132,7 +1141,8 @@ int mlx5_devlink_eswitch_mode_get(struct devlink *devlink, u16 *mode)
 	return esw_mode_to_devlink(dev->priv.eswitch->mode, mode);
 }
 
-int mlx5_devlink_eswitch_inline_mode_set(struct devlink *devlink, u8 mode)
+int mlx5_devlink_eswitch_inline_mode_set(struct devlink *devlink, u8 mode,
+					 struct netlink_ext_ack *extack)
 {
 	struct mlx5_core_dev *dev = devlink_priv(devlink);
 	struct mlx5_eswitch *esw = dev->priv.eswitch;
@@ -1149,14 +1159,15 @@ int mlx5_devlink_eswitch_inline_mode_set(struct devlink *devlink, u8 mode)
 			return 0;
 		/* fall through */
 	case MLX5_CAP_INLINE_MODE_L2:
-		esw_warn(dev, "Inline mode can't be set\n");
+		NL_SET_ERR_MSG_MOD(extack, "Inline mode can't be set");
 		return -EOPNOTSUPP;
 	case MLX5_CAP_INLINE_MODE_VPORT_CONTEXT:
 		break;
 	}
 
 	if (esw->offloads.num_flows > 0) {
-		esw_warn(dev, "Can't set inline mode when flows are configured\n");
+		NL_SET_ERR_MSG_MOD(extack,
+				   "Can't set inline mode when flows are configured");
 		return -EOPNOTSUPP;
 	}
 
@@ -1167,8 +1178,8 @@ int mlx5_devlink_eswitch_inline_mode_set(struct devlink *devlink, u8 mode)
 	for (vport = 1; vport < esw->enabled_vports; vport++) {
 		err = mlx5_modify_nic_vport_min_inline(dev, vport, mlx5_mode);
 		if (err) {
-			esw_warn(dev, "Failed to set min inline on vport %d\n",
-				 vport);
+			NL_SET_ERR_MSG_MOD(extack,
+					   "Failed to set min inline on vport");
 			goto revert_inline_mode;
 		}
 	}
@@ -1234,7 +1245,8 @@ out:
 	return 0;
 }
 
-int mlx5_devlink_eswitch_encap_mode_set(struct devlink *devlink, u8 encap)
+int mlx5_devlink_eswitch_encap_mode_set(struct devlink *devlink, u8 encap,
+					struct netlink_ext_ack *extack)
 {
 	struct mlx5_core_dev *dev = devlink_priv(devlink);
 	struct mlx5_eswitch *esw = dev->priv.eswitch;
@@ -1245,7 +1257,7 @@ int mlx5_devlink_eswitch_encap_mode_set(struct devlink *devlink, u8 encap)
 		return err;
 
 	if (encap != DEVLINK_ESWITCH_ENCAP_MODE_NONE &&
-	    (!MLX5_CAP_ESW_FLOWTABLE_FDB(dev, encap) ||
+	    (!MLX5_CAP_ESW_FLOWTABLE_FDB(dev, reformat) ||
 	     !MLX5_CAP_ESW_FLOWTABLE_FDB(dev, decap)))
 		return -EOPNOTSUPP;
 
@@ -1261,7 +1273,8 @@ int mlx5_devlink_eswitch_encap_mode_set(struct devlink *devlink, u8 encap)
 		return 0;
 
 	if (esw->offloads.num_flows > 0) {
-		esw_warn(dev, "Can't set encapsulation when flows are configured\n");
+		NL_SET_ERR_MSG_MOD(extack,
+				   "Can't set encapsulation when flows are configured");
 		return -EOPNOTSUPP;
 	}
 
@@ -1270,7 +1283,8 @@ int mlx5_devlink_eswitch_encap_mode_set(struct devlink *devlink, u8 encap)
 	esw->offloads.encap = encap;
 	err = esw_create_offloads_fast_fdb_table(esw);
 	if (err) {
-		esw_warn(esw->dev, "Failed re-creating fast FDB table, err %d\n", err);
+		NL_SET_ERR_MSG_MOD(extack,
+				   "Failed re-creating fast FDB table");
 		esw->offloads.encap = !encap;
 		(void)esw_create_offloads_fast_fdb_table(esw);
 	}
