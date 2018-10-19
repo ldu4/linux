@@ -359,6 +359,9 @@ config HAVE_PERF_USER_STACK_DUMP
 config HAVE_ARCH_JUMP_LABEL
 	bool
 
+config HAVE_ARCH_JUMP_LABEL_RELATIVE
+	bool
+
 config HAVE_RCU_TABLE_FREE
 	bool
 
@@ -418,6 +421,13 @@ config SECCOMP_FILTER
 	  task-defined system call filtering polices.
 
 	  See Documentation/userspace-api/seccomp_filter.rst for details.
+
+config HAVE_ARCH_STACKLEAK
+	bool
+	help
+	  An architecture should select this if it has the code which
+	  fills the used part of the kernel stack with the STACKLEAK_POISON
+	  value before returning from system calls.
 
 config HAVE_STACKPROTECTOR
 	bool

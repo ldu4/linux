@@ -271,7 +271,8 @@ static int pstore_show_options(struct seq_file *m, struct dentry *root)
 	return 0;
 }
 
-static int pstore_remount(struct super_block *sb, int *flags, char *data)
+static int pstore_remount(struct super_block *sb, int *flags,
+			  char *data, size_t data_size)
 {
 	sync_filesystem(sb);
 	parse_options(data);
@@ -432,7 +433,8 @@ void pstore_get_records(int quiet)
 	inode_unlock(d_inode(root));
 }
 
-static int pstore_fill_super(struct super_block *sb, void *data, int silent)
+static int pstore_fill_super(struct super_block *sb,
+			     void *data, size_t data_size, int silent)
 {
 	struct inode *inode;
 
@@ -464,9 +466,9 @@ static int pstore_fill_super(struct super_block *sb, void *data, int silent)
 }
 
 static struct dentry *pstore_mount(struct file_system_type *fs_type,
-	int flags, const char *dev_name, void *data)
+	int flags, const char *dev_name, void *data, size_t data_size)
 {
-	return mount_single(fs_type, flags, data, pstore_fill_super);
+	return mount_single(fs_type, flags, data, data_size, pstore_fill_super);
 }
 
 static void pstore_kill_sb(struct super_block *sb)
@@ -485,8 +487,6 @@ static struct file_system_type pstore_fs_type = {
 static int __init init_pstore_fs(void)
 {
 	int err;
-
-	pstore_choose_compression();
 
 	/* Create a convenient mount point for people to access pstore */
 	err = sysfs_create_mount_point(fs_kobj, "pstore");

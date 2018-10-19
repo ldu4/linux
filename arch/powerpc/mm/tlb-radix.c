@@ -366,6 +366,7 @@ static inline void _tlbiel_lpid_guest(unsigned long lpid, unsigned long ric)
 		__tlbiel_lpid_guest(lpid, set, RIC_FLUSH_TLB);
 
 	asm volatile("ptesync": : :"memory");
+	asm volatile(PPC_INVALIDATE_ERAT : : :"memory");
 }
 
 
@@ -829,6 +830,15 @@ void radix__flush_pwc_lpid(unsigned int lpid)
 	_tlbie_lpid(lpid, RIC_FLUSH_PWC);
 }
 EXPORT_SYMBOL_GPL(radix__flush_pwc_lpid);
+
+/*
+ * Flush partition scoped translations from LPID (=LPIDR)
+ */
+void radix__flush_tlb_lpid(unsigned int lpid)
+{
+	_tlbie_lpid(lpid, RIC_FLUSH_ALL);
+}
+EXPORT_SYMBOL_GPL(radix__flush_tlb_lpid);
 
 /*
  * Flush partition scoped translations from LPID (=LPIDR)
