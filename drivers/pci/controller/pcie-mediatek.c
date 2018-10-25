@@ -1142,6 +1142,29 @@ static int mtk_pcie_request_resources(struct mtk_pcie *pcie)
 
 	err = devm_pci_remap_iospace(dev, &pcie->pio, pcie->io.start);
 	if (err)
+<<<<<<< HEAD
+=======
+		return err;
+
+	return 0;
+}
+
+static int mtk_pcie_register_host(struct pci_host_bridge *host)
+{
+	struct mtk_pcie *pcie = pci_host_bridge_priv(host);
+	struct pci_bus *child;
+	int err;
+
+	host->busnr = pcie->busn.start;
+	host->dev.parent = pcie->dev;
+	host->ops = pcie->soc->ops;
+	host->map_irq = of_irq_parse_and_map_pci;
+	host->swizzle_irq = pci_common_swizzle;
+	host->sysdata = pcie;
+
+	err = pci_scan_root_bus_bridge(host);
+	if (err < 0)
+>>>>>>> linux-next/akpm-base
 		return err;
 
 	return 0;

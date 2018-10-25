@@ -529,6 +529,7 @@ static int pcm3168a_startup(struct snd_pcm_substream *substream,
 		break;
 	case PCM3168A_FMT_LEFT_J:
 		sample_min  = 24;
+<<<<<<< HEAD
 		if (tx)
 			channel_max = 8;
 		else
@@ -540,6 +541,13 @@ static int pcm3168a_startup(struct snd_pcm_substream *substream,
 			channel_max = 8;
 		else
 			channel_max = 6;
+=======
+		channel_max =  8;
+		break;
+	case PCM3168A_FMT_I2S:
+		sample_min  = 24;
+		channel_max =  8;
+>>>>>>> linux-next/akpm-base
 		break;
 	default:
 		sample_min  = 24;

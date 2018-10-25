@@ -6519,11 +6519,29 @@ static int rtl8169_poll(struct napi_struct *napi, int budget)
 {
 	struct rtl8169_private *tp = container_of(napi, struct rtl8169_private, napi);
 	struct net_device *dev = tp->dev;
+<<<<<<< HEAD
 	int work_done;
+=======
+	u16 enable_mask = RTL_EVENT_NAPI | tp->event_slow;
+	int work_done;
+	u16 status;
+
+	status = rtl_get_events(tp);
+	rtl_ack_events(tp, status & ~tp->event_slow);
+>>>>>>> linux-next/akpm-base
 
 	work_done = rtl_rx(dev, tp, (u32) budget);
 
 	rtl_tx(dev, tp);
+<<<<<<< HEAD
+=======
+
+	if (status & tp->event_slow) {
+		enable_mask &= ~tp->event_slow;
+
+		rtl_schedule_task(tp, RTL_FLAG_TASK_SLOW_PENDING);
+	}
+>>>>>>> linux-next/akpm-base
 
 	if (work_done < budget) {
 		napi_complete_done(napi, work_done);

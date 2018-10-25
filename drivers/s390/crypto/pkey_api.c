@@ -17,7 +17,10 @@
 #include <linux/kallsyms.h>
 #include <linux/debugfs.h>
 #include <linux/random.h>
+<<<<<<< HEAD
 #include <linux/cpufeature.h>
+=======
+>>>>>>> linux-next/akpm-base
 #include <asm/zcrypt.h>
 #include <asm/cpacf.h>
 #include <asm/pkey.h>
@@ -1685,7 +1688,11 @@ static struct miscdevice pkey_dev = {
  */
 static int __init pkey_init(void)
 {
+<<<<<<< HEAD
 	cpacf_mask_t kmc_functions;
+=======
+	cpacf_mask_t pckmo_functions, kmc_functions;
+>>>>>>> linux-next/akpm-base
 
 	/*
 	 * The pckmo instruction should be available - even if we don't
@@ -1694,6 +1701,14 @@ static int __init pkey_init(void)
 	 * are able to work with protected keys.
 	 */
 	if (!cpacf_query(CPACF_PCKMO, &pckmo_functions))
+		return -EOPNOTSUPP;
+
+	/* check for kmc instructions available */
+	if (!cpacf_query(CPACF_KMC, &kmc_functions))
+		return -EOPNOTSUPP;
+	if (!cpacf_test_func(&kmc_functions, CPACF_KMC_PAES_128) ||
+	    !cpacf_test_func(&kmc_functions, CPACF_KMC_PAES_192) ||
+	    !cpacf_test_func(&kmc_functions, CPACF_KMC_PAES_256))
 		return -EOPNOTSUPP;
 
 	/* check for kmc instructions available */

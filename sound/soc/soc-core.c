@@ -517,8 +517,12 @@ int snd_soc_suspend(struct device *dev)
 
 	/* suspend all COMPONENTs */
 	for_each_card_components(card, component) {
+<<<<<<< HEAD
 		struct snd_soc_dapm_context *dapm =
 				snd_soc_component_get_dapm(component);
+=======
+		struct snd_soc_dapm_context *dapm = snd_soc_component_get_dapm(component);
+>>>>>>> linux-next/akpm-base
 
 		/*
 		 * If there are paths active then the COMPONENT will be held
@@ -787,7 +791,11 @@ struct snd_soc_dai *snd_soc_find_dai(
 
 	lockdep_assert_held(&client_mutex);
 
+<<<<<<< HEAD
 	/* Find CPU DAI from registered DAIs */
+=======
+	/* Find CPU DAI from registered DAIs*/
+>>>>>>> linux-next/akpm-base
 	for_each_component(component) {
 		if (!snd_soc_is_matching_component(dlc, component))
 			continue;
@@ -2226,10 +2234,15 @@ int snd_soc_poweroff(struct device *dev)
 	if (!card->instantiated)
 		return 0;
 
+<<<<<<< HEAD
 	/*
 	 * Flush out pmdown_time work - we actually do want to run it
 	 * now, we're shutting down so no imminent restart.
 	 */
+=======
+	/* Flush out pmdown_time work - we actually do want to run it
+	 * now, we're shutting down so no imminent restart. */
+>>>>>>> linux-next/akpm-base
 	for_each_card_rtds(card, rtd)
 		flush_delayed_work(&rtd->delayed_work);
 
@@ -2707,7 +2720,11 @@ static int snd_soc_bind_card(struct snd_soc_card *card)
 		return ret;
 
 	/* deactivate pins to sleep state */
+<<<<<<< HEAD
 	for_each_card_rtds(card, rtd) {
+=======
+	for_each_card_rtds(card, rtd)  {
+>>>>>>> linux-next/akpm-base
 		struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 		struct snd_soc_dai *codec_dai;
 		int j;

@@ -109,7 +109,10 @@ struct inet_fill_args {
 	int event;
 	unsigned int flags;
 	int netnsid;
+<<<<<<< HEAD
 	int ifindex;
+=======
+>>>>>>> linux-next/akpm-base
 };
 
 #define IN4_ADDR_HSIZE_SHIFT	8
@@ -1664,9 +1667,14 @@ nla_put_failure:
 static int inet_valid_dump_ifaddr_req(const struct nlmsghdr *nlh,
 				      struct inet_fill_args *fillargs,
 				      struct net **tgt_net, struct sock *sk,
+<<<<<<< HEAD
 				      struct netlink_callback *cb)
 {
 	struct netlink_ext_ack *extack = cb->extack;
+=======
+				      struct netlink_ext_ack *extack)
+{
+>>>>>>> linux-next/akpm-base
 	struct nlattr *tb[IFA_MAX+1];
 	struct ifaddrmsg *ifm;
 	int err, i;
@@ -1681,11 +1689,17 @@ static int inet_valid_dump_ifaddr_req(const struct nlmsghdr *nlh,
 		NL_SET_ERR_MSG(extack, "ipv4: Invalid values in header for address dump request");
 		return -EINVAL;
 	}
+<<<<<<< HEAD
 
 	fillargs->ifindex = ifm->ifa_index;
 	if (fillargs->ifindex) {
 		cb->answer_flags |= NLM_F_DUMP_FILTERED;
 		fillargs->flags |= NLM_F_DUMP_FILTERED;
+=======
+	if (ifm->ifa_index) {
+		NL_SET_ERR_MSG(extack, "ipv4: Filter by device index not supported for address dump");
+		return -EINVAL;
+>>>>>>> linux-next/akpm-base
 	}
 
 	err = nlmsg_parse_strict(nlh, sizeof(*ifm), tb, IFA_MAX,
@@ -1717,6 +1731,7 @@ static int inet_valid_dump_ifaddr_req(const struct nlmsghdr *nlh,
 	return 0;
 }
 
+<<<<<<< HEAD
 static int in_dev_dump_addr(struct in_device *in_dev, struct sk_buff *skb,
 			    struct netlink_callback *cb, int s_ip_idx,
 			    struct inet_fill_args *fillargs)
@@ -1743,6 +1758,8 @@ done:
 	return err;
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 static int inet_dump_ifaddr(struct sk_buff *skb, struct netlink_callback *cb)
 {
 	const struct nlmsghdr *nlh = cb->nlh;
@@ -1787,6 +1804,15 @@ static int inet_dump_ifaddr(struct sk_buff *skb, struct netlink_callback *cb)
 		}
 	}
 
+	if (cb->strict_check) {
+		int err;
+
+		err = inet_valid_dump_ifaddr_req(nlh, &fillargs, &tgt_net,
+						 skb->sk, cb->extack);
+		if (err < 0)
+			return err;
+	}
+
 	for (h = s_h; h < NETDEV_HASHENTRIES; h++, s_idx = 0) {
 		idx = 0;
 		head = &tgt_net->dev_index_head[h];
@@ -1802,11 +1828,23 @@ static int inet_dump_ifaddr(struct sk_buff *skb, struct netlink_callback *cb)
 			if (!in_dev)
 				goto cont;
 
+<<<<<<< HEAD
 			err = in_dev_dump_addr(in_dev, skb, cb, s_ip_idx,
 					       &fillargs);
 			if (err < 0) {
 				rcu_read_unlock();
 				goto done;
+=======
+			for (ifa = in_dev->ifa_list, ip_idx = 0; ifa;
+			     ifa = ifa->ifa_next, ip_idx++) {
+				if (ip_idx < s_ip_idx)
+					continue;
+				if (inet_fill_ifaddr(skb, ifa, &fillargs) < 0) {
+					rcu_read_unlock();
+					goto done;
+				}
+				nl_dump_check_consistent(cb, nlmsg_hdr(skb));
+>>>>>>> linux-next/akpm-base
 			}
 cont:
 			idx++;
@@ -1817,7 +1855,11 @@ cont:
 done:
 	cb->args[0] = h;
 	cb->args[1] = idx;
+<<<<<<< HEAD
 put_tgt_net:
+=======
+	cb->args[2] = ip_idx;
+>>>>>>> linux-next/akpm-base
 	if (fillargs.netnsid >= 0)
 		put_net(tgt_net);
 

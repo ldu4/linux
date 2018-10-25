@@ -14,6 +14,7 @@
 #include "rvu_struct.h"
 #include "rvu_reg.h"
 #include "rvu.h"
+<<<<<<< HEAD
 #include "npc.h"
 #include "cgx.h"
 
@@ -86,6 +87,10 @@ static u16 nix_alloc_mce_list(struct nix_mcast *mcast, int count)
 	return idx;
 }
 
+=======
+#include "cgx.h"
+
+>>>>>>> linux-next/akpm-base
 static inline struct nix_hw *get_nix_hw(struct rvu_hwinfo *hw, int blkaddr)
 {
 	if (blkaddr == BLKADDR_NIX0 && hw->nix0)
@@ -118,6 +123,7 @@ static bool is_valid_txschq(struct rvu *rvu, int blkaddr,
 	return true;
 }
 
+<<<<<<< HEAD
 static int nix_interface_init(struct rvu *rvu, u16 pcifunc, int type, int nixlf)
 {
 	struct rvu_pfvf *pfvf = rvu_get_pfvf(rvu, pcifunc);
@@ -188,6 +194,8 @@ static void nix_interface_deinit(struct rvu *rvu, u16 pcifunc, u8 nixlf)
 	rvu_npc_disable_mcam_entries(rvu, pcifunc, nixlf);
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 static void nix_setup_lso_tso_l3(struct rvu *rvu, int blkaddr,
 				 u64 format, bool v4, u64 *fidx)
 {
@@ -425,6 +433,7 @@ static int rvu_nix_aq_enq_inst(struct rvu *rvu, struct nix_aq_enq_req *req,
 		    (req->qidx >= (256UL << (cfg & 0xF))))
 			rc = NIX_AF_ERR_AQ_ENQUEUE;
 		break;
+<<<<<<< HEAD
 	case NIX_AQ_CTYPE_MCE:
 		cfg = rvu_read64(rvu, blkaddr, NIX_AF_RX_MCAST_CFG);
 		/* Check if index exceeds MCE list length */
@@ -438,6 +447,8 @@ static int rvu_nix_aq_enq_inst(struct rvu *rvu, struct nix_aq_enq_req *req,
 		if (rsp)
 			rc = NIX_AF_ERR_AQ_ENQUEUE;
 		break;
+=======
+>>>>>>> linux-next/akpm-base
 	default:
 		rc = NIX_AF_ERR_AQ_ENQUEUE;
 	}
@@ -484,9 +495,12 @@ static int rvu_nix_aq_enq_inst(struct rvu *rvu, struct nix_aq_enq_req *req,
 		else if (req->ctype == NIX_AQ_CTYPE_RSS)
 			memcpy(mask, &req->rss_mask,
 			       sizeof(struct nix_rsse_s));
+<<<<<<< HEAD
 		else if (req->ctype == NIX_AQ_CTYPE_MCE)
 			memcpy(mask, &req->mce_mask,
 			       sizeof(struct nix_rx_mce_s));
+=======
+>>>>>>> linux-next/akpm-base
 		/* Fall through */
 	case NIX_AQ_INSTOP_INIT:
 		if (req->ctype == NIX_AQ_CTYPE_RQ)
@@ -497,8 +511,11 @@ static int rvu_nix_aq_enq_inst(struct rvu *rvu, struct nix_aq_enq_req *req,
 			memcpy(ctx, &req->cq, sizeof(struct nix_cq_ctx_s));
 		else if (req->ctype == NIX_AQ_CTYPE_RSS)
 			memcpy(ctx, &req->rss, sizeof(struct nix_rsse_s));
+<<<<<<< HEAD
 		else if (req->ctype == NIX_AQ_CTYPE_MCE)
 			memcpy(ctx, &req->mce, sizeof(struct nix_rx_mce_s));
+=======
+>>>>>>> linux-next/akpm-base
 		break;
 	case NIX_AQ_INSTOP_NOP:
 	case NIX_AQ_INSTOP_READ:
@@ -574,9 +591,12 @@ static int rvu_nix_aq_enq_inst(struct rvu *rvu, struct nix_aq_enq_req *req,
 			else if (req->ctype == NIX_AQ_CTYPE_RSS)
 				memcpy(&rsp->rss, ctx,
 				       sizeof(struct nix_cq_ctx_s));
+<<<<<<< HEAD
 			else if (req->ctype == NIX_AQ_CTYPE_MCE)
 				memcpy(&rsp->mce, ctx,
 				       sizeof(struct nix_rx_mce_s));
+=======
+>>>>>>> linux-next/akpm-base
 		}
 	}
 
@@ -800,10 +820,13 @@ int rvu_mbox_handler_NIX_LF_ALLOC(struct rvu *rvu,
 	/* Config Rx pkt length, csum checks and apad  enable / disable */
 	rvu_write64(rvu, blkaddr, NIX_AF_LFX_RX_CFG(nixlf), req->rx_cfg);
 
+<<<<<<< HEAD
 	err = nix_interface_init(rvu, pcifunc, NIX_INTF_TYPE_CGX, nixlf);
 	if (err)
 		goto free_mem;
 
+=======
+>>>>>>> linux-next/akpm-base
 	goto exit;
 
 free_mem:
@@ -817,10 +840,13 @@ exit:
 	/* set SQB size info */
 	cfg = rvu_read64(rvu, blkaddr, NIX_AF_SQ_CONST);
 	rsp->sqb_size = (cfg >> 34) & 0xFFFF;
+<<<<<<< HEAD
 	rsp->rx_chan_base = pfvf->rx_chan_base;
 	rsp->tx_chan_base = pfvf->tx_chan_base;
 	rsp->rx_chan_cnt = pfvf->rx_chan_cnt;
 	rsp->tx_chan_cnt = pfvf->tx_chan_cnt;
+=======
+>>>>>>> linux-next/akpm-base
 	rsp->lso_tsov4_idx = NIX_LSO_FORMAT_IDX_TSOV4;
 	rsp->lso_tsov6_idx = NIX_LSO_FORMAT_IDX_TSOV6;
 	return rc;
@@ -845,8 +871,11 @@ int rvu_mbox_handler_NIX_LF_FREE(struct rvu *rvu, struct msg_req *req,
 	if (nixlf < 0)
 		return NIX_AF_ERR_AF_LF_INVALID;
 
+<<<<<<< HEAD
 	nix_interface_deinit(rvu, pcifunc, nixlf);
 
+=======
+>>>>>>> linux-next/akpm-base
 	/* Reset this NIX LF */
 	err = rvu_lf_reset(rvu, block, nixlf);
 	if (err) {
@@ -860,6 +889,7 @@ int rvu_mbox_handler_NIX_LF_FREE(struct rvu *rvu, struct msg_req *req,
 	return 0;
 }
 
+<<<<<<< HEAD
 /* Disable shaping of pkts by a scheduler queue
  * at a given scheduler level.
  */
@@ -1460,6 +1490,8 @@ static int nix_setup_mcast(struct rvu *rvu, struct nix_hw *nix_hw, int blkaddr)
 	return nix_setup_bcast_tables(rvu, nix_hw);
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 static int nix_setup_txschq(struct rvu *rvu, struct nix_hw *nix_hw, int blkaddr)
 {
 	struct nix_txsch *txsch;
@@ -1506,6 +1538,7 @@ static int nix_setup_txschq(struct rvu *rvu, struct nix_hw *nix_hw, int blkaddr)
 	return 0;
 }
 
+<<<<<<< HEAD
 int rvu_mbox_handler_NIX_STATS_RST(struct rvu *rvu, struct msg_req *req,
 				   struct msg_rsp *rsp)
 {
@@ -1778,6 +1811,8 @@ int rvu_mbox_handler_NIX_SET_RX_MODE(struct rvu *rvu, struct nix_rx_mode *req,
 	return 0;
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 static int nix_calibrate_x2p(struct rvu *rvu, int blkaddr)
 {
 	int idx, err;
@@ -1903,6 +1938,7 @@ int rvu_nix_init(struct rvu *rvu)
 		err = nix_setup_txschq(rvu, hw->nix0, blkaddr);
 		if (err)
 			return err;
+<<<<<<< HEAD
 
 		err = nix_setup_mcast(rvu, hw->nix0, blkaddr);
 		if (err)
@@ -1922,6 +1958,8 @@ int rvu_nix_init(struct rvu *rvu)
 			    (NPC_LID_LC << 8) | (NPC_LT_LC_IP << 4) | 0x0F);
 
 		nix_rx_flowkey_alg_cfg(rvu, blkaddr);
+=======
+>>>>>>> linux-next/akpm-base
 	}
 	return 0;
 }
@@ -1931,7 +1969,10 @@ void rvu_nix_freemem(struct rvu *rvu)
 	struct rvu_hwinfo *hw = rvu->hw;
 	struct rvu_block *block;
 	struct nix_txsch *txsch;
+<<<<<<< HEAD
 	struct nix_mcast *mcast;
+=======
+>>>>>>> linux-next/akpm-base
 	struct nix_hw *nix_hw;
 	int blkaddr, lvl;
 
@@ -1951,9 +1992,12 @@ void rvu_nix_freemem(struct rvu *rvu)
 			txsch = &nix_hw->txsch[lvl];
 			kfree(txsch->schq.bmap);
 		}
+<<<<<<< HEAD
 
 		mcast = &nix_hw->mcast;
 		qmem_free(rvu->dev, mcast->mce_ctx);
 		qmem_free(rvu->dev, mcast->mcast_buf);
+=======
+>>>>>>> linux-next/akpm-base
 	}
 }

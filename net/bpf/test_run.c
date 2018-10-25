@@ -117,7 +117,11 @@ int bpf_prog_test_run_skb(struct bpf_prog *prog, const union bpf_attr *kattr,
 	u32 retval, duration;
 	int hh_len = ETH_HLEN;
 	struct sk_buff *skb;
+<<<<<<< HEAD
 	struct sock *sk;
+=======
+	struct sock sk = {0};
+>>>>>>> linux-next/akpm-base
 	void *data;
 	int ret;
 
@@ -140,6 +144,7 @@ int bpf_prog_test_run_skb(struct bpf_prog *prog, const union bpf_attr *kattr,
 		break;
 	}
 
+<<<<<<< HEAD
 	sk = kzalloc(sizeof(struct sock), GFP_USER);
 	if (!sk) {
 		kfree(data);
@@ -147,6 +152,10 @@ int bpf_prog_test_run_skb(struct bpf_prog *prog, const union bpf_attr *kattr,
 	}
 	sock_net_set(sk, current->nsproxy->net_ns);
 	sock_init_data(NULL, sk);
+=======
+	sock_net_set(&sk, &init_net);
+	sock_init_data(NULL, &sk);
+>>>>>>> linux-next/akpm-base
 
 	skb = build_skb(data, 0);
 	if (!skb) {
@@ -154,7 +163,11 @@ int bpf_prog_test_run_skb(struct bpf_prog *prog, const union bpf_attr *kattr,
 		kfree(sk);
 		return -ENOMEM;
 	}
+<<<<<<< HEAD
 	skb->sk = sk;
+=======
+	skb->sk = &sk;
+>>>>>>> linux-next/akpm-base
 
 	skb_reserve(skb, NET_SKB_PAD + NET_IP_ALIGN);
 	__skb_put(skb, size);

@@ -1735,6 +1735,7 @@ static void test_reference_tracking()
 	bpf_object__close(obj);
 }
 
+<<<<<<< HEAD
 enum {
 	QUEUE,
 	STACK,
@@ -1830,6 +1831,8 @@ out:
 	bpf_object__close(obj);
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 int main(void)
 {
 	srand(time(NULL));
@@ -1854,8 +1857,11 @@ int main(void)
 	test_task_fd_query_rawtp();
 	test_task_fd_query_tp();
 	test_reference_tracking();
+<<<<<<< HEAD
 	test_queue_stack_map(QUEUE);
 	test_queue_stack_map(STACK);
+=======
+>>>>>>> linux-next/akpm-base
 
 	printf("Summary: %d PASSED, %d FAILED\n", pass_cnt, error_cnt);
 	return error_cnt ? EXIT_FAILURE : EXIT_SUCCESS;

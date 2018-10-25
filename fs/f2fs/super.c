@@ -1500,7 +1500,12 @@ static void f2fs_enable_checkpoint(struct f2fs_sb_info *sbi)
 	f2fs_sync_fs(sbi->sb, 1);
 }
 
+<<<<<<< HEAD
 static int f2fs_remount(struct super_block *sb, int *flags, char *data)
+=======
+static int f2fs_remount(struct super_block *sb, int *flags,
+			char *data, size_t data_size)
+>>>>>>> linux-next/akpm-base
 {
 	struct f2fs_sb_info *sbi = F2FS_SB(sb);
 	struct f2fs_mount_info org_mount_opt;
@@ -2020,7 +2025,11 @@ void f2fs_quota_off_umount(struct super_block *sb)
 				"Fail to turn off disk quota "
 				"(type: %d, err: %d, ret:%d), Please "
 				"run fsck to fix it.", type, err, ret);
+<<<<<<< HEAD
 			set_sbi_flag(F2FS_SB(sb), SBI_QUOTA_NEED_REPAIR);
+=======
+			set_sbi_flag(F2FS_SB(sb), SBI_NEED_FSCK);
+>>>>>>> linux-next/akpm-base
 		}
 	}
 }
@@ -2029,6 +2038,7 @@ static void f2fs_truncate_quota_inode_pages(struct super_block *sb)
 {
 	struct quota_info *dqopt = sb_dqopt(sb);
 	int type;
+<<<<<<< HEAD
 
 	for (type = 0; type < MAXQUOTAS; type++) {
 		if (!dqopt->files[type])
@@ -2091,7 +2101,16 @@ static int f2fs_dquot_commit_info(struct super_block *sb, int type)
 	if (ret < 0)
 		set_sbi_flag(F2FS_SB(sb), SBI_QUOTA_NEED_REPAIR);
 	return ret;
+=======
+
+	for (type = 0; type < MAXQUOTAS; type++) {
+		if (!dqopt->files[type])
+			continue;
+		f2fs_inode_synced(dqopt->files[type]);
+	}
+>>>>>>> linux-next/akpm-base
 }
+
 
 static int f2fs_get_projid(struct inode *inode, kprojid_t *projid)
 {
@@ -3016,7 +3035,8 @@ static void f2fs_tuning_parameters(struct f2fs_sb_info *sbi)
 	sbi->readdir_ra = 1;
 }
 
-static int f2fs_fill_super(struct super_block *sb, void *data, int silent)
+static int f2fs_fill_super(struct super_block *sb, void *data, size_t data_size,
+			   int silent)
 {
 	struct f2fs_sb_info *sbi;
 	struct f2fs_super_block *raw_super;
@@ -3452,9 +3472,10 @@ free_sbi:
 }
 
 static struct dentry *f2fs_mount(struct file_system_type *fs_type, int flags,
-			const char *dev_name, void *data)
+			const char *dev_name, void *data, size_t data_size)
 {
-	return mount_bdev(fs_type, flags, dev_name, data, f2fs_fill_super);
+	return mount_bdev(fs_type, flags, dev_name, data, data_size,
+			  f2fs_fill_super);
 }
 
 static void kill_f2fs_super(struct super_block *sb)

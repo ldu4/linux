@@ -3341,10 +3341,17 @@ int xdp_do_redirect(struct net_device *dev, struct xdp_buff *xdp,
 {
 	struct bpf_redirect_info *ri = this_cpu_ptr(&bpf_redirect_info);
 	struct bpf_map *map = READ_ONCE(ri->map);
+<<<<<<< HEAD
 
 	if (likely(map))
 		return xdp_do_redirect_map(dev, xdp, xdp_prog, map, ri);
 
+=======
+
+	if (likely(map))
+		return xdp_do_redirect_map(dev, xdp, xdp_prog, map, ri);
+
+>>>>>>> linux-next/akpm-base
 	return xdp_do_redirect_slow(dev, xdp, xdp_prog, ri);
 }
 EXPORT_SYMBOL_GPL(xdp_do_redirect);

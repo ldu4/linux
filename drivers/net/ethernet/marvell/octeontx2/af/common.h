@@ -143,6 +143,7 @@ enum nix_scheduler {
 	NIX_TXSCH_LVL_CNT = 0x5,
 };
 
+<<<<<<< HEAD
 /* NIX RX action operation*/
 #define NIX_RX_ACTIONOP_DROP		(0x0ull)
 #define NIX_RX_ACTIONOP_UCAST		(0x1ull)
@@ -171,6 +172,8 @@ enum nix_scheduler {
 #define NIX_LINK_CGX_LMAC(a, b)		(0 + 4 * (a) + (b))
 #define NIX_CHAN_CGX_LMAC_CHX(a, b, c)	(0x800 + 0x100 * (a) + 0x10 * (b) + (c))
 
+=======
+>>>>>>> linux-next/akpm-base
 /* NIX LSO format indices.
  * As of now TSO is the only one using, so statically assigning indices.
  */
@@ -186,6 +189,7 @@ enum nix_scheduler {
 #define DEFAULT_RSS_CONTEXT_GROUP	0
 #define MAX_RSS_INDIR_TBL_SIZE		256 /* 1 << Max adder bits */
 
+<<<<<<< HEAD
 /* NIX flow tag, key type flags */
 #define FLOW_KEY_TYPE_PORT	BIT(0)
 #define FLOW_KEY_TYPE_IPV4	BIT(1)
@@ -208,4 +212,6 @@ enum {
 	FLOW_KEY_ALG_MAX,
 };
 
+=======
+>>>>>>> linux-next/akpm-base
 #endif /* COMMON_H */

@@ -117,7 +117,10 @@ struct f2fs_super_block {
  * For checkpoint
  */
 #define CP_DISABLED_FLAG		0x00001000
+<<<<<<< HEAD
 #define CP_QUOTA_NEED_FSCK_FLAG		0x00000800
+=======
+>>>>>>> linux-next/akpm-base
 #define CP_LARGE_NAT_BITMAP_FLAG	0x00000400
 #define CP_NOCRC_RECOVERY_FLAG	0x00000200
 #define CP_TRIMMED_FLAG		0x00000100

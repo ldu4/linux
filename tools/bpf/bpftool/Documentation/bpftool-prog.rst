@@ -105,6 +105,14 @@ DESCRIPTION
                   Detach bpf program *PROG* (with type specified by *ATTACH_TYPE*)
                   from the map *MAP*.
 
+        **bpftool prog attach** *PROG* *ATTACH_TYPE* *MAP*
+                  Attach bpf program *PROG* (with type specified by *ATTACH_TYPE*)
+                  to the map *MAP*.
+
+        **bpftool prog detach** *PROG* *ATTACH_TYPE* *MAP*
+                  Detach bpf program *PROG* (with type specified by *ATTACH_TYPE*)
+                  from the map *MAP*.
+
 	**bpftool prog help**
 		  Print short help message.
 

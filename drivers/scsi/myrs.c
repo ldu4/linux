@@ -1366,11 +1366,19 @@ static ssize_t processor_show(struct device *dev,
 			       first_processor, info->cpu[0].cpu_count,
 			       info->cpu[1].cpu_name,
 			       second_processor, info->cpu[1].cpu_count);
+<<<<<<< HEAD
 	else if (first_processor && !second_processor)
 		ret = snprintf(buf, 64, "1: %s (%s, %d cpus)\n2: absent\n",
 			       info->cpu[0].cpu_name,
 			       first_processor, info->cpu[0].cpu_count);
 	else if (!first_processor && second_processor)
+=======
+	else if (!second_processor)
+		ret = snprintf(buf, 64, "1: %s (%s, %d cpus)\n2: absent\n",
+			       info->cpu[0].cpu_name,
+			       first_processor, info->cpu[0].cpu_count);
+	else if (!first_processor)
+>>>>>>> linux-next/akpm-base
 		ret = snprintf(buf, 64, "1: absent\n2: %s (%s, %d cpus)\n",
 			       info->cpu[1].cpu_name,
 			       second_processor, info->cpu[1].cpu_count);
@@ -1978,8 +1986,12 @@ myrs_get_resync(struct device *dev)
 	struct scsi_device *sdev = to_scsi_device(dev);
 	struct myrs_hba *cs = shost_priv(sdev->host);
 	struct myrs_ldev_info *ldev_info = sdev->hostdata;
+<<<<<<< HEAD
 	u64 percent_complete = 0;
 	u8 status;
+=======
+	u8 percent_complete = 0, status;
+>>>>>>> linux-next/akpm-base
 
 	if (sdev->channel < cs->ctlr_info->physchan_present || !ldev_info)
 		return;
@@ -1987,8 +1999,13 @@ myrs_get_resync(struct device *dev)
 		unsigned short ldev_num = ldev_info->ldev_num;
 
 		status = myrs_get_ldev_info(cs, ldev_num, ldev_info);
+<<<<<<< HEAD
 		percent_complete = ldev_info->rbld_lba * 100;
 		do_div(percent_complete, ldev_info->cfg_devsize);
+=======
+		percent_complete = ldev_info->rbld_lba * 100 /
+			ldev_info->cfg_devsize;
+>>>>>>> linux-next/akpm-base
 	}
 	raid_set_resync(myrs_raid_template, dev, percent_complete);
 }
@@ -2086,7 +2103,11 @@ static void myrs_handle_scsi(struct myrs_hba *cs, struct myrs_cmdblk *cmd_blk,
 	    status == MYRS_STATUS_DEVICE_NON_RESPONSIVE2)
 		scmd->result = (DID_BAD_TARGET << 16);
 	else
+<<<<<<< HEAD
 		scmd->result = (DID_OK << 16) | status;
+=======
+		scmd->result = (DID_OK << 16) || status;
+>>>>>>> linux-next/akpm-base
 	scmd->scsi_done(scmd);
 }
 

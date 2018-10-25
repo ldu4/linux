@@ -3554,7 +3554,33 @@ request_failed:
 			w->name, ret);
 
 	return ERR_PTR(ret);
+<<<<<<< HEAD
 }
+
+/**
+ * snd_soc_dapm_new_control - create new dapm control
+ * @dapm: DAPM context
+ * @widget: widget template
+ *
+ * Creates new DAPM control based upon a template.
+ *
+ * Returns a widget pointer on success or an error pointer on failure
+ */
+struct snd_soc_dapm_widget *
+snd_soc_dapm_new_control(struct snd_soc_dapm_context *dapm,
+			 const struct snd_soc_dapm_widget *widget)
+{
+	struct snd_soc_dapm_widget *w;
+
+	mutex_lock_nested(&dapm->card->dapm_mutex, SND_SOC_DAPM_CLASS_RUNTIME);
+	w = snd_soc_dapm_new_control_unlocked(dapm, widget);
+	mutex_unlock(&dapm->card->dapm_mutex);
+
+	return w;
+=======
+>>>>>>> linux-next/akpm-base
+}
+EXPORT_SYMBOL_GPL(snd_soc_dapm_new_control);
 
 /**
  * snd_soc_dapm_new_control - create new dapm control
@@ -3736,6 +3762,7 @@ static int snd_soc_dai_link_event(struct snd_soc_dapm_widget *w,
 					 "ASoC: Failed to mute: %d\n", ret);
 			ret = 0;
 		}
+<<<<<<< HEAD
 
 		substream.stream = SNDRV_PCM_STREAM_CAPTURE;
 		snd_soc_dapm_widget_for_each_source_path(w, path) {
@@ -3761,6 +3788,28 @@ static int snd_soc_dai_link_event(struct snd_soc_dapm_widget *w,
 			sink->active--;
 			if (sink->driver->ops->shutdown)
 				sink->driver->ops->shutdown(&substream, sink);
+=======
+
+		snd_soc_dapm_widget_for_each_source_path(w, path) {
+			source = path->source->priv;
+
+			source->active--;
+			if (source->driver->ops->shutdown) {
+				substream.stream = SNDRV_PCM_STREAM_CAPTURE;
+				source->driver->ops->shutdown(&substream,
+							      source);
+			}
+		}
+
+		snd_soc_dapm_widget_for_each_sink_path(w, path) {
+			sink = path->sink->priv;
+
+			sink->active--;
+			if (sink->driver->ops->shutdown) {
+				substream.stream = SNDRV_PCM_STREAM_PLAYBACK;
+				sink->driver->ops->shutdown(&substream, sink);
+			}
+>>>>>>> linux-next/akpm-base
 		}
 		break;
 

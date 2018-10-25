@@ -2684,8 +2684,11 @@ static int f2fs_ioc_setproject(struct file *filp, __u32 projid)
 	F2FS_I(inode)->i_projid = kprojid;
 	inode->i_ctime = current_time(inode);
 	f2fs_mark_inode_dirty_sync(inode, true);
+<<<<<<< HEAD
 out_unlock:
 	f2fs_unlock_op(sbi);
+=======
+>>>>>>> linux-next/akpm-base
 	return err;
 }
 #else

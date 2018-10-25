@@ -129,8 +129,11 @@ enum bpf_map_type {
 	BPF_MAP_TYPE_CGROUP_STORAGE,
 	BPF_MAP_TYPE_REUSEPORT_SOCKARRAY,
 	BPF_MAP_TYPE_PERCPU_CGROUP_STORAGE,
+<<<<<<< HEAD
 	BPF_MAP_TYPE_QUEUE,
 	BPF_MAP_TYPE_STACK,
+=======
+>>>>>>> linux-next/akpm-base
 };
 
 enum bpf_prog_type {
@@ -2240,6 +2243,7 @@ union bpf_attr {
  *		pointer that was returned from bpf_sk_lookup_xxx\ ().
  *	Return
  *		0 on success, or a negative error in case of failure.
+<<<<<<< HEAD
  *
  * int bpf_msg_push_data(struct sk_buff *skb, u32 start, u32 len, u64 flags)
  *	Description
@@ -2257,6 +2261,8 @@ union bpf_attr {
  *
  *	Return
  *		0 on success, or a negative error in case of failure.
+=======
+>>>>>>> linux-next/akpm-base
  */
 #define __BPF_FUNC_MAPPER(FN)		\
 	FN(unspec),			\
@@ -2345,11 +2351,15 @@ union bpf_attr {
 	FN(skb_ancestor_cgroup_id),	\
 	FN(sk_lookup_tcp),		\
 	FN(sk_lookup_udp),		\
+<<<<<<< HEAD
 	FN(sk_release),			\
 	FN(map_push_elem),		\
 	FN(map_pop_elem),		\
 	FN(map_peek_elem),		\
 	FN(msg_push_data),
+=======
+	FN(sk_release),
+>>>>>>> linux-next/akpm-base
 
 /* integer value in 'imm' field of BPF_CALL instruction selects which helper
  * function eBPF program intends to call

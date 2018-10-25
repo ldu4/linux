@@ -1900,9 +1900,12 @@ int qed_mcp_get_transceiver_data(struct qed_hwfn *p_hwfn,
 {
 	u32 transceiver_info;
 
+<<<<<<< HEAD
 	*p_transceiver_type = ETH_TRANSCEIVER_TYPE_NONE;
 	*p_transceiver_state = ETH_TRANSCEIVER_STATE_UPDATING;
 
+=======
+>>>>>>> linux-next/akpm-base
 	if (IS_VF(p_hwfn->cdev))
 		return -EINVAL;
 
@@ -1911,11 +1914,22 @@ int qed_mcp_get_transceiver_data(struct qed_hwfn *p_hwfn,
 		return -EBUSY;
 	}
 
+<<<<<<< HEAD
 	transceiver_info = qed_rd(p_hwfn, p_ptt,
 				  p_hwfn->mcp_info->port_addr +
 				  offsetof(struct public_port,
 					   transceiver_data));
 
+=======
+	*p_transceiver_type = ETH_TRANSCEIVER_TYPE_NONE;
+	*p_transceiver_state = ETH_TRANSCEIVER_STATE_UPDATING;
+
+	transceiver_info = qed_rd(p_hwfn, p_ptt,
+				  p_hwfn->mcp_info->port_addr +
+				  offsetof(struct public_port,
+					   transceiver_data));
+
+>>>>>>> linux-next/akpm-base
 	*p_transceiver_state = (transceiver_info &
 				ETH_TRANSCEIVER_STATE_MASK) >>
 				ETH_TRANSCEIVER_STATE_OFFSET;
@@ -2035,7 +2049,11 @@ int qed_mcp_trans_speed_mask(struct qed_hwfn *p_hwfn,
 		    NVM_CFG1_PORT_DRV_SPEED_CAPABILITY_MASK_1G;
 		break;
 	default:
+<<<<<<< HEAD
 		DP_INFO(p_hwfn, "Unknown transceiver type 0x%x\n",
+=======
+		DP_INFO(p_hwfn, "Unknown transcevier type 0x%x\n",
+>>>>>>> linux-next/akpm-base
 			transceiver_type);
 		*p_speed_mask = 0xff;
 		break;

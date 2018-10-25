@@ -15,7 +15,10 @@
 #include <linux/sizes.h>
 
 #include "rvu_struct.h"
+<<<<<<< HEAD
 #include "common.h"
+=======
+>>>>>>> linux-next/akpm-base
 
 #define MBOX_SIZE		SZ_64K
 
@@ -152,6 +155,7 @@ M(NPA_HWCTX_DISABLE,	0x403, hwctx_disable_req, msg_rsp)		\
 M(NIX_LF_ALLOC,		0x8000, nix_lf_alloc_req, nix_lf_alloc_rsp)	\
 M(NIX_LF_FREE,		0x8001, msg_req, msg_rsp)			\
 M(NIX_AQ_ENQ,		0x8002, nix_aq_enq_req, nix_aq_enq_rsp)		\
+<<<<<<< HEAD
 M(NIX_HWCTX_DISABLE,	0x8003, hwctx_disable_req, msg_rsp)		\
 M(NIX_TXSCH_ALLOC,	0x8004, nix_txsch_alloc_req, nix_txsch_alloc_rsp) \
 M(NIX_TXSCH_FREE,	0x8005, nix_txsch_free_req, msg_rsp)		\
@@ -161,6 +165,9 @@ M(NIX_VTAG_CFG,	0x8008, nix_vtag_config, msg_rsp)		\
 M(NIX_RSS_FLOWKEY_CFG,  0x8009, nix_rss_flowkey_cfg, msg_rsp)		\
 M(NIX_SET_MAC_ADDR,	0x800a, nix_set_mac_addr, msg_rsp)		\
 M(NIX_SET_RX_MODE,	0x800b, nix_rx_mode, msg_rsp)
+=======
+M(NIX_HWCTX_DISABLE,	0x8003, hwctx_disable_req, msg_rsp)
+>>>>>>> linux-next/akpm-base
 
 /* Messages initiated by AF (range 0xC00 - 0xDFF) */
 #define MBOX_UP_CGX_MESSAGES						\
@@ -385,10 +392,13 @@ struct nix_lf_alloc_req {
 struct nix_lf_alloc_rsp {
 	struct mbox_msghdr hdr;
 	u16	sqb_size;
+<<<<<<< HEAD
 	u16	rx_chan_base;
 	u16	tx_chan_base;
 	u8      rx_chan_cnt; /* total number of RX channels */
 	u8      tx_chan_cnt; /* total number of TX channels */
+=======
+>>>>>>> linux-next/akpm-base
 	u8	lso_tsov4_idx;
 	u8	lso_tsov6_idx;
 	u8      mac_addr[ETH_ALEN];
@@ -427,6 +437,7 @@ struct nix_aq_enq_rsp {
 	};
 };
 
+<<<<<<< HEAD
 /* Tx scheduler/shaper mailbox messages */
 
 #define MAX_TXSCHQ_PER_FUNC		128
@@ -522,4 +533,6 @@ struct nix_rx_mode {
 	u16	mode;
 };
 
+=======
+>>>>>>> linux-next/akpm-base
 #endif /* MBOX_H */

@@ -22,6 +22,15 @@
 #include <asm/vvar.h>
 
 #ifdef	CONFIG_SPARC64
+<<<<<<< HEAD
+=======
+#define	TICK_PRIV_BIT	(1UL << 63)
+#else
+#define	TICK_PRIV_BIT	(1ULL << 63)
+#endif
+
+#ifdef	CONFIG_SPARC64
+>>>>>>> linux-next/akpm-base
 #define SYSCALL_STRING							\
 	"ta	0x6d;"							\
 	"bcs,a	1f;"							\

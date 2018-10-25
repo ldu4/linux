@@ -27,7 +27,10 @@
 #include <linux/list.h>
 #include <linux/limits.h>
 #include <linux/perf_event.h>
+<<<<<<< HEAD
 #include <linux/ring_buffer.h>
+=======
+>>>>>>> linux-next/akpm-base
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
@@ -2086,6 +2089,7 @@ void bpf_program__set_expected_attach_type(struct bpf_program *prog,
 
 #define BPF_PROG_SEC_IMPL(string, ptype, eatype, atype) \
 	{ string, sizeof(string) - 1, ptype, eatype, atype }
+<<<<<<< HEAD
 
 /* Programs that can NOT be attached. */
 #define BPF_PROG_SEC(string, ptype) BPF_PROG_SEC_IMPL(string, ptype, 0, -EINVAL)
@@ -2098,6 +2102,20 @@ void bpf_program__set_expected_attach_type(struct bpf_program *prog,
 #define BPF_EAPROG_SEC(string, ptype, eatype) \
 	BPF_PROG_SEC_IMPL(string, ptype, eatype, eatype)
 
+=======
+
+/* Programs that can NOT be attached. */
+#define BPF_PROG_SEC(string, ptype) BPF_PROG_SEC_IMPL(string, ptype, 0, -EINVAL)
+
+/* Programs that can be attached. */
+#define BPF_APROG_SEC(string, ptype, atype) \
+	BPF_PROG_SEC_IMPL(string, ptype, 0, atype)
+
+/* Programs that must specify expected attach type at load time. */
+#define BPF_EAPROG_SEC(string, ptype, eatype) \
+	BPF_PROG_SEC_IMPL(string, ptype, eatype, eatype)
+
+>>>>>>> linux-next/akpm-base
 /* Programs that can be attached but attach type can't be identified by section
  * name. Kept for backward compatibility.
  */

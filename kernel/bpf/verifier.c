@@ -516,6 +516,7 @@ REALLOC_STATE_FN(stack, allocated_stack, stack, BPF_REG_SIZE)
  * Note there is a non-zero 'parent' pointer inside bpf_verifier_state
  * which realloc_stack_state() copies over. It points to previous
  * bpf_verifier_state which is never reallocated.
+<<<<<<< HEAD
  */
 static int realloc_func_state(struct bpf_func_state *state, int stack_size,
 			      int refs_size, bool copy_old)
@@ -555,6 +556,47 @@ static int __release_reference_state(struct bpf_func_state *state, int ptr_id)
 	if (!ptr_id)
 		return -EFAULT;
 
+=======
+ */
+static int realloc_func_state(struct bpf_func_state *state, int stack_size,
+			      int refs_size, bool copy_old)
+{
+	int err = realloc_reference_state(state, refs_size, copy_old);
+	if (err)
+		return err;
+	return realloc_stack_state(state, stack_size, copy_old);
+}
+
+/* Acquire a pointer id from the env and update the state->refs to include
+ * this new pointer reference.
+ * On success, returns a valid pointer id to associate with the register
+ * On failure, returns a negative errno.
+ */
+static int acquire_reference_state(struct bpf_verifier_env *env, int insn_idx)
+{
+	struct bpf_func_state *state = cur_func(env);
+	int new_ofs = state->acquired_refs;
+	int id, err;
+
+	err = realloc_reference_state(state, state->acquired_refs + 1, true);
+	if (err)
+		return err;
+	id = ++env->id_gen;
+	state->refs[new_ofs].id = id;
+	state->refs[new_ofs].insn_idx = insn_idx;
+
+	return id;
+}
+
+/* release function corresponding to acquire_reference_state(). Idempotent. */
+static int __release_reference_state(struct bpf_func_state *state, int ptr_id)
+{
+	int i, last_idx;
+
+	if (!ptr_id)
+		return -EFAULT;
+
+>>>>>>> linux-next/akpm-base
 	last_idx = state->acquired_refs - 1;
 	for (i = 0; i < state->acquired_refs; i++) {
 		if (state->refs[i].id == ptr_id) {
@@ -1972,8 +2014,12 @@ static int check_xadd(struct bpf_verifier_env *env, int insn_idx, struct bpf_ins
 	    is_pkt_reg(env, insn->dst_reg) ||
 	    is_flow_key_reg(env, insn->dst_reg)) {
 		verbose(env, "BPF_XADD stores into R%d %s is not allowed\n",
+<<<<<<< HEAD
 			insn->dst_reg,
 			reg_type_str[reg_state(env, insn->dst_reg)->type]);
+=======
+			insn->dst_reg, reg_type_str[insn->dst_reg]);
+>>>>>>> linux-next/akpm-base
 		return -EACCES;
 	}
 
@@ -2077,6 +2123,8 @@ static int check_helper_mem_access(struct bpf_verifier_env *env, int regno,
 	case PTR_TO_PACKET_META:
 		return check_packet_access(env, regno, reg->off, access_size,
 					   zero_size_allowed);
+	case PTR_TO_FLOW_KEYS:
+		return check_flow_keys_access(env, reg->off, access_size);
 	case PTR_TO_MAP_VALUE:
 		return check_map_access(env, regno, reg->off, access_size,
 					zero_size_allowed);
@@ -5277,8 +5325,12 @@ static int do_check(struct bpf_verifier_env *env)
 
 			if (is_ctx_reg(env, insn->dst_reg)) {
 				verbose(env, "BPF_ST stores into R%d %s is not allowed\n",
+<<<<<<< HEAD
 					insn->dst_reg,
 					reg_type_str[reg_state(env, insn->dst_reg)->type]);
+=======
+					insn->dst_reg, reg_type_str[insn->dst_reg]);
+>>>>>>> linux-next/akpm-base
 				return -EACCES;
 			}
 

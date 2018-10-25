@@ -1098,9 +1098,12 @@ ENTRY_CFI(flush_user_dcache_range_asm)
 	cmpb,COND(<<=)	%r22, %r25, 1b /* predict taken */
 	fdc,m		%r23(%sr3, %r26)
 
+<<<<<<< HEAD
 2:	cmpb,COND(>>),n	%r25, %r26, 2b
 	fdc,m		%r23(%sr3, %r26)
 
+=======
+>>>>>>> linux-next/akpm-base
 89:	ALTERNATIVE(88b, 89b, ALT_COND_NO_DCACHE, INSN_NOP)
 	sync
 	bv		%r0(%r2)

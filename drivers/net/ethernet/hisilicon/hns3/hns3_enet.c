@@ -499,6 +499,7 @@ static void hns3_nic_set_rx_mode(struct net_device *netdev)
 				new_flags |= HNAE3_OVERFLOW_MPE;
 		}
 	}
+<<<<<<< HEAD
 
 	hns3_update_promisc_mode(netdev, new_flags);
 	/* User mode Promisc mode enable and vlan filtering is disabled to
@@ -514,6 +515,23 @@ void hns3_update_promisc_mode(struct net_device *netdev, u8 promisc_flags)
 	struct hns3_nic_priv *priv = netdev_priv(netdev);
 	struct hnae3_handle *h = priv->ae_handle;
 
+=======
+
+	hns3_update_promisc_mode(netdev, new_flags);
+	/* User mode Promisc mode enable and vlan filtering is disabled to
+	 * let all packets in. MAC-VLAN Table overflow Promisc enabled and
+	 * vlan fitering is enabled
+	 */
+	hns3_enable_vlan_filter(netdev, new_flags & HNAE3_VLAN_FLTR);
+	h->netdev_flags = new_flags;
+}
+
+void hns3_update_promisc_mode(struct net_device *netdev, u8 promisc_flags)
+{
+	struct hns3_nic_priv *priv = netdev_priv(netdev);
+	struct hnae3_handle *h = priv->ae_handle;
+
+>>>>>>> linux-next/akpm-base
 	if (h->ae_algo->ops->set_promisc_mode) {
 		h->ae_algo->ops->set_promisc_mode(h,
 						  promisc_flags & HNAE3_UPE,
@@ -1772,6 +1790,7 @@ static void hns3_shutdown(struct pci_dev *pdev)
 		pci_set_power_state(pdev, PCI_D3hot);
 }
 
+<<<<<<< HEAD
 static pci_ers_result_t hns3_error_detected(struct pci_dev *pdev,
 					    pci_channel_state_t state)
 {
@@ -1818,6 +1837,8 @@ static const struct pci_error_handlers hns3_err_handler = {
 	.slot_reset     = hns3_slot_reset,
 };
 
+=======
+>>>>>>> linux-next/akpm-base
 static struct pci_driver hns3_driver = {
 	.name     = hns3_driver_name,
 	.id_table = hns3_pci_tbl,
@@ -2322,6 +2343,7 @@ static bool hns3_parse_vlan_tag(struct hns3_enet_ring *ring,
 		return false;
 	}
 }
+<<<<<<< HEAD
 
 static void hns3_set_rx_skb_rss_type(struct hns3_enet_ring *ring,
 				     struct sk_buff *skb)
@@ -2330,6 +2352,16 @@ static void hns3_set_rx_skb_rss_type(struct hns3_enet_ring *ring,
 	struct hnae3_handle *handle = ring->tqp->handle;
 	enum pkt_hash_types rss_type;
 
+=======
+
+static void hns3_set_rx_skb_rss_type(struct hns3_enet_ring *ring,
+				     struct sk_buff *skb)
+{
+	struct hns3_desc *desc = &ring->desc[ring->next_to_clean];
+	struct hnae3_handle *handle = ring->tqp->handle;
+	enum pkt_hash_types rss_type;
+
+>>>>>>> linux-next/akpm-base
 	if (le32_to_cpu(desc->rx.rss_hash))
 		rss_type = handle->kinfo.rss_type;
 	else

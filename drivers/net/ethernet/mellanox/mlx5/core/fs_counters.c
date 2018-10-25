@@ -90,6 +90,7 @@ static struct list_head *mlx5_fc_counters_lookup_next(struct mlx5_core_dev *dev,
 
 	return counter ? &counter->list : &fc_stats->counters;
 }
+<<<<<<< HEAD
 
 static void mlx5_fc_stats_insert(struct mlx5_core_dev *dev,
 				 struct mlx5_fc *counter)
@@ -109,6 +110,15 @@ static void mlx5_fc_stats_remove(struct mlx5_core_dev *dev,
 	spin_lock(&fc_stats->counters_idr_lock);
 	WARN_ON(!idr_remove(&fc_stats->counters_idr, counter->id));
 	spin_unlock(&fc_stats->counters_idr_lock);
+=======
+
+static void mlx5_fc_stats_insert(struct mlx5_core_dev *dev,
+				 struct mlx5_fc *counter)
+{
+	struct list_head *next = mlx5_fc_counters_lookup_next(dev, counter->id);
+
+	list_add_tail(&counter->list, next);
+>>>>>>> linux-next/akpm-base
 }
 
 /* The function returns the last counter that was queried so the caller
@@ -191,6 +201,7 @@ static void mlx5_fc_stats_work(struct work_struct *work)
 	struct mlx5_core_dev *dev = container_of(work, struct mlx5_core_dev,
 						 priv.fc_stats.work.work);
 	struct mlx5_fc_stats *fc_stats = &dev->priv.fc_stats;
+<<<<<<< HEAD
 	/* Take dellist first to ensure that counters cannot be deleted before
 	 * they are inserted.
 	 */
@@ -208,6 +219,22 @@ static void mlx5_fc_stats_work(struct work_struct *work)
 
 	llist_for_each_entry_safe(counter, tmp, dellist, dellist) {
 		mlx5_fc_stats_remove(dev, counter);
+=======
+	struct llist_node *tmplist = llist_del_all(&fc_stats->addlist);
+	struct mlx5_fc *counter = NULL, *last = NULL, *tmp;
+	unsigned long now = jiffies;
+
+	if (tmplist || !list_empty(&fc_stats->counters))
+		queue_delayed_work(fc_stats->wq, &fc_stats->work,
+				   fc_stats->sampling_interval);
+
+	llist_for_each_entry(counter, tmplist, addlist)
+		mlx5_fc_stats_insert(dev, counter);
+
+	tmplist = llist_del_all(&fc_stats->dellist);
+	llist_for_each_entry_safe(counter, tmp, tmplist, dellist) {
+		list_del(&counter->list);
+>>>>>>> linux-next/akpm-base
 
 		mlx5_free_fc(dev, counter);
 	}
@@ -287,6 +314,13 @@ void mlx5_fc_destroy(struct mlx5_core_dev *dev, struct mlx5_fc *counter)
 		return;
 
 	if (counter->aging) {
+<<<<<<< HEAD
+=======
+		spin_lock(&fc_stats->counters_idr_lock);
+		WARN_ON(!idr_remove(&fc_stats->counters_idr, counter->id));
+		spin_unlock(&fc_stats->counters_idr_lock);
+
+>>>>>>> linux-next/akpm-base
 		llist_add(&counter->dellist, &fc_stats->dellist);
 		mod_delayed_work(fc_stats->wq, &fc_stats->work, 0);
 		return;

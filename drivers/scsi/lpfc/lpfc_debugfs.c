@@ -550,7 +550,11 @@ lpfc_debugfs_nodelist_data(struct lpfc_vport *vport, char *buf, int size)
 	struct lpfc_nodelist *ndlp;
 	unsigned char *statep;
 	struct nvme_fc_local_port *localport;
+<<<<<<< HEAD
 	struct nvme_fc_remote_port *nrport = NULL;
+=======
+	struct nvme_fc_remote_port *nrport;
+>>>>>>> linux-next/akpm-base
 	struct lpfc_nvme_rport *rport;
 
 	cnt = (LPFC_NODELIST_SIZE / LPFC_NODELIST_ENTRY_SIZE);

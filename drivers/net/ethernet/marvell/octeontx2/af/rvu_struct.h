@@ -879,6 +879,7 @@ struct nix_lso_format {
 #endif
 };
 
+<<<<<<< HEAD
 struct nix_rx_flowkey_alg {
 #if defined(__BIG_ENDIAN_BITFIELD)
 	u64 reserved_35_63	:29;
@@ -914,4 +915,6 @@ enum nix_vtag_size {
 	VTAGSIZE_T4   = 0x0,
 	VTAGSIZE_T8   = 0x1,
 };
+=======
+>>>>>>> linux-next/akpm-base
 #endif /* RVU_STRUCT_H */
