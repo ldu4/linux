@@ -1956,6 +1956,7 @@ EXPORT_SYMBOL(bioset_init_from_src);
 
 #ifdef CONFIG_BLK_CGROUP
 
+<<<<<<< HEAD
 /**
  * bio_associate_blkg - associate a bio with the a blkg
  * @bio: target bio
@@ -2025,6 +2026,152 @@ EXPORT_SYMBOL_GPL(bio_associate_blkg_from_css);
 #ifdef CONFIG_MEMCG
 /**
  * bio_associate_blkg_from_page - associate a bio with the page's blkg
+=======
+/**
+ * bio_associate_blkg - associate a bio with the a blkg
+>>>>>>> linux-next/akpm-base
+ * @bio: target bio
+ * @blkg: the blkg to associate
+ *
+ * This tries to associate @bio with the specified blkg.  Association failure
+ * is handled by walking up the blkg tree.  Therefore, the blkg associated can
+ * be anything between @blkg and the root_blkg.  This situation only happens
+ * when a cgroup is dying and then the remaining bios will spill to the closest
+ * alive blkg.
+ *
+<<<<<<< HEAD
+ * Associate @bio with the blkg from @page's owning memcg and the respective
+ * request_queue.  If cgroup_e_css returns NULL, fall back to the queue's
+ * root_blkg.
+ *
+ * Note: this must be called after bio has an associated device.
+ */
+int bio_associate_blkg_from_page(struct bio *bio, struct page *page)
+{
+	struct cgroup_subsys_state *css;
+	int ret;
+
+	if (unlikely(bio->bi_blkg))
+		return -EBUSY;
+	if (!page->mem_cgroup)
+		return 0;
+
+	rcu_read_lock();
+
+	css = cgroup_e_css(page->mem_cgroup->css.cgroup, &io_cgrp_subsys);
+
+	ret = __bio_associate_blkg_from_css(bio, css);
+
+	rcu_read_unlock();
+	return ret;
+=======
+ * A reference will be taken on the @blkg and will be released when @bio is
+ * freed.
+ */
+int bio_associate_blkg(struct bio *bio, struct blkcg_gq *blkg)
+{
+	if (unlikely(bio->bi_blkg))
+		return -EBUSY;
+	bio->bi_blkg = blkg_tryget_closest(blkg);
+	return 0;
+>>>>>>> linux-next/akpm-base
+}
+
+/**
+<<<<<<< HEAD
+ * bio_associate_create_blkg - associate a bio with a blkg from q
+ * @q: request_queue where bio is going
+ * @bio: target bio
+ *
+ * Associate @bio with the blkg found from the bio's css and the request_queue.
+ * If one is not found, bio_lookup_blkg creates the blkg.  This falls back to
+ * the queue's root_blkg if association fails.
+ */
+int bio_associate_create_blkg(struct request_queue *q, struct bio *bio)
+{
+	struct cgroup_subsys_state *css;
+	int ret = 0;
+
+	/* someone has already associated this bio with a blkg */
+	if (bio->bi_blkg)
+		return ret;
+
+	rcu_read_lock();
+
+	css = blkcg_css();
+
+	ret = __bio_associate_blkg_from_css(bio, css);
+
+	rcu_read_unlock();
+	return ret;
+}
+=======
+ * __bio_associate_blkg_from_css - internal blkg association function
+ *
+ * This in the core association function that all association paths rely on.
+ * A blkg reference is taken which is released upon freeing of the bio.
+ */
+static int __bio_associate_blkg_from_css(struct bio *bio,
+					 struct cgroup_subsys_state *css)
+{
+	struct request_queue *q = bio->bi_disk->queue;
+	struct blkcg_gq *blkg;
+	int ret;
+
+	rcu_read_lock();
+
+	if (!css || !css->parent)
+		blkg = q->root_blkg;
+	else
+		blkg = blkg_lookup_create(css_to_blkcg(css), q);
+
+	ret = bio_associate_blkg(bio, blkg);
+
+	rcu_read_unlock();
+	return ret;
+}
+
+/**
+ * bio_associate_blkg_from_css - associate a bio with a specified css
+ * @bio: target bio
+ * @css: target css
+ *
+ * Associate @bio with the blkg found by combining the css's blkg and the
+ * request_queue of the @bio.  This falls back to the queue's root_blkg if
+ * the association fails with the css.
+ */
+int bio_associate_blkg_from_css(struct bio *bio,
+				struct cgroup_subsys_state *css)
+{
+	if (unlikely(bio->bi_blkg))
+		return -EBUSY;
+	return __bio_associate_blkg_from_css(bio, css);
+}
+EXPORT_SYMBOL_GPL(bio_associate_blkg_from_css);
+>>>>>>> linux-next/akpm-base
+
+#ifdef CONFIG_MEMCG
+/**
+<<<<<<< HEAD
+ * bio_reassociate_blkg - reassociate a bio with a blkg from q
+ * @q: request_queue where bio is going
+ * @bio: target bio
+ *
+ * When submitting a bio, multiple recursive calls to make_request() may occur.
+ * This causes the initial associate done in blkcg_bio_issue_check() to be
+ * incorrect and reference the prior request_queue.  This performs reassociation
+ * when this situation happens.
+ */
+int bio_reassociate_blkg(struct request_queue *q, struct bio *bio)
+{
+	if (bio->bi_blkg) {
+		blkg_put(bio->bi_blkg);
+		bio->bi_blkg = NULL;
+	}
+
+	return bio_associate_create_blkg(q, bio);
+=======
+ * bio_associate_blkg_from_page - associate a bio with the page's blkg
  * @bio: target bio
  * @page: the page to lookup the blkcg from
  *
@@ -2081,26 +2228,7 @@ int bio_associate_create_blkg(struct request_queue *q, struct bio *bio)
 
 	rcu_read_unlock();
 	return ret;
-}
-
-/**
- * bio_reassociate_blkg - reassociate a bio with a blkg from q
- * @q: request_queue where bio is going
- * @bio: target bio
- *
- * When submitting a bio, multiple recursive calls to make_request() may occur.
- * This causes the initial associate done in blkcg_bio_issue_check() to be
- * incorrect and reference the prior request_queue.  This performs reassociation
- * when this situation happens.
- */
-int bio_reassociate_blkg(struct request_queue *q, struct bio *bio)
-{
-	if (bio->bi_blkg) {
-		blkg_put(bio->bi_blkg);
-		bio->bi_blkg = NULL;
-	}
-
-	return bio_associate_create_blkg(q, bio);
+>>>>>>> linux-next/akpm-base
 }
 
 /**

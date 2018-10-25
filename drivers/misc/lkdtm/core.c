@@ -184,6 +184,10 @@ static const struct crashtype crashtypes[] = {
 	CRASHTYPE(USERCOPY_STACK_BEYOND),
 	CRASHTYPE(USERCOPY_KERNEL),
 	CRASHTYPE(USERCOPY_KERNEL_DS),
+<<<<<<< HEAD
+=======
+	CRASHTYPE(STACKLEAK_ERASING),
+>>>>>>> linux-next/akpm-base
 };
 
 

@@ -1068,7 +1068,7 @@
 			earlyprintk=serial[,0x...[,baudrate]]
 			earlyprintk=ttySn[,baudrate]
 			earlyprintk=dbgp[debugController#]
-			earlyprintk=pciserial,bus:device.function[,baudrate]
+			earlyprintk=pciserial[,force],bus:device.function[,baudrate]
 			earlyprintk=xdbc[xhciController#]
 
 			earlyprintk is useful when the kernel crashes before
@@ -1099,6 +1099,10 @@
 			The xen output can only be used by Xen PV guests.
 
 			The sclp output can only be used on s390.
+
+			The optional "force" to "pciserial" enables use of a
+			PCI device even when its classcode is not of the
+			UART class.
 
 	edac_report=	[HW,EDAC] Control how to report EDAC event
 			Format: {"on" | "off" | "force"}
@@ -1758,6 +1762,18 @@
 		nopt		[x86]
 		nobypass	[PPC/POWERNV]
 			Disable IOMMU bypass, using IOMMU for PCI devices.
+
+	iommu.strict=	[ARM64] Configure TLB invalidation behaviour
+			Format: { "0" | "1" }
+			0 - Lazy mode.
+			  Request that DMA unmap operations use deferred
+			  invalidation of hardware TLBs, for increased
+			  throughput at the cost of reduced device isolation.
+			  Will fall back to strict mode if not supported by
+			  the relevant IOMMU driver.
+			1 - Strict mode (default).
+			  DMA unmap operations invalidate IOMMU hardware TLBs
+			  synchronously.
 
 	iommu.passthrough=
 			[ARM64] Configure DMA to bypass the IOMMU by default.
@@ -2419,7 +2435,7 @@
 			seconds.  Use this parameter to check at some
 			other rate.  0 disables periodic checking.
 
-	memtest=	[KNL,X86,ARM] Enable memtest
+	memtest=	[KNL,X86,ARM,PPC] Enable memtest
 			Format: <integer>
 			default : 0 <disable>
 			Specifies the number of memtest passes to be
@@ -4626,7 +4642,8 @@
 
 	usbcore.old_scheme_first=
 			[USB] Start with the old device initialization
-			scheme (default 0 = off).
+			scheme,  applies only to low and full-speed devices
+			 (default 0 = off).
 
 	usbcore.usbfs_memory_mb=
 			[USB] Memory limit (in MB) for buffers allocated by

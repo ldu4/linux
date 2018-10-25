@@ -487,7 +487,12 @@ int f2fs_submit_page_bio(struct f2fs_io_info *fio)
 	inc_page_count(fio->sbi, is_read_io(fio->op) ?
 			__read_io_type(page): WB_DATA_TYPE(fio->page));
 
+<<<<<<< HEAD
 	__submit_bio(fio->sbi, bio, fio->type);
+=======
+	inc_page_count(fio->sbi, is_read_io(fio->op) ?
+			__read_io_type(page): WB_DATA_TYPE(fio->page));
+>>>>>>> linux-next/akpm-base
 	return 0;
 }
 
@@ -616,8 +621,12 @@ static int f2fs_submit_page_read(struct inode *inode, struct page *page,
 		return -EFAULT;
 	}
 	ClearPageError(page);
+<<<<<<< HEAD
 	inc_page_count(F2FS_I_SB(inode), F2FS_RD_DATA);
+=======
+>>>>>>> linux-next/akpm-base
 	__submit_bio(F2FS_I_SB(inode), bio, DATA);
+	inc_page_count(F2FS_I_SB(inode), F2FS_RD_DATA);
 	return 0;
 }
 
@@ -2071,7 +2080,11 @@ static int f2fs_write_cache_pages(struct address_space *mapping,
 	pgoff_t done_index;
 	int cycled;
 	int range_whole = 0;
+<<<<<<< HEAD
 	int tag;
+=======
+	xa_mark_t tag;
+>>>>>>> linux-next/akpm-base
 	int nwritten = 0;
 
 	pagevec_init(&pvec);
@@ -2578,16 +2591,28 @@ static ssize_t f2fs_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 
 	if (iocb->ki_flags & IOCB_NOWAIT) {
 		if (!down_read_trylock(&fi->i_gc_rwsem[rw])) {
+<<<<<<< HEAD
+=======
 			iocb->ki_hint = hint;
 			err = -EAGAIN;
 			goto out;
 		}
 		if (do_opu && !down_read_trylock(&fi->i_gc_rwsem[READ])) {
 			up_read(&fi->i_gc_rwsem[rw]);
+>>>>>>> linux-next/akpm-base
 			iocb->ki_hint = hint;
 			err = -EAGAIN;
 			goto out;
 		}
+<<<<<<< HEAD
+		if (do_opu && !down_read_trylock(&fi->i_gc_rwsem[READ])) {
+			up_read(&fi->i_gc_rwsem[rw]);
+			iocb->ki_hint = hint;
+			err = -EAGAIN;
+			goto out;
+		}
+=======
+>>>>>>> linux-next/akpm-base
 	} else {
 		down_read(&fi->i_gc_rwsem[rw]);
 		if (do_opu)
@@ -2787,13 +2812,13 @@ const struct address_space_operations f2fs_dblock_aops = {
 #endif
 };
 
-void f2fs_clear_radix_tree_dirty_tag(struct page *page)
+void f2fs_clear_page_cache_dirty_tag(struct page *page)
 {
 	struct address_space *mapping = page_mapping(page);
 	unsigned long flags;
 
 	xa_lock_irqsave(&mapping->i_pages, flags);
-	radix_tree_tag_clear(&mapping->i_pages, page_index(page),
+	__xa_clear_mark(&mapping->i_pages, page_index(page),
 						PAGECACHE_TAG_DIRTY);
 	xa_unlock_irqrestore(&mapping->i_pages, flags);
 }

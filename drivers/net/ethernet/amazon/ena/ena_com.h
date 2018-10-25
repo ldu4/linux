@@ -38,7 +38,10 @@
 #include <linux/dma-mapping.h>
 #include <linux/gfp.h>
 #include <linux/io.h>
+<<<<<<< HEAD
 #include <linux/prefetch.h>
+=======
+>>>>>>> linux-next/akpm-base
 #include <linux/sched.h>
 #include <linux/sizes.h>
 #include <linux/spinlock.h>

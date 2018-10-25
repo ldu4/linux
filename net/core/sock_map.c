@@ -175,6 +175,7 @@ static int sock_map_link(struct bpf_map *map, struct sk_psock_progs *progs,
 		}
 	}
 
+<<<<<<< HEAD
 	psock = sk_psock_get_checked(sk);
 	if (IS_ERR(psock)) {
 		ret = PTR_ERR(psock);
@@ -182,6 +183,14 @@ static int sock_map_link(struct bpf_map *map, struct sk_psock_progs *progs,
 	}
 
 	if (psock) {
+=======
+	psock = sk_psock_get(sk);
+	if (psock) {
+		if (!sk_has_psock(sk)) {
+			ret = -EBUSY;
+			goto out_progs;
+		}
+>>>>>>> linux-next/akpm-base
 		if ((msg_parser && READ_ONCE(psock->progs.msg_parser)) ||
 		    (skb_progs  && READ_ONCE(psock->progs.skb_parser))) {
 			sk_psock_put(sk, psock);

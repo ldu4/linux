@@ -879,6 +879,9 @@ static int sta32x_probe(struct snd_soc_component *component)
 	struct sta32x_priv *sta32x = snd_soc_component_get_drvdata(component);
 	struct sta32x_platform_data *pdata = sta32x->pdata;
 	int i, ret = 0, thermal = 0;
+
+	sta32x->component = component;
+
 	ret = regulator_bulk_enable(ARRAY_SIZE(sta32x->supplies),
 				    sta32x->supplies);
 	if (ret != 0) {
@@ -1038,6 +1041,8 @@ static int sta32x_probe_dt(struct device *dev, struct sta32x_priv *sta32x)
 	of_property_read_u8(np, "st,ch3-output-mapping",
 			    &pdata->ch3_output_mapping);
 
+	if (of_get_property(np, "st,fault-detect-recovery", NULL))
+		pdata->fault_detect_recovery = 1;
 	if (of_get_property(np, "st,thermal-warning-recovery", NULL))
 		pdata->thermal_warning_recovery = 1;
 	if (of_get_property(np, "st,thermal-warning-adjustment", NULL))

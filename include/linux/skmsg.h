@@ -207,11 +207,14 @@ static inline struct scatterlist *sk_msg_elem(struct sk_msg *msg, int which)
 	return &msg->sg.data[which];
 }
 
+<<<<<<< HEAD
 static inline struct scatterlist sk_msg_elem_cpy(struct sk_msg *msg, int which)
 {
 	return msg->sg.data[which];
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 static inline struct page *sk_msg_page(struct sk_msg *msg, int which)
 {
 	return sg_page(sk_msg_elem(msg, which));
@@ -275,6 +278,14 @@ static inline struct sk_psock *sk_psock(const struct sock *sk)
 	return rcu_dereference_sk_user_data(sk);
 }
 
+<<<<<<< HEAD
+=======
+static inline bool sk_has_psock(struct sock *sk)
+{
+	return sk_psock(sk) != NULL && sk->sk_prot->recvmsg == tcp_bpf_recvmsg;
+}
+
+>>>>>>> linux-next/akpm-base
 static inline void sk_psock_queue_msg(struct sk_psock *psock,
 				      struct sk_msg *msg)
 {
@@ -374,6 +385,7 @@ static inline bool sk_psock_test_state(const struct sk_psock *psock,
 	return test_bit(bit, &psock->state);
 }
 
+<<<<<<< HEAD
 static inline struct sk_psock *sk_psock_get_checked(struct sock *sk)
 {
 	struct sk_psock *psock;
@@ -394,6 +406,8 @@ out:
 	return psock;
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 static inline struct sk_psock *sk_psock_get(struct sock *sk)
 {
 	struct sk_psock *psock;

@@ -1940,7 +1940,10 @@ EXPORT_SYMBOL(phy_remove_link_mode);
  */
 void phy_support_sym_pause(struct phy_device *phydev)
 {
+<<<<<<< HEAD
 	phydev->supported &= ~SUPPORTED_Asym_Pause;
+=======
+>>>>>>> linux-next/akpm-base
 	phydev->supported |= SUPPORTED_Pause;
 	phydev->advertising = phydev->supported;
 }

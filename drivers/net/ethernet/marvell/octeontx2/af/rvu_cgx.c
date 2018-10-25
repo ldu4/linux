@@ -50,7 +50,11 @@ static inline u8 cgxlmac_id_to_bmap(u8 cgx_id, u8 lmac_id)
 	return ((cgx_id & 0xF) << 4) | (lmac_id & 0xF);
 }
 
+<<<<<<< HEAD
 void *rvu_cgx_pdata(u8 cgx_id, struct rvu *rvu)
+=======
+static void *rvu_cgx_pdata(u8 cgx_id, struct rvu *rvu)
+>>>>>>> linux-next/akpm-base
 {
 	if (cgx_id >= rvu->cgx_cnt)
 		return NULL;
@@ -60,11 +64,18 @@ void *rvu_cgx_pdata(u8 cgx_id, struct rvu *rvu)
 
 static int rvu_map_cgx_lmac_pf(struct rvu *rvu)
 {
+<<<<<<< HEAD
 	struct npc_pkind *pkind = &rvu->hw->pkind;
 	int cgx_cnt = rvu->cgx_cnt;
 	int cgx, lmac_cnt, lmac;
 	int pf = PF_CGXMAP_BASE;
 	int size, free_pkind;
+=======
+	int cgx_cnt = rvu->cgx_cnt;
+	int cgx, lmac_cnt, lmac;
+	int pf = PF_CGXMAP_BASE;
+	int size;
+>>>>>>> linux-next/akpm-base
 
 	if (!cgx_cnt)
 		return 0;
@@ -97,8 +108,11 @@ static int rvu_map_cgx_lmac_pf(struct rvu *rvu)
 		for (lmac = 0; lmac < lmac_cnt; lmac++, pf++) {
 			rvu->pf2cgxlmac_map[pf] = cgxlmac_id_to_bmap(cgx, lmac);
 			rvu->cgxlmac2pf_map[CGX_OFFSET(cgx) + lmac] = 1 << pf;
+<<<<<<< HEAD
 			free_pkind = rvu_alloc_rsrc(&pkind->rsrc);
 			pkind->pfchan_map[free_pkind] = ((pf) & 0x3F) << 16;
+=======
+>>>>>>> linux-next/akpm-base
 			rvu->cgx_mapped_pfs++;
 		}
 	}

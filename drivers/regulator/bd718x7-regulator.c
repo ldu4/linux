@@ -15,6 +15,16 @@
 #include <linux/regulator/of_regulator.h>
 #include <linux/slab.h>
 
+<<<<<<< HEAD
+=======
+struct bd718xx_pmic {
+	struct bd718xx_regulator_data *rdata;
+	struct bd718xx *mfd;
+	struct platform_device *pdev;
+	struct regulator_dev *rdev[BD718XX_REGULATOR_AMOUNT];
+};
+
+>>>>>>> linux-next/akpm-base
 /*
  * BUCK1/2/3/4
  * BUCK1RAMPRATE[1:0] BUCK1 DVS ramp rate setting
@@ -26,10 +36,19 @@
 static int bd718xx_buck1234_set_ramp_delay(struct regulator_dev *rdev,
 					   int ramp_delay)
 {
+<<<<<<< HEAD
 	int id = rdev->desc->id;
 	unsigned int ramp_value = BUCK_RAMPRATE_10P00MV;
 
 	dev_dbg(&rdev->dev, "Buck[%d] Set Ramp = %d\n", id + 1,
+=======
+	struct bd718xx_pmic *pmic = rdev_get_drvdata(rdev);
+	struct bd718xx *mfd = pmic->mfd;
+	int id = rdev->desc->id;
+	unsigned int ramp_value = BUCK_RAMPRATE_10P00MV;
+
+	dev_dbg(&pmic->pdev->dev, "Buck[%d] Set Ramp = %d\n", id + 1,
+>>>>>>> linux-next/akpm-base
 		ramp_delay);
 	switch (ramp_delay) {
 	case 1 ... 1250:
@@ -46,12 +65,20 @@ static int bd718xx_buck1234_set_ramp_delay(struct regulator_dev *rdev,
 		break;
 	default:
 		ramp_value = BUCK_RAMPRATE_10P00MV;
+<<<<<<< HEAD
 		dev_err(&rdev->dev,
+=======
+		dev_err(&pmic->pdev->dev,
+>>>>>>> linux-next/akpm-base
 			"%s: ramp_delay: %d not supported, setting 10000mV//us\n",
 			rdev->desc->name, ramp_delay);
 	}
 
+<<<<<<< HEAD
 	return regmap_update_bits(rdev->regmap, BD718XX_REG_BUCK1_CTRL + id,
+=======
+	return regmap_update_bits(mfd->regmap, BD718XX_REG_BUCK1_CTRL + id,
+>>>>>>> linux-next/akpm-base
 				  BUCK_RAMPRATE_MASK, ramp_value << 6);
 }
 
@@ -1013,7 +1040,11 @@ struct bd718xx_pmic_inits {
 
 static int bd718xx_probe(struct platform_device *pdev)
 {
+<<<<<<< HEAD
 	struct bd718xx *mfd;
+=======
+	struct bd718xx_pmic *pmic;
+>>>>>>> linux-next/akpm-base
 	struct regulator_config config = { 0 };
 	struct bd718xx_pmic_inits pmic_regulators[] = {
 		[BD718XX_TYPE_BD71837] = {
@@ -1028,20 +1059,37 @@ static int bd718xx_probe(struct platform_device *pdev)
 
 	int i, j, err;
 
+<<<<<<< HEAD
 	mfd = dev_get_drvdata(pdev->dev.parent);
 	if (!mfd) {
+=======
+	pmic = devm_kzalloc(&pdev->dev, sizeof(*pmic), GFP_KERNEL);
+	if (!pmic)
+		return -ENOMEM;
+
+	pmic->pdev = pdev;
+	pmic->mfd = dev_get_drvdata(pdev->dev.parent);
+
+	if (!pmic->mfd) {
+>>>>>>> linux-next/akpm-base
 		dev_err(&pdev->dev, "No MFD driver data\n");
 		err = -EINVAL;
 		goto err;
 	}
+<<<<<<< HEAD
 
 	if (mfd->chip_type >= BD718XX_TYPE_AMOUNT ||
 	    !pmic_regulators[mfd->chip_type].r_datas) {
+=======
+	if (pmic->mfd->chip_type >= BD718XX_TYPE_AMOUNT ||
+	    !pmic_regulators[pmic->mfd->chip_type].r_datas) {
+>>>>>>> linux-next/akpm-base
 		dev_err(&pdev->dev, "Unsupported chip type\n");
 		err = -EINVAL;
 		goto err;
 	}
 
+<<<<<<< HEAD
 	/* Register LOCK release */
 	err = regmap_update_bits(mfd->regmap, BD718XX_REG_REGLOCK,
 				 (REGLOCK_PWRSEQ | REGLOCK_VREG), 0);
@@ -1054,11 +1102,28 @@ static int bd718xx_probe(struct platform_device *pdev)
 	}
 
 	for (i = 0; i < pmic_regulators[mfd->chip_type].r_amount; i++) {
+=======
+	platform_set_drvdata(pdev, pmic);
+
+	/* Register LOCK release */
+	err = regmap_update_bits(pmic->mfd->regmap, BD718XX_REG_REGLOCK,
+				 (REGLOCK_PWRSEQ | REGLOCK_VREG), 0);
+	if (err) {
+		dev_err(&pmic->pdev->dev, "Failed to unlock PMIC (%d)\n", err);
+		goto err;
+	} else {
+		dev_dbg(&pmic->pdev->dev, "Unlocked lock register 0x%x\n",
+			BD718XX_REG_REGLOCK);
+	}
+
+	for (i = 0; i < pmic_regulators[pmic->mfd->chip_type].r_amount; i++) {
+>>>>>>> linux-next/akpm-base
 
 		const struct regulator_desc *desc;
 		struct regulator_dev *rdev;
 		const struct bd718xx_regulator_data *r;
 
+<<<<<<< HEAD
 		r = &(*pmic_regulators[mfd->chip_type].r_datas)[i];
 		desc = &r->desc;
 
@@ -1068,6 +1133,18 @@ static int bd718xx_probe(struct platform_device *pdev)
 		rdev = devm_regulator_register(&pdev->dev, desc, &config);
 		if (IS_ERR(rdev)) {
 			dev_err(&pdev->dev,
+=======
+		r = &(*pmic_regulators[pmic->mfd->chip_type].r_datas)[i];
+		desc = &r->desc;
+
+		config.dev = pdev->dev.parent;
+		config.driver_data = pmic;
+		config.regmap = pmic->mfd->regmap;
+
+		rdev = devm_regulator_register(&pdev->dev, desc, &config);
+		if (IS_ERR(rdev)) {
+			dev_err(pmic->mfd->dev,
+>>>>>>> linux-next/akpm-base
 				"failed to register %s regulator\n",
 				desc->name);
 			err = PTR_ERR(rdev);
@@ -1079,26 +1156,46 @@ static int bd718xx_probe(struct platform_device *pdev)
 		 * can now switch the control from PMIC state machine to the
 		 * register interface
 		 */
+<<<<<<< HEAD
 		err = regmap_update_bits(mfd->regmap, r->init.reg,
 					 r->init.mask, r->init.val);
 		if (err) {
 			dev_err(&pdev->dev,
+=======
+		err = regmap_update_bits(pmic->mfd->regmap, r->init.reg,
+					 r->init.mask, r->init.val);
+		if (err) {
+			dev_err(&pmic->pdev->dev,
+>>>>>>> linux-next/akpm-base
 				"Failed to write BUCK/LDO SEL bit for (%s)\n",
 				desc->name);
 			goto err;
 		}
 		for (j = 0; j < r->additional_init_amnt; j++) {
+<<<<<<< HEAD
 			err = regmap_update_bits(mfd->regmap,
+=======
+			err = regmap_update_bits(pmic->mfd->regmap,
+>>>>>>> linux-next/akpm-base
 						 r->additional_inits[j].reg,
 						 r->additional_inits[j].mask,
 						 r->additional_inits[j].val);
 			if (err) {
+<<<<<<< HEAD
 				dev_err(&pdev->dev,
+=======
+				dev_err(&pmic->pdev->dev,
+>>>>>>> linux-next/akpm-base
 					"Buck (%s) initialization failed\n",
 					desc->name);
 				goto err;
 			}
 		}
+<<<<<<< HEAD
+=======
+
+		pmic->rdev[i] = rdev;
+>>>>>>> linux-next/akpm-base
 	}
 
 err:

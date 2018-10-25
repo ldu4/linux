@@ -2334,6 +2334,15 @@ static bool tcp_write_xmit(struct sock *sk, unsigned int mss_now, int nonagle,
 		tso_segs = tcp_init_tso_segs(skb, mss_now);
 		BUG_ON(!tso_segs);
 
+<<<<<<< HEAD
+=======
+		if (unlikely(tp->repair) && tp->repair_queue == TCP_SEND_QUEUE) {
+			/* "skb_mstamp" is used as a start point for the retransmit timer */
+			tcp_update_skb_after_send(sk, skb, tp->tcp_wstamp_ns);
+			goto repair; /* Skip network transmission */
+		}
+
+>>>>>>> linux-next/akpm-base
 		cwnd_quota = tcp_cwnd_test(tp, skb);
 		if (!cwnd_quota) {
 			if (push_one == 2)

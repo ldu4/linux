@@ -241,11 +241,14 @@ static int recover_inode(struct inode *inode, struct page *page)
 	int err;
 
 	inode->i_mode = le16_to_cpu(raw->i_mode);
+<<<<<<< HEAD
 
 	err = recover_quota_data(inode, page);
 	if (err)
 		return err;
 
+=======
+>>>>>>> linux-next/akpm-base
 	i_uid_write(inode, le32_to_cpu(raw->i_uid));
 	i_gid_write(inode, le32_to_cpu(raw->i_gid));
 
@@ -254,6 +257,7 @@ static int recover_inode(struct inode *inode, struct page *page)
 			F2FS_FITS_IN_INODE(raw, le16_to_cpu(raw->i_extra_isize),
 								i_projid)) {
 			projid_t i_projid;
+<<<<<<< HEAD
 			kprojid_t kprojid;
 
 			i_projid = (projid_t)le32_to_cpu(raw->i_projid);
@@ -266,6 +270,12 @@ static int recover_inode(struct inode *inode, struct page *page)
 					return err;
 				F2FS_I(inode)->i_projid = kprojid;
 			}
+=======
+
+			i_projid = (projid_t)le32_to_cpu(raw->i_projid);
+			F2FS_I(inode)->i_projid =
+				make_kprojid(&init_user_ns, i_projid);
+>>>>>>> linux-next/akpm-base
 		}
 	}
 
@@ -771,10 +781,17 @@ skip:
 
 	/* let's drop all the directory inodes for clean checkpoint */
 	destroy_fsync_dnodes(&dir_list, err);
+<<<<<<< HEAD
 
 	if (need_writecp) {
 		set_sbi_flag(sbi, SBI_IS_RECOVERED);
 
+=======
+
+	if (need_writecp) {
+		set_sbi_flag(sbi, SBI_IS_RECOVERED);
+
+>>>>>>> linux-next/akpm-base
 		if (!err) {
 			struct cp_control cpc = {
 				.reason = CP_RECOVERY,

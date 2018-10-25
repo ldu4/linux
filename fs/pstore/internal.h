@@ -39,6 +39,10 @@ extern void	pstore_record_init(struct pstore_record *record,
 
 /* Called during pstore init/exit. */
 int __init	pstore_init_fs(void);
+<<<<<<< HEAD
 void __exit	pstore_exit_fs(void);
+=======
+void __init	pstore_exit_fs(void);
+>>>>>>> linux-next/akpm-base
 
 #endif

@@ -30,7 +30,11 @@ available subsections can be seen below.
    input
    usb/index
    firewire
+<<<<<<< HEAD
    pci
+=======
+   pci/index
+>>>>>>> linux-next/akpm-base
    spi
    i2c
    hsi

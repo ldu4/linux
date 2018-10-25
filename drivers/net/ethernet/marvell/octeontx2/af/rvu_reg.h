@@ -438,6 +438,7 @@
 #define NDC_AF_BLK_RST                  (0x002F0)
 #define NPC_AF_BLK_RST                  (0x00040)
 
+<<<<<<< HEAD
 /* NPC */
 #define NPC_AF_CFG			(0x00000)
 #define NPC_AF_ACTIVE_PC		(0x00010)
@@ -499,4 +500,6 @@
 #define NPC_AF_DBG_DATAX(a)		(0x3001400 | (a) << 4)
 #define NPC_AF_DBG_RESULTX(a)		(0x3001800 | (a) << 4)
 
+=======
+>>>>>>> linux-next/akpm-base
 #endif /* RVU_REG_H */

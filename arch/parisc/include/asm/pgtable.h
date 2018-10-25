@@ -62,7 +62,12 @@ static inline void purge_tlb_entries(struct mm_struct *mm, unsigned long addr)
 		spin_lock_irqsave(&pa_tlb_lock, flags);		\
 		old_pte = *ptep;				\
 		set_pte(ptep, pteval);				\
+<<<<<<< HEAD
 		purge_tlb_entries(mm, addr);			\
+=======
+		if (pte_inserted(old_pte))			\
+			purge_tlb_entries(mm, addr);		\
+>>>>>>> linux-next/akpm-base
 		spin_unlock_irqrestore(&pa_tlb_lock, flags);	\
 	} while (0)
 
@@ -488,7 +493,12 @@ static inline pte_t ptep_get_and_clear(struct mm_struct *mm, unsigned long addr,
 	spin_lock_irqsave(&pa_tlb_lock, flags);
 	old_pte = *ptep;
 	set_pte(ptep, __pte(0));
+<<<<<<< HEAD
 	purge_tlb_entries(mm, addr);
+=======
+	if (pte_inserted(old_pte))
+		purge_tlb_entries(mm, addr);
+>>>>>>> linux-next/akpm-base
 	spin_unlock_irqrestore(&pa_tlb_lock, flags);
 
 	return old_pte;

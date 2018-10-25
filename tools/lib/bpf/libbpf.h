@@ -297,6 +297,7 @@ enum bpf_perf_event_ret {
 	LIBBPF_PERF_EVENT_CONT	= -2,
 };
 
+<<<<<<< HEAD
 struct perf_event_header;
 typedef enum bpf_perf_event_ret
 	(*bpf_perf_event_print_t)(struct perf_event_header *hdr,
@@ -305,6 +306,15 @@ LIBBPF_API enum bpf_perf_event_ret
 bpf_perf_event_read_simple(void *mmap_mem, size_t mmap_size, size_t page_size,
 			   void **copy_mem, size_t *copy_size,
 			   bpf_perf_event_print_t fn, void *private_data);
+=======
+typedef enum bpf_perf_event_ret (*bpf_perf_event_print_t)(void *event,
+							  void *priv);
+LIBBPF_API int bpf_perf_event_read_simple(void *mem, unsigned long size,
+					  unsigned long page_size,
+					  void **buf, size_t *buf_len,
+					  bpf_perf_event_print_t fn,
+					  void *priv);
+>>>>>>> linux-next/akpm-base
 
 struct nlattr;
 typedef int (*libbpf_dump_nlmsg_t)(void *cookie, void *msg, struct nlattr **tb);

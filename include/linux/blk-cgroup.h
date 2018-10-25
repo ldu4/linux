@@ -597,7 +597,11 @@ static inline struct request_list *blk_get_rl(struct request_queue *q,
 	if (unlikely(!blkg))
 		blkg = __blkg_lookup_create(blkcg, q);
 
+<<<<<<< HEAD
 	if (blkg->blkcg == &blkcg_root || !blkg_tryget(blkg))
+=======
+	if (!blkg_tryget(blkg))
+>>>>>>> linux-next/akpm-base
 		goto rl_use_root;
 
 	rcu_read_unlock();

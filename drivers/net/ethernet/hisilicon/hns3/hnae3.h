@@ -429,7 +429,10 @@ struct hnae3_ae_ops {
 				struct ethtool_rxnfc *cmd, u32 *rule_locs);
 	int (*restore_fd_rules)(struct hnae3_handle *handle);
 	void (*enable_fd)(struct hnae3_handle *handle, bool enable);
+<<<<<<< HEAD
 	pci_ers_result_t (*process_hw_error)(struct hnae3_ae_dev *ae_dev);
+=======
+>>>>>>> linux-next/akpm-base
 };
 
 struct hnae3_dcb_ops {

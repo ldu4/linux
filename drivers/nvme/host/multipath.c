@@ -118,6 +118,7 @@ static const char *nvme_ana_state_names[] = {
 };
 
 void nvme_mpath_clear_current_path(struct nvme_ns *ns)
+<<<<<<< HEAD
 {
 	struct nvme_ns_head *head = ns->head;
 	int node;
@@ -133,6 +134,23 @@ void nvme_mpath_clear_current_path(struct nvme_ns *ns)
 
 static struct nvme_ns *__nvme_find_path(struct nvme_ns_head *head, int node)
 {
+=======
+{
+	struct nvme_ns_head *head = ns->head;
+	int node;
+
+	if (!head)
+		return;
+
+	for_each_node(node) {
+		if (ns == rcu_access_pointer(head->current_path[node]))
+			rcu_assign_pointer(head->current_path[node], NULL);
+	}
+}
+
+static struct nvme_ns *__nvme_find_path(struct nvme_ns_head *head, int node)
+{
+>>>>>>> linux-next/akpm-base
 	int found_distance = INT_MAX, fallback_distance = INT_MAX, distance;
 	struct nvme_ns *found = NULL, *fallback = NULL, *ns;
 
@@ -320,6 +338,7 @@ static void nvme_mpath_set_live(struct nvme_ns *ns)
 	if (!(head->disk->flags & GENHD_FL_UP))
 		device_add_disk(&head->subsys->dev, head->disk,
 				nvme_ns_id_attr_groups);
+<<<<<<< HEAD
 
 	if (nvme_path_is_optimized(ns)) {
 		int node, srcu_idx;
@@ -329,6 +348,8 @@ static void nvme_mpath_set_live(struct nvme_ns *ns)
 			__nvme_find_path(head, node);
 		srcu_read_unlock(&head->srcu, srcu_idx);
 	}
+=======
+>>>>>>> linux-next/akpm-base
 
 	kblockd_schedule_work(&ns->head->requeue_work);
 }

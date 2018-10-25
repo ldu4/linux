@@ -321,6 +321,10 @@ enum {
 	BD718XX_PWRBTN_LONG_PRESS_15S
 };
 
+<<<<<<< HEAD
+=======
+struct bd718xx_pmic;
+>>>>>>> linux-next/akpm-base
 struct bd718xx_clk;
 
 struct bd718xx {
@@ -332,6 +336,10 @@ struct bd718xx {
 	int chip_irq;
 	struct regmap_irq_chip_data *irq_data;
 
+<<<<<<< HEAD
+=======
+	struct bd718xx_pmic *pmic;
+>>>>>>> linux-next/akpm-base
 	struct bd718xx_clk *clk;
 };
 

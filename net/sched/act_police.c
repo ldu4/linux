@@ -185,6 +185,11 @@ static int tcf_police_init(struct net *net, struct nlattr *nla,
 		new->peak_present = false;
 	}
 
+<<<<<<< HEAD
+=======
+	if (tb[TCA_POLICE_RESULT])
+		new->tcfp_result = nla_get_u32(tb[TCA_POLICE_RESULT]);
+>>>>>>> linux-next/akpm-base
 	new->tcfp_burst = PSCHED_TICKS2NS(parm->burst);
 	new->tcfp_toks = new->tcfp_burst;
 	if (new->peak_present) {
@@ -195,6 +200,7 @@ static int tcf_police_init(struct net *net, struct nlattr *nla,
 
 	if (tb[TCA_POLICE_AVRATE])
 		new->tcfp_ewma_rate = nla_get_u32(tb[TCA_POLICE_AVRATE]);
+<<<<<<< HEAD
 
 	if (tb[TCA_POLICE_RESULT]) {
 		new->tcfp_result = nla_get_u32(tb[TCA_POLICE_RESULT]);
@@ -205,6 +211,8 @@ static int tcf_police_init(struct net *net, struct nlattr *nla,
 			goto failure;
 		}
 	}
+=======
+>>>>>>> linux-next/akpm-base
 
 	spin_lock_bh(&police->tcf_lock);
 	new->tcfp_t_c = ktime_get_ns();
@@ -238,10 +246,17 @@ static int tcf_police_act(struct sk_buff *skb, const struct tc_action *a,
 
 	tcf_lastuse_update(&police->tcf_tm);
 	bstats_cpu_update(this_cpu_ptr(police->common.cpu_bstats), skb);
+<<<<<<< HEAD
 
 	ret = READ_ONCE(police->tcf_action);
 	p = rcu_dereference_bh(police->params);
 
+=======
+
+	ret = READ_ONCE(police->tcf_action);
+	p = rcu_dereference_bh(police->params);
+
+>>>>>>> linux-next/akpm-base
 	if (p->tcfp_ewma_rate) {
 		struct gnet_stats_rate_est64 sample;
 

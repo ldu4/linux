@@ -59,6 +59,7 @@ struct rvu_block {
 	unsigned char name[NAME_SIZE];
 };
 
+<<<<<<< HEAD
 struct nix_mcast {
 	struct qmem	*mce_ctx;
 	struct qmem	*mcast_buf;
@@ -85,6 +86,8 @@ struct npc_mcam {
 	u16	pf_offset;	/* Offset of PF's rsvd bcast, promisc entries */
 };
 
+=======
+>>>>>>> linux-next/akpm-base
 /* Structure for per RVU func info ie PF/VF */
 struct rvu_pfvf {
 	bool		npalf; /* Only one NPALF per RVU_FUNC */
@@ -93,7 +96,10 @@ struct rvu_pfvf {
 	u16		ssow;
 	u16		cptlfs;
 	u16		timlfs;
+<<<<<<< HEAD
 	u8		cgx_lmac;
+=======
+>>>>>>> linux-next/akpm-base
 
 	/* Block LF's MSIX vector info */
 	struct rsrc_bmap msix;      /* Bitmap for MSIX vector alloc */
@@ -118,6 +124,7 @@ struct rvu_pfvf {
 	unsigned long	*rq_bmap;
 	unsigned long	*cq_bmap;
 
+<<<<<<< HEAD
 	u16		rx_chan_base;
 	u16		tx_chan_base;
 	u8              rx_chan_cnt; /* total number of RX channels */
@@ -128,6 +135,9 @@ struct rvu_pfvf {
 	/* Broadcast pkt replication info */
 	u16			bcast_mce_idx;
 	struct nix_mce_list	bcast_mce_list;
+=======
+	u8		mac_addr[ETH_ALEN]; /* MAC address of this PF/VF */
+>>>>>>> linux-next/akpm-base
 };
 
 struct nix_txsch {
@@ -136,6 +146,7 @@ struct nix_txsch {
 	u16  *pfvf_map;
 };
 
+<<<<<<< HEAD
 struct npc_pkind {
 	struct rsrc_bmap rsrc;
 	u32	*pfchan_map;
@@ -144,6 +155,10 @@ struct npc_pkind {
 struct nix_hw {
 	struct nix_txsch txsch[NIX_TXSCH_LVL_CNT]; /* Tx schedulers */
 	struct nix_mcast mcast;
+=======
+struct nix_hw {
+	struct nix_txsch txsch[NIX_TXSCH_LVL_CNT]; /* Tx schedulers */
+>>>>>>> linux-next/akpm-base
 };
 
 struct rvu_hwinfo {
@@ -155,6 +170,7 @@ struct rvu_hwinfo {
 	u8	cgx_links;
 	u8	lbk_links;
 	u8	sdp_links;
+<<<<<<< HEAD
 	u8	npc_kpus;          /* No of parser units */
 
 
@@ -162,6 +178,11 @@ struct rvu_hwinfo {
 	struct nix_hw    *nix0;
 	struct npc_pkind pkind;
 	struct npc_mcam  mcam;
+=======
+
+	struct rvu_block block[BLK_COUNT]; /* Block info */
+	struct nix_hw    *nix0;
+>>>>>>> linux-next/akpm-base
 };
 
 struct rvu {
@@ -226,12 +247,19 @@ static inline u64 rvupf_read64(struct rvu *rvu, u64 offset)
 /* Function Prototypes
  * RVU
  */
+<<<<<<< HEAD
+=======
+
+>>>>>>> linux-next/akpm-base
 int rvu_alloc_bitmap(struct rsrc_bmap *rsrc);
 int rvu_alloc_rsrc(struct rsrc_bmap *rsrc);
 void rvu_free_rsrc(struct rsrc_bmap *rsrc, int id);
 int rvu_rsrc_free_count(struct rsrc_bmap *rsrc);
+<<<<<<< HEAD
 int rvu_alloc_rsrc_contig(struct rsrc_bmap *rsrc, int nrsrc);
 bool rvu_rsrc_check_contig(struct rsrc_bmap *rsrc, int nrsrc);
+=======
+>>>>>>> linux-next/akpm-base
 int rvu_get_pf(u16 pcifunc);
 struct rvu_pfvf *rvu_get_pfvf(struct rvu *rvu, int pcifunc);
 void rvu_get_pf_numvfs(struct rvu *rvu, int pf, int *numvfs, int *hwvf);
@@ -241,6 +269,7 @@ int rvu_lf_reset(struct rvu *rvu, struct rvu_block *block, int lf);
 int rvu_get_blkaddr(struct rvu *rvu, int blktype, u16 pcifunc);
 int rvu_poll_reg(struct rvu *rvu, u64 block, u64 offset, u64 mask, bool zero);
 
+<<<<<<< HEAD
 /* RVU HW reg validation */
 enum regmap_block {
 	TXSCHQ_HWREGMAP = 0,
@@ -249,6 +278,8 @@ enum regmap_block {
 
 bool rvu_check_valid_reg(int regmap, int regblk, u64 reg);
 
+=======
+>>>>>>> linux-next/akpm-base
 /* NPA/NIX AQ APIs */
 int rvu_aq_alloc(struct rvu *rvu, struct admin_queue **ad_queue,
 		 int qsize, int inst_size, int res_size);
@@ -268,7 +299,10 @@ static inline void rvu_get_cgx_lmac_id(u8 map, u8 *cgx_id, u8 *lmac_id)
 
 int rvu_cgx_probe(struct rvu *rvu);
 void rvu_cgx_wq_destroy(struct rvu *rvu);
+<<<<<<< HEAD
 void *rvu_cgx_pdata(u8 cgx_id, struct rvu *rvu);
+=======
+>>>>>>> linux-next/akpm-base
 int rvu_cgx_config_rxtx(struct rvu *rvu, u16 pcifunc, bool start);
 int rvu_mbox_handler_CGX_START_RXTX(struct rvu *rvu, struct msg_req *req,
 				    struct msg_rsp *rsp);
@@ -315,7 +349,10 @@ int rvu_mbox_handler_NPA_LF_FREE(struct rvu *rvu, struct msg_req *req,
 /* NIX APIs */
 int rvu_nix_init(struct rvu *rvu);
 void rvu_nix_freemem(struct rvu *rvu);
+<<<<<<< HEAD
 int rvu_get_nixlf_count(struct rvu *rvu);
+=======
+>>>>>>> linux-next/akpm-base
 int rvu_mbox_handler_NIX_LF_ALLOC(struct rvu *rvu,
 				  struct nix_lf_alloc_req *req,
 				  struct nix_lf_alloc_rsp *rsp);
@@ -327,6 +364,7 @@ int rvu_mbox_handler_NIX_AQ_ENQ(struct rvu *rvu,
 int rvu_mbox_handler_NIX_HWCTX_DISABLE(struct rvu *rvu,
 				       struct hwctx_disable_req *req,
 				       struct msg_rsp *rsp);
+<<<<<<< HEAD
 int rvu_mbox_handler_NIX_TXSCH_ALLOC(struct rvu *rvu,
 				     struct nix_txsch_alloc_req *req,
 				     struct nix_txsch_alloc_rsp *rsp);
@@ -365,4 +403,6 @@ void rvu_npc_install_bcast_match_entry(struct rvu *rvu, u16 pcifunc,
 void rvu_npc_disable_mcam_entries(struct rvu *rvu, u16 pcifunc, int nixlf);
 void rvu_npc_update_flowkey_alg_idx(struct rvu *rvu, u16 pcifunc, int nixlf,
 				    int group, int alg_idx, int mcam_index);
+=======
+>>>>>>> linux-next/akpm-base
 #endif /* RVU_H */
