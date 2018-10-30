@@ -137,7 +137,7 @@ static struct dpu_kms *_dpu_plane_get_kms(struct drm_plane *plane)
  * @src_wdith:		width of source buffer
  * Return: fill level corresponding to the source buffer/format or 0 if error
  */
-static inline int _dpu_plane_calc_fill_level(struct drm_plane *plane,
+static int _dpu_plane_calc_fill_level(struct drm_plane *plane,
 		const struct dpu_format *fmt, u32 src_width)
 {
 	struct dpu_plane *pdpu, *tmp;
@@ -441,7 +441,7 @@ static inline struct msm_gem_address_space *_dpu_plane_get_aspace(
 	return kms->base.aspace;
 }
 
-static inline void _dpu_plane_set_scanout(struct drm_plane *plane,
+static void _dpu_plane_set_scanout(struct drm_plane *plane,
 		struct dpu_plane_state *pstate,
 		struct dpu_hw_pipe_cfg *pipe_cfg,
 		struct drm_framebuffer *fb)
@@ -525,7 +525,7 @@ static void _dpu_plane_setup_scaler3(struct dpu_plane *pdpu,
 	scale_cfg->enable = 1;
 }
 
-static inline void _dpu_plane_setup_csc(struct dpu_plane *pdpu)
+static void _dpu_plane_setup_csc(struct dpu_plane *pdpu)
 {
 	static const struct dpu_csc_cfg dpu_csc_YUV2RGB_601L = {
 		{
@@ -1193,6 +1193,7 @@ static void dpu_plane_destroy(struct drm_plane *plane)
 static void dpu_plane_destroy_state(struct drm_plane *plane,
 		struct drm_plane_state *state)
 {
+<<<<<<< HEAD
 	struct dpu_plane_state *pstate;
 
 	if (!plane || !state) {
@@ -1206,6 +1207,10 @@ static void dpu_plane_destroy_state(struct drm_plane *plane,
 	__drm_atomic_helper_plane_destroy_state(state);
 
 	kfree(pstate);
+=======
+	__drm_atomic_helper_plane_destroy_state(state);
+	kfree(to_dpu_plane_state(state));
+>>>>>>> linux-next/akpm-base
 }
 
 static struct drm_plane_state *
@@ -1539,7 +1544,7 @@ struct drm_plane *dpu_plane_init(struct drm_device *dev,
 	if (!pdpu) {
 		DPU_ERROR("[%u]failed to allocate local plane struct\n", pipe);
 		ret = -ENOMEM;
-		goto exit;
+		return ERR_PTR(ret);
 	}
 
 	/* cache local stuff for later */
@@ -1625,6 +1630,5 @@ clean_sspp:
 		dpu_hw_sspp_destroy(pdpu->pipe_hw);
 clean_plane:
 	kfree(pdpu);
-exit:
 	return ERR_PTR(ret);
 }

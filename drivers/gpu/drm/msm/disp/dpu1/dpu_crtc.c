@@ -53,7 +53,11 @@ static inline int _dpu_crtc_get_mixer_width(struct dpu_crtc_state *cstate,
 	return mode->hdisplay / cstate->num_mixers;
 }
 
+<<<<<<< HEAD
 static inline struct dpu_kms *_dpu_crtc_get_kms(struct drm_crtc *crtc)
+=======
+static struct dpu_kms *_dpu_crtc_get_kms(struct drm_crtc *crtc)
+>>>>>>> linux-next/akpm-base
 {
 	struct msm_drm_private *priv = crtc->dev->dev_private;
 
@@ -813,6 +817,7 @@ static void _dpu_crtc_vblank_enable_no_lock(
 		pm_runtime_put_sync(dev->dev);
 		mutex_lock(&dpu_crtc->crtc_lock);
 	}
+<<<<<<< HEAD
 }
 
 /**
@@ -842,6 +847,8 @@ static void _dpu_crtc_set_suspend(struct drm_crtc *crtc, bool enable)
 
 	dpu_crtc->suspend = enable;
 	mutex_unlock(&dpu_crtc->crtc_lock);
+=======
+>>>>>>> linux-next/akpm-base
 }
 
 /**
@@ -873,6 +880,7 @@ static struct drm_crtc_state *dpu_crtc_duplicate_state(struct drm_crtc *crtc)
 	return &cstate->base;
 }
 
+<<<<<<< HEAD
 /**
  * dpu_crtc_reset - reset hook for CRTCs
  * Resets the atomic state for @crtc by freeing the state pointer (which might
@@ -910,6 +918,8 @@ static void dpu_crtc_reset(struct drm_crtc *crtc)
 	crtc->state = &cstate->base;
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 static void dpu_crtc_handle_power_event(u32 event_type, void *arg)
 {
 	struct drm_crtc *crtc = arg;
@@ -951,9 +961,6 @@ static void dpu_crtc_disable(struct drm_crtc *crtc)
 
 	DRM_DEBUG_KMS("crtc%d\n", crtc->base.id);
 
-	if (dpu_kms_is_suspend_state(crtc->dev))
-		_dpu_crtc_set_suspend(crtc, true);
-
 	/* Disable/save vblank irq handling */
 	drm_crtc_vblank_off(crtc);
 
@@ -966,8 +973,12 @@ static void dpu_crtc_disable(struct drm_crtc *crtc)
 				atomic_read(&dpu_crtc->frame_pending));
 
 	trace_dpu_crtc_disable(DRMID(crtc), false, dpu_crtc);
+<<<<<<< HEAD
 	if (dpu_crtc->enabled && !dpu_crtc->suspend &&
 			dpu_crtc->vblank_requested) {
+=======
+	if (dpu_crtc->enabled && dpu_crtc->vblank_requested) {
+>>>>>>> linux-next/akpm-base
 		_dpu_crtc_vblank_enable_no_lock(dpu_crtc, false);
 	}
 	dpu_crtc->enabled = false;
@@ -1033,8 +1044,12 @@ static void dpu_crtc_enable(struct drm_crtc *crtc,
 
 	mutex_lock(&dpu_crtc->crtc_lock);
 	trace_dpu_crtc_enable(DRMID(crtc), true, dpu_crtc);
+<<<<<<< HEAD
 	if (!dpu_crtc->enabled && !dpu_crtc->suspend &&
 			dpu_crtc->vblank_requested) {
+=======
+	if (!dpu_crtc->enabled && dpu_crtc->vblank_requested) {
+>>>>>>> linux-next/akpm-base
 		_dpu_crtc_vblank_enable_no_lock(dpu_crtc, true);
 	}
 	dpu_crtc->enabled = true;
@@ -1289,6 +1304,7 @@ end:
 
 int dpu_crtc_vblank(struct drm_crtc *crtc, bool en)
 {
+<<<<<<< HEAD
 	struct dpu_crtc *dpu_crtc;
 
 	if (!crtc) {
@@ -1300,6 +1316,13 @@ int dpu_crtc_vblank(struct drm_crtc *crtc, bool en)
 	mutex_lock(&dpu_crtc->crtc_lock);
 	trace_dpu_crtc_vblank(DRMID(&dpu_crtc->base), en, dpu_crtc);
 	if (dpu_crtc->enabled && !dpu_crtc->suspend) {
+=======
+	struct dpu_crtc *dpu_crtc = to_dpu_crtc(crtc);
+
+	mutex_lock(&dpu_crtc->crtc_lock);
+	trace_dpu_crtc_vblank(DRMID(&dpu_crtc->base), en, dpu_crtc);
+	if (dpu_crtc->enabled) {
+>>>>>>> linux-next/akpm-base
 		_dpu_crtc_vblank_enable_no_lock(dpu_crtc, en);
 	}
 	dpu_crtc->vblank_requested = en;
@@ -1539,7 +1562,7 @@ static const struct drm_crtc_funcs dpu_crtc_funcs = {
 	.set_config = drm_atomic_helper_set_config,
 	.destroy = dpu_crtc_destroy,
 	.page_flip = drm_atomic_helper_page_flip,
-	.reset = dpu_crtc_reset,
+	.reset = drm_atomic_helper_crtc_reset,
 	.atomic_duplicate_state = dpu_crtc_duplicate_state,
 	.atomic_destroy_state = dpu_crtc_destroy_state,
 	.late_register = dpu_crtc_late_register,
@@ -1594,7 +1617,6 @@ struct drm_crtc *dpu_crtc_init(struct drm_device *dev, struct drm_plane *plane,
 				NULL);
 
 	drm_crtc_helper_add(crtc, &dpu_crtc_helper_funcs);
-	plane->crtc = crtc;
 
 	/* save user friendly CRTC name for later */
 	snprintf(dpu_crtc->name, DPU_CRTC_NAME_SIZE, "crtc%u", crtc->base.id);
