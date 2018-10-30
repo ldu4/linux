@@ -1757,11 +1757,7 @@ static int dsi_host_parse_dt(struct msm_dsi_host *msm_host)
 	/* Get panel node from the output port's endpoint data */
 	device_node = of_graph_get_remote_node(np, 1, 0);
 	if (!device_node) {
-<<<<<<< HEAD
-		dev_dbg(dev, "%s: no valid device\n", __func__);
-=======
 		DRM_DEV_DEBUG(dev, "%s: no valid device\n", __func__);
->>>>>>> linux-next/akpm-base
 		ret = -ENODEV;
 		goto err;
 	}

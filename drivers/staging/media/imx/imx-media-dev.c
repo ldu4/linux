@@ -54,39 +54,6 @@ int imx_media_add_async_subdev(struct imx_media_dev *imxmd,
 			&imxmd->notifier, fwnode, sizeof(*imxasd));
 	} else {
 		devname = dev_name(&pdev->dev);
-<<<<<<< HEAD
-
-	/* return -EEXIST if this asd already added */
-	if (find_async_subdev(imxmd, fwnode, devname)) {
-		if (np)
-			dev_dbg(imxmd->md.dev, "%s: already added %pOFn\n",
-			__func__, np);
-		else
-			dev_dbg(imxmd->md.dev, "%s: already added %s\n",
-			__func__, devname);
-		ret = -EEXIST;
-		goto out;
-	}
-
-	imxasd = devm_kzalloc(imxmd->md.dev, sizeof(*imxasd), GFP_KERNEL);
-	if (!imxasd) {
-		ret = -ENOMEM;
-		goto out;
-	}
-	asd = &imxasd->asd;
-
-	if (fwnode) {
-		asd->match_type = V4L2_ASYNC_MATCH_FWNODE;
-		asd->match.fwnode = fwnode;
-		dev_dbg(imxmd->md.dev, "%s: added %pOFn, match type FWNODE\n",
-			__func__, np);
-	} else {
-		asd->match_type = V4L2_ASYNC_MATCH_DEVNAME;
-		asd->match.device_name = devname;
-		imxasd->pdev = pdev;
-		dev_dbg(imxmd->md.dev, "%s: added %s, match type DEVNAME\n",
-			__func__, devname);
-=======
 		asd = v4l2_async_notifier_add_devname_subdev(
 			&imxmd->notifier, devname, sizeof(*imxasd));
 	}
@@ -102,7 +69,6 @@ int imx_media_add_async_subdev(struct imx_media_dev *imxmd,
 				__func__, devname);
 		}
 		return ret;
->>>>>>> linux-next/akpm-base
 	}
 
 	imxasd = to_imx_media_asd(asd);
@@ -110,11 +76,6 @@ int imx_media_add_async_subdev(struct imx_media_dev *imxmd,
 	if (devname)
 		imxasd->pdev = pdev;
 
-<<<<<<< HEAD
-out:
-	mutex_unlock(&imxmd->mutex);
-	return ret;
-=======
 	if (fwnode)
 		dev_dbg(imxmd->md.dev, "%s: added %pOFn, match type FWNODE\n",
 			__func__, np);
@@ -123,7 +84,6 @@ out:
 			__func__, devname);
 
 	return 0;
->>>>>>> linux-next/akpm-base
 }
 
 /*

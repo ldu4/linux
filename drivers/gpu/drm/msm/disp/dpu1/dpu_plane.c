@@ -1193,24 +1193,8 @@ static void dpu_plane_destroy(struct drm_plane *plane)
 static void dpu_plane_destroy_state(struct drm_plane *plane,
 		struct drm_plane_state *state)
 {
-<<<<<<< HEAD
-	struct dpu_plane_state *pstate;
-
-	if (!plane || !state) {
-		DPU_ERROR("invalid arg(s), plane %d state %d\n",
-				plane != 0, state != 0);
-		return;
-	}
-
-	pstate = to_dpu_plane_state(state);
-
-	__drm_atomic_helper_plane_destroy_state(state);
-
-	kfree(pstate);
-=======
 	__drm_atomic_helper_plane_destroy_state(state);
 	kfree(to_dpu_plane_state(state));
->>>>>>> linux-next/akpm-base
 }
 
 static struct drm_plane_state *

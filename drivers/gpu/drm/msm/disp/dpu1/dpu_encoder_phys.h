@@ -114,11 +114,6 @@ struct dpu_encoder_virt_ops {
  * @handle_post_kickoff:	Do any work necessary post-kickoff work
  * @trigger_start:		Process start event on physical encoder
  * @needs_single_flush:		Whether encoder slaves need to be flushed
-<<<<<<< HEAD
- * @hw_reset:			Issue HW recovery such as CTL reset and clear
- *				DPU_ENC_ERR_NEEDS_HW_RESET state
-=======
->>>>>>> linux-next/akpm-base
  * @irq_control:		Handler to enable/disable all the encoder IRQs
  * @prepare_idle_pc:		phys encoder can update the vsync_enable status
  *                              on idle power collapse prepare
@@ -154,10 +149,6 @@ struct dpu_encoder_phys_ops {
 	void (*handle_post_kickoff)(struct dpu_encoder_phys *phys_enc);
 	void (*trigger_start)(struct dpu_encoder_phys *phys_enc);
 	bool (*needs_single_flush)(struct dpu_encoder_phys *phys_enc);
-<<<<<<< HEAD
-	void (*hw_reset)(struct dpu_encoder_phys *phys_enc);
-=======
->>>>>>> linux-next/akpm-base
 	void (*irq_control)(struct dpu_encoder_phys *phys, bool enable);
 	void (*prepare_idle_pc)(struct dpu_encoder_phys *phys_enc);
 	void (*restore)(struct dpu_encoder_phys *phys);

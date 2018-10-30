@@ -1032,7 +1032,6 @@ static void dpu_encoder_virt_mode_set(struct drm_encoder *drm_enc,
 			if (!dpu_enc->hw_pp[i]) {
 				DPU_ERROR_ENC(dpu_enc, "no pp block assigned"
 					     "at idx: %d\n", i);
-<<<<<<< HEAD
 				return;
 			}
 
@@ -1042,17 +1041,6 @@ static void dpu_encoder_virt_mode_set(struct drm_encoder *drm_enc,
 				return;
 			}
 
-=======
-				return;
-			}
-
-			if (!hw_ctl[i]) {
-				DPU_ERROR_ENC(dpu_enc, "no ctl block assigned"
-					     "at idx: %d\n", i);
-				return;
-			}
-
->>>>>>> linux-next/akpm-base
 			phys->hw_pp = dpu_enc->hw_pp[i];
 			phys->hw_ctl = hw_ctl[i];
 

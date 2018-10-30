@@ -852,9 +852,6 @@ struct dpu_encoder_phys *dpu_encoder_phys_cmd_init(
 
 	return phys_enc;
 
-<<<<<<< HEAD
 fail:
-=======
->>>>>>> linux-next/akpm-base
 	return ERR_PTR(ret);
 }

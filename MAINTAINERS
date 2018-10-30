@@ -9700,8 +9700,6 @@ L:	netdev@vger.kernel.org
 S:	Maintained
 F:	drivers/net/ethernet/microchip/lan743x_*
 
-<<<<<<< HEAD
-=======
 MICROCHIP LCDFB DRIVER
 M:	Nicolas Ferre <nicolas.ferre@microchip.com>
 L:	linux-fbdev@vger.kernel.org
@@ -9709,7 +9707,6 @@ S:	Maintained
 F:	drivers/video/fbdev/atmel_lcdfb.c
 F:	include/video/atmel_lcdc.h
 
->>>>>>> linux-next/akpm-base
 MICROCHIP / ATMEL MCP3911 ADC DRIVER
 M:	Marcus Folkesson <marcus.folkesson@gmail.com>
 M:	Kent Gustavsson <kent@minoris.se>
@@ -9718,8 +9715,6 @@ S:	Supported
 F:	drivers/iio/adc/mcp3911.c
 F:	Documentation/devicetree/bindings/iio/adc/mcp3911.txt
 
-<<<<<<< HEAD
-=======
 MICROCHIP MMC/SD/SDIO MCI DRIVER
 M:	Ludovic Desroches <ludovic.desroches@microchip.com>
 S:	Maintained
@@ -9779,7 +9774,6 @@ L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
 S:	Supported
 F:	drivers/usb/gadget/udc/atmel_usba_udc.*
 
->>>>>>> linux-next/akpm-base
 MICROCHIP USB251XB DRIVER
 M:	Richard Leitner <richard.leitner@skidata.com>
 L:	linux-usb@vger.kernel.org
