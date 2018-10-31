@@ -365,7 +365,8 @@ static int ovl_show_options(struct seq_file *m, struct dentry *dentry)
 	return 0;
 }
 
-static int ovl_remount(struct super_block *sb, int *flags, char *data)
+static int ovl_remount(struct super_block *sb, int *flags,
+		       char *data, size_t data_size)
 {
 	struct ovl_fs *ofs = sb->s_fs_info;
 
@@ -1175,9 +1176,29 @@ out:
 	return err;
 }
 
-/* Get a unique fsid for the layer */
-static int ovl_get_fsid(struct ovl_fs *ofs, struct super_block *sb)
+static bool ovl_lower_uuid_ok(struct ovl_fs *ofs, const uuid_t *uuid)
 {
+	unsigned int i;
+
+	if (!ofs->config.nfs_export && !(ofs->config.index && ofs->upper_mnt))
+		return true;
+
+	for (i = 0; i < ofs->numlowerfs; i++) {
+		/*
+		 * We use uuid to associate an overlay lower file handle with a
+		 * lower layer, so we can accept lower fs with null uuid as long
+		 * as all lower layers with null uuid are on the same fs.
+		 */
+		if (uuid_equal(&ofs->lower_fs[i].sb->s_uuid, uuid))
+			return false;
+	}
+	return true;
+}
+
+/* Get a unique fsid for the layer */
+static int ovl_get_fsid(struct ovl_fs *ofs, const struct path *path)
+{
+	struct super_block *sb = path->mnt->mnt_sb;
 	unsigned int i;
 	dev_t dev;
 	int err;
@@ -1189,6 +1210,14 @@ static int ovl_get_fsid(struct ovl_fs *ofs, struct super_block *sb)
 	for (i = 0; i < ofs->numlowerfs; i++) {
 		if (ofs->lower_fs[i].sb == sb)
 			return i + 1;
+	}
+
+	if (!ovl_lower_uuid_ok(ofs, &sb->s_uuid)) {
+		ofs->config.index = false;
+		ofs->config.nfs_export = false;
+		pr_warn("overlayfs: %s uuid detected in lower fs '%pd2', falling back to index=off,nfs_export=off.\n",
+			uuid_is_null(&sb->s_uuid) ? "null" : "conflicting",
+			path->dentry);
 	}
 
 	err = get_anon_bdev(&dev);
@@ -1225,7 +1254,7 @@ static int ovl_get_lower_layers(struct ovl_fs *ofs, struct path *stack,
 		struct vfsmount *mnt;
 		int fsid;
 
-		err = fsid = ovl_get_fsid(ofs, stack[i].mnt->mnt_sb);
+		err = fsid = ovl_get_fsid(ofs, &stack[i]);
 		if (err < 0)
 			goto out;
 
@@ -1368,7 +1397,8 @@ out_err:
 	goto out;
 }
 
-static int ovl_fill_super(struct super_block *sb, void *data, int silent)
+static int ovl_fill_super(struct super_block *sb, void *data, size_t data_size,
+			  int silent)
 {
 	struct path upperpath = { };
 	struct dentry *root_dentry;
@@ -1513,9 +1543,10 @@ out:
 }
 
 static struct dentry *ovl_mount(struct file_system_type *fs_type, int flags,
-				const char *dev_name, void *raw_data)
+				const char *dev_name,
+				void *raw_data, size_t data_size)
 {
-	return mount_nodev(fs_type, flags, raw_data, ovl_fill_super);
+	return mount_nodev(fs_type, flags, raw_data, data_size, ovl_fill_super);
 }
 
 static struct file_system_type ovl_fs_type = {
