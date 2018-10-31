@@ -32,7 +32,12 @@
 #include <linux/initrd.h>
 #include <linux/module.h>
 #include <linux/start_kernel.h>
+<<<<<<< HEAD
 #include <linux/memblock.h>
+=======
+#include <linux/bootmem.h>
+#include <uapi/linux/mount.h>
+>>>>>>> linux-next/akpm-base
 
 #include <asm/io.h>
 #include <asm/processor.h>

@@ -13,6 +13,11 @@ config C6X
 	select GENERIC_ATOMIC64
 	select GENERIC_IRQ_SHOW
 	select HAVE_ARCH_TRACEHOOK
+<<<<<<< HEAD
+=======
+	select HAVE_MEMBLOCK
+	select NO_BOOTMEM
+>>>>>>> linux-next/akpm-base
 	select SPARSE_IRQ
 	select IRQ_DOMAIN
 	select OF
