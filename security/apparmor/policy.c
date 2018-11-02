@@ -231,7 +231,11 @@ void aa_free_profile(struct aa_profile *profile)
 	for (i = 0; i < profile->xattr_count; i++)
 		kzfree(profile->xattrs[i]);
 	kzfree(profile->xattrs);
+<<<<<<< HEAD
 	for (i = 0; i < profile->secmark_count; i++)
+=======
+	for (i=0; i < profile->secmark_count; i++)
+>>>>>>> linux-next/akpm-base
 		kzfree(profile->secmark[i].label);
 	kzfree(profile->secmark);
 	kzfree(profile->dirname);

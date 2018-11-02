@@ -76,8 +76,15 @@
 
 #define __compiletime_object_size(obj) __builtin_object_size(obj, 0)
 
+<<<<<<< HEAD
 #define __compiletime_warning(message) __attribute__((__warning__(message)))
 #define __compiletime_error(message) __attribute__((__error__(message)))
+=======
+#ifndef CONFIG_CC_OPTIMIZE_FOR_DEBUGGING
+#define __compiletime_warning(message) __attribute__((__warning__(message)))
+#define __compiletime_error(message) __attribute__((__error__(message)))
+#endif
+>>>>>>> linux-next/akpm-base
 
 #if defined(LATENT_ENTROPY_PLUGIN) && !defined(__CHECKER__)
 #define __latent_entropy __attribute__((latent_entropy))
@@ -113,7 +120,11 @@
 #endif
 
 /*
+<<<<<<< HEAD
  * GCC 'asm goto' miscompiles certain code sequences:
+=======
+ * GCC < 4.8.2 'asm goto' miscompiles certain code sequences:
+>>>>>>> linux-next/akpm-base
  *
  *   http://gcc.gnu.org/bugzilla/show_bug.cgi?id=58670
  *
@@ -121,7 +132,11 @@
  *
  * (asm goto is automatically volatile - the naming reflects this.)
  */
+#if GCC_VERSION < 40802
 #define asm_volatile_goto(x...)	do { asm goto(x); asm (""); } while (0)
+#else
+#define asm_volatile_goto(x...)	asm goto(x)
+#endif
 
 /*
  * sparse (__CHECKER__) pretends to be gcc, but can't do constant
@@ -143,12 +158,16 @@
 #define KASAN_ABI_VERSION 3
 #endif
 
+<<<<<<< HEAD
 /*
  * Because __no_sanitize_address conflicts with inlining:
  *   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=67368
  * we do one or the other. 
  */
 #ifdef CONFIG_KASAN
+=======
+#if (GCC_VERSION >= 40902) && defined(CONFIG_KASAN)
+>>>>>>> linux-next/akpm-base
 #define __no_sanitize_address_or_inline					\
 	__no_sanitize_address __maybe_unused notrace
 #else
