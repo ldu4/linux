@@ -122,12 +122,8 @@ static int afs_mntpt_set_params(struct fs_context *fc, struct dentry *mntpt)
 
 		if (PageError(page)) {
 			ret = afs_bad(AFS_FS_I(d_inode(mntpt)), afs_file_error_mntpt);
-<<<<<<< HEAD
-			goto error;
-=======
 			put_page(page);
 			return ret;
->>>>>>> linux-next/akpm-base
 		}
 
 		buf = kmap(page);
