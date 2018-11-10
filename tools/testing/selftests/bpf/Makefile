@@ -37,7 +37,8 @@ TEST_GEN_FILES = test_pkt_access.o test_xdp.o test_l4lb.o test_tcp_estats.o test
 	test_lwt_seg6local.o sendmsg4_prog.o sendmsg6_prog.o test_lirc_mode2_kern.o \
 	get_cgroup_id_kern.o socket_cookie_prog.o test_select_reuseport_kern.o \
 	test_skb_cgroup_id_kern.o bpf_flow.o netcnt_prog.o \
-	test_sk_lookup_kern.o test_xdp_vlan.o test_queue_map.o test_stack_map.o
+	test_sk_lookup_kern.o test_xdp_vlan.o test_queue_map.o test_stack_map.o \
+	xdp_dummy.o
 
 # Order correspond to 'make run_tests' order
 TEST_PROGS := test_kmod.sh \
@@ -133,6 +134,16 @@ ifneq ($(BTF_OBJCOPY_PROBE),)
 	DWARF2BTF = y
 endif
 endif
+endif
+
+# Have one program compiled without "-target bpf" to test whether libbpf loads
+# it successfully
+$(OUTPUT)/test_xdp.o: test_xdp.c
+	$(CLANG) $(CLANG_FLAGS) \
+		-O2 -emit-llvm -c $< -o - | \
+	$(LLC) -march=bpf -mcpu=$(CPU) $(LLC_FLAGS) -filetype=obj -o $@
+ifeq ($(DWARF2BTF),y)
+	$(BTF_PAHOLE) -J $@
 endif
 
 $(OUTPUT)/%.o: %.c
