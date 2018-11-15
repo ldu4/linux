@@ -67,7 +67,7 @@ module_param(ql2xplogiabsentdevice, int, S_IRUGO|S_IWUSR);
 MODULE_PARM_DESC(ql2xplogiabsentdevice,
 		"Option to enable PLOGI to devices that are not present after "
 		"a Fabric scan.  This is needed for several broken switches. "
-		"Default is 0 - no PLOGI. 1 - perfom PLOGI.");
+		"Default is 0 - no PLOGI. 1 - perform PLOGI.");
 
 int ql2xloginretrycount = 0;
 module_param(ql2xloginretrycount, int, S_IRUGO);
@@ -857,13 +857,9 @@ qla2xxx_queuecommand(struct Scsi_Host *host, struct scsi_cmnd *cmd)
 	}
 
 	if (ha->mqenable) {
-		if (shost_use_blk_mq(vha->host)) {
-			tag = blk_mq_unique_tag(cmd->request);
-			hwq = blk_mq_unique_tag_to_hwq(tag);
-			qpair = ha->queue_pair_map[hwq];
-		} else if (vha->vp_idx && vha->qpair) {
-			qpair = vha->qpair;
-		}
+		tag = blk_mq_unique_tag(cmd->request);
+		hwq = blk_mq_unique_tag_to_hwq(tag);
+		qpair = ha->queue_pair_map[hwq];
 
 		if (qpair)
 			return qla2xxx_mqueuecommand(host, cmd, qpair);
@@ -1464,7 +1460,7 @@ __qla2xxx_eh_generic_reset(char *name, enum nexus_wait_type type,
 		goto eh_reset_failed;
 	}
 	err = 2;
-	if (do_reset(fcport, cmd->device->lun, cmd->request->cpu + 1)
+	if (do_reset(fcport, cmd->device->lun, blk_mq_rq_cpu(cmd->request) + 1)
 		!= QLA_SUCCESS) {
 		ql_log(ql_log_warn, vha, 0x800c,
 		    "do_reset failed for cmd=%p.\n", cmd);
@@ -1749,7 +1745,7 @@ qla2x00_loop_reset(scsi_qla_host_t *vha)
 static void
 __qla2x00_abort_all_cmds(struct qla_qpair *qp, int res)
 {
-	int cnt;
+	int cnt, status;
 	unsigned long flags;
 	srb_t *sp;
 	scsi_qla_host_t *vha = qp->vha;
@@ -1799,10 +1795,16 @@ __qla2x00_abort_all_cmds(struct qla_qpair *qp, int res)
 					if (!sp_get(sp)) {
 						spin_unlock_irqrestore
 							(qp->qp_lock_ptr, flags);
-						qla2xxx_eh_abort(
+						status = qla2xxx_eh_abort(
 							GET_CMD_SP(sp));
 						spin_lock_irqsave
 							(qp->qp_lock_ptr, flags);
+						/*
+						 * Get rid of extra reference caused
+						 * by early exit from qla2xxx_eh_abort
+						 */
+						if (status == FAST_IO_FAIL)
+							atomic_dec(&sp->ref_count);
 					}
 				}
 				sp->done(sp, res);
@@ -3153,7 +3155,7 @@ qla2x00_probe_one(struct pci_dev *pdev, const struct pci_device_id *id)
 		goto probe_failed;
 	}
 
-	if (ha->mqenable && shost_use_blk_mq(host)) {
+	if (ha->mqenable) {
 		/* number of hardware queues supported by blk/scsi-mq*/
 		host->nr_hw_queues = ha->max_qpairs;
 
@@ -3265,25 +3267,17 @@ qla2x00_probe_one(struct pci_dev *pdev, const struct pci_device_id *id)
 	    base_vha->mgmt_svr_loop_id, host->sg_tablesize);
 
 	if (ha->mqenable) {
-		bool mq = false;
 		bool startit = false;
 
-		if (QLA_TGT_MODE_ENABLED()) {
-			mq = true;
+		if (QLA_TGT_MODE_ENABLED())
 			startit = false;
-		}
 
-		if ((ql2x_ini_mode == QLA2XXX_INI_MODE_ENABLED) &&
-		    shost_use_blk_mq(host)) {
-			mq = true;
+		if (ql2x_ini_mode == QLA2XXX_INI_MODE_ENABLED)
 			startit = true;
-		}
 
-		if (mq) {
-			/* Create start of day qpairs for Block MQ */
-			for (i = 0; i < ha->max_qpairs; i++)
-				qla2xxx_create_qpair(base_vha, 5, 0, startit);
-		}
+		/* Create start of day qpairs for Block MQ */
+		for (i = 0; i < ha->max_qpairs; i++)
+			qla2xxx_create_qpair(base_vha, 5, 0, startit);
 	}
 
 	if (ha->flags.running_gold_fw)
@@ -6946,11 +6940,12 @@ static int qla2xxx_map_queues(struct Scsi_Host *shost)
 {
 	int rc;
 	scsi_qla_host_t *vha = (scsi_qla_host_t *)shost->hostdata;
+	struct blk_mq_queue_map *qmap = &shost->tag_set.map[0];
 
 	if (USER_CTRL_IRQ(vha->hw))
-		rc = blk_mq_map_queues(&shost->tag_set);
+		rc = blk_mq_map_queues(qmap);
 	else
-		rc = blk_mq_pci_map_queues(&shost->tag_set, vha->hw->pdev, 0);
+		rc = blk_mq_pci_map_queues(qmap, vha->hw->pdev, 0);
 	return rc;
 }
 

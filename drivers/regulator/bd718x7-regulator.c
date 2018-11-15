@@ -9,6 +9,7 @@
 #include <linux/kernel.h>
 #include <linux/mfd/rohm-bd718x7.h>
 #include <linux/module.h>
+#include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
@@ -1007,7 +1008,7 @@ static const struct bd718xx_regulator_data bd71837_regulators[] = {
 };
 
 struct bd718xx_pmic_inits {
-	const struct bd718xx_regulator_data (*r_datas)[];
+	const struct bd718xx_regulator_data *r_datas;
 	unsigned int r_amount;
 };
 
@@ -1017,11 +1018,11 @@ static int bd718xx_probe(struct platform_device *pdev)
 	struct regulator_config config = { 0 };
 	struct bd718xx_pmic_inits pmic_regulators[] = {
 		[BD718XX_TYPE_BD71837] = {
-			.r_datas = &bd71837_regulators,
+			.r_datas = bd71837_regulators,
 			.r_amount = ARRAY_SIZE(bd71837_regulators),
 		},
 		[BD718XX_TYPE_BD71847] = {
-			.r_datas = &bd71847_regulators,
+			.r_datas = bd71847_regulators,
 			.r_amount = ARRAY_SIZE(bd71847_regulators),
 		},
 	};
@@ -1059,7 +1060,7 @@ static int bd718xx_probe(struct platform_device *pdev)
 		struct regulator_dev *rdev;
 		const struct bd718xx_regulator_data *r;
 
-		r = &(*pmic_regulators[mfd->chip_type].r_datas)[i];
+		r = &pmic_regulators[mfd->chip_type].r_datas[i];
 		desc = &r->desc;
 
 		config.dev = pdev->dev.parent;

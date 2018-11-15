@@ -777,9 +777,6 @@ static int qcom_slim_ngd_xfer_msg(struct slim_controller *sctrl,
 	u8 la = txn->la;
 	bool usr_msg = false;
 
-	if (txn->mc & SLIM_MSG_CLK_PAUSE_SEQ_FLG)
-		return -EPROTONOSUPPORT;
-
 	if (txn->mt == SLIM_MSG_MT_CORE &&
 		(txn->mc >= SLIM_MSG_MC_BEGIN_RECONFIGURATION &&
 		 txn->mc <= SLIM_MSG_MC_RECONFIGURE_NOW))
@@ -1330,11 +1327,12 @@ static int of_qcom_slim_ngd_register(struct device *parent,
 {
 	const struct ngd_reg_offset_data *data;
 	struct qcom_slim_ngd *ngd;
+	const struct of_device_id *match;
 	struct device_node *node;
 	u32 id;
 
-	data = of_match_node(qcom_slim_ngd_dt_match, parent->of_node)->data;
-
+	match = of_match_node(qcom_slim_ngd_dt_match, parent->of_node);
+	data = match->data;
 	for_each_available_child_of_node(parent->of_node, node) {
 		if (of_property_read_u32(node, "reg", &id))
 			continue;
