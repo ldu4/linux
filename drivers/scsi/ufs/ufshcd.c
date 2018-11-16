@@ -231,6 +231,8 @@ static struct ufs_dev_fix ufs_fixups[] = {
 	UFS_FIX(UFS_VENDOR_SKHYNIX, UFS_ANY_MODEL, UFS_DEVICE_NO_VCCQ),
 	UFS_FIX(UFS_VENDOR_SKHYNIX, UFS_ANY_MODEL,
 		UFS_DEVICE_QUIRK_HOST_PA_SAVECONFIGTIME),
+	UFS_FIX(UFS_VENDOR_SKHYNIX, "hB8aL1" /*H28U62301AMR*/,
+		UFS_DEVICE_QUIRK_HOST_VS_DEBUGSAVECONFIGTIME),
 
 	END_FIX
 };
@@ -6699,6 +6701,74 @@ static void ufshcd_def_desc_sizes(struct ufs_hba *hba)
 	hba->desc_size.hlth_desc = QUERY_DESC_HEALTH_DEF_SIZE;
 }
 
+static struct ufs_ref_clk ufs_ref_clk_freqs[] = {
+	{19200000, REF_CLK_FREQ_19_2_MHZ},
+	{26000000, REF_CLK_FREQ_26_MHZ},
+	{38400000, REF_CLK_FREQ_38_4_MHZ},
+	{52000000, REF_CLK_FREQ_52_MHZ},
+	{0, REF_CLK_FREQ_INVAL},
+};
+
+static enum ufs_ref_clk_freq
+ufs_get_bref_clk_from_hz(unsigned long freq)
+{
+	int i;
+
+	for (i = 0; ufs_ref_clk_freqs[i].freq_hz; i++)
+		if (ufs_ref_clk_freqs[i].freq_hz == freq)
+			return ufs_ref_clk_freqs[i].val;
+
+	return REF_CLK_FREQ_INVAL;
+}
+
+void ufshcd_parse_dev_ref_clk_freq(struct ufs_hba *hba, struct clk *refclk)
+{
+	unsigned long freq;
+
+	freq = clk_get_rate(refclk);
+
+	hba->dev_ref_clk_freq =
+		ufs_get_bref_clk_from_hz(freq);
+
+	if (hba->dev_ref_clk_freq == REF_CLK_FREQ_INVAL)
+		dev_err(hba->dev,
+		"invalid ref_clk setting = %ld\n", freq);
+}
+
+static int ufshcd_set_dev_ref_clk(struct ufs_hba *hba)
+{
+	int err;
+	u32 ref_clk;
+	u32 freq = hba->dev_ref_clk_freq;
+
+	err = ufshcd_query_attr_retry(hba, UPIU_QUERY_OPCODE_READ_ATTR,
+			QUERY_ATTR_IDN_REF_CLK_FREQ, 0, 0, &ref_clk);
+
+	if (err) {
+		dev_err(hba->dev, "failed reading bRefClkFreq. err = %d\n",
+			err);
+		goto out;
+	}
+
+	if (ref_clk == freq)
+		goto out; /* nothing to update */
+
+	err = ufshcd_query_attr_retry(hba, UPIU_QUERY_OPCODE_WRITE_ATTR,
+			QUERY_ATTR_IDN_REF_CLK_FREQ, 0, 0, &freq);
+
+	if (err) {
+		dev_err(hba->dev, "bRefClkFreq setting to %lu Hz failed\n",
+			ufs_ref_clk_freqs[freq].freq_hz);
+		goto out;
+	}
+
+	dev_dbg(hba->dev, "bRefClkFreq setting to %lu Hz succeeded\n",
+			ufs_ref_clk_freqs[freq].freq_hz);
+
+out:
+	return err;
+}
+
 /**
  * ufshcd_probe_hba - probe hba to detect device and initialize
  * @hba: per-adapter instance
@@ -6764,6 +6834,12 @@ static int ufshcd_probe_hba(struct ufs_hba *hba)
 			"%s: Failed getting max supported power mode\n",
 			__func__);
 	} else {
+		/*
+		 * Set the right value to bRefClkFreq before attempting to
+		 * switch to HS gears.
+		 */
+		if (hba->dev_ref_clk_freq != REF_CLK_FREQ_INVAL)
+			ufshcd_set_dev_ref_clk(hba);
 		ret = ufshcd_config_pwr_mode(hba, &hba->max_pwr_info.info);
 		if (ret) {
 			dev_err(hba->dev, "%s: Failed setting power mode, err = %d\n",
@@ -7249,6 +7325,14 @@ static int ufshcd_init_clocks(struct ufs_hba *hba)
 					__func__, clki->name, ret);
 			goto out;
 		}
+
+		/*
+		 * Parse device ref clk freq as per device tree "ref_clk".
+		 * Default dev_ref_clk_freq is set to REF_CLK_FREQ_INVAL
+		 * in ufshcd_alloc_host().
+		 */
+		if (!strcmp(clki->name, "ref_clk"))
+			ufshcd_parse_dev_ref_clk_freq(hba, clki->clk);
 
 		if (clki->max_freq) {
 			ret = clk_set_rate(clki->clk, clki->max_freq);
@@ -8099,10 +8183,12 @@ int ufshcd_alloc_host(struct device *dev, struct ufs_hba **hba_handle)
 		err = -ENOMEM;
 		goto out_error;
 	}
+
 	hba = shost_priv(host);
 	hba->host = host;
 	hba->dev = dev;
 	*hba_handle = hba;
+	hba->dev_ref_clk_freq = REF_CLK_FREQ_INVAL;
 
 	INIT_LIST_HEAD(&hba->clk_list_head);
 
