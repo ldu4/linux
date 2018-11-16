@@ -238,7 +238,7 @@ find_blocked_lock(struct nfs4_lockowner *lo, struct knfsd_fh *fh,
 	}
 	spin_unlock(&nn->blocked_locks_lock);
 	if (found)
-		posix_unblock_lock(&found->nbl_lock);
+		locks_delete_block(&found->nbl_lock);
 	return found;
 }
 
@@ -293,7 +293,7 @@ remove_blocked_locks(struct nfs4_lockowner *lo)
 		nbl = list_first_entry(&reaplist, struct nfsd4_blocked_lock,
 					nbl_lru);
 		list_del_init(&nbl->nbl_lru);
-		posix_unblock_lock(&nbl->nbl_lock);
+		locks_delete_block(&nbl->nbl_lock);
 		free_blocked_lock(nbl);
 	}
 }
@@ -3317,6 +3317,9 @@ nfsd4_reclaim_complete(struct svc_rqst *rqstp,
 	__be32 status = 0;
 
 	if (rc->rca_one_fs) {
+		status = fh_verify(rqstp, &cstate->current_fh, 0, 0);
+		if (status)
+			return status;
 		if (!cstate->current_fh.fh_dentry)
 			return nfserr_nofilehandle;
 		/*
@@ -4863,7 +4866,7 @@ nfs4_laundromat(struct nfsd_net *nn)
 		nbl = list_first_entry(&reaplist,
 					struct nfsd4_blocked_lock, nbl_lru);
 		list_del_init(&nbl->nbl_lru);
-		posix_unblock_lock(&nbl->nbl_lock);
+		locks_delete_block(&nbl->nbl_lock);
 		free_blocked_lock(nbl);
 	}
 out:
@@ -5112,7 +5115,7 @@ nfs4_find_file(struct nfs4_stid *s, int flags)
 }
 
 static __be32
-nfs4_check_olstateid(struct svc_fh *fhp, struct nfs4_ol_stateid *ols, int flags)
+nfs4_check_olstateid(struct nfs4_ol_stateid *ols, int flags)
 {
 	__be32 status;
 
@@ -5195,7 +5198,7 @@ nfs4_preprocess_stateid_op(struct svc_rqst *rqstp,
 		break;
 	case NFS4_OPEN_STID:
 	case NFS4_LOCK_STID:
-		status = nfs4_check_olstateid(fhp, openlockstateid(s), flags);
+		status = nfs4_check_olstateid(openlockstateid(s), flags);
 		break;
 	default:
 		status = nfserr_bad_stateid;

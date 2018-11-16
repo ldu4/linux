@@ -224,7 +224,7 @@ static const struct pci_device_id rtl8169_pci_tbl[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_DLINK,	0x4300), 0, 0, RTL_CFG_0 },
 	{ PCI_DEVICE(PCI_VENDOR_ID_DLINK,	0x4302), 0, 0, RTL_CFG_0 },
 	{ PCI_DEVICE(PCI_VENDOR_ID_AT,		0xc107), 0, 0, RTL_CFG_0 },
-	{ PCI_DEVICE(0x16ec,			0x0116), 0, 0, RTL_CFG_0 },
+	{ PCI_DEVICE(PCI_VENDOR_ID_USR,		0x0116), 0, 0, RTL_CFG_0 },
 	{ PCI_VENDOR_ID_LINKSYS,		0x1032,
 		PCI_ANY_ID, 0x0024, 0, 0, RTL_CFG_0 },
 	{ 0x0001,				0x8168,
@@ -5866,7 +5866,7 @@ static void rtl_reset_work(struct rtl8169_private *tp)
 
 	napi_disable(&tp->napi);
 	netif_stop_queue(dev);
-	synchronize_sched();
+	synchronize_rcu();
 
 	rtl8169_hw_reset(tp);
 
@@ -6584,7 +6584,7 @@ static int r8169_phy_connect(struct rtl8169_private *tp)
 		phy_set_max_speed(phydev, SPEED_100);
 
 	/* Ensure to advertise everything, incl. pause */
-	phydev->advertising = phydev->supported;
+	linkmode_copy(phydev->advertising, phydev->supported);
 
 	phy_attached_info(phydev);
 
@@ -6609,7 +6609,7 @@ static void rtl8169_down(struct net_device *dev)
 	rtl8169_rx_missed(dev);
 
 	/* Give a racing hard_start_xmit a few cycles to complete. */
-	synchronize_sched();
+	synchronize_rcu();
 
 	rtl8169_tx_clear(tp);
 
