@@ -491,14 +491,7 @@ void intel_hpd_irq_handler(struct drm_i915_private *dev_priv,
 			queue_hp = true;
 		}
 
-<<<<<<< HEAD
-		if (!long_hpd)
-			continue;
-
-		if (intel_hpd_irq_storm_detect(dev_priv, pin)) {
-=======
 		if (intel_hpd_irq_storm_detect(dev_priv, pin, long_hpd)) {
->>>>>>> linux-next/akpm-base
 			dev_priv->hotplug.event_bits &= ~BIT(pin);
 			storm_detected = true;
 			queue_hp = true;

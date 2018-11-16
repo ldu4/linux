@@ -336,12 +336,8 @@ skl_program_scaler(struct intel_plane *plane,
 				      0, INT_MAX);
 
 	/* TODO: handle sub-pixel coordinates */
-<<<<<<< HEAD
-	if (plane_state->base.fb->format->format == DRM_FORMAT_NV12) {
-=======
 	if (plane_state->base.fb->format->format == DRM_FORMAT_NV12 &&
 	    !icl_is_hdr_plane(plane)) {
->>>>>>> linux-next/akpm-base
 		y_hphase = skl_scaler_calc_phase(1, hscale, false);
 		y_vphase = skl_scaler_calc_phase(1, vscale, false);
 
@@ -359,10 +355,6 @@ skl_program_scaler(struct intel_plane *plane,
 
 	I915_WRITE_FW(SKL_PS_CTRL(pipe, scaler_id),
 		      PS_SCALER_EN | PS_PLANE_SEL(plane->id) | scaler->mode);
-<<<<<<< HEAD
-	I915_WRITE_FW(SKL_PS_PWR_GATE(pipe, scaler_id), 0);
-=======
->>>>>>> linux-next/akpm-base
 	I915_WRITE_FW(SKL_PS_VPHASE(pipe, scaler_id),
 		      PS_Y_PHASE(y_vphase) | PS_UV_RGB_PHASE(uv_rgb_vphase));
 	I915_WRITE_FW(SKL_PS_HPHASE(pipe, scaler_id),
@@ -371,12 +363,6 @@ skl_program_scaler(struct intel_plane *plane,
 	I915_WRITE_FW(SKL_PS_WIN_SZ(pipe, scaler_id), (crtc_w << 16) | crtc_h);
 }
 
-<<<<<<< HEAD
-void
-skl_update_plane(struct intel_plane *plane,
-		 const struct intel_crtc_state *crtc_state,
-		 const struct intel_plane_state *plane_state)
-=======
 /* Preoffset values for YUV to RGB Conversion */
 #define PREOFF_YUV_TO_RGB_HI		0x1800
 #define PREOFF_YUV_TO_RGB_ME		0x1F00
@@ -484,7 +470,6 @@ skl_program_plane(struct intel_plane *plane,
 		  const struct intel_crtc_state *crtc_state,
 		  const struct intel_plane_state *plane_state,
 		  int color_plane, bool slave, u32 plane_ctl)
->>>>>>> linux-next/akpm-base
 {
 	struct drm_i915_private *dev_priv = to_i915(plane->base.dev);
 	enum plane_id plane_id = plane->id;
@@ -495,13 +480,8 @@ skl_program_plane(struct intel_plane *plane,
 	u32 aux_stride = skl_plane_stride(plane_state, 1);
 	int crtc_x = plane_state->base.dst.x1;
 	int crtc_y = plane_state->base.dst.y1;
-<<<<<<< HEAD
-	uint32_t x = plane_state->color_plane[0].x;
-	uint32_t y = plane_state->color_plane[0].y;
-=======
 	uint32_t x = plane_state->color_plane[color_plane].x;
 	uint32_t y = plane_state->color_plane[color_plane].y;
->>>>>>> linux-next/akpm-base
 	uint32_t src_w = drm_rect_width(&plane_state->base.src) >> 16;
 	uint32_t src_h = drm_rect_height(&plane_state->base.src) >> 16;
 	struct intel_plane *linked = plane_state->linked_plane;
@@ -513,8 +493,6 @@ skl_program_plane(struct intel_plane *plane,
 	/* Sizes are 0 based */
 	src_w--;
 	src_h--;
-<<<<<<< HEAD
-=======
 
 	keymax = (key->max_value & 0xffffff) | PLANE_KEYMAX_ALPHA(alpha);
 
@@ -527,7 +505,6 @@ skl_program_plane(struct intel_plane *plane,
 		crtc_x = 0;
 		crtc_y = 0;
 	}
->>>>>>> linux-next/akpm-base
 
 	spin_lock_irqsave(&dev_priv->uncore.lock, irqflags);
 
@@ -548,14 +525,6 @@ skl_program_plane(struct intel_plane *plane,
 	I915_WRITE_FW(PLANE_AUX_DIST(pipe, plane_id),
 		      (plane_state->color_plane[1].offset - surf_addr) | aux_stride);
 
-<<<<<<< HEAD
-	if (plane_state->scaler_id >= 0) {
-		skl_program_scaler(plane, crtc_state, plane_state);
-
-		I915_WRITE_FW(PLANE_POS(pipe, plane_id), 0);
-	} else {
-		I915_WRITE_FW(PLANE_POS(pipe, plane_id), (crtc_y << 16) | crtc_x);
-=======
 	if (INTEL_GEN(dev_priv) < 11)
 		I915_WRITE_FW(PLANE_AUX_OFFSET(pipe, plane_id),
 			      (plane_state->color_plane[1].y << 16) |
@@ -580,7 +549,6 @@ skl_program_plane(struct intel_plane *plane,
 		}
 
 		I915_WRITE_FW(PLANE_CUS_CTL(pipe, plane_id), cus_ctl);
->>>>>>> linux-next/akpm-base
 	}
 
 	if (!slave && plane_state->scaler_id >= 0)

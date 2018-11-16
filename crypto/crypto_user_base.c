@@ -84,13 +84,9 @@ static int crypto_report_cipher(struct sk_buff *skb, struct crypto_alg *alg)
 {
 	struct crypto_report_cipher rcipher;
 
-<<<<<<< HEAD
-	strncpy(rcipher.type, "cipher", sizeof(rcipher.type));
-=======
 	memset(&rcipher, 0, sizeof(rcipher));
 
 	strscpy(rcipher.type, "cipher", sizeof(rcipher.type));
->>>>>>> linux-next/akpm-base
 
 	rcipher.blocksize = alg->cra_blocksize;
 	rcipher.min_keysize = alg->cra_cipher.cia_min_keysize;
@@ -104,55 +100,7 @@ static int crypto_report_comp(struct sk_buff *skb, struct crypto_alg *alg)
 {
 	struct crypto_report_comp rcomp;
 
-<<<<<<< HEAD
-	strncpy(rcomp.type, "compression", sizeof(rcomp.type));
-	if (nla_put(skb, CRYPTOCFGA_REPORT_COMPRESS,
-		    sizeof(struct crypto_report_comp), &rcomp))
-		goto nla_put_failure;
-	return 0;
-
-nla_put_failure:
-	return -EMSGSIZE;
-}
-
-static int crypto_report_acomp(struct sk_buff *skb, struct crypto_alg *alg)
-{
-	struct crypto_report_acomp racomp;
-
-	strncpy(racomp.type, "acomp", sizeof(racomp.type));
-
-	if (nla_put(skb, CRYPTOCFGA_REPORT_ACOMP,
-		    sizeof(struct crypto_report_acomp), &racomp))
-		goto nla_put_failure;
-	return 0;
-
-nla_put_failure:
-	return -EMSGSIZE;
-}
-
-static int crypto_report_akcipher(struct sk_buff *skb, struct crypto_alg *alg)
-{
-	struct crypto_report_akcipher rakcipher;
-
-	strncpy(rakcipher.type, "akcipher", sizeof(rakcipher.type));
-
-	if (nla_put(skb, CRYPTOCFGA_REPORT_AKCIPHER,
-		    sizeof(struct crypto_report_akcipher), &rakcipher))
-		goto nla_put_failure;
-	return 0;
-
-nla_put_failure:
-	return -EMSGSIZE;
-}
-
-static int crypto_report_kpp(struct sk_buff *skb, struct crypto_alg *alg)
-{
-	struct crypto_report_kpp rkpp;
-
-	strncpy(rkpp.type, "kpp", sizeof(rkpp.type));
-=======
 	memset(&rcomp, 0, sizeof(rcomp));
->>>>>>> linux-next/akpm-base
 
 	strscpy(rcomp.type, "compression", sizeof(rcomp.type));
 
@@ -162,19 +110,12 @@ static int crypto_report_kpp(struct sk_buff *skb, struct crypto_alg *alg)
 static int crypto_report_one(struct crypto_alg *alg,
 			     struct crypto_user_alg *ualg, struct sk_buff *skb)
 {
-<<<<<<< HEAD
-	strncpy(ualg->cru_name, alg->cra_name, sizeof(ualg->cru_name));
-	strncpy(ualg->cru_driver_name, alg->cra_driver_name,
-		sizeof(ualg->cru_driver_name));
-	strncpy(ualg->cru_module_name, module_name(alg->cra_module),
-=======
 	memset(ualg, 0, sizeof(*ualg));
 
 	strscpy(ualg->cru_name, alg->cra_name, sizeof(ualg->cru_name));
 	strscpy(ualg->cru_driver_name, alg->cra_driver_name,
 		sizeof(ualg->cru_driver_name));
 	strscpy(ualg->cru_module_name, module_name(alg->cra_module),
->>>>>>> linux-next/akpm-base
 		sizeof(ualg->cru_module_name));
 
 	ualg->cru_type = 0;
@@ -187,15 +128,9 @@ static int crypto_report_one(struct crypto_alg *alg,
 	if (alg->cra_flags & CRYPTO_ALG_LARVAL) {
 		struct crypto_report_larval rl;
 
-<<<<<<< HEAD
-		strncpy(rl.type, "larval", sizeof(rl.type));
-		if (nla_put(skb, CRYPTOCFGA_REPORT_LARVAL,
-			    sizeof(struct crypto_report_larval), &rl))
-=======
 		memset(&rl, 0, sizeof(rl));
 		strscpy(rl.type, "larval", sizeof(rl.type));
 		if (nla_put(skb, CRYPTOCFGA_REPORT_LARVAL, sizeof(rl), &rl))
->>>>>>> linux-next/akpm-base
 			goto nla_put_failure;
 		goto out;
 	}
