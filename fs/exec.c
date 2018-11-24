@@ -62,6 +62,7 @@
 #include <linux/oom.h>
 #include <linux/compat.h>
 #include <linux/vmalloc.h>
+#include <linux/freezer.h>
 
 #include <linux/uaccess.h>
 #include <asm/mmu_context.h>
@@ -1084,7 +1085,7 @@ static int de_thread(struct task_struct *tsk)
 	while (sig->notify_count) {
 		__set_current_state(TASK_KILLABLE);
 		spin_unlock_irq(lock);
-		schedule();
+		freezable_schedule();
 		if (unlikely(__fatal_signal_pending(tsk)))
 			goto killed;
 		spin_lock_irq(lock);
@@ -1112,7 +1113,7 @@ static int de_thread(struct task_struct *tsk)
 			__set_current_state(TASK_KILLABLE);
 			write_unlock_irq(&tasklist_lock);
 			cgroup_threadgroup_change_end(tsk);
-			schedule();
+			freezable_schedule();
 			if (unlikely(__fatal_signal_pending(tsk)))
 				goto killed;
 		}

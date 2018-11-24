@@ -301,8 +301,12 @@ struct ieee80211_regdomain *iwl_mvm_get_regdomain(struct wiphy *wiphy,
 		goto out;
 	}
 
-	if (changed)
-		*changed = (resp->status == MCC_RESP_NEW_CHAN_PROFILE);
+	if (changed) {
+		u32 status = le32_to_cpu(resp->status);
+
+		*changed = (status == MCC_RESP_NEW_CHAN_PROFILE ||
+			    status == MCC_RESP_ILLEGAL);
+	}
 
 	regd = iwl_parse_nvm_mcc_info(mvm->trans->dev, mvm->cfg,
 				      __le32_to_cpu(resp->n_channels),
@@ -808,6 +812,21 @@ static void iwl_mvm_mac_tx(struct ieee80211_hw *hw,
 	    ieee80211_is_mgmt(hdr->frame_control) &&
 	    !ieee80211_is_bufferable_mmpdu(hdr->frame_control))
 		sta = NULL;
+
+	/* If there is no sta, and it's not offchannel - send through AP */
+	if (info->control.vif->type == NL80211_IFTYPE_STATION &&
+	    info->hw_queue != IWL_MVM_OFFCHANNEL_QUEUE && !sta) {
+		struct iwl_mvm_vif *mvmvif =
+			iwl_mvm_vif_from_mac80211(info->control.vif);
+		u8 ap_sta_id = READ_ONCE(mvmvif->ap_sta_id);
+
+		if (ap_sta_id < IWL_MVM_STATION_COUNT) {
+			/* mac80211 holds rcu read lock */
+			sta = rcu_dereference(mvm->fw_id_to_mac_id[ap_sta_id]);
+			if (IS_ERR_OR_NULL(sta))
+				goto drop;
+		}
+	}
 
 	if (sta) {
 		if (iwl_mvm_defer_tx(mvm, sta, skb))
@@ -2379,6 +2398,12 @@ static int iwl_mvm_start_ap_ibss(struct ieee80211_hw *hw,
 	/* must be set before quota calculations */
 	mvmvif->ap_ibss_active = true;
 
+	if (vif->type == NL80211_IFTYPE_AP && !vif->p2p) {
+		iwl_mvm_vif_set_low_latency(mvmvif, true,
+					    LOW_LATENCY_VIF_TYPE);
+		iwl_mvm_send_low_latency_cmd(mvm, true, mvmvif->id);
+	}
+
 	/* power updated needs to be done before quotas */
 	iwl_mvm_power_update_mac(mvm);
 
@@ -2440,6 +2465,12 @@ static void iwl_mvm_stop_ap_ibss(struct ieee80211_hw *hw,
 
 	mvmvif->ap_ibss_active = false;
 	mvm->ap_last_beacon_gp2 = 0;
+
+	if (vif->type == NL80211_IFTYPE_AP && !vif->p2p) {
+		iwl_mvm_vif_set_low_latency(mvmvif, false,
+					    LOW_LATENCY_VIF_TYPE);
+		iwl_mvm_send_low_latency_cmd(mvm, false,  mvmvif->id);
+	}
 
 	iwl_mvm_bt_coex_vif_change(mvm);
 
@@ -4443,10 +4474,6 @@ static void iwl_mvm_mac_sta_statistics(struct ieee80211_hw *hw,
 		sinfo->signal_avg = mvmsta->avg_energy;
 		sinfo->filled |= BIT_ULL(NL80211_STA_INFO_SIGNAL_AVG);
 	}
-
-	if (!fw_has_capa(&mvm->fw->ucode_capa,
-			 IWL_UCODE_TLV_CAPA_RADIO_BEACON_STATS))
-		return;
 
 	/* if beacon filtering isn't on mac80211 does it anyway */
 	if (!(vif->driver_flags & IEEE80211_VIF_BEACON_FILTER))
