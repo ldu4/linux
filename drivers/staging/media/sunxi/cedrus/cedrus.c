@@ -108,17 +108,6 @@ static int cedrus_request_validate(struct media_request *req)
 	unsigned int count;
 	unsigned int i;
 
-	count = vb2_request_buffer_cnt(req);
-	if (!count) {
-		v4l2_info(&ctx->dev->v4l2_dev,
-			  "No buffer was provided with the request\n");
-		return -ENOENT;
-	} else if (count > 1) {
-		v4l2_info(&ctx->dev->v4l2_dev,
-			  "More than one buffer was provided with the request\n");
-		return -EINVAL;
-	}
-
 	list_for_each_entry(obj, &req->objects, list) {
 		struct vb2_buffer *vb;
 
@@ -132,6 +121,17 @@ static int cedrus_request_validate(struct media_request *req)
 
 	if (!ctx)
 		return -ENOENT;
+
+	count = vb2_request_buffer_cnt(req);
+	if (!count) {
+		v4l2_info(&ctx->dev->v4l2_dev,
+			  "No buffer was provided with the request\n");
+		return -ENOENT;
+	} else if (count > 1) {
+		v4l2_info(&ctx->dev->v4l2_dev,
+			  "More than one buffer was provided with the request\n");
+		return -EINVAL;
+	}
 
 	parent_hdl = &ctx->hdl;
 
@@ -418,7 +418,6 @@ static struct platform_driver cedrus_driver = {
 	.remove		= cedrus_remove,
 	.driver		= {
 		.name		= CEDRUS_NAME,
-		.owner		= THIS_MODULE,
 		.of_match_table	= of_match_ptr(cedrus_dt_match),
 	},
 };

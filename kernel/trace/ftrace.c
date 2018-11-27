@@ -173,7 +173,7 @@ static void ftrace_sync(struct work_struct *work)
 {
 	/*
 	 * This function is just a stub to implement a hard force
-	 * of synchronize_sched(). This requires synchronizing
+	 * of synchronize_rcu(). This requires synchronizing
 	 * tasks even in userspace and idle.
 	 *
 	 * Yes, function tracing is rude.
@@ -817,7 +817,7 @@ function_profile_call(unsigned long ip, unsigned long parent_ip,
 #ifdef CONFIG_FUNCTION_GRAPH_TRACER
 static int profile_graph_entry(struct ftrace_graph_ent *trace)
 {
-	int index = trace->depth;
+	int index = current->curr_ret_stack;
 
 	function_profile_call(trace->func, 0, NULL, NULL);
 
@@ -852,7 +852,7 @@ static void profile_graph_return(struct ftrace_graph_ret *trace)
 	if (!fgraph_graph_time) {
 		int index;
 
-		index = trace->depth;
+		index = current->curr_ret_stack;
 
 		/* Append this call time to the parent time to subtract */
 		if (index)
@@ -934,7 +934,7 @@ ftrace_profile_write(struct file *filp, const char __user *ubuf,
 			ftrace_profile_enabled = 0;
 			/*
 			 * unregister_ftrace_profiler calls stop_machine
-			 * so this acts like an synchronize_sched.
+			 * so this acts like an synchronize_rcu.
 			 */
 			unregister_ftrace_profiler();
 		}
@@ -1086,7 +1086,7 @@ struct ftrace_ops *ftrace_ops_trampoline(unsigned long addr)
 
 	/*
 	 * Some of the ops may be dynamically allocated,
-	 * they are freed after a synchronize_sched().
+	 * they are freed after a synchronize_rcu().
 	 */
 	preempt_disable_notrace();
 
@@ -1286,7 +1286,7 @@ static void free_ftrace_hash_rcu(struct ftrace_hash *hash)
 {
 	if (!hash || hash == EMPTY_HASH)
 		return;
-	call_rcu_sched(&hash->rcu, __free_ftrace_hash_rcu);
+	call_rcu(&hash->rcu, __free_ftrace_hash_rcu);
 }
 
 void ftrace_free_filter(struct ftrace_ops *ops)
@@ -1501,7 +1501,7 @@ static bool hash_contains_ip(unsigned long ip,
  * the ip is not in the ops->notrace_hash.
  *
  * This needs to be called with preemption disabled as
- * the hashes are freed with call_rcu_sched().
+ * the hashes are freed with call_rcu().
  */
 static int
 ftrace_ops_test(struct ftrace_ops *ops, unsigned long ip, void *regs)
@@ -4496,7 +4496,7 @@ unregister_ftrace_function_probe_func(char *glob, struct trace_array *tr,
 	if (ftrace_enabled && !ftrace_hash_empty(hash))
 		ftrace_run_modify_code(&probe->ops, FTRACE_UPDATE_CALLS,
 				       &old_hash_ops);
-	synchronize_sched();
+	synchronize_rcu();
 
 	hlist_for_each_entry_safe(entry, tmp, &hhd, hlist) {
 		hlist_del(&entry->hlist);
@@ -5314,7 +5314,7 @@ ftrace_graph_release(struct inode *inode, struct file *file)
 		mutex_unlock(&graph_lock);
 
 		/* Wait till all users are no longer using the old hash */
-		synchronize_sched();
+		synchronize_rcu();
 
 		free_ftrace_hash(old_hash);
 	}
@@ -5707,7 +5707,7 @@ void ftrace_release_mod(struct module *mod)
 	list_for_each_entry_safe(mod_map, n, &ftrace_mod_maps, list) {
 		if (mod_map->mod == mod) {
 			list_del_rcu(&mod_map->list);
-			call_rcu_sched(&mod_map->rcu, ftrace_free_mod_map);
+			call_rcu(&mod_map->rcu, ftrace_free_mod_map);
 			break;
 		}
 	}
@@ -5927,7 +5927,7 @@ ftrace_mod_address_lookup(unsigned long addr, unsigned long *size,
 	struct ftrace_mod_map *mod_map;
 	const char *ret = NULL;
 
-	/* mod_map is freed via call_rcu_sched() */
+	/* mod_map is freed via call_rcu() */
 	preempt_disable();
 	list_for_each_entry_rcu(mod_map, &ftrace_mod_maps, list) {
 		ret = ftrace_func_address_lookup(mod_map, addr, size, off, sym);
@@ -6262,7 +6262,7 @@ __ftrace_ops_list_func(unsigned long ip, unsigned long parent_ip,
 
 	/*
 	 * Some of the ops may be dynamically allocated,
-	 * they must be freed after a synchronize_sched().
+	 * they must be freed after a synchronize_rcu().
 	 */
 	preempt_disable_notrace();
 
@@ -6433,7 +6433,7 @@ static void clear_ftrace_pids(struct trace_array *tr)
 	rcu_assign_pointer(tr->function_pids, NULL);
 
 	/* Wait till all users are no longer using pid filtering */
-	synchronize_sched();
+	synchronize_rcu();
 
 	trace_free_pid_list(pid_list);
 }
@@ -6580,7 +6580,7 @@ ftrace_pid_write(struct file *filp, const char __user *ubuf,
 	rcu_assign_pointer(tr->function_pids, pid_list);
 
 	if (filtered_pids) {
-		synchronize_sched();
+		synchronize_rcu();
 		trace_free_pid_list(filtered_pids);
 	} else if (pid_list) {
 		/* Register a probe to set whether to ignore the tracing of a task */
@@ -6814,6 +6814,7 @@ static int alloc_retstack_tasklist(struct ftrace_ret_stack **ret_stack_list)
 			atomic_set(&t->tracing_graph_pause, 0);
 			atomic_set(&t->trace_overrun, 0);
 			t->curr_ret_stack = -1;
+			t->curr_ret_depth = -1;
 			/* Make sure the tasks see the -1 first: */
 			smp_wmb();
 			t->ret_stack = ret_stack_list[start++];
@@ -7038,6 +7039,7 @@ graph_init_task(struct task_struct *t, struct ftrace_ret_stack *ret_stack)
 void ftrace_graph_init_idle_task(struct task_struct *t, int cpu)
 {
 	t->curr_ret_stack = -1;
+	t->curr_ret_depth = -1;
 	/*
 	 * The idle task has no parent, it either has its own
 	 * stack or no stack at all.
@@ -7068,6 +7070,7 @@ void ftrace_graph_init_task(struct task_struct *t)
 	/* Make sure we do not use the parent ret_stack */
 	t->ret_stack = NULL;
 	t->curr_ret_stack = -1;
+	t->curr_ret_depth = -1;
 
 	if (ftrace_graph_active) {
 		struct ftrace_ret_stack *ret_stack;

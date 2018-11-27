@@ -28,23 +28,6 @@ them, but also all the virtual ones used by KVM, so everyone qualifies).
 
 Contact: Daniel Vetter, Thierry Reding, respective driver maintainers
 
-Switch from reference/unreference to get/put
---------------------------------------------
-
-For some reason DRM core uses ``reference``/``unreference`` suffixes for
-refcounting functions, but kernel uses ``get``/``put`` (e.g.
-``kref_get``/``put()``). It would be good to switch over for consistency, and
-it's shorter. Needs to be done in 3 steps for each pair of functions:
-
-* Create new ``get``/``put`` functions, define the old names as compatibility
-  wrappers
-* Switch over each file/driver using a cocci-generated spatch.
-* Once all users of the old names are gone, remove them.
-
-This way drivers/patches in the progress of getting merged won't break.
-
-Contact: Daniel Vetter
-
 Convert existing KMS drivers to atomic modesetting
 --------------------------------------------------
 
@@ -234,6 +217,19 @@ efficient.
 
 Contact: Daniel Vetter
 
+Defaults for .gem_prime_import and export
+-----------------------------------------
+
+Most drivers don't need to set drm_driver->gem_prime_import and
+->gem_prime_export now that drm_gem_prime_import() and drm_gem_prime_export()
+are the default.
+
+struct drm_gem_object_funcs
+---------------------------
+
+GEM objects can now have a function table instead of having the callbacks on the
+DRM driver struct. This is now the preferred way and drivers can be moved over.
+
 Core refactorings
 =================
 
@@ -338,6 +334,16 @@ Some of these date from the very introduction of KMS in 2008 ...
 - drm_display_mode doesn't need to be derived from drm_mode_object. That's
   leftovers from older (never merged into upstream) KMS designs where modes
   where set using their ID, including support to add/remove modes.
+
+- Make ->funcs and ->helper_private vtables optional. There's a bunch of empty
+  function tables in drivers, but before we can remove them we need to make sure
+  that all the users in helpers and drivers do correctly check for a NULL
+  vtable.
+
+- Cleanup up the various ->destroy callbacks. A lot of them just wrapt the
+  drm_*_cleanup implementations and can be removed. Some tack a kfree() at the
+  end, for which we could add drm_*_cleanup_kfree(). And then there's the (for
+  historical reasons) misnamed drm_primary_helper_destroy() function.
 
 Better Testing
 ==============
