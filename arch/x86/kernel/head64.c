@@ -98,7 +98,7 @@ static bool __head check_la57_support(unsigned long physaddr)
 	return true;
 }
 #else
-static bool __head check_la57_support(unsigned long physaddr)
+static inline bool __head check_la57_support(unsigned long physaddr)
 {
 	return false;
 }
@@ -456,8 +456,6 @@ void __init x86_64_start_reservations(char *real_mode_data)
 	/* version is always not zero if it is copied */
 	if (!boot_params.hdr.version)
 		copy_bootdata(__va(real_mode_data));
-
-	x86_verify_bootdata_version();
 
 	x86_early_init_platform_quirks();
 
