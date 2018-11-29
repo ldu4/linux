@@ -213,7 +213,8 @@ static int parse_options(char *options,
 	return (sbi->pipefd < 0);
 }
 
-int autofs_fill_super(struct super_block *s, void *data, int silent)
+int autofs_fill_super(struct super_block *s, void *data, size_t data_size,
+		      int silent)
 {
 	struct inode *root_inode;
 	struct dentry *root;
