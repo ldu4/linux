@@ -420,6 +420,9 @@ enum {
 };
 
 void arch_ftrace_update_code(int command);
+void arch_ftrace_update_trampoline(struct ftrace_ops *ops);
+void *arch_ftrace_trampoline_func(struct ftrace_ops *ops, struct dyn_ftrace *rec);
+void arch_ftrace_trampoline_free(struct ftrace_ops *ops);
 
 struct ftrace_rec_iter;
 
@@ -777,8 +780,8 @@ struct ftrace_ret_stack {
 extern void return_to_handler(void);
 
 extern int
-ftrace_push_return_trace(unsigned long ret, unsigned long func, int *depth,
-			 unsigned long frame_pointer, unsigned long *retp);
+function_graph_enter(unsigned long ret, unsigned long func,
+		     unsigned long frame_pointer, unsigned long *retp);
 
 unsigned long ftrace_graph_ret_addr(struct task_struct *task, int *idx,
 				    unsigned long ret, unsigned long *retp);

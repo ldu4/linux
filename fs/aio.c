@@ -233,7 +233,8 @@ static struct file *aio_private_file(struct kioctx *ctx, loff_t nr_pages)
 }
 
 static struct dentry *aio_mount(struct file_system_type *fs_type,
-				int flags, const char *dev_name, void *data)
+				int flags, const char *dev_name,
+				void *data, size_t data_size)
 {
 	struct dentry *root = mount_pseudo(fs_type, "aio:", NULL, NULL,
 					   AIO_RING_MAGIC);
@@ -1436,12 +1437,13 @@ static int aio_prep_rw(struct kiocb *req, struct iocb *iocb)
 		ret = ioprio_check_cap(iocb->aio_reqprio);
 		if (ret) {
 			pr_debug("aio ioprio check cap error: %d\n", ret);
+			fput(req->ki_filp);
 			return ret;
 		}
 
 		req->ki_ioprio = iocb->aio_reqprio;
 	} else
-		req->ki_ioprio = IOPRIO_PRIO_VALUE(IOPRIO_CLASS_NONE, 0);
+		req->ki_ioprio = get_current_ioprio();
 
 	ret = kiocb_set_rw_flags(req, iocb->aio_rw_flags);
 	if (unlikely(ret))

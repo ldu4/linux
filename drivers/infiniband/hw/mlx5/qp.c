@@ -2633,8 +2633,7 @@ static int to_mlx5_access_flags(struct mlx5_ib_qp *qp,
 
 	if (access_flags & IB_ACCESS_REMOTE_READ)
 		*hw_access_flags |= MLX5_QP_BIT_RRE;
-	if ((access_flags & IB_ACCESS_REMOTE_ATOMIC) &&
-	    qp->ibqp.qp_type == IB_QPT_RC) {
+	if (access_flags & IB_ACCESS_REMOTE_ATOMIC) {
 		int atomic_mode;
 
 		atomic_mode = get_atomic_mode(dev, qp->ibqp.qp_type);
@@ -3516,7 +3515,7 @@ static bool modify_dci_qp_is_ok(enum ib_qp_state cur_state, enum ib_qp_state new
 		return is_valid_mask(attr_mask, req, opt);
 	} else if (cur_state == IB_QPS_INIT && new_state == IB_QPS_RTR) {
 		req |= IB_QP_PATH_MTU;
-		opt = IB_QP_PKEY_INDEX;
+		opt = IB_QP_PKEY_INDEX | IB_QP_AV;
 		return is_valid_mask(attr_mask, req, opt);
 	} else if (cur_state == IB_QPS_RTR && new_state == IB_QPS_RTS) {
 		req |= IB_QP_TIMEOUT | IB_QP_RETRY_CNT | IB_QP_RNR_RETRY |
@@ -4678,17 +4677,18 @@ static int _mlx5_ib_post_send(struct ib_qp *ibqp, const struct ib_send_wr *wr,
 			goto out;
 		}
 
-		if (wr->opcode == IB_WR_LOCAL_INV ||
-		    wr->opcode == IB_WR_REG_MR) {
+		if (wr->opcode == IB_WR_REG_MR) {
 			fence = dev->umr_fence;
 			next_fence = MLX5_FENCE_MODE_INITIATOR_SMALL;
-		} else if (wr->send_flags & IB_SEND_FENCE) {
-			if (qp->next_fence)
-				fence = MLX5_FENCE_MODE_SMALL_AND_FENCE;
-			else
-				fence = MLX5_FENCE_MODE_FENCE;
-		} else {
-			fence = qp->next_fence;
+		} else  {
+			if (wr->send_flags & IB_SEND_FENCE) {
+				if (qp->next_fence)
+					fence = MLX5_FENCE_MODE_SMALL_AND_FENCE;
+				else
+					fence = MLX5_FENCE_MODE_FENCE;
+			} else {
+				fence = qp->next_fence;
+			}
 		}
 
 		switch (ibqp->qp_type) {
