@@ -104,12 +104,9 @@ $(OUTPUT)test-bionic.bin:
 $(OUTPUT)test-libelf.bin:
 	$(BUILD) -lelf
 
-<<<<<<< HEAD
-=======
 $(OUTPUT)test-eventfd.bin:
 	$(BUILD)
 
->>>>>>> linux-next/akpm-base
 $(OUTPUT)test-get_current_dir_name.bin:
 	$(BUILD)
 

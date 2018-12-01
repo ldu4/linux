@@ -348,67 +348,6 @@ static int snd_ctl_find_hole(struct snd_card *card, unsigned int count)
 	return 0;
 }
 
-<<<<<<< HEAD
-/* add a new kcontrol object; call with card->controls_rwsem locked */
-static int __snd_ctl_add(struct snd_card *card, struct snd_kcontrol *kcontrol)
-{
-	struct snd_ctl_elem_id id;
-	unsigned int idx;
-	unsigned int count;
-
-	id = kcontrol->id;
-	if (id.index > UINT_MAX - kcontrol->count)
-		return -EINVAL;
-
-	if (snd_ctl_find_id(card, &id)) {
-		dev_err(card->dev,
-			"control %i:%i:%i:%s:%i is already present\n",
-			id.iface, id.device, id.subdevice, id.name, id.index);
-		return -EBUSY;
-	}
-
-	if (snd_ctl_find_hole(card, kcontrol->count) < 0)
-		return -ENOMEM;
-
-	list_add_tail(&kcontrol->list, &card->controls);
-	card->controls_count += kcontrol->count;
-	kcontrol->id.numid = card->last_numid + 1;
-	card->last_numid += kcontrol->count;
-
-	id = kcontrol->id;
-	count = kcontrol->count;
-	for (idx = 0; idx < count; idx++, id.index++, id.numid++)
-		snd_ctl_notify(card, SNDRV_CTL_EVENT_MASK_ADD, &id);
-
-	return 0;
-}
-
-/**
- * snd_ctl_add - add the control instance to the card
- * @card: the card instance
- * @kcontrol: the control instance to add
- *
- * Adds the control instance created via snd_ctl_new() or
- * snd_ctl_new1() to the given card. Assigns also an unique
- * numid used for fast search.
- *
- * It frees automatically the control which cannot be added.
- *
- * Return: Zero if successful, or a negative error code on failure.
- *
- */
-int snd_ctl_add(struct snd_card *card, struct snd_kcontrol *kcontrol)
-{
-	int err = -EINVAL;
-
-	if (! kcontrol)
-		return err;
-	if (snd_BUG_ON(!card || !kcontrol->info))
-		goto error;
-
-	down_write(&card->controls_rwsem);
-	err = __snd_ctl_add(card, kcontrol);
-=======
 enum snd_ctl_add_mode {
 	CTL_ADD_EXCLUSIVE, CTL_REPLACE, CTL_ADD_ON_REPLACE,
 };
@@ -475,7 +414,6 @@ static int snd_ctl_add_replace(struct snd_card *card,
 
 	down_write(&card->controls_rwsem);
 	err = __snd_ctl_add_replace(card, kcontrol, mode);
->>>>>>> linux-next/akpm-base
 	up_write(&card->controls_rwsem);
 	if (err < 0)
 		goto error;
@@ -1412,11 +1350,7 @@ static int snd_ctl_elem_add(struct snd_ctl_file *file,
 
 	/* This function manage to free the instance on failure. */
 	down_write(&card->controls_rwsem);
-<<<<<<< HEAD
-	err = __snd_ctl_add(card, kctl);
-=======
 	err = __snd_ctl_add_replace(card, kctl, CTL_ADD_EXCLUSIVE);
->>>>>>> linux-next/akpm-base
 	if (err < 0) {
 		snd_ctl_free_one(kctl);
 		goto unlock;

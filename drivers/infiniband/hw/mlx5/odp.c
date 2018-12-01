@@ -725,10 +725,6 @@ next_mr:
 				    key);
 			if (bytes_mapped)
 				*bytes_mapped += bcnt;
-<<<<<<< HEAD
-			ret = 0;
-=======
->>>>>>> linux-next/akpm-base
 			goto srcu_unlock;
 		}
 

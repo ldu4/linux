@@ -131,11 +131,8 @@ static void meson_crtc_atomic_disable(struct drm_crtc *crtc,
 	struct meson_crtc *meson_crtc = to_meson_crtc(crtc);
 	struct meson_drm *priv = meson_crtc->priv;
 
-<<<<<<< HEAD
-=======
 	DRM_DEBUG_DRIVER("\n");
 
->>>>>>> linux-next/akpm-base
 	drm_crtc_vblank_off(crtc);
 
 	priv->viu.osd1_enabled = false;
