@@ -135,7 +135,7 @@ static void __install_bp_hardening_cb(bp_hardening_cb_t fn,
 				      const char *hyp_vecs_start,
 				      const char *hyp_vecs_end)
 {
-	static DEFINE_SPINLOCK(bp_lock);
+	static DEFINE_RAW_SPINLOCK(bp_lock);
 	int cpu, slot = -1;
 
 	/*
@@ -147,7 +147,7 @@ static void __install_bp_hardening_cb(bp_hardening_cb_t fn,
 		return;
 	}
 
-	spin_lock(&bp_lock);
+	raw_spin_lock(&bp_lock);
 	for_each_possible_cpu(cpu) {
 		if (per_cpu(bp_hardening_data.fn, cpu) == fn) {
 			slot = per_cpu(bp_hardening_data.hyp_vectors_slot, cpu);
@@ -163,7 +163,7 @@ static void __install_bp_hardening_cb(bp_hardening_cb_t fn,
 
 	__this_cpu_write(bp_hardening_data.hyp_vectors_slot, slot);
 	__this_cpu_write(bp_hardening_data.fn, fn);
-	spin_unlock(&bp_lock);
+	raw_spin_unlock(&bp_lock);
 }
 #else
 #define __smccc_workaround_1_smc_start		NULL
@@ -570,6 +570,20 @@ static const struct midr_range arm64_harden_el2_vectors[] = {
 
 #endif
 
+#ifdef CONFIG_ARM64_WORKAROUND_REPEAT_TLBI
+
+static const struct midr_range arm64_repeat_tlbi_cpus[] = {
+#ifdef CONFIG_QCOM_FALKOR_ERRATUM_1009
+	MIDR_RANGE(MIDR_QCOM_FALKOR_V1, 0, 0, 0, 0),
+#endif
+#ifdef CONFIG_ARM64_ERRATUM_1286807
+	MIDR_RANGE(MIDR_CORTEX_A76, 0, 0, 3, 0),
+#endif
+	{},
+};
+
+#endif
+
 const struct arm64_cpu_capabilities arm64_errata[] = {
 #if	defined(CONFIG_ARM64_ERRATUM_826319) || \
 	defined(CONFIG_ARM64_ERRATUM_827319) || \
@@ -695,11 +709,11 @@ const struct arm64_cpu_capabilities arm64_errata[] = {
 		.matches = is_kryo_midr,
 	},
 #endif
-#ifdef CONFIG_QCOM_FALKOR_ERRATUM_1009
+#ifdef CONFIG_ARM64_WORKAROUND_REPEAT_TLBI
 	{
-		.desc = "Qualcomm Technologies Falkor erratum 1009",
+		.desc = "Qualcomm erratum 1009, ARM erratum 1286807",
 		.capability = ARM64_WORKAROUND_REPEAT_TLBI,
-		ERRATA_MIDR_REV(MIDR_QCOM_FALKOR_V1, 0, 0),
+		ERRATA_MIDR_RANGE_LIST(arm64_repeat_tlbi_cpus),
 	},
 #endif
 #ifdef CONFIG_ARM64_ERRATUM_858921

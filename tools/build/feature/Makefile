@@ -5,6 +5,7 @@ FILES=                                          \
          test-bionic.bin                        \
          test-dwarf.bin                         \
          test-dwarf_getlocations.bin            \
+         test-eventfd.bin                       \
          test-fortify-source.bin                \
          test-sync-compare-and-swap.bin         \
          test-get_current_dir_name.bin          \
@@ -54,6 +55,7 @@ FILES=                                          \
          test-sdt.bin                           \
          test-cxx.bin                           \
          test-jvmti.bin				\
+         test-jvmti-cmlr.bin			\
          test-sched_getcpu.bin			\
          test-setns.bin				\
          test-libopencsd.bin			\
@@ -102,6 +104,12 @@ $(OUTPUT)test-bionic.bin:
 $(OUTPUT)test-libelf.bin:
 	$(BUILD) -lelf
 
+<<<<<<< HEAD
+=======
+$(OUTPUT)test-eventfd.bin:
+	$(BUILD)
+
+>>>>>>> linux-next/akpm-base
 $(OUTPUT)test-get_current_dir_name.bin:
 	$(BUILD)
 
@@ -261,6 +269,9 @@ $(OUTPUT)test-cxx.bin:
 	$(BUILDXX) -std=gnu++11
 
 $(OUTPUT)test-jvmti.bin:
+	$(BUILD)
+
+$(OUTPUT)test-jvmti-cmlr.bin:
 	$(BUILD)
 
 $(OUTPUT)test-llvm.bin:

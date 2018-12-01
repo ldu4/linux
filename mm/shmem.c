@@ -762,7 +762,7 @@ void shmem_unlock_mapping(struct address_space *mapping)
 			break;
 		index = indices[pvec.nr - 1] + 1;
 		pagevec_remove_exceptionals(&pvec);
-		check_move_unevictable_pages(pvec.pages, pvec.nr);
+		check_move_unevictable_pages(&pvec);
 		pagevec_release(&pvec);
 		cond_resched();
 	}
@@ -3400,7 +3400,8 @@ error:
 
 }
 
-static int shmem_remount_fs(struct super_block *sb, int *flags, char *data)
+static int shmem_remount_fs(struct super_block *sb, int *flags,
+			    char *data, size_t data_size)
 {
 	struct shmem_sb_info *sbinfo = SHMEM_SB(sb);
 	struct shmem_sb_info config = *sbinfo;
@@ -3483,7 +3484,8 @@ static void shmem_put_super(struct super_block *sb)
 	sb->s_fs_info = NULL;
 }
 
-int shmem_fill_super(struct super_block *sb, void *data, int silent)
+int shmem_fill_super(struct super_block *sb, void *data, size_t data_size,
+		     int silent)
 {
 	struct inode *inode;
 	struct shmem_sb_info *sbinfo;
@@ -3697,9 +3699,9 @@ static const struct vm_operations_struct shmem_vm_ops = {
 };
 
 static struct dentry *shmem_mount(struct file_system_type *fs_type,
-	int flags, const char *dev_name, void *data)
+	int flags, const char *dev_name, void *data, size_t data_size)
 {
-	return mount_nodev(fs_type, flags, data, shmem_fill_super);
+	return mount_nodev(fs_type, flags, data, data_size, shmem_fill_super);
 }
 
 static struct file_system_type shmem_fs_type = {

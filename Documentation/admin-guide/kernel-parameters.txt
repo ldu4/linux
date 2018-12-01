@@ -331,7 +331,7 @@
 			APC and your system crashes randomly.
 
 	apic=		[APIC,X86] Advanced Programmable Interrupt Controller
-			Change the output verbosity whilst booting
+			Change the output verbosity while booting
 			Format: { quiet (default) | verbose | debug }
 			Change the amount of debugging information output
 			when initialising the APIC and IO-APIC components.
@@ -3759,24 +3759,6 @@
 			in microseconds.  The default of zero says
 			no holdoff.
 
-	rcutorture.cbflood_inter_holdoff= [KNL]
-			Set holdoff time (jiffies) between successive
-			callback-flood tests.
-
-	rcutorture.cbflood_intra_holdoff= [KNL]
-			Set holdoff time (jiffies) between successive
-			bursts of callbacks within a given callback-flood
-			test.
-
-	rcutorture.cbflood_n_burst= [KNL]
-			Set the number of bursts making up a given
-			callback-flood test.  Set this to zero to
-			disable callback-flood testing.
-
-	rcutorture.cbflood_n_per_burst= [KNL]
-			Set the number of callbacks to be registered
-			in a given burst of a callback-flood test.
-
 	rcutorture.fqs_duration= [KNL]
 			Set duration of force_quiescent_state bursts
 			in microseconds.
@@ -3788,6 +3770,23 @@
 	rcutorture.fqs_stutter= [KNL]
 			Set wait time between force_quiescent_state bursts
 			in seconds.
+
+	rcutorture.fwd_progress= [KNL]
+			Enable RCU grace-period forward-progress testing
+			for the types of RCU supporting this notion.
+
+	rcutorture.fwd_progress_div= [KNL]
+			Specify the fraction of a CPU-stall-warning
+			period to do tight-loop forward-progress testing.
+
+	rcutorture.fwd_progress_holdoff= [KNL]
+			Number of seconds to wait between successive
+			forward-progress tests.
+
+	rcutorture.fwd_progress_need_resched= [KNL]
+			Enclose cond_resched() calls within checks for
+			need_resched() during tight-loop forward-progress
+			testing.
 
 	rcutorture.gp_cond= [KNL]
 			Use conditional/asynchronous update-side
@@ -4210,9 +4209,13 @@
 
 	spectre_v2=	[X86] Control mitigation of Spectre variant 2
 			(indirect branch speculation) vulnerability.
+			The default operation protects the kernel from
+			user space attacks.
 
-			on   - unconditionally enable
-			off  - unconditionally disable
+			on   - unconditionally enable, implies
+			       spectre_v2_user=on
+			off  - unconditionally disable, implies
+			       spectre_v2_user=off
 			auto - kernel detects whether your CPU model is
 			       vulnerable
 
@@ -4222,6 +4225,12 @@
 			CONFIG_RETPOLINE configuration option, and the
 			compiler with which the kernel was built.
 
+			Selecting 'on' will also enable the mitigation
+			against user space to user space task attacks.
+
+			Selecting 'off' will disable both the kernel and
+			the user space protections.
+
 			Specific mitigations can also be selected manually:
 
 			retpoline	  - replace indirect branches
@@ -4230,6 +4239,48 @@
 
 			Not specifying this option is equivalent to
 			spectre_v2=auto.
+
+	spectre_v2_user=
+			[X86] Control mitigation of Spectre variant 2
+		        (indirect branch speculation) vulnerability between
+		        user space tasks
+
+			on	- Unconditionally enable mitigations. Is
+				  enforced by spectre_v2=on
+
+			off     - Unconditionally disable mitigations. Is
+				  enforced by spectre_v2=off
+
+			prctl   - Indirect branch speculation is enabled,
+				  but mitigation can be enabled via prctl
+				  per thread.  The mitigation control state
+				  is inherited on fork.
+
+			prctl,ibpb
+				- Like "prctl" above, but only STIBP is
+				  controlled per thread. IBPB is issued
+				  always when switching between different user
+				  space processes.
+
+			seccomp
+				- Same as "prctl" above, but all seccomp
+				  threads will enable the mitigation unless
+				  they explicitly opt out.
+
+			seccomp,ibpb
+				- Like "seccomp" above, but only STIBP is
+				  controlled per thread. IBPB is issued
+				  always when switching between different
+				  user space processes.
+
+			auto    - Kernel selects the mitigation depending on
+				  the available CPU features and vulnerability.
+
+			Default mitigation:
+			If CONFIG_SECCOMP=y then "seccomp", otherwise "prctl"
+
+			Not specifying this option is equivalent to
+			spectre_v2_user=auto.
 
 	spec_store_bypass_disable=
 			[HW] Control Speculative Store Bypass (SSB) Disable mitigation
@@ -4978,6 +5029,14 @@
 			see Documentation/watchdog/watchdog-parameters.txt
 			or other driver-specific files in the
 			Documentation/watchdog/ directory.
+
+	watchdog_thresh=
+			[KNL]
+			Set the hard lockup detector stall duration
+			threshold in seconds. The soft lockup detector
+			threshold is set to twice the value. A value of 0
+			disables both lockup detectors. Default is 10
+			seconds.
 
 	workqueue.watchdog_thresh=
 			If CONFIG_WQ_WATCHDOG is configured, workqueue can
