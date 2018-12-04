@@ -2175,6 +2175,20 @@ static bool remove_xps_queue_cpu(struct net_device *dev,
 	return active;
 }
 
+static void reset_xps_maps(struct net_device *dev,
+			   struct xps_dev_maps *dev_maps,
+			   bool is_rxqs_map)
+{
+	if (is_rxqs_map) {
+		static_key_slow_dec_cpuslocked(&xps_rxqs_needed);
+		RCU_INIT_POINTER(dev->xps_rxqs_map, NULL);
+	} else {
+		RCU_INIT_POINTER(dev->xps_cpus_map, NULL);
+	}
+	static_key_slow_dec_cpuslocked(&xps_needed);
+	kfree_rcu(dev_maps, rcu);
+}
+
 static void clean_xps_maps(struct net_device *dev, const unsigned long *mask,
 			   struct xps_dev_maps *dev_maps, unsigned int nr_ids,
 			   u16 offset, u16 count, bool is_rxqs_map)
@@ -2186,18 +2200,15 @@ static void clean_xps_maps(struct net_device *dev, const unsigned long *mask,
 	     j < nr_ids;)
 		active |= remove_xps_queue_cpu(dev, dev_maps, j, offset,
 					       count);
-	if (!active) {
-		if (is_rxqs_map) {
-			RCU_INIT_POINTER(dev->xps_rxqs_map, NULL);
-		} else {
-			RCU_INIT_POINTER(dev->xps_cpus_map, NULL);
+	if (!active)
+		reset_xps_maps(dev, dev_maps, is_rxqs_map);
 
-			for (i = offset + (count - 1); count--; i--)
-				netdev_queue_numa_node_write(
-					netdev_get_tx_queue(dev, i),
-							NUMA_NO_NODE);
+	if (!is_rxqs_map) {
+		for (i = offset + (count - 1); count--; i--) {
+			netdev_queue_numa_node_write(
+				netdev_get_tx_queue(dev, i),
+				NUMA_NO_NODE);
 		}
-		kfree_rcu(dev_maps, rcu);
 	}
 }
 
@@ -2234,10 +2245,6 @@ static void netif_reset_xps_queues(struct net_device *dev, u16 offset,
 		       false);
 
 out_no_maps:
-	if (static_key_enabled(&xps_rxqs_needed))
-		static_key_slow_dec_cpuslocked(&xps_rxqs_needed);
-
-	static_key_slow_dec_cpuslocked(&xps_needed);
 	mutex_unlock(&xps_map_mutex);
 	cpus_read_unlock();
 }
@@ -2355,9 +2362,12 @@ int __netif_set_xps_queue(struct net_device *dev, const unsigned long *mask,
 	if (!new_dev_maps)
 		goto out_no_new_maps;
 
-	static_key_slow_inc_cpuslocked(&xps_needed);
-	if (is_rxqs_map)
-		static_key_slow_inc_cpuslocked(&xps_rxqs_needed);
+	if (!dev_maps) {
+		/* Increment static keys at most once per type */
+		static_key_slow_inc_cpuslocked(&xps_needed);
+		if (is_rxqs_map)
+			static_key_slow_inc_cpuslocked(&xps_rxqs_needed);
+	}
 
 	for (j = -1; j = netif_attrmask_next(j, possible_mask, nr_ids),
 	     j < nr_ids;) {
@@ -2455,13 +2465,8 @@ out_no_new_maps:
 	}
 
 	/* free map if not active */
-	if (!active) {
-		if (is_rxqs_map)
-			RCU_INIT_POINTER(dev->xps_rxqs_map, NULL);
-		else
-			RCU_INIT_POINTER(dev->xps_cpus_map, NULL);
-		kfree_rcu(dev_maps, rcu);
-	}
+	if (!active)
+		reset_xps_maps(dev, dev_maps, is_rxqs_map);
 
 out_no_maps:
 	mutex_unlock(&xps_map_mutex);
@@ -3091,10 +3096,17 @@ EXPORT_SYMBOL(__skb_gso_segment);
 
 /* Take action when hardware reception checksum errors are detected. */
 #ifdef CONFIG_BUG
-void netdev_rx_csum_fault(struct net_device *dev)
+void netdev_rx_csum_fault(struct net_device *dev, struct sk_buff *skb)
 {
 	if (net_ratelimit()) {
 		pr_err("%s: hw csum failure\n", dev ? dev->name : "<unknown>");
+		if (dev)
+			pr_err("dev features: %pNF\n", &dev->features);
+		pr_err("skb len=%u data_len=%u pkt_type=%u gso_size=%u gso_type=%u nr_frags=%u ip_summed=%u csum=%x csum_complete_sw=%d csum_valid=%d csum_level=%u\n",
+		       skb->len, skb->data_len, skb->pkt_type,
+		       skb_shinfo(skb)->gso_size, skb_shinfo(skb)->gso_type,
+		       skb_shinfo(skb)->nr_frags, skb->ip_summed, skb->csum,
+		       skb->csum_complete_sw, skb->csum_valid, skb->csum_level);
 		dump_stack();
 	}
 }
@@ -4520,9 +4532,14 @@ static int netif_rx_internal(struct sk_buff *skb)
 
 int netif_rx(struct sk_buff *skb)
 {
+	int ret;
+
 	trace_netif_rx_entry(skb);
 
-	return netif_rx_internal(skb);
+	ret = netif_rx_internal(skb);
+	trace_netif_rx_exit(ret);
+
+	return ret;
 }
 EXPORT_SYMBOL(netif_rx);
 
@@ -4537,6 +4554,7 @@ int netif_rx_ni(struct sk_buff *skb)
 	if (local_softirq_pending())
 		do_softirq();
 	preempt_enable();
+	trace_netif_rx_ni_exit(err);
 
 	return err;
 }
@@ -4889,7 +4907,7 @@ skip_classify:
 		 * and set skb->priority like in vlan_do_receive()
 		 * For the time being, just ignore Priority Code Point
 		 */
-		skb->vlan_tci = 0;
+		__vlan_hwaccel_clear_tag(skb);
 	}
 
 	type = skb->protocol;
@@ -5222,9 +5240,14 @@ static void netif_receive_skb_list_internal(struct list_head *head)
  */
 int netif_receive_skb(struct sk_buff *skb)
 {
+	int ret;
+
 	trace_netif_receive_skb_entry(skb);
 
-	return netif_receive_skb_internal(skb);
+	ret = netif_receive_skb_internal(skb);
+	trace_netif_receive_skb_exit(ret);
+
+	return ret;
 }
 EXPORT_SYMBOL(netif_receive_skb);
 
@@ -5244,9 +5267,12 @@ void netif_receive_skb_list(struct list_head *head)
 
 	if (list_empty(head))
 		return;
-	list_for_each_entry(skb, head, list)
-		trace_netif_receive_skb_list_entry(skb);
+	if (trace_netif_receive_skb_list_entry_enabled()) {
+		list_for_each_entry(skb, head, list)
+			trace_netif_receive_skb_list_entry(skb);
+	}
 	netif_receive_skb_list_internal(head);
+	trace_netif_receive_skb_list_exit(0);
 }
 EXPORT_SYMBOL(netif_receive_skb_list);
 
@@ -5357,11 +5383,13 @@ static void __napi_gro_flush_chain(struct napi_struct *napi, u32 index,
  */
 void napi_gro_flush(struct napi_struct *napi, bool flush_old)
 {
-	u32 i;
+	unsigned long bitmask = napi->gro_bitmask;
+	unsigned int i, base = ~0U;
 
-	for (i = 0; i < GRO_HASH_BUCKETS; i++) {
-		if (test_bit(i, &napi->gro_bitmask))
-			__napi_gro_flush_chain(napi, i, flush_old);
+	while ((i = ffs(bitmask)) != 0) {
+		bitmask >>= i;
+		base += i;
+		__napi_gro_flush_chain(napi, base, flush_old);
 	}
 }
 EXPORT_SYMBOL(napi_gro_flush);
@@ -5386,7 +5414,9 @@ static struct list_head *gro_list_prepare(struct napi_struct *napi,
 		}
 
 		diffs = (unsigned long)p->dev ^ (unsigned long)skb->dev;
-		diffs |= p->vlan_tci ^ skb->vlan_tci;
+		diffs |= skb_vlan_tag_present(p) ^ skb_vlan_tag_present(skb);
+		if (skb_vlan_tag_present(p))
+			diffs |= p->vlan_tci ^ skb->vlan_tci;
 		diffs |= skb_metadata_dst_cmp(p, skb);
 		diffs |= skb_metadata_differs(p, skb);
 		if (maclen == ETH_HLEN)
@@ -5634,12 +5664,17 @@ static gro_result_t napi_skb_finish(gro_result_t ret, struct sk_buff *skb)
 
 gro_result_t napi_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 {
+	gro_result_t ret;
+
 	skb_mark_napi_id(skb, napi);
 	trace_napi_gro_receive_entry(skb);
 
 	skb_gro_reset_offset(skb);
 
-	return napi_skb_finish(dev_gro_receive(napi, skb), skb);
+	ret = napi_skb_finish(dev_gro_receive(napi, skb), skb);
+	trace_napi_gro_receive_exit(ret);
+
+	return ret;
 }
 EXPORT_SYMBOL(napi_gro_receive);
 
@@ -5652,7 +5687,7 @@ static void napi_reuse_skb(struct napi_struct *napi, struct sk_buff *skb)
 	__skb_pull(skb, skb_headlen(skb));
 	/* restore the reserve we had after netdev_alloc_skb_ip_align() */
 	skb_reserve(skb, NET_SKB_PAD + NET_IP_ALIGN - skb_headroom(skb));
-	skb->vlan_tci = 0;
+	__vlan_hwaccel_clear_tag(skb);
 	skb->dev = napi->dev;
 	skb->skb_iif = 0;
 
@@ -5757,6 +5792,7 @@ static struct sk_buff *napi_frags_skb(struct napi_struct *napi)
 
 gro_result_t napi_gro_frags(struct napi_struct *napi)
 {
+	gro_result_t ret;
 	struct sk_buff *skb = napi_frags_skb(napi);
 
 	if (!skb)
@@ -5764,7 +5800,10 @@ gro_result_t napi_gro_frags(struct napi_struct *napi)
 
 	trace_napi_gro_frags_entry(skb);
 
-	return napi_frags_finish(napi, skb, dev_gro_receive(napi, skb));
+	ret = napi_frags_finish(napi, skb, dev_gro_receive(napi, skb));
+	trace_napi_gro_frags_exit(ret);
+
+	return ret;
 }
 EXPORT_SYMBOL(napi_gro_frags);
 
@@ -5780,10 +5819,11 @@ __sum16 __skb_gro_checksum_complete(struct sk_buff *skb)
 
 	/* NAPI_GRO_CB(skb)->csum holds pseudo checksum */
 	sum = csum_fold(csum_add(NAPI_GRO_CB(skb)->csum, wsum));
+	/* See comments in __skb_checksum_complete(). */
 	if (likely(!sum)) {
 		if (unlikely(skb->ip_summed == CHECKSUM_COMPLETE) &&
 		    !skb->csum_complete_sw)
-			netdev_rx_csum_fault(skb->dev);
+			netdev_rx_csum_fault(skb->dev, skb);
 	}
 
 	NAPI_GRO_CB(skb)->csum = wsum;

@@ -332,6 +332,12 @@ int msm_hdmi_modeset_init(struct hdmi *hdmi,
 		goto fail;
 	}
 
+	ret = msm_hdmi_hpd_enable(hdmi->connector);
+	if (ret < 0) {
+		DRM_DEV_ERROR(&hdmi->pdev->dev, "failed to enable HPD: %d\n", ret);
+		goto fail;
+	}
+
 	encoder->bridge = hdmi->bridge;
 
 	priv->bridges[priv->num_bridges++]       = hdmi->bridge;
@@ -571,7 +577,7 @@ static int msm_hdmi_bind(struct device *dev, struct device *master, void *data)
 {
 	struct drm_device *drm = dev_get_drvdata(master);
 	struct msm_drm_private *priv = drm->dev_private;
-	static struct hdmi_platform_config *hdmi_cfg;
+	struct hdmi_platform_config *hdmi_cfg;
 	struct hdmi *hdmi;
 	struct device_node *of_node = dev->of_node;
 	int i, err;
@@ -579,7 +585,7 @@ static int msm_hdmi_bind(struct device *dev, struct device *master, void *data)
 	hdmi_cfg = (struct hdmi_platform_config *)
 			of_device_get_match_data(dev);
 	if (!hdmi_cfg) {
-		dev_err(dev, "unknown hdmi_cfg: %s\n", of_node->name);
+		dev_err(dev, "unknown hdmi_cfg: %pOFn\n", of_node);
 		return -ENXIO;
 	}
 
