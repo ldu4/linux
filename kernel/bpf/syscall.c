@@ -1213,6 +1213,8 @@ static void __bpf_prog_put(struct bpf_prog *prog, bool do_idr_lock)
 		/* bpf_prog_free_id() must be called first */
 		bpf_prog_free_id(prog, do_idr_lock);
 		bpf_prog_kallsyms_del_all(prog);
+		btf_put(prog->aux->btf);
+		kvfree(prog->aux->func_info);
 
 		call_rcu(&prog->aux->rcu, __bpf_prog_put_rcu);
 	}
@@ -1437,9 +1439,9 @@ bpf_prog_load_check_attach_type(enum bpf_prog_type prog_type,
 }
 
 /* last field in 'union bpf_attr' used by this command */
-#define	BPF_PROG_LOAD_LAST_FIELD expected_attach_type
+#define	BPF_PROG_LOAD_LAST_FIELD func_info_cnt
 
-static int bpf_prog_load(union bpf_attr *attr)
+static int bpf_prog_load(union bpf_attr *attr, union bpf_attr __user *uattr)
 {
 	enum bpf_prog_type type = attr->prog_type;
 	struct bpf_prog *prog;
@@ -1450,8 +1452,13 @@ static int bpf_prog_load(union bpf_attr *attr)
 	if (CHECK_ATTR(BPF_PROG_LOAD))
 		return -EINVAL;
 
-	if (attr->prog_flags & ~BPF_F_STRICT_ALIGNMENT)
+	if (attr->prog_flags & ~(BPF_F_STRICT_ALIGNMENT | BPF_F_ANY_ALIGNMENT))
 		return -EINVAL;
+
+	if (!IS_ENABLED(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS) &&
+	    (attr->prog_flags & BPF_F_ANY_ALIGNMENT) &&
+	    !capable(CAP_SYS_ADMIN))
+		return -EPERM;
 
 	/* copy eBPF program license from user space */
 	if (strncpy_from_user(license, u64_to_user_ptr(attr->license),
@@ -1525,7 +1532,7 @@ static int bpf_prog_load(union bpf_attr *attr)
 		goto free_prog;
 
 	/* run eBPF verifier */
-	err = bpf_check(&prog, attr);
+	err = bpf_check(&prog, attr, uattr);
 	if (err < 0)
 		goto free_used_maps;
 
@@ -1553,6 +1560,8 @@ static int bpf_prog_load(union bpf_attr *attr)
 	return err;
 
 free_used_maps:
+	kvfree(prog->aux->func_info);
+	btf_put(prog->aux->btf);
 	bpf_prog_kallsyms_del_subprogs(prog);
 	free_used_maps(prog->aux);
 free_prog:
@@ -2079,6 +2088,7 @@ static int bpf_prog_get_info_by_fd(struct bpf_prog *prog,
 		info.xlated_prog_len = 0;
 		info.nr_jited_ksyms = 0;
 		info.nr_jited_func_lens = 0;
+		info.func_info_cnt = 0;
 		goto done;
 	}
 
@@ -2214,6 +2224,37 @@ static int bpf_prog_get_info_by_fd(struct bpf_prog *prog,
 		} else {
 			info.jited_func_lens = 0;
 		}
+	}
+
+	if (prog->aux->btf) {
+		u32 krec_size = sizeof(struct bpf_func_info);
+		u32 ucnt, urec_size;
+
+		info.btf_id = btf_id(prog->aux->btf);
+
+		ucnt = info.func_info_cnt;
+		info.func_info_cnt = prog->aux->func_info_cnt;
+		urec_size = info.func_info_rec_size;
+		info.func_info_rec_size = krec_size;
+		if (ucnt) {
+			/* expect passed-in urec_size is what the kernel expects */
+			if (urec_size != info.func_info_rec_size)
+				return -EINVAL;
+
+			if (bpf_dump_raw_ok()) {
+				char __user *user_finfo;
+
+				user_finfo = u64_to_user_ptr(info.func_info);
+				ucnt = min_t(u32, info.func_info_cnt, ucnt);
+				if (copy_to_user(user_finfo, prog->aux->func_info,
+						 krec_size * ucnt))
+					return -EFAULT;
+			} else {
+				info.func_info_cnt = 0;
+			}
+		}
+	} else {
+		info.func_info_cnt = 0;
 	}
 
 done:
@@ -2501,7 +2542,7 @@ SYSCALL_DEFINE3(bpf, int, cmd, union bpf_attr __user *, uattr, unsigned int, siz
 		err = map_get_next_key(&attr);
 		break;
 	case BPF_PROG_LOAD:
-		err = bpf_prog_load(&attr);
+		err = bpf_prog_load(&attr, uattr);
 		break;
 	case BPF_OBJ_PIN:
 		err = bpf_obj_pin(&attr);
