@@ -995,17 +995,6 @@ static void __init do_pre_smp_initcalls(void)
 		do_one_initcall(initcall_from_entry(fn));
 }
 
-/*
- * This function requests modules which should be loaded by default and is
- * called twice right after initrd is mounted and right before init is
- * exec'd.  If such modules are on either initrd or rootfs, they will be
- * loaded before control is passed to userland.
- */
-void __init load_default_modules(void)
-{
-	load_default_elevator_module();
-}
-
 static int run_init_process(const char *init_filename)
 {
 	argv_init[0] = init_filename;
@@ -1045,12 +1034,12 @@ static void mark_readonly(void)
 {
 	if (rodata_enabled) {
 		/*
-		 * load_module() results in W+X mappings, which are cleaned up
-		 * with call_rcu_sched().  Let's make sure that queued work is
+		 * load_module() results in W+X mappings, which are cleaned
+		 * up with call_rcu().  Let's make sure that queued work is
 		 * flushed so that we don't hit false positives looking for
 		 * insecure pages which are W+X.
 		 */
-		rcu_barrier_sched();
+		rcu_barrier();
 		mark_rodata_ro();
 		rodata_test();
 	} else
@@ -1179,5 +1168,4 @@ static noinline void __init kernel_init_freeable(void)
 	 */
 
 	integrity_load_keys();
-	load_default_modules();
 }

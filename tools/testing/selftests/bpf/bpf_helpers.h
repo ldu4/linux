@@ -113,6 +113,8 @@ static int (*bpf_msg_pull_data)(void *ctx, int start, int end, int flags) =
 	(void *) BPF_FUNC_msg_pull_data;
 static int (*bpf_msg_push_data)(void *ctx, int start, int end, int flags) =
 	(void *) BPF_FUNC_msg_push_data;
+static int (*bpf_msg_pop_data)(void *ctx, int start, int cut, int flags) =
+	(void *) BPF_FUNC_msg_pop_data;
 static int (*bpf_bind)(void *ctx, void *addr, int addr_len) =
 	(void *) BPF_FUNC_bind;
 static int (*bpf_xdp_adjust_tail)(void *ctx, int offset) =
@@ -154,12 +156,12 @@ static unsigned long long (*bpf_skb_ancestor_cgroup_id)(void *ctx, int level) =
 	(void *) BPF_FUNC_skb_ancestor_cgroup_id;
 static struct bpf_sock *(*bpf_sk_lookup_tcp)(void *ctx,
 					     struct bpf_sock_tuple *tuple,
-					     int size, unsigned int netns_id,
+					     int size, unsigned long long netns_id,
 					     unsigned long long flags) =
 	(void *) BPF_FUNC_sk_lookup_tcp;
 static struct bpf_sock *(*bpf_sk_lookup_udp)(void *ctx,
 					     struct bpf_sock_tuple *tuple,
-					     int size, unsigned int netns_id,
+					     int size, unsigned long long netns_id,
 					     unsigned long long flags) =
 	(void *) BPF_FUNC_sk_lookup_udp;
 static int (*bpf_sk_release)(struct bpf_sock *sk) =

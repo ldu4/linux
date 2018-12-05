@@ -39,7 +39,8 @@
 #include "acl.h"
 
 static void ext2_write_super(struct super_block *sb);
-static int ext2_remount (struct super_block * sb, int * flags, char * data);
+static int ext2_remount (struct super_block * sb, int * flags,
+			 char * data, size_t data_size);
 static int ext2_statfs (struct dentry * dentry, struct kstatfs * buf);
 static int ext2_sync_fs(struct super_block *sb, int wait);
 static int ext2_freeze(struct super_block *sb);
@@ -73,7 +74,7 @@ void ext2_error(struct super_block *sb, const char *function,
 
 	if (test_opt(sb, ERRORS_PANIC))
 		panic("EXT2-fs: panic from previous error\n");
-	if (test_opt(sb, ERRORS_RO)) {
+	if (!sb_rdonly(sb) && test_opt(sb, ERRORS_RO)) {
 		ext2_msg(sb, KERN_CRIT,
 			     "error: remounting filesystem read-only");
 		sb->s_flags |= SB_RDONLY;
@@ -148,10 +149,9 @@ static void ext2_put_super (struct super_block * sb)
 
 	ext2_quota_off_umount(sb);
 
-	if (sbi->s_ea_block_cache) {
-		ext2_xattr_destroy_cache(sbi->s_ea_block_cache);
-		sbi->s_ea_block_cache = NULL;
-	}
+	ext2_xattr_destroy_cache(sbi->s_ea_block_cache);
+	sbi->s_ea_block_cache = NULL;
+
 	if (!sb_rdonly(sb)) {
 		struct ext2_super_block *es = sbi->s_es;
 
@@ -816,7 +816,8 @@ static unsigned long descriptor_loc(struct super_block *sb,
 	return ext2_group_first_block_no(sb, bg) + has_super;
 }
 
-static int ext2_fill_super(struct super_block *sb, void *data, int silent)
+static int ext2_fill_super(struct super_block *sb, void *data, size_t data_size,
+			   int silent)
 {
 	struct dax_device *dax_dev = fs_dax_get_by_bdev(sb->s_bdev);
 	struct buffer_head * bh;
@@ -1198,8 +1199,7 @@ cantfind_ext2:
 			sb->s_id);
 	goto failed_mount;
 failed_mount3:
-	if (sbi->s_ea_block_cache)
-		ext2_xattr_destroy_cache(sbi->s_ea_block_cache);
+	ext2_xattr_destroy_cache(sbi->s_ea_block_cache);
 	percpu_counter_destroy(&sbi->s_freeblocks_counter);
 	percpu_counter_destroy(&sbi->s_freeinodes_counter);
 	percpu_counter_destroy(&sbi->s_dirs_counter);
@@ -1322,7 +1322,8 @@ static void ext2_write_super(struct super_block *sb)
 		ext2_sync_fs(sb, 1);
 }
 
-static int ext2_remount (struct super_block * sb, int * flags, char * data)
+static int ext2_remount (struct super_block * sb, int * flags,
+			 char *data, size_t data_size)
 {
 	struct ext2_sb_info * sbi = EXT2_SB(sb);
 	struct ext2_super_block * es;
@@ -1473,9 +1474,10 @@ static int ext2_statfs (struct dentry * dentry, struct kstatfs * buf)
 }
 
 static struct dentry *ext2_mount(struct file_system_type *fs_type,
-	int flags, const char *dev_name, void *data)
+	int flags, const char *dev_name, void *data, size_t data_size)
 {
-	return mount_bdev(fs_type, flags, dev_name, data, ext2_fill_super);
+	return mount_bdev(fs_type, flags, dev_name, data, data_size,
+			  ext2_fill_super);
 }
 
 #ifdef CONFIG_QUOTA
