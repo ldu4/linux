@@ -41,7 +41,6 @@
 #include <linux/mlx5/cq.h>
 #include <linux/mlx5/fs.h>
 #include <linux/mlx5/qp.h>
-#include <linux/mlx5/srq.h>
 #include <linux/mlx5/fs.h>
 #include <linux/types.h>
 #include <linux/mlx5/transobj.h>
@@ -49,6 +48,8 @@
 #include <rdma/mlx5-abi.h>
 #include <rdma/uverbs_ioctl.h>
 #include <rdma/mlx5_user_ioctl_cmds.h>
+
+#include "srq.h"
 
 #define mlx5_ib_dbg(_dev, format, arg...)                                      \
 	dev_dbg(&(_dev)->ib_dev.dev, "%s:%d:(pid %d): " format, __func__,      \
@@ -774,14 +775,16 @@ enum mlx5_ib_stages {
 	MLX5_IB_STAGE_CAPS,
 	MLX5_IB_STAGE_NON_DEFAULT_CB,
 	MLX5_IB_STAGE_ROCE,
+	MLX5_IB_STAGE_SRQ,
 	MLX5_IB_STAGE_DEVICE_RESOURCES,
+	MLX5_IB_STAGE_DEVICE_NOTIFIER,
 	MLX5_IB_STAGE_ODP,
 	MLX5_IB_STAGE_COUNTERS,
 	MLX5_IB_STAGE_CONG_DEBUGFS,
 	MLX5_IB_STAGE_UAR,
 	MLX5_IB_STAGE_BFREG,
 	MLX5_IB_STAGE_PRE_IB_REG_UMR,
-	MLX5_IB_STAGE_SPECS,
+	MLX5_IB_STAGE_WHITELIST_UID,
 	MLX5_IB_STAGE_IB_REG,
 	MLX5_IB_STAGE_POST_IB_REG_UMR,
 	MLX5_IB_STAGE_DELAY_DROP,
@@ -806,6 +809,7 @@ struct mlx5_ib_multiport_info {
 	struct list_head list;
 	struct mlx5_ib_dev *ibdev;
 	struct mlx5_core_dev *mdev;
+	struct notifier_block mdev_events;
 	struct completion unref_comp;
 	u64 sys_image_guid;
 	u32 mdev_refcnt;
@@ -880,10 +884,19 @@ struct mlx5_ib_lb_state {
 	bool			enabled;
 };
 
+struct mlx5_ib_pf_eq {
+	struct mlx5_ib_dev *dev;
+	struct mlx5_eq *core;
+	struct work_struct work;
+	spinlock_t lock; /* Pagefaults spinlock */
+	struct workqueue_struct *wq;
+	mempool_t *pool;
+};
+
 struct mlx5_ib_dev {
 	struct ib_device		ib_dev;
-	const struct uverbs_object_tree_def *driver_trees[7];
 	struct mlx5_core_dev		*mdev;
+	struct notifier_block		mdev_events;
 	struct mlx5_roce		roce[MLX5_MAX_PORTS];
 	int				num_ports;
 	/* serialize update of capability mask
@@ -902,6 +915,8 @@ struct mlx5_ib_dev {
 #ifdef CONFIG_INFINIBAND_ON_DEMAND_PAGING
 	struct ib_odp_caps	odp_caps;
 	u64			odp_max_size;
+	struct mlx5_ib_pf_eq	odp_pf_eq;
+
 	/*
 	 * Sleepable RCU that prevents destruction of MRs while they are still
 	 * being used by a page fault handler.
@@ -927,6 +942,7 @@ struct mlx5_ib_dev {
 	u64			sys_image_guid;
 	struct mlx5_memic	memic;
 	u16			devx_whitelist_uid;
+	struct mlx5_srq_table   srq_table;
 };
 
 static inline struct mlx5_ib_cq *to_mibcq(struct mlx5_core_cq *mcq)
@@ -1158,9 +1174,8 @@ struct ib_mr *mlx5_ib_reg_dm_mr(struct ib_pd *pd, struct ib_dm *dm,
 
 #ifdef CONFIG_INFINIBAND_ON_DEMAND_PAGING
 void mlx5_ib_internal_fill_odp_caps(struct mlx5_ib_dev *dev);
-void mlx5_ib_pfault(struct mlx5_core_dev *mdev, void *context,
-		    struct mlx5_pagefault *pfault);
 int mlx5_ib_odp_init_one(struct mlx5_ib_dev *ibdev);
+void mlx5_ib_odp_cleanup_one(struct mlx5_ib_dev *ibdev);
 int __init mlx5_ib_odp_init(void);
 void mlx5_ib_odp_cleanup(void);
 void mlx5_ib_invalidate_range(struct ib_umem_odp *umem_odp, unsigned long start,
@@ -1175,6 +1190,7 @@ static inline void mlx5_ib_internal_fill_odp_caps(struct mlx5_ib_dev *dev)
 }
 
 static inline int mlx5_ib_odp_init_one(struct mlx5_ib_dev *ibdev) { return 0; }
+static inline void mlx5_ib_odp_cleanup_one(struct mlx5_ib_dev *ibdev) {}
 static inline int mlx5_ib_odp_init(void) { return 0; }
 static inline void mlx5_ib_odp_cleanup(void)				    {}
 static inline void mlx5_odp_init_mr_cache_entry(struct mlx5_cache_ent *ent) {}
@@ -1253,28 +1269,24 @@ void mlx5_ib_put_native_port_mdev(struct mlx5_ib_dev *dev,
 int mlx5_ib_devx_create(struct mlx5_ib_dev *dev);
 void mlx5_ib_devx_destroy(struct mlx5_ib_dev *dev, u16 uid);
 const struct uverbs_object_tree_def *mlx5_ib_get_devx_tree(void);
+extern const struct uapi_definition mlx5_ib_devx_defs[];
+extern const struct uapi_definition mlx5_ib_flow_defs[];
 struct mlx5_ib_flow_handler *mlx5_ib_raw_fs_rule_add(
 	struct mlx5_ib_dev *dev, struct mlx5_ib_flow_matcher *fs_matcher,
-	struct mlx5_flow_act *flow_act, void *cmd_in, int inlen,
-	int dest_id, int dest_type);
+	struct mlx5_flow_act *flow_act, u32 counter_id,
+	void *cmd_in, int inlen, int dest_id, int dest_type);
 bool mlx5_ib_devx_is_flow_dest(void *obj, int *dest_id, int *dest_type);
+bool mlx5_ib_devx_is_flow_counter(void *obj, u32 *counter_id);
 int mlx5_ib_get_flow_trees(const struct uverbs_object_tree_def **root);
 void mlx5_ib_destroy_flow_action_raw(struct mlx5_ib_flow_action *maction);
 #else
 static inline int
 mlx5_ib_devx_create(struct mlx5_ib_dev *dev) { return -EOPNOTSUPP; };
 static inline void mlx5_ib_devx_destroy(struct mlx5_ib_dev *dev, u16 uid) {}
-static inline const struct uverbs_object_tree_def *
-mlx5_ib_get_devx_tree(void) { return NULL; }
 static inline bool mlx5_ib_devx_is_flow_dest(void *obj, int *dest_id,
 					     int *dest_type)
 {
 	return false;
-}
-static inline int
-mlx5_ib_get_flow_trees(const struct uverbs_object_tree_def **root)
-{
-	return 0;
 }
 static inline void
 mlx5_ib_destroy_flow_action_raw(struct mlx5_ib_flow_action *maction)

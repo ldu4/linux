@@ -1,4 +1,11 @@
-.. -*- coding: utf-8; mode: rst -*-
+.. Permission is granted to copy, distribute and/or modify this
+.. document under the terms of the GNU Free Documentation License,
+.. Version 1.1 or any later version published by the Free Software
+.. Foundation, with no Invariant Sections, no Front-Cover Texts
+.. and no Back-Cover Texts. A copy of the license is included at
+.. Documentation/media/uapi/fdl-appendix.rst.
+..
+.. TODO: replace it to GFDL-1.1-or-later WITH no-invariant-sections
 
 .. _extended-controls:
 
@@ -1505,6 +1512,11 @@ enum v4l2_mpeg_video_h264_hierarchical_coding_type -
     configuring a stateless hardware decoding pipeline for MPEG-2.
     The bitstream parameters are defined according to :ref:`mpeg2part2`.
 
+    .. note::
+
+       This compound control is not yet part of the public kernel API and
+       it is expected to change.
+
 .. c:type:: v4l2_ctrl_mpeg2_slice_params
 
 .. cssclass:: longtable
@@ -1624,6 +1636,11 @@ enum v4l2_mpeg_video_h264_hierarchical_coding_type -
 ``V4L2_CID_MPEG_VIDEO_MPEG2_QUANTIZATION (struct)``
     Specifies quantization matrices (as extracted from the bitstream) for the
     associated MPEG-2 slice data.
+
+    .. note::
+
+       This compound control is not yet part of the public kernel API and
+       it is expected to change.
 
 .. c:type:: v4l2_ctrl_mpeg2_quantization
 
@@ -3980,7 +3997,7 @@ demodulator. It receives radio frequency (RF) from the antenna and
 converts that received signal to lower intermediate frequency (IF) or
 baseband frequency (BB). Tuners that could do baseband output are often
 called Zero-IF tuners. Older tuners were typically simple PLL tuners
-inside a metal box, whilst newer ones are highly integrated chips
+inside a metal box, while newer ones are highly integrated chips
 without a metal box "silicon tuners". These controls are mostly
 applicable for new feature rich silicon tuners, just because older
 tuners does not have much adjustable features.

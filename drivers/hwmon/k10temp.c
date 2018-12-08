@@ -23,6 +23,7 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/pci.h>
+#include <linux/pci_ids.h>
 #include <asm/amd_nb.h>
 #include <asm/processor.h>
 
@@ -39,14 +40,6 @@ static DEFINE_MUTEX(nb_smu_ind_mutex);
 
 #ifndef PCI_DEVICE_ID_AMD_15H_M70H_NB_F3
 #define PCI_DEVICE_ID_AMD_15H_M70H_NB_F3	0x15b3
-#endif
-
-#ifndef PCI_DEVICE_ID_AMD_17H_DF_F3
-#define PCI_DEVICE_ID_AMD_17H_DF_F3	0x1463
-#endif
-
-#ifndef PCI_DEVICE_ID_AMD_17H_M10H_DF_F3
-#define PCI_DEVICE_ID_AMD_17H_M10H_DF_F3	0x15eb
 #endif
 
 /* CPUID function 0x80000001, ebx */
@@ -191,7 +184,7 @@ static ssize_t temp1_max_show(struct device *dev,
 	return sprintf(buf, "%d\n", 70 * 1000);
 }
 
-static ssize_t show_temp_crit(struct device *dev,
+static ssize_t temp_crit_show(struct device *dev,
 			      struct device_attribute *devattr, char *buf)
 {
 	struct sensor_device_attribute *attr = to_sensor_dev_attr(devattr);
@@ -209,12 +202,12 @@ static ssize_t show_temp_crit(struct device *dev,
 
 static DEVICE_ATTR_RO(temp1_input);
 static DEVICE_ATTR_RO(temp1_max);
-static SENSOR_DEVICE_ATTR(temp1_crit, S_IRUGO, show_temp_crit, NULL, 0);
-static SENSOR_DEVICE_ATTR(temp1_crit_hyst, S_IRUGO, show_temp_crit, NULL, 1);
+static SENSOR_DEVICE_ATTR_RO(temp1_crit, temp_crit, 0);
+static SENSOR_DEVICE_ATTR_RO(temp1_crit_hyst, temp_crit, 1);
 
-static SENSOR_DEVICE_ATTR(temp1_label, 0444, temp_label_show, NULL, 0);
+static SENSOR_DEVICE_ATTR_RO(temp1_label, temp_label, 0);
 static DEVICE_ATTR_RO(temp2_input);
-static SENSOR_DEVICE_ATTR(temp2_label, 0444, temp_label_show, NULL, 1);
+static SENSOR_DEVICE_ATTR_RO(temp2_label, temp_label, 1);
 
 static umode_t k10temp_is_visible(struct kobject *kobj,
 				  struct attribute *attr, int index)
@@ -367,6 +360,7 @@ static const struct pci_device_id k10temp_id_table[] = {
 	{ PCI_VDEVICE(AMD, PCI_DEVICE_ID_AMD_16H_M30H_NB_F3) },
 	{ PCI_VDEVICE(AMD, PCI_DEVICE_ID_AMD_17H_DF_F3) },
 	{ PCI_VDEVICE(AMD, PCI_DEVICE_ID_AMD_17H_M10H_DF_F3) },
+	{ PCI_VDEVICE(AMD, PCI_DEVICE_ID_AMD_17H_M30H_DF_F3) },
 	{}
 };
 MODULE_DEVICE_TABLE(pci, k10temp_id_table);

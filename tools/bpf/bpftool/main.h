@@ -78,6 +78,32 @@
 #define HELP_SPEC_MAP							\
 	"MAP := { id MAP_ID | pinned FILE }"
 
+static const char * const prog_type_name[] = {
+	[BPF_PROG_TYPE_UNSPEC]			= "unspec",
+	[BPF_PROG_TYPE_SOCKET_FILTER]		= "socket_filter",
+	[BPF_PROG_TYPE_KPROBE]			= "kprobe",
+	[BPF_PROG_TYPE_SCHED_CLS]		= "sched_cls",
+	[BPF_PROG_TYPE_SCHED_ACT]		= "sched_act",
+	[BPF_PROG_TYPE_TRACEPOINT]		= "tracepoint",
+	[BPF_PROG_TYPE_XDP]			= "xdp",
+	[BPF_PROG_TYPE_PERF_EVENT]		= "perf_event",
+	[BPF_PROG_TYPE_CGROUP_SKB]		= "cgroup_skb",
+	[BPF_PROG_TYPE_CGROUP_SOCK]		= "cgroup_sock",
+	[BPF_PROG_TYPE_LWT_IN]			= "lwt_in",
+	[BPF_PROG_TYPE_LWT_OUT]			= "lwt_out",
+	[BPF_PROG_TYPE_LWT_XMIT]		= "lwt_xmit",
+	[BPF_PROG_TYPE_SOCK_OPS]		= "sock_ops",
+	[BPF_PROG_TYPE_SK_SKB]			= "sk_skb",
+	[BPF_PROG_TYPE_CGROUP_DEVICE]		= "cgroup_device",
+	[BPF_PROG_TYPE_SK_MSG]			= "sk_msg",
+	[BPF_PROG_TYPE_RAW_TRACEPOINT]		= "raw_tracepoint",
+	[BPF_PROG_TYPE_CGROUP_SOCK_ADDR]	= "cgroup_sock_addr",
+	[BPF_PROG_TYPE_LWT_SEG6LOCAL]		= "lwt_seg6local",
+	[BPF_PROG_TYPE_LIRC_MODE2]		= "lirc_mode2",
+	[BPF_PROG_TYPE_SK_REUSEPORT]		= "sk_reuseport",
+	[BPF_PROG_TYPE_FLOW_DISSECTOR]		= "flow_dissector",
+};
+
 enum bpf_obj_type {
 	BPF_OBJ_UNKNOWN,
 	BPF_OBJ_PROG,
@@ -99,6 +125,8 @@ void p_info(const char *fmt, ...);
 bool is_prefix(const char *pfx, const char *str);
 void fprint_hex(FILE *f, void *arg, unsigned int n, const char *sep);
 void usage(void) __noreturn;
+
+void set_max_rlimit(void);
 
 struct pinned_obj_table {
 	DECLARE_HASHTABLE(table, 16);
@@ -129,6 +157,7 @@ const char *get_fd_type_name(enum bpf_obj_type type);
 char *get_fdinfo(int fd, const char *key);
 int open_obj_pinned(char *path, bool quiet);
 int open_obj_pinned_any(char *path, enum bpf_obj_type exp_type);
+int mount_bpffs_for_pin(const char *name);
 int do_pin_any(int argc, char **argv, int (*get_fd_by_id)(__u32));
 int do_pin_fd(int fd, const char *name);
 
@@ -138,14 +167,29 @@ int do_event_pipe(int argc, char **argv);
 int do_cgroup(int argc, char **arg);
 int do_perf(int argc, char **arg);
 int do_net(int argc, char **arg);
+int do_tracelog(int argc, char **arg);
 
 int parse_u32_arg(int *argc, char ***argv, __u32 *val, const char *what);
 int prog_parse_fd(int *argc, char ***argv);
 int map_parse_fd(int *argc, char ***argv);
 int map_parse_fd_and_info(int *argc, char ***argv, void *info, __u32 *info_len);
 
+#ifdef HAVE_LIBBFD_SUPPORT
 void disasm_print_insn(unsigned char *image, ssize_t len, int opcodes,
 		       const char *arch, const char *disassembler_options);
+int disasm_init(void);
+#else
+static inline
+void disasm_print_insn(unsigned char *image, ssize_t len, int opcodes,
+		       const char *arch, const char *disassembler_options)
+{
+}
+static inline int disasm_init(void)
+{
+	p_err("No libbfd support");
+	return -1;
+}
+#endif
 void print_data_json(uint8_t *data, size_t len);
 void print_hex_data_json(uint8_t *data, size_t len);
 
@@ -170,6 +214,8 @@ struct btf_dumper {
  */
 int btf_dumper_type(const struct btf_dumper *d, __u32 type_id,
 		    const void *data);
+void btf_dumper_type_only(const struct btf *btf, __u32 func_type_id,
+			  char *func_only, int size);
 
 struct nlattr;
 struct ifinfomsg;

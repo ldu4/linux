@@ -271,7 +271,8 @@ static int pstore_show_options(struct seq_file *m, struct dentry *root)
 	return 0;
 }
 
-static int pstore_remount(struct super_block *sb, int *flags, char *data)
+static int pstore_remount(struct super_block *sb, int *flags,
+			  char *data, size_t data_size)
 {
 	sync_filesystem(sb);
 	parse_options(data);
@@ -335,53 +336,10 @@ int pstore_mkfile(struct dentry *root, struct pstore_record *record)
 		goto fail_alloc;
 	private->record = record;
 
-	switch (record->type) {
-	case PSTORE_TYPE_DMESG:
-		scnprintf(name, sizeof(name), "dmesg-%s-%llu%s",
-			  record->psi->name, record->id,
-			  record->compressed ? ".enc.z" : "");
-		break;
-	case PSTORE_TYPE_CONSOLE:
-		scnprintf(name, sizeof(name), "console-%s-%llu",
-			  record->psi->name, record->id);
-		break;
-	case PSTORE_TYPE_FTRACE:
-		scnprintf(name, sizeof(name), "ftrace-%s-%llu",
-			  record->psi->name, record->id);
-		break;
-	case PSTORE_TYPE_MCE:
-		scnprintf(name, sizeof(name), "mce-%s-%llu",
-			  record->psi->name, record->id);
-		break;
-	case PSTORE_TYPE_PPC_RTAS:
-		scnprintf(name, sizeof(name), "rtas-%s-%llu",
-			  record->psi->name, record->id);
-		break;
-	case PSTORE_TYPE_PPC_OF:
-		scnprintf(name, sizeof(name), "powerpc-ofw-%s-%llu",
-			  record->psi->name, record->id);
-		break;
-	case PSTORE_TYPE_PPC_COMMON:
-		scnprintf(name, sizeof(name), "powerpc-common-%s-%llu",
-			  record->psi->name, record->id);
-		break;
-	case PSTORE_TYPE_PMSG:
-		scnprintf(name, sizeof(name), "pmsg-%s-%llu",
-			  record->psi->name, record->id);
-		break;
-	case PSTORE_TYPE_PPC_OPAL:
-		scnprintf(name, sizeof(name), "powerpc-opal-%s-%llu",
-			  record->psi->name, record->id);
-		break;
-	case PSTORE_TYPE_UNKNOWN:
-		scnprintf(name, sizeof(name), "unknown-%s-%llu",
-			  record->psi->name, record->id);
-		break;
-	default:
-		scnprintf(name, sizeof(name), "type%d-%s-%llu",
-			  record->type, record->psi->name, record->id);
-		break;
-	}
+	scnprintf(name, sizeof(name), "%s-%s-%llu%s",
+			pstore_type_to_name(record->type),
+			record->psi->name, record->id,
+			record->compressed ? ".enc.z" : "");
 
 	dentry = d_alloc_name(root, name);
 	if (!dentry)
@@ -432,7 +390,8 @@ void pstore_get_records(int quiet)
 	inode_unlock(d_inode(root));
 }
 
-static int pstore_fill_super(struct super_block *sb, void *data, int silent)
+static int pstore_fill_super(struct super_block *sb,
+			     void *data, size_t data_size, int silent)
 {
 	struct inode *inode;
 
@@ -464,9 +423,9 @@ static int pstore_fill_super(struct super_block *sb, void *data, int silent)
 }
 
 static struct dentry *pstore_mount(struct file_system_type *fs_type,
-	int flags, const char *dev_name, void *data)
+	int flags, const char *dev_name, void *data, size_t data_size)
 {
-	return mount_single(fs_type, flags, data, pstore_fill_super);
+	return mount_single(fs_type, flags, data, data_size, pstore_fill_super);
 }
 
 static void pstore_kill_sb(struct super_block *sb)
