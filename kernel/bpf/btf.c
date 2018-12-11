@@ -474,11 +474,7 @@ static bool btf_name_valid_identifier(const struct btf *btf, u32 offset)
 	return !*src;
 }
 
-<<<<<<< HEAD
-static const char *btf_name_by_offset(const struct btf *btf, u32 offset)
-=======
 const char *btf_name_by_offset(const struct btf *btf, u32 offset)
->>>>>>> linux-next/akpm-base
 {
 	if (!offset)
 		return "(anon)";

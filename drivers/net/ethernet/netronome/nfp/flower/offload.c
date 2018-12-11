@@ -456,12 +456,7 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 	if (err)
 		goto err_destroy_flow;
 
-<<<<<<< HEAD
-	err = nfp_compile_flow_metadata(app, flow, flow_pay,
-					flow_pay->ingress_dev);
-=======
 	err = nfp_compile_flow_metadata(app, flow, flow_pay, netdev);
->>>>>>> linux-next/akpm-base
 	if (err)
 		goto err_destroy_flow;
 
@@ -470,14 +465,6 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 				     nfp_flower_table_params);
 	if (err)
 		goto err_release_metadata;
-<<<<<<< HEAD
-
-	err = nfp_flower_xmit_flow(netdev, flow_pay,
-				   NFP_FLOWER_CMSG_TYPE_FLOW_ADD);
-	if (err)
-		goto err_remove_rhash;
-=======
->>>>>>> linux-next/akpm-base
 
 	err = nfp_flower_xmit_flow(app, flow_pay,
 				   NFP_FLOWER_CMSG_TYPE_FLOW_ADD);

@@ -2218,15 +2218,9 @@ union bpf_attr {
  *		This helper is available only if the kernel was compiled with
  *		**CONFIG_NET** configuration option.
  *	Return
-<<<<<<< HEAD
- *		Pointer to *struct bpf_sock*, or NULL in case of failure.
- *		For sockets with reuseport option, the *struct bpf_sock*
- *		result is from reuse->socks[] using the hash of the tuple.
-=======
  *		A pointer to *struct bpf_sock*, or **NULL** in case of failure.
  *		For sockets with reuseport option, the **struct bpf_sock**
  *		return is from **reuse->socks**\ [] using hash of the packet.
->>>>>>> linux-next/akpm-base
  *
  * struct bpf_sock *bpf_sk_lookup_udp(void *ctx, struct bpf_sock_tuple *tuple, u32 tuple_size, u64 netns, u64 flags)
  *	Description
@@ -2260,16 +2254,10 @@ union bpf_attr {
  *		This helper is available only if the kernel was compiled with
  *		**CONFIG_NET** configuration option.
  *	Return
-<<<<<<< HEAD
- *		Pointer to *struct bpf_sock*, or NULL in case of failure.
- *		For sockets with reuseport option, the *struct bpf_sock*
- *		result is from reuse->socks[] using the hash of the tuple.
-=======
  *		A pointer to **struct bpf_sock**, or **NULL** in case of
  *		failure. For sockets with reuseport option, the
  *		**struct bpf_sock** return is from **reuse->socks**\ []
  *		using hash of the packet.
->>>>>>> linux-next/akpm-base
  *
  * int bpf_sk_release(struct bpf_sock *sock)
  *	Description
@@ -2543,11 +2531,8 @@ struct __sk_buff {
 
 	__u32 data_meta;
 	__bpf_md_ptr(struct bpf_flow_keys *, flow_keys);
-<<<<<<< HEAD
-=======
 	__u64 tstamp;
 	__u32 wire_len;
->>>>>>> linux-next/akpm-base
 };
 
 struct bpf_tunnel_key {

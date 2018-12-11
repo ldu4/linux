@@ -179,8 +179,6 @@ static const struct attribute_group dsa_group = {
 	.attrs	= dsa_slave_attrs,
 };
 
-<<<<<<< HEAD
-=======
 static void dsa_master_set_mtu(struct net_device *dev, struct dsa_port *cpu_dp)
 {
 	unsigned int mtu = ETH_DATA_LEN + cpu_dp->tag_ops->overhead;
@@ -207,16 +205,12 @@ static void dsa_master_reset_mtu(struct net_device *dev)
 	rtnl_unlock();
 }
 
->>>>>>> linux-next/akpm-base
 int dsa_master_setup(struct net_device *dev, struct dsa_port *cpu_dp)
 {
 	int ret;
 
-<<<<<<< HEAD
-=======
 	dsa_master_set_mtu(dev,  cpu_dp);
 
->>>>>>> linux-next/akpm-base
 	/* If we use a tagging format that doesn't have an ethertype
 	 * field, make sure that all packets from this point on get
 	 * sent to the tag format's receive function.

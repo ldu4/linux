@@ -76,8 +76,6 @@
 			  <&clks IMX7D_CLKO2_ROOT_DIV>;
 	assigned-clock-parents = <&clks IMX7D_CKIL>;
 	assigned-clock-rates = <0>, <32768>;
-<<<<<<< HEAD
-=======
 };
 
 &ecspi3 {
@@ -135,7 +133,6 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2c2>;
 	status = "okay";
->>>>>>> linux-next/akpm-base
 };
 
 &i2c4 {
@@ -325,11 +322,7 @@
 	non-removable;
 	keep-power-in-suspend;
 	wakeup-source;
-<<<<<<< HEAD
-	vmmc-supply = <&reg_ap6212>;
-=======
 	vmmc-supply = <&reg_wlreg_on>;
->>>>>>> linux-next/akpm-base
 	mmc-pwrseq = <&usdhc2_pwrseq>;
 	status = "okay";
 };

@@ -1355,11 +1355,7 @@ static int fl_change(struct net *net, struct sk_buff *in_skb,
 	if (err)
 		goto errout_idr;
 
-<<<<<<< HEAD
-	if (!fold && fl_lookup(fnew->mask, &fnew->mkey)) {
-=======
 	if (!fold && __fl_lookup(fnew->mask, &fnew->mkey)) {
->>>>>>> linux-next/akpm-base
 		err = -EEXIST;
 		goto errout_mask;
 	}

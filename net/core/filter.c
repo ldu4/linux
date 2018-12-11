@@ -5077,18 +5077,11 @@ __bpf_sk_lookup(struct sk_buff *skb, struct bpf_sock_tuple *tuple, u32 len,
 	if (family == AF_INET)
 		sdif = inet_sdif(skb);
 	else
-<<<<<<< HEAD
-		caller_net = sock_net(skb->sk);
-	if ((s32)netns_id < 0) {
-		net = caller_net;
-		sk = sk_lookup(net, tuple, skb, family, proto);
-=======
 		sdif = inet6_sdif(skb);
 
 	if ((s32)netns_id < 0) {
 		net = caller_net;
 		sk = sk_lookup(net, tuple, ifindex, sdif, family, proto);
->>>>>>> linux-next/akpm-base
 	} else {
 		net = get_net_ns_by_id(caller_net, netns_id);
 		if (unlikely(!net))
@@ -5747,13 +5740,10 @@ static bool bpf_skb_is_valid_access(int off, int size, enum bpf_access_type type
 		break;
 	case bpf_ctx_range_ptr(struct __sk_buff, flow_keys):
 		if (size != sizeof(__u64))
-<<<<<<< HEAD
-=======
 			return false;
 		break;
 	case bpf_ctx_range(struct __sk_buff, tstamp):
 		if (size != sizeof(__u64))
->>>>>>> linux-next/akpm-base
 			return false;
 		break;
 	default:
@@ -5809,10 +5799,7 @@ static bool cg_skb_is_valid_access(int off, int size,
 	case bpf_ctx_range(struct __sk_buff, tc_classid):
 	case bpf_ctx_range(struct __sk_buff, data_meta):
 	case bpf_ctx_range_ptr(struct __sk_buff, flow_keys):
-<<<<<<< HEAD
-=======
 	case bpf_ctx_range(struct __sk_buff, wire_len):
->>>>>>> linux-next/akpm-base
 		return false;
 	case bpf_ctx_range(struct __sk_buff, data):
 	case bpf_ctx_range(struct __sk_buff, data_end):
@@ -5858,11 +5845,8 @@ static bool lwt_is_valid_access(int off, int size,
 	case bpf_ctx_range_till(struct __sk_buff, family, local_port):
 	case bpf_ctx_range(struct __sk_buff, data_meta):
 	case bpf_ctx_range_ptr(struct __sk_buff, flow_keys):
-<<<<<<< HEAD
-=======
 	case bpf_ctx_range(struct __sk_buff, tstamp):
 	case bpf_ctx_range(struct __sk_buff, wire_len):
->>>>>>> linux-next/akpm-base
 		return false;
 	}
 
@@ -6292,11 +6276,8 @@ static bool sk_skb_is_valid_access(int off, int size,
 	case bpf_ctx_range(struct __sk_buff, tc_classid):
 	case bpf_ctx_range(struct __sk_buff, data_meta):
 	case bpf_ctx_range_ptr(struct __sk_buff, flow_keys):
-<<<<<<< HEAD
-=======
 	case bpf_ctx_range(struct __sk_buff, tstamp):
 	case bpf_ctx_range(struct __sk_buff, wire_len):
->>>>>>> linux-next/akpm-base
 		return false;
 	}
 

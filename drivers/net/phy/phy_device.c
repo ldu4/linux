@@ -1914,12 +1914,6 @@ static int __set_phy_supported(struct phy_device *phydev, u32 max_speed)
 {
 	switch (max_speed) {
 	case SPEED_10:
-<<<<<<< HEAD
-		phydev->supported &= ~PHY_100BT_FEATURES;
-		/* fall through */
-	case SPEED_100:
-		phydev->supported &= ~PHY_1000BT_FEATURES;
-=======
 		linkmode_clear_bit(ETHTOOL_LINK_MODE_100baseT_Half_BIT,
 				   phydev->supported);
 		linkmode_clear_bit(ETHTOOL_LINK_MODE_100baseT_Full_BIT,
@@ -1930,7 +1924,6 @@ static int __set_phy_supported(struct phy_device *phydev, u32 max_speed)
 				   phydev->supported);
 		linkmode_clear_bit(ETHTOOL_LINK_MODE_1000baseT_Full_BIT,
 				   phydev->supported);
->>>>>>> linux-next/akpm-base
 		break;
 	case SPEED_1000:
 		break;

@@ -1913,10 +1913,7 @@ static bool tcp_tso_should_defer(struct sock *sk, struct sk_buff *skb,
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct sk_buff *head;
 	int win_divisor;
-<<<<<<< HEAD
-=======
 	s64 delta;
->>>>>>> linux-next/akpm-base
 
 	if (icsk->icsk_ca_state >= TCP_CA_Recovery)
 		goto send_now;

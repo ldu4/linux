@@ -2529,11 +2529,8 @@ struct __sk_buff {
 
 	__u32 data_meta;
 	__bpf_md_ptr(struct bpf_flow_keys *, flow_keys);
-<<<<<<< HEAD
-=======
 	__u64 tstamp;
 	__u32 wire_len;
->>>>>>> linux-next/akpm-base
 };
 
 struct bpf_tunnel_key {
