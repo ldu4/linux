@@ -45,6 +45,7 @@
 #include "util.h"
 #include "sys.h"
 #include "xattr.h"
+#include "lops.h"
 
 #define args_neq(a1, a2, x) ((a1)->ar_##x != (a2)->ar_##x)
 
@@ -1228,11 +1229,13 @@ static int gfs2_statfs(struct dentry *dentry, struct kstatfs *buf)
  * @sb:  the filesystem
  * @flags:  the remount flags
  * @data:  extra data passed in (not used right now)
+ * @data_size: size of the extra data
  *
  * Returns: errno
  */
 
-static int gfs2_remount_fs(struct super_block *sb, int *flags, char *data)
+static int gfs2_remount_fs(struct super_block *sb, int *flags,
+			   char *data, size_t data_size)
 {
 	struct gfs2_sbd *sdp = sb->s_fs_info;
 	struct gfs2_args args = sdp->sd_args; /* Default to current settings */

@@ -40,7 +40,6 @@ static int __init erofs_init_inode_cache(void)
 
 static void erofs_exit_inode_cache(void)
 {
-	BUG_ON(erofs_inode_cachep == NULL);
 	kmem_cache_destroy(erofs_inode_cachep);
 }
 
@@ -303,8 +302,8 @@ static int managed_cache_releasepage(struct page *page, gfp_t gfp_mask)
 	int ret = 1;	/* 0 - busy */
 	struct address_space *const mapping = page->mapping;
 
-	BUG_ON(!PageLocked(page));
-	BUG_ON(mapping->a_ops != &managed_cache_aops);
+	DBG_BUGON(!PageLocked(page));
+	DBG_BUGON(mapping->a_ops != &managed_cache_aops);
 
 	if (PagePrivate(page))
 		ret = erofs_try_to_free_cached_page(mapping, page);
@@ -317,10 +316,10 @@ static void managed_cache_invalidatepage(struct page *page,
 {
 	const unsigned int stop = length + offset;
 
-	BUG_ON(!PageLocked(page));
+	DBG_BUGON(!PageLocked(page));
 
-	/* Check for overflow */
-	BUG_ON(stop > PAGE_SIZE || stop < length);
+	/* Check for potential overflow in debug mode */
+	DBG_BUGON(stop > PAGE_SIZE || stop < length);
 
 	if (offset == 0 && stop == PAGE_SIZE)
 		while (!managed_cache_releasepage(page, GFP_NOFS))
@@ -442,12 +441,6 @@ static int erofs_read_super(struct super_block *sb,
 
 	erofs_register_super(sb);
 
-	/*
-	 * We already have a positive dentry, which was instantiated
-	 * by d_make_root. Just need to d_rehash it.
-	 */
-	d_rehash(sb->s_root);
-
 	if (!silent)
 		infoln("mounted on %s with opts: %s.", dev_name,
 			(char *)data);
@@ -518,7 +511,7 @@ struct erofs_mount_private {
 
 /* support mount_bdev() with options */
 static int erofs_fill_super(struct super_block *sb,
-	void *_priv, int silent)
+	void *_priv, size_t data_size, int silent)
 {
 	struct erofs_mount_private *priv = _priv;
 
@@ -526,9 +519,9 @@ static int erofs_fill_super(struct super_block *sb,
 		priv->options, silent);
 }
 
-static struct dentry *erofs_mount(
-	struct file_system_type *fs_type, int flags,
-	const char *dev_name, void *data)
+static struct dentry *erofs_mount(struct file_system_type *fs_type,
+				  int flags, const char *dev_name,
+				  void *data, size_t data_size)
 {
 	struct erofs_mount_private priv = {
 		.dev_name = dev_name,
@@ -536,7 +529,7 @@ static struct dentry *erofs_mount(
 	};
 
 	return mount_bdev(fs_type, flags, dev_name,
-		&priv, erofs_fill_super);
+		&priv, sizeof(priv), erofs_fill_super);
 }
 
 static void erofs_kill_sb(struct super_block *sb)
@@ -648,14 +641,15 @@ static int erofs_show_options(struct seq_file *seq, struct dentry *root)
 	return 0;
 }
 
-static int erofs_remount(struct super_block *sb, int *flags, char *data)
+static int erofs_remount(struct super_block *sb, int *flags,
+			 char *data, size_t data_size)
 {
 	struct erofs_sb_info *sbi = EROFS_SB(sb);
 	unsigned int org_mnt_opt = sbi->mount_opt;
 	unsigned int org_inject_rate = erofs_get_fault_rate(sbi);
 	int err;
 
-	BUG_ON(!sb_rdonly(sb));
+	DBG_BUGON(!sb_rdonly(sb));
 	err = parse_options(sb, data);
 	if (err)
 		goto out;

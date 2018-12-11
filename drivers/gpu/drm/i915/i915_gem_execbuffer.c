@@ -26,7 +26,7 @@
  *
  */
 
-#include <linux/dma_remapping.h>
+#include <linux/intel-iommu.h>
 #include <linux/reservation.h>
 #include <linux/sync_file.h>
 #include <linux/uaccess.h>
@@ -1268,7 +1268,7 @@ relocate_entry(struct i915_vma *vma,
 		else if (gen >= 4)
 			len = 4;
 		else
-			len = 6;
+			len = 3;
 
 		batch = reloc_gpu(eb, vma, len);
 		if (IS_ERR(batch))
@@ -1306,11 +1306,6 @@ relocate_entry(struct i915_vma *vma,
 			*batch++ = addr;
 			*batch++ = target_offset;
 		} else {
-			*batch++ = MI_STORE_DWORD_IMM | MI_MEM_VIRTUAL;
-			*batch++ = addr;
-			*batch++ = target_offset;
-
-			/* And again for good measure (blb/pnv) */
 			*batch++ = MI_STORE_DWORD_IMM | MI_MEM_VIRTUAL;
 			*batch++ = addr;
 			*batch++ = target_offset;
@@ -2191,7 +2186,7 @@ signal_fence_array(struct i915_execbuffer *eb,
 		if (!(flags & I915_EXEC_FENCE_SIGNAL))
 			continue;
 
-		drm_syncobj_replace_fence(syncobj, 0, fence);
+		drm_syncobj_replace_fence(syncobj, fence);
 	}
 }
 
