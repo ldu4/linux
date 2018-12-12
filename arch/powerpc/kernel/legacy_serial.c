@@ -192,7 +192,7 @@ static int __init add_legacy_soc_port(struct device_node *np,
 	/* Add port, irq will be dealt with later. We passed a translated
 	 * IO port value. It will be fixed up later along with the irq
 	 */
-	if (tsi && !strcmp(tsi->type, "tsi-bridge"))
+	if (of_node_is_type(tsi, "tsi-bridge"))
 		return add_legacy_port(np, -1, UPIO_TSI, addr, addr,
 				       0, legacy_port_flags, 0);
 	else
@@ -372,6 +372,8 @@ void __init find_legacy_serial_ports(void)
 
 	/* Now find out if one of these is out firmware console */
 	path = of_get_property(of_chosen, "linux,stdout-path", NULL);
+	if (path == NULL)
+		path = of_get_property(of_chosen, "stdout-path", NULL);
 	if (path != NULL) {
 		stdout = of_find_node_by_path(path);
 		if (stdout)
@@ -417,7 +419,8 @@ void __init find_legacy_serial_ports(void)
 			of_node_put(parent);
 			continue;
 		}
-		if (strcmp(np->name, "serial") && strcmp(np->type, "serial")) {
+		if (strcmp(np->name, "serial") &&
+		    !of_node_is_type(np, "serial")) {
 			of_node_put(parent);
 			continue;
 		}
@@ -595,8 +598,10 @@ static int __init check_legacy_serial_console(void)
 	/* We are getting a weird phandle from OF ... */
 	/* ... So use the full path instead */
 	name = of_get_property(of_chosen, "linux,stdout-path", NULL);
+	if (name == NULL)
+		name = of_get_property(of_chosen, "stdout-path", NULL);
 	if (name == NULL) {
-		DBG(" no linux,stdout-path !\n");
+		DBG(" no stdout-path !\n");
 		return -ENODEV;
 	}
 	prom_stdout = of_find_node_by_path(name);

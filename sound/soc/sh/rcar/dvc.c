@@ -40,10 +40,7 @@ struct rsnd_dvc {
 	struct rsnd_kctrl_cfg_s ren;	/* Ramp Enable */
 	struct rsnd_kctrl_cfg_s rup;	/* Ramp Rate Up */
 	struct rsnd_kctrl_cfg_s rdown;	/* Ramp Rate Down */
-	u32 flags;
 };
-
-#define KCTRL_INITIALIZED	(1 << 0)
 
 #define rsnd_dvc_get(priv, id) ((struct rsnd_dvc *)(priv->dvc) + id)
 #define rsnd_dvc_nr(priv) ((priv)->dvc_nr)
@@ -227,9 +224,6 @@ static int rsnd_dvc_pcm_new(struct rsnd_mod *mod,
 	int channels = rsnd_rdai_channels_get(rdai);
 	int ret;
 
-	if (rsnd_flags_has(dvc, KCTRL_INITIALIZED))
-		return 0;
-
 	/* Volume */
 	ret = rsnd_kctrl_new_m(mod, io, rtd,
 			is_play ?
@@ -285,8 +279,6 @@ static int rsnd_dvc_pcm_new(struct rsnd_mod *mod,
 	if (ret < 0)
 		return ret;
 
-	rsnd_flags_set(dvc, KCTRL_INITIALIZED);
-
 	return 0;
 }
 
@@ -306,6 +298,7 @@ static struct rsnd_mod_ops rsnd_dvc_ops = {
 	.init		= rsnd_dvc_init,
 	.quit		= rsnd_dvc_quit,
 	.pcm_new	= rsnd_dvc_pcm_new,
+	.get_status	= rsnd_mod_get_status,
 };
 
 struct rsnd_mod *rsnd_dvc_mod_get(struct rsnd_priv *priv, int id)
@@ -365,7 +358,7 @@ int rsnd_dvc_probe(struct rsnd_priv *priv)
 		}
 
 		ret = rsnd_mod_init(priv, rsnd_mod_get(dvc), &rsnd_dvc_ops,
-				    clk, rsnd_mod_get_status, RSND_MOD_DVC, i);
+				    clk, RSND_MOD_DVC, i);
 		if (ret) {
 			of_node_put(np);
 			goto rsnd_dvc_probe_done;
