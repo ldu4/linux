@@ -2369,6 +2369,7 @@ static struct file *maybe_unlock_mmap_for_io(struct vm_fault *vmf,
 					     struct file *fpin)
 {
 	int flags = vmf->flags;
+
 	if (fpin)
 		return fpin;
 	if ((flags & (FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_RETRY_NOWAIT)) ==
