@@ -436,13 +436,9 @@ struct intel_engine_cs {
 
 	struct intel_hw_status_page status_page;
 	struct i915_ctx_workarounds wa_ctx;
-<<<<<<< HEAD
-	struct i915_wa_list wa_list;
-=======
 	struct i915_wa_list ctx_wa_list;
 	struct i915_wa_list wa_list;
 	struct i915_wa_list whitelist;
->>>>>>> linux-next/akpm-base
 
 	u32             irq_keep_mask; /* always keep these interrupts */
 	u32		irq_enable_mask; /* bitmask to enable ring interrupt */

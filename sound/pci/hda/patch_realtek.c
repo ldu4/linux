@@ -5581,10 +5581,7 @@ enum {
 	ALC294_FIXUP_ASUS_MIC,
 	ALC294_FIXUP_ASUS_HEADSET_MIC,
 	ALC294_FIXUP_ASUS_SPK,
-<<<<<<< HEAD
-=======
 	ALC225_FIXUP_HEADSET_JACK,
->>>>>>> linux-next/akpm-base
 };
 
 static const struct hda_fixup alc269_fixups[] = {
@@ -6521,13 +6518,10 @@ static const struct hda_fixup alc269_fixups[] = {
 		.chained = true,
 		.chain_id = ALC294_FIXUP_ASUS_HEADSET_MIC
 	},
-<<<<<<< HEAD
-=======
 	[ALC225_FIXUP_HEADSET_JACK] = {
 		.type = HDA_FIXUP_FUNC,
 		.v.func = alc_fixup_headset_jack,
 	},
->>>>>>> linux-next/akpm-base
 };
 
 static const struct snd_pci_quirk alc269_fixup_tbl[] = {

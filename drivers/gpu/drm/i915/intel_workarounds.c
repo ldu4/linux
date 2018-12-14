@@ -49,24 +49,6 @@
  */
 
 static void wa_init_start(struct i915_wa_list *wal, const char *name)
-<<<<<<< HEAD
-{
-	wal->name = name;
-}
-
-static void wa_init_finish(struct i915_wa_list *wal)
-{
-	if (!wal->count)
-		return;
-
-	DRM_DEBUG_DRIVER("Initialized %u %s workarounds\n",
-			 wal->count, wal->name);
-}
-
-static void wa_add(struct drm_i915_private *i915,
-		   i915_reg_t reg, const u32 mask, const u32 val)
-=======
->>>>>>> linux-next/akpm-base
 {
 	wal->name = name;
 }
@@ -621,51 +603,6 @@ int intel_engine_emit_ctx_wa(struct i915_request *rq)
 }
 
 static void
-<<<<<<< HEAD
-wal_add(struct i915_wa_list *wal, const struct i915_wa *wa)
-{
-	const unsigned int grow = 1 << 4;
-
-	GEM_BUG_ON(!is_power_of_2(grow));
-
-	if (IS_ALIGNED(wal->count, grow)) { /* Either uninitialized or full. */
-		struct i915_wa *list;
-
-		list = kmalloc_array(ALIGN(wal->count + 1, grow), sizeof(*wa),
-				     GFP_KERNEL);
-		if (!list) {
-			DRM_ERROR("No space for workaround init!\n");
-			return;
-		}
-
-		if (wal->list)
-			memcpy(list, wal->list, sizeof(*wa) * wal->count);
-
-		wal->list = list;
-	}
-
-	wal->list[wal->count++] = *wa;
-}
-
-static void
-wa_masked_en(struct i915_wa_list *wal, i915_reg_t reg, u32 val)
-{
-	struct i915_wa wa = {
-		.reg = reg,
-		.mask = val,
-		.val = _MASKED_BIT_ENABLE(val)
-	};
-
-	wal_add(wal, &wa);
-}
-
-static void
-wa_write_masked_or(struct i915_wa_list *wal, i915_reg_t reg, u32 mask,
-		   u32 val)
-{
-	struct i915_wa wa = {
-		.reg = reg,
-=======
 wa_masked_en(struct i915_wa_list *wal, i915_reg_t reg, u32 val)
 {
 	struct i915_wa wa = {
@@ -683,16 +620,11 @@ wa_write_masked_or(struct i915_wa_list *wal, i915_reg_t reg, u32 mask,
 {
 	struct i915_wa wa = {
 		.reg = reg,
->>>>>>> linux-next/akpm-base
 		.mask = mask,
 		.val = val
 	};
 
-<<<<<<< HEAD
-	wal_add(wal, &wa);
-=======
 	_wa_add(wal, &wa);
->>>>>>> linux-next/akpm-base
 }
 
 static void
@@ -977,62 +909,6 @@ void intel_gt_init_workarounds(struct drm_i915_private *i915)
 		MISSING_CASE(INTEL_GEN(i915));
 
 	wa_init_finish(wal);
-<<<<<<< HEAD
-}
-
-static enum forcewake_domains
-wal_get_fw_for_rmw(struct drm_i915_private *dev_priv,
-		   const struct i915_wa_list *wal)
-{
-	enum forcewake_domains fw = 0;
-	struct i915_wa *wa;
-	unsigned int i;
-
-	for (i = 0, wa = wal->list; i < wal->count; i++, wa++)
-		fw |= intel_uncore_forcewake_for_reg(dev_priv,
-						     wa->reg,
-						     FW_REG_READ |
-						     FW_REG_WRITE);
-
-	return fw;
-}
-
-static void
-wa_list_apply(struct drm_i915_private *dev_priv, const struct i915_wa_list *wal)
-{
-	enum forcewake_domains fw;
-	unsigned long flags;
-	struct i915_wa *wa;
-	unsigned int i;
-
-	if (!wal->count)
-		return;
-
-	fw = wal_get_fw_for_rmw(dev_priv, wal);
-
-	spin_lock_irqsave(&dev_priv->uncore.lock, flags);
-	intel_uncore_forcewake_get__locked(dev_priv, fw);
-
-	for (i = 0, wa = wal->list; i < wal->count; i++, wa++) {
-		u32 val = I915_READ_FW(wa->reg);
-
-		val &= ~wa->mask;
-		val |= wa->val;
-
-		I915_WRITE_FW(wa->reg, val);
-	}
-
-	intel_uncore_forcewake_put__locked(dev_priv, fw);
-	spin_unlock_irqrestore(&dev_priv->uncore.lock, flags);
-
-	DRM_DEBUG_DRIVER("Applied %u %s workarounds\n", wal->count, wal->name);
-}
-
-void intel_gt_apply_workarounds(struct drm_i915_private *dev_priv)
-{
-	wa_list_apply(dev_priv, &dev_priv->gt_wa_list);
-=======
->>>>>>> linux-next/akpm-base
 }
 
 static enum forcewake_domains
