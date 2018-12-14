@@ -331,7 +331,7 @@
 			APC and your system crashes randomly.
 
 	apic=		[APIC,X86] Advanced Programmable Interrupt Controller
-			Change the output verbosity whilst booting
+			Change the output verbosity while booting
 			Format: { quiet (default) | verbose | debug }
 			Change the amount of debugging information output
 			when initialising the APIC and IO-APIC components.
@@ -673,6 +673,9 @@
 
 	cpuidle.off=1	[CPU_IDLE]
 			disable the cpuidle sub-system
+
+	cpuidle.governor=
+			[CPU_IDLE] Name of the cpuidle governor to use.
 
 	cpufreq.off=1	[CPU_FREQ]
 			disable the cpufreq sub-system
@@ -1683,12 +1686,12 @@
 			By default, super page will be supported if Intel IOMMU
 			has the capability. With this option, super page will
 			not be supported.
-		ecs_off [Default Off]
-			By default, extended context tables will be supported if
-			the hardware advertises that it has support both for the
-			extended tables themselves, and also PASID support. With
-			this option set, extended tables will not be used even
-			on hardware which claims to support them.
+		sm_off [Default Off]
+			By default, scalable mode will be supported if the
+			hardware advertises that it has support for the scalable
+			mode translation. With this option set, scalable mode
+			will not be used even on hardware which claims to support
+			it.
 		tboot_noforce [Default Off]
 			Do not force the Intel IOMMU enabled under tboot.
 			By default, tboot will force Intel IOMMU on, which
@@ -3759,24 +3762,6 @@
 			in microseconds.  The default of zero says
 			no holdoff.
 
-	rcutorture.cbflood_inter_holdoff= [KNL]
-			Set holdoff time (jiffies) between successive
-			callback-flood tests.
-
-	rcutorture.cbflood_intra_holdoff= [KNL]
-			Set holdoff time (jiffies) between successive
-			bursts of callbacks within a given callback-flood
-			test.
-
-	rcutorture.cbflood_n_burst= [KNL]
-			Set the number of bursts making up a given
-			callback-flood test.  Set this to zero to
-			disable callback-flood testing.
-
-	rcutorture.cbflood_n_per_burst= [KNL]
-			Set the number of callbacks to be registered
-			in a given burst of a callback-flood test.
-
 	rcutorture.fqs_duration= [KNL]
 			Set duration of force_quiescent_state bursts
 			in microseconds.
@@ -3788,6 +3773,23 @@
 	rcutorture.fqs_stutter= [KNL]
 			Set wait time between force_quiescent_state bursts
 			in seconds.
+
+	rcutorture.fwd_progress= [KNL]
+			Enable RCU grace-period forward-progress testing
+			for the types of RCU supporting this notion.
+
+	rcutorture.fwd_progress_div= [KNL]
+			Specify the fraction of a CPU-stall-warning
+			period to do tight-loop forward-progress testing.
+
+	rcutorture.fwd_progress_holdoff= [KNL]
+			Number of seconds to wait between successive
+			forward-progress tests.
+
+	rcutorture.fwd_progress_need_resched= [KNL]
+			Enclose cond_resched() calls within checks for
+			need_resched() during tight-loop forward-progress
+			testing.
 
 	rcutorture.gp_cond= [KNL]
 			Use conditional/asynchronous update-side
@@ -5030,6 +5032,14 @@
 			see Documentation/watchdog/watchdog-parameters.txt
 			or other driver-specific files in the
 			Documentation/watchdog/ directory.
+
+	watchdog_thresh=
+			[KNL]
+			Set the hard lockup detector stall duration
+			threshold in seconds. The soft lockup detector
+			threshold is set to twice the value. A value of 0
+			disables both lockup detectors. Default is 10
+			seconds.
 
 	workqueue.watchdog_thresh=
 			If CONFIG_WQ_WATCHDOG is configured, workqueue can
