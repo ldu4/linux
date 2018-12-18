@@ -254,7 +254,7 @@ struct nfs_pgio_header *nfs_pgio_header_alloc(const struct nfs_rw_ops *);
 void nfs_pgio_header_free(struct nfs_pgio_header *);
 int nfs_generic_pgio(struct nfs_pageio_descriptor *, struct nfs_pgio_header *);
 int nfs_initiate_pgio(struct rpc_clnt *clnt, struct nfs_pgio_header *hdr,
-		      struct rpc_cred *cred, const struct nfs_rpc_ops *rpc_ops,
+		      const struct cred *cred, const struct nfs_rpc_ops *rpc_ops,
 		      const struct rpc_call_ops *call_ops, int how, int flags);
 void nfs_free_request(struct nfs_page *req);
 struct nfs_pgio_mirror *
@@ -269,7 +269,7 @@ static inline bool nfs_pgio_has_mirroring(struct nfs_pageio_descriptor *desc)
 static inline bool nfs_match_open_context(const struct nfs_open_context *ctx1,
 		const struct nfs_open_context *ctx2)
 {
-	return ctx1->cred == ctx2->cred && ctx1->state == ctx2->state;
+	return cred_fscmp(ctx1->cred, ctx2->cred) == 0 && ctx1->state == ctx2->state;
 }
 
 /* nfs2xdr.c */
@@ -395,7 +395,6 @@ extern const struct super_operations nfs_sops;
 extern struct file_system_type nfs_fs_type;
 extern struct file_system_type nfs_xdev_fs_type;
 #if IS_ENABLED(CONFIG_NFS_V4)
-extern struct file_system_type nfs4_xdev_fs_type;
 extern struct file_system_type nfs4_referral_fs_type;
 #endif
 bool nfs_auth_info_match(const struct nfs_auth_info *, rpc_authflavor_t);
@@ -405,7 +404,7 @@ int nfs_set_sb_security(struct super_block *, struct dentry *, struct nfs_mount_
 int nfs_clone_sb_security(struct super_block *, struct dentry *, struct nfs_mount_info *);
 struct dentry *nfs_fs_mount_common(struct nfs_server *, int, const char *,
 				   struct nfs_mount_info *, struct nfs_subversion *);
-struct dentry *nfs_fs_mount(struct file_system_type *, int, const char *, void *);
+struct dentry *nfs_fs_mount(struct file_system_type *, int, const char *, void *, size_t);
 struct dentry * nfs_xdev_mount_common(struct file_system_type *, int,
 		const char *, struct nfs_mount_info *);
 void nfs_kill_super(struct super_block *);
@@ -466,7 +465,7 @@ int  nfs_show_options(struct seq_file *, struct dentry *);
 int  nfs_show_devname(struct seq_file *, struct dentry *);
 int  nfs_show_path(struct seq_file *, struct dentry *);
 int  nfs_show_stats(struct seq_file *, struct dentry *);
-int nfs_remount(struct super_block *sb, int *flags, char *raw_data);
+int nfs_remount(struct super_block *sb, int *flags, char *raw_data, size_t data_size);
 
 /* write.c */
 extern void nfs_pageio_init_write(struct nfs_pageio_descriptor *pgio,
@@ -565,10 +564,10 @@ extern struct nfs_client *nfs4_init_client(struct nfs_client *clp,
 			    const struct nfs_client_initdata *);
 extern int nfs40_walk_client_list(struct nfs_client *clp,
 				struct nfs_client **result,
-				struct rpc_cred *cred);
+				const struct cred *cred);
 extern int nfs41_walk_client_list(struct nfs_client *clp,
 				struct nfs_client **result,
-				struct rpc_cred *cred);
+				const struct cred *cred);
 extern int nfs4_test_session_trunk(struct rpc_clnt *,
 				struct rpc_xprt *,
 				void *);
