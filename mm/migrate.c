@@ -2707,8 +2707,6 @@ static void migrate_vma_pages(struct migrate_vma *migrate)
 {
 	const unsigned long npages = migrate->npages;
 	const unsigned long start = migrate->start;
-	struct vm_area_struct *vma = migrate->vma;
-	struct mm_struct *mm = vma->vm_mm;
 	struct mmu_notifier_range range;
 	unsigned long addr, i;
 	bool notified = false;
@@ -2731,8 +2729,9 @@ static void migrate_vma_pages(struct migrate_vma *migrate)
 			if (!notified) {
 				notified = true;
 
-				mmu_notifier_range_init(&range, mm, addr,
-							migrate->end);
+				mmu_notifier_range_init(&range,
+							migrate->vma->vm_mm,
+							addr, migrate->end);
 				mmu_notifier_invalidate_range_start(&range);
 			}
 			migrate_vma_insert_page(migrate, addr, newpage,
