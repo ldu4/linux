@@ -577,6 +577,7 @@ struct xfrm_policy {
 	/* This lock only affects elements except for entry. */
 	rwlock_t		lock;
 	refcount_t		refcnt;
+	u32			pos;
 	struct timer_list	timer;
 
 	atomic_t		genid;
@@ -589,6 +590,7 @@ struct xfrm_policy {
 	struct xfrm_lifetime_cur curlft;
 	struct xfrm_policy_walk_entry walk;
 	struct xfrm_policy_queue polq;
+	bool                    bydst_reinsert;
 	u8			type;
 	u8			action;
 	u8			flags;
@@ -596,6 +598,7 @@ struct xfrm_policy {
 	u16			family;
 	struct xfrm_sec_ctx	*security;
 	struct xfrm_tmpl       	xfrm_vec[XFRM_MAX_DEPTH];
+	struct hlist_node	bydst_inexact_list;
 	struct rcu_head		rcu;
 };
 
@@ -1552,6 +1555,7 @@ int xfrm_state_walk(struct net *net, struct xfrm_state_walk *walk,
 		    int (*func)(struct xfrm_state *, int, void*), void *);
 void xfrm_state_walk_done(struct xfrm_state_walk *walk, struct net *net);
 struct xfrm_state *xfrm_state_alloc(struct net *net);
+void xfrm_state_free(struct xfrm_state *x);
 struct xfrm_state *xfrm_state_find(const xfrm_address_t *daddr,
 				   const xfrm_address_t *saddr,
 				   const struct flowi *fl,
@@ -1967,7 +1971,7 @@ static inline void xfrm_dev_state_delete(struct xfrm_state *x)
 static inline void xfrm_dev_state_free(struct xfrm_state *x)
 {
 	struct xfrm_state_offload *xso = &x->xso;
-	 struct net_device *dev = xso->dev;
+	struct net_device *dev = xso->dev;
 
 	if (dev && dev->xfrmdev_ops) {
 		if (dev->xfrmdev_ops->xdo_dev_state_free)
