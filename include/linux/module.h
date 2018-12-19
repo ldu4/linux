@@ -486,6 +486,13 @@ struct module {
 #define MODULE_ARCH_INIT {}
 #endif
 
+#ifndef HAVE_ARCH_KALLSYMS_SYMBOL_VALUE
+static inline unsigned long kallsyms_symbol_value(const Elf_Sym *sym)
+{
+	return sym->st_value;
+}
+#endif
+
 extern struct mutex module_mutex;
 
 /* FIXME: It'd be nice to isolate modules during init, too, so they
@@ -678,6 +685,12 @@ static inline bool __is_module_percpu_address(unsigned long addr, unsigned long 
 }
 
 static inline bool is_module_text_address(unsigned long addr)
+{
+	return false;
+}
+
+static inline bool within_module_core(unsigned long addr,
+				      const struct module *mod)
 {
 	return false;
 }

@@ -79,6 +79,7 @@ Code  Seq#(hex)	Include File		Comments
 0x1b	all	InfiniBand Subsystem	<http://infiniband.sourceforge.net/>
 0x20	all	drivers/cdrom/cm206.h
 0x22	all	scsi/sg.h
+'!'	00-1F	uapi/linux/seccomp.h
 '#'	00-3F	IEEE 1394 Subsystem	Block for the entire subsystem
 '$'	00-0F	linux/perf_counter.h, linux/perf_event.h
 '%'	00-0F	include/uapi/linux/stm.h
@@ -224,6 +225,7 @@ Code  Seq#(hex)	Include File		Comments
 'f'	00-0F	fs/ext4/ext4.h		conflict!
 'f'	00-0F	linux/fs.h		conflict!
 'f'	00-0F	fs/ocfs2/ocfs2_fs.h	conflict!
+'f'	81-8F	linux/fsverity.h
 'g'	00-0F	linux/usb/gadgetfs.h
 'g'	20-2F	linux/usb/g_printer.h
 'h'	00-7F				conflict! Charon filesystem
