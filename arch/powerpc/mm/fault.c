@@ -341,7 +341,7 @@ static inline void cmo_account_page_fault(void)
 static inline void cmo_account_page_fault(void) { }
 #endif /* CONFIG_PPC_SMLPAR */
 
-#ifdef CONFIG_PPC_STD_MMU
+#ifdef CONFIG_PPC_BOOK3S
 static void sanity_check_fault(bool is_write, unsigned long error_code)
 {
 	/*
@@ -378,7 +378,7 @@ static void sanity_check_fault(bool is_write, unsigned long error_code)
 }
 #else
 static void sanity_check_fault(bool is_write, unsigned long error_code) { }
-#endif /* CONFIG_PPC_STD_MMU */
+#endif /* CONFIG_PPC_BOOK3S */
 
 /*
  * Define the correct "is_write" bit in error_code based
@@ -636,6 +636,7 @@ void bad_page_fault(struct pt_regs *regs, unsigned long address, int sig)
 	switch (TRAP(regs)) {
 	case 0x300:
 	case 0x380:
+	case 0xe00:
 		printk(KERN_ALERT "Unable to handle kernel paging request for "
 			"data at address 0x%08lx\n", regs->dar);
 		break;

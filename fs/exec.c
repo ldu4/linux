@@ -272,7 +272,6 @@ static int __bprm_mm_init(struct linux_binprm *bprm)
 		goto err;
 
 	mm->stack_vm = mm->total_vm = 1;
-	arch_bprm_mm_init(mm, vma);
 	up_write(&mm->mmap_sem);
 	bprm->p = vma->vm_end - sizeof(void *);
 	return 0;
@@ -1402,7 +1401,7 @@ EXPORT_SYMBOL(finalize_exec);
  * Or, if exec fails before, free_bprm() should release ->cred and
  * and unlock.
  */
-int prepare_bprm_creds(struct linux_binprm *bprm)
+static int prepare_bprm_creds(struct linux_binprm *bprm)
 {
 	if (mutex_lock_interruptible(&current->signal->cred_guard_mutex))
 		return -ERESTARTNOINTR;

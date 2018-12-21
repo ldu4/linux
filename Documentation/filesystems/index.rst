@@ -359,3 +359,25 @@ encryption of files and directories.
     :maxdepth: 2
 
     fscrypt
+
+Verity API
+==========
+
+A library which filesystems can hook into to support transparent
+authentication of read-only files.
+
+.. toctree::
+    :maxdepth: 2
+
+    fsverity
+
+Pathname lookup
+===============
+
+Pathname lookup in Linux is a complex beast; the document linked below
+provides a comprehensive summary for those looking for the details.
+
+.. toctree::
+   :maxdepth: 2
+
+   path-lookup.rst
