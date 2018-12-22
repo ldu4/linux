@@ -361,22 +361,9 @@ void acpi_gpiochip_free_interrupts(struct gpio_chip *chip)
 			if (event->irq_is_wake)
 				disable_irq_wake(event->irq);
 
-<<<<<<< HEAD
-		if (event->irq_requested) {
-			if (event->irq_is_wake)
-				disable_irq_wake(event->irq);
-
 			free_irq(event->irq, event);
 		}
 
-		desc = event->desc;
-		if (WARN_ON(IS_ERR(desc)))
-			continue;
-=======
-			free_irq(event->irq, event);
-		}
-
->>>>>>> linux-next/akpm-base
 		gpiochip_unlock_as_irq(chip, event->pin);
 		gpiochip_free_own_desc(event->desc);
 		list_del(&event->node);
