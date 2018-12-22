@@ -62,20 +62,6 @@ config UBIFS_FS_XATTR
 
 	  If unsure, say Y.
 
-<<<<<<< HEAD
-config UBIFS_FS_ENCRYPTION
-	bool "UBIFS Encryption"
-	depends on UBIFS_FS_XATTR && BLOCK
-	select FS_ENCRYPTION
-	default n
-	help
-	  Enable encryption of UBIFS files and directories. This
-	  feature is similar to ecryptfs, but it is more memory
-	  efficient since it avoids caching the encrypted and
-	  decrypted pages in the page cache.
-
-=======
->>>>>>> linux-next/akpm-base
 config UBIFS_FS_SECURITY
 	bool "UBIFS Security Labels"
 	depends on UBIFS_FS_XATTR

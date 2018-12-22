@@ -307,18 +307,6 @@ static void cpa_flush_all(unsigned long cache)
 	on_each_cpu(__cpa_flush_all, (void *) cache, 1);
 }
 
-<<<<<<< HEAD
-static bool __inv_flush_all(int cache)
-{
-	BUG_ON(irqs_disabled() && !early_boot_irqs_disabled);
-
-	if (cache && !static_cpu_has(X86_FEATURE_CLFLUSH)) {
-		cpa_flush_all(cache);
-		return true;
-	}
-
-	return false;
-=======
 void __cpa_flush_tlb(void *data)
 {
 	struct cpa_data *cpa = data;
@@ -326,7 +314,6 @@ void __cpa_flush_tlb(void *data)
 
 	for (i = 0; i < cpa->numpages; i++)
 		__flush_tlb_one_kernel(__cpa_addr(cpa, i));
->>>>>>> linux-next/akpm-base
 }
 
 static void cpa_flush(struct cpa_data *data, int cache)
@@ -334,28 +321,7 @@ static void cpa_flush(struct cpa_data *data, int cache)
 	struct cpa_data *cpa = data;
 	unsigned int i;
 
-<<<<<<< HEAD
-	WARN_ON(PAGE_ALIGN(start) != start);
-
-	if (__inv_flush_all(cache))
-		return;
-
-	flush_tlb_kernel_range(start, start + PAGE_SIZE * numpages);
-
-	if (!cache)
-		return;
-
-	/*
-	 * We only need to flush on one CPU,
-	 * clflush is a MESI-coherent instruction that
-	 * will cause all other CPUs to flush the same
-	 * cachelines:
-	 */
-	for (i = 0, addr = start; i < numpages; i++, addr += PAGE_SIZE) {
-		pte_t *pte = lookup_address(addr, &level);
-=======
 	BUG_ON(irqs_disabled() && !early_boot_irqs_disabled);
->>>>>>> linux-next/akpm-base
 
 	if (cache && !static_cpu_has(X86_FEATURE_CLFLUSH)) {
 		cpa_flush_all(cache);
@@ -367,14 +333,6 @@ static void cpa_flush(struct cpa_data *data, int cache)
 	else
 		flush_tlb_all();
 
-<<<<<<< HEAD
-	if (__inv_flush_all(cache))
-		return;
-
-	flush_tlb_all();
-
-=======
->>>>>>> linux-next/akpm-base
 	if (!cache)
 		return;
 

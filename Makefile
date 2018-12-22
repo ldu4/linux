@@ -1104,11 +1104,7 @@ prepare2: prepare3 outputmakefile asm-generic
 prepare1: prepare2 $(version_h) $(autoksyms_h) include/generated/utsrelease.h
 	$(cmd_crmodverdir)
 
-<<<<<<< HEAD
-archprepare: archheaders archscripts prepare1 scripts_basic
-=======
 archprepare: archheaders archscripts prepare1 scripts
->>>>>>> linux-next/akpm-base
 
 prepare0: archprepare
 	$(Q)$(MAKE) $(build)=scripts/mod
