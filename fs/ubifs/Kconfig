@@ -7,6 +7,8 @@ config UBIFS_FS
 	select CRYPTO if UBIFS_FS_ZLIB
 	select CRYPTO_LZO if UBIFS_FS_LZO
 	select CRYPTO_DEFLATE if UBIFS_FS_ZLIB
+	select UBIFS_FS_XATTR if FS_ENCRYPTION
+	select BLOCK if FS_ENCRYPTION
 	select CRYPTO_HASH_INFO
 	depends on MTD_UBI
 	help
@@ -60,6 +62,7 @@ config UBIFS_FS_XATTR
 
 	  If unsure, say Y.
 
+<<<<<<< HEAD
 config UBIFS_FS_ENCRYPTION
 	bool "UBIFS Encryption"
 	depends on UBIFS_FS_XATTR && BLOCK
@@ -71,6 +74,8 @@ config UBIFS_FS_ENCRYPTION
 	  efficient since it avoids caching the encrypted and
 	  decrypted pages in the page cache.
 
+=======
+>>>>>>> linux-next/akpm-base
 config UBIFS_FS_SECURITY
 	bool "UBIFS Security Labels"
 	depends on UBIFS_FS_XATTR
