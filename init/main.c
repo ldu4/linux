@@ -696,7 +696,9 @@ asmlinkage __visible void __init start_kernel(void)
 		initrd_start = 0;
 	}
 #endif
+#ifndef CONFIG_DEFERRED_STRUCT_PAGE_INIT
 	page_ext_init();
+#endif
 	kmemleak_init();
 	setup_per_cpu_pageset();
 	numa_policy_init();
@@ -1132,6 +1134,9 @@ static noinline void __init kernel_init_freeable(void)
 	sched_init_smp();
 
 	page_alloc_init_late();
+#ifdef CONFIG_DEFERRED_STRUCT_PAGE_INIT
+	page_ext_init();
+#endif
 
 	do_basic_setup();
 
