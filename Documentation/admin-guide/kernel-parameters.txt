@@ -1028,6 +1028,12 @@
 			specified address. The serial port must already be
 			setup and configured. Options are not yet supported.
 
+		rda,<addr>
+			Start an early, polled-mode console on a serial port
+			of an RDA Micro SoC, such as RDA8810PL, at the
+			specified address. The serial port must already be
+			setup and configured. Options are not yet supported.
+
 		smh	Use ARM semihosting calls for early console.
 
 		s3c2410,<addr>
@@ -5039,6 +5045,14 @@
 			see Documentation/watchdog/watchdog-parameters.txt
 			or other driver-specific files in the
 			Documentation/watchdog/ directory.
+
+	watchdog_thresh=
+			[KNL]
+			Set the hard lockup detector stall duration
+			threshold in seconds. The soft lockup detector
+			threshold is set to twice the value. A value of 0
+			disables both lockup detectors. Default is 10
+			seconds.
 
 	workqueue.watchdog_thresh=
 			If CONFIG_WQ_WATCHDOG is configured, workqueue can
