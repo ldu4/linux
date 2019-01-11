@@ -771,7 +771,7 @@ static void hv_mem_hot_add(unsigned long start, unsigned long size,
 	}
 }
 
-static int hv_online_page(struct page *pg, unsigned int order)
+static void hv_online_page(struct page *pg, unsigned int order)
 {
 	struct hv_hotadd_state *has;
 	unsigned long flags;
@@ -787,8 +787,6 @@ static int hv_online_page(struct page *pg, unsigned int order)
 		break;
 	}
 	spin_unlock_irqrestore(&dm_device.ha_lock, flags);
-
-	return 0;
 }
 
 static int pfn_covered(unsigned long start_pfn, unsigned long pfn_cnt)
