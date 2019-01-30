@@ -29,9 +29,13 @@ Contents:
    msg_zerocopy
    failover
    net_failover
+   phy
    alias
    bridge
    snmp_counter
+   checksum-offloads
+   segmentation-offloads
+   scaling
 
 .. only::  subproject
 

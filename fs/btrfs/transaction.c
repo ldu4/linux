@@ -122,6 +122,7 @@ static noinline void switch_commit_roots(struct btrfs_transaction *trans)
 		if (is_fstree(root->root_key.objectid))
 			btrfs_unpin_free_ino(root);
 		clear_btree_io_tree(&root->dirty_log_pages);
+		btrfs_qgroup_clean_swapped_blocks(root);
 	}
 
 	/* We can free old roots now. */
@@ -849,14 +850,6 @@ static int __btrfs_end_transaction(struct btrfs_trans_handle *trans,
 		btrfs_create_pending_block_groups(trans);
 
 	btrfs_trans_release_chunk_metadata(trans);
-
-	if (lock && should_end_transaction(trans) &&
-	    READ_ONCE(cur_trans->state) == TRANS_STATE_RUNNING) {
-		spin_lock(&info->trans_lock);
-		if (cur_trans->state == TRANS_STATE_RUNNING)
-			cur_trans->state = TRANS_STATE_BLOCKED;
-		spin_unlock(&info->trans_lock);
-	}
 
 	if (lock && READ_ONCE(cur_trans->state) == TRANS_STATE_BLOCKED) {
 		if (throttle)
