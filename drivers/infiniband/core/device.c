@@ -156,19 +156,26 @@ struct ib_device *ib_device_get_by_index(u32 index)
 	down_read(&lists_rwsem);
 	device = __ib_device_get_by_index(index);
 	if (device) {
-		/* Do not return a device if unregistration has started. */
-		if (!refcount_inc_not_zero(&device->refcount))
+		if (!ib_device_try_get(device))
 			device = NULL;
 	}
 	up_read(&lists_rwsem);
 	return device;
 }
 
+/**
+ * ib_device_put - Release IB device reference
+ * @device: device whose reference to be released
+ *
+ * ib_device_put() releases reference to the IB device to allow it to be
+ * unregistered and eventually free.
+ */
 void ib_device_put(struct ib_device *device)
 {
 	if (refcount_dec_and_test(&device->refcount))
 		complete(&device->unreg_completion);
 }
+EXPORT_SYMBOL(ib_device_put);
 
 static struct ib_device *__ib_device_get_by_name(const char *name)
 {
@@ -183,18 +190,15 @@ static struct ib_device *__ib_device_get_by_name(const char *name)
 
 int ib_device_rename(struct ib_device *ibdev, const char *name)
 {
-	struct ib_device *device;
 	int ret = 0;
 
 	if (!strcmp(name, dev_name(&ibdev->dev)))
 		return ret;
 
 	mutex_lock(&device_mutex);
-	list_for_each_entry(device, &device_list, core_list) {
-		if (!strcmp(name, dev_name(&device->dev))) {
-			ret = -EEXIST;
-			goto out;
-		}
+	if (__ib_device_get_by_name(name)) {
+		ret = -EEXIST;
+		goto out;
 	}
 
 	ret = device_rename(&ibdev->dev, name);
@@ -296,14 +300,11 @@ struct ib_device *ib_alloc_device(size_t size)
 	device->dev.class = &ib_class;
 	device_initialize(&device->dev);
 
-	dev_set_drvdata(&device->dev, device);
-
 	INIT_LIST_HEAD(&device->event_handler_list);
 	spin_lock_init(&device->event_handler_lock);
 	rwlock_init(&device->client_data_lock);
 	INIT_LIST_HEAD(&device->client_data_list);
 	INIT_LIST_HEAD(&device->port_list);
-	refcount_set(&device->refcount, 1);
 	init_completion(&device->unreg_completion);
 
 	return device;
@@ -574,9 +575,7 @@ port_cleanup:
  * callback for each device that is added. @device must be allocated
  * with ib_alloc_device().
  */
-int ib_register_device(struct ib_device *device, const char *name,
-		       int (*port_callback)(struct ib_device *, u8,
-					    struct kobject *))
+int ib_register_device(struct ib_device *device, const char *name)
 {
 	int ret;
 	struct ib_client *client;
@@ -606,20 +605,16 @@ int ib_register_device(struct ib_device *device, const char *name,
 
 	device->index = __dev_new_index();
 
-	ret = ib_device_register_rdmacg(device);
-	if (ret) {
-		dev_warn(&device->dev,
-			 "Couldn't register device with rdma cgroup\n");
-		goto dev_cleanup;
-	}
+	ib_device_register_rdmacg(device);
 
-	ret = ib_device_register_sysfs(device, port_callback);
+	ret = ib_device_register_sysfs(device);
 	if (ret) {
 		dev_warn(&device->dev,
 			 "Couldn't register device with driver model\n");
 		goto cg_cleanup;
 	}
 
+	refcount_set(&device->refcount, 1);
 	device->reg_state = IB_DEV_REGISTERED;
 
 	list_for_each_entry(client, &client_list, list)
@@ -634,7 +629,6 @@ int ib_register_device(struct ib_device *device, const char *name,
 
 cg_cleanup:
 	ib_device_unregister_rdmacg(device);
-dev_cleanup:
 	cleanup_device(device);
 out:
 	mutex_unlock(&device_mutex);
@@ -1283,6 +1277,7 @@ void ib_set_device_ops(struct ib_device *dev, const struct ib_device_ops *ops)
 	SET_DEVICE_OP(dev_ops, get_vector_affinity);
 	SET_DEVICE_OP(dev_ops, get_vf_config);
 	SET_DEVICE_OP(dev_ops, get_vf_stats);
+	SET_DEVICE_OP(dev_ops, init_port);
 	SET_DEVICE_OP(dev_ops, map_mr_sg);
 	SET_DEVICE_OP(dev_ops, map_phys_fmr);
 	SET_DEVICE_OP(dev_ops, mmap);

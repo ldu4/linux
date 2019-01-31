@@ -131,6 +131,24 @@ unsigned long dev_pm_opp_get_freq(struct dev_pm_opp *opp)
 EXPORT_SYMBOL_GPL(dev_pm_opp_get_freq);
 
 /**
+ * dev_pm_opp_get_level() - Gets the level corresponding to an available opp
+ * @opp:	opp for which level value has to be returned for
+ *
+ * Return: level read from device tree corresponding to the opp, else
+ * return 0.
+ */
+unsigned int dev_pm_opp_get_level(struct dev_pm_opp *opp)
+{
+	if (IS_ERR_OR_NULL(opp) || !opp->available) {
+		pr_err("%s: Invalid parameters\n", __func__);
+		return 0;
+	}
+
+	return opp->level;
+}
+EXPORT_SYMBOL_GPL(dev_pm_opp_get_level);
+
+/**
  * dev_pm_opp_is_turbo() - Returns if opp is turbo OPP or not
  * @opp: opp for which turbo mode is being verified
  *
@@ -793,7 +811,6 @@ static struct opp_device *_add_opp_dev_unlocked(const struct device *dev,
 						struct opp_table *opp_table)
 {
 	struct opp_device *opp_dev;
-	int ret;
 
 	opp_dev = kzalloc(sizeof(*opp_dev), GFP_KERNEL);
 	if (!opp_dev)
@@ -805,10 +822,7 @@ static struct opp_device *_add_opp_dev_unlocked(const struct device *dev,
 	list_add(&opp_dev->node, &opp_table->dev_list);
 
 	/* Create debugfs entries for the opp_table */
-	ret = opp_debug_register(opp_dev, opp_table);
-	if (ret)
-		dev_err(dev, "%s: Failed to register opp debugfs (%d)\n",
-			__func__, ret);
+	opp_debug_register(opp_dev, opp_table);
 
 	return opp_dev;
 }
@@ -1229,10 +1243,7 @@ int _opp_add(struct device *dev, struct dev_pm_opp *new_opp,
 	new_opp->opp_table = opp_table;
 	kref_init(&new_opp->kref);
 
-	ret = opp_debug_create_one(new_opp, opp_table);
-	if (ret)
-		dev_err(dev, "%s: Failed to register opp to debugfs (%d)\n",
-			__func__, ret);
+	opp_debug_create_one(new_opp, opp_table);
 
 	if (!_opp_supported_by_regulators(new_opp, opp_table)) {
 		new_opp->available = false;

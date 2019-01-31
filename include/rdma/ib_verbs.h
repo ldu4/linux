@@ -1504,12 +1504,10 @@ struct ib_ucontext {
 
 	bool cleanup_retryable;
 
-#ifdef CONFIG_INFINIBAND_ON_DEMAND_PAGING
 	void (*invalidate_range)(struct ib_umem_odp *umem_odp,
 				 unsigned long start, unsigned long end);
 	struct mutex per_mm_list_lock;
 	struct list_head per_mm_list;
-#endif
 
 	struct ib_rdmacg_object	cg_obj;
 	/*
@@ -2506,6 +2504,12 @@ struct ib_device_ops {
 	 */
 	int (*get_hw_stats)(struct ib_device *device,
 			    struct rdma_hw_stats *stats, u8 port, int index);
+	/*
+	 * This function is called once for each port when a ib device is
+	 * registered.
+	 */
+	int (*init_port)(struct ib_device *device, u8 port_num,
+			 struct kobject *port_sysfs);
 };
 
 struct ib_device {
@@ -2579,9 +2583,10 @@ struct ib_device {
 
 	const struct uapi_definition   *driver_def;
 	enum rdma_driver_id		driver_id;
+
 	/*
-	 * Provides synchronization between device unregistration and netlink
-	 * commands on a device. To be used only by core.
+	 * Positive refcount indicates that the device is currently
+	 * registered and cannot be unregistered.
 	 */
 	refcount_t refcount;
 	struct completion unreg_completion;
@@ -2622,9 +2627,7 @@ void ib_dealloc_device(struct ib_device *device);
 
 void ib_get_device_fw_str(struct ib_device *device, char *str);
 
-int ib_register_device(struct ib_device *device, const char *name,
-		       int (*port_callback)(struct ib_device *, u8,
-					    struct kobject *));
+int ib_register_device(struct ib_device *device, const char *name);
 void ib_unregister_device(struct ib_device *device);
 
 int ib_register_client   (struct ib_client *client);
@@ -3926,6 +3929,25 @@ static inline bool ib_access_writable(int access_flags)
 int ib_check_mr_status(struct ib_mr *mr, u32 check_mask,
 		       struct ib_mr_status *mr_status);
 
+/**
+ * ib_device_try_get: Hold a registration lock
+ * device: The device to lock
+ *
+ * A device under an active registration lock cannot become unregistered. It
+ * is only possible to obtain a registration lock on a device that is fully
+ * registered, otherwise this function returns false.
+ *
+ * The registration lock is only necessary for actions which require the
+ * device to still be registered. Uses that only require the device pointer to
+ * be valid should use get_device(&ibdev->dev) to hold the memory.
+ *
+ */
+static inline bool ib_device_try_get(struct ib_device *dev)
+{
+	return refcount_inc_not_zero(&dev->refcount);
+}
+
+void ib_device_put(struct ib_device *device);
 struct net_device *ib_get_net_dev_by_params(struct ib_device *dev, u8 port,
 					    u16 pkey, const union ib_gid *gid,
 					    const struct sockaddr *addr);
@@ -4202,6 +4224,7 @@ void rdma_roce_rescan_device(struct ib_device *ibdev);
 
 struct ib_ucontext *ib_uverbs_get_ucontext_file(struct ib_uverbs_file *ufile);
 
+struct ib_ucontext *rdma_get_ucontext(struct ib_udata *udata);
 
 int uverbs_destroy_def_handler(struct uverbs_attr_bundle *attrs);
 
@@ -4238,4 +4261,27 @@ rdma_set_device_sysfs_group(struct ib_device *dev,
 	dev->groups[1] = group;
 }
 
+/**
+ * rdma_device_to_ibdev - Get ib_device pointer from device pointer
+ *
+ * @device:	device pointer for which ib_device pointer to retrieve
+ *
+ * rdma_device_to_ibdev() retrieves ib_device pointer from device.
+ *
+ */
+static inline struct ib_device *rdma_device_to_ibdev(struct device *device)
+{
+	return container_of(device, struct ib_device, dev);
+}
+
+/**
+ * rdma_device_to_drv_device - Helper macro to reach back to driver's
+ *			       ib_device holder structure from device pointer.
+ *
+ * NOTE: New drivers should not make use of this API; This API is only for
+ * existing drivers who have exposed sysfs entries using
+ * rdma_set_device_sysfs_group().
+ */
+#define rdma_device_to_drv_device(dev, drv_dev_struct, ibdev_member)           \
+	container_of(rdma_device_to_ibdev(dev), drv_dev_struct, ibdev_member)
 #endif /* IB_VERBS_H */
