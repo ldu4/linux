@@ -25,13 +25,6 @@
 #define CAAM_MAX_KEY_SIZE	(AES_MAX_KEY_SIZE + CTR_RFC3686_NONCE_SIZE + \
 				 SHA512_DIGEST_SIZE * 2)
 
-#if !IS_ENABLED(CONFIG_CRYPTO_DEV_FSL_CAAM)
-bool caam_little_end;
-EXPORT_SYMBOL(caam_little_end);
-bool caam_imx;
-EXPORT_SYMBOL(caam_imx);
-#endif
-
 /*
  * This is a a cache of buffers, from which the users of CAAM QI driver
  * can allocate short buffers. It's speedier than doing kmalloc on the hotpath.
@@ -4503,7 +4496,7 @@ static int __cold dpaa2_dpseci_dpio_setup(struct dpaa2_caam_priv *priv)
 		nctx->cb = dpaa2_caam_fqdan_cb;
 
 		/* Register notification callbacks */
-		err = dpaa2_io_service_register(NULL, nctx);
+		err = dpaa2_io_service_register(NULL, nctx, dev);
 		if (unlikely(err)) {
 			dev_dbg(dev, "No affine DPIO for cpu %d\n", cpu);
 			nctx->cb = NULL;
@@ -4536,7 +4529,7 @@ err:
 		ppriv = per_cpu_ptr(priv->ppriv, cpu);
 		if (!ppriv->nctx.cb)
 			break;
-		dpaa2_io_service_deregister(NULL, &ppriv->nctx);
+		dpaa2_io_service_deregister(NULL, &ppriv->nctx, dev);
 	}
 
 	for_each_online_cpu(cpu) {
@@ -4556,7 +4549,7 @@ static void __cold dpaa2_dpseci_dpio_free(struct dpaa2_caam_priv *priv)
 
 	for_each_online_cpu(cpu) {
 		ppriv = per_cpu_ptr(priv->ppriv, cpu);
-		dpaa2_io_service_deregister(NULL, &ppriv->nctx);
+		dpaa2_io_service_deregister(NULL, &ppriv->nctx, priv->dev);
 		dpaa2_io_store_destroy(ppriv->store);
 
 		if (++i == priv->num_pairs)
