@@ -34,6 +34,7 @@
 #include <linux/module.h>
 #include <linux/sched.h>
 #include <linux/dma-mapping.h>
+#include <linux/io-64-nonatomic-lo-hi.h>
 
 #include "vop_main.h"
 
@@ -116,7 +117,7 @@ _vop_total_desc_size(struct mic_device_desc __iomem *desc)
 static u64 vop_get_features(struct virtio_device *vdev)
 {
 	unsigned int i, bits;
-	u32 features = 0;
+	u64 features = 0;
 	struct mic_device_desc __iomem *desc = to_vopvdev(vdev)->desc;
 	u8 __iomem *in_features = _vop_vq_features(desc);
 	int feature_len = ioread8(&desc->feature_len);
@@ -124,7 +125,7 @@ static u64 vop_get_features(struct virtio_device *vdev)
 	bits = min_t(unsigned, feature_len, sizeof(vdev->features)) * 8;
 	for (i = 0; i < bits; i++)
 		if (ioread8(&in_features[i / 8]) & (BIT(i % 8)))
-			features |= BIT(i);
+			features |= BIT_ULL(i);
 
 	return features;
 }
@@ -226,7 +227,7 @@ static void vop_reset_inform_host(struct virtio_device *dev)
 		if (ioread8(&dc->host_ack))
 			break;
 		msleep(100);
-	};
+	}
 
 	dev_dbg(_vop_dev(vdev), "%s: retry: %d\n", __func__, retry);
 
@@ -283,6 +284,26 @@ static void vop_del_vqs(struct virtio_device *dev)
 		vop_del_vq(vq, idx++);
 }
 
+static struct virtqueue *vop_new_virtqueue(unsigned int index,
+				      unsigned int num,
+				      struct virtio_device *vdev,
+				      bool context,
+				      void *pages,
+				      bool (*notify)(struct virtqueue *vq),
+				      void (*callback)(struct virtqueue *vq),
+				      const char *name,
+				      void *used)
+{
+	bool weak_barriers = false;
+	struct vring vring;
+
+	vring_init(&vring, num, pages, MIC_VIRTIO_RING_ALIGN);
+	vring.used = used;
+
+	return __vring_new_virtqueue(index, vring, vdev, weak_barriers, context,
+				     notify, callback, name);
+}
+
 /*
  * This routine will assign vring's allocated in host/io memory. Code in
  * virtio_ring.c however continues to access this io memory as if it were local
@@ -302,7 +323,6 @@ static struct virtqueue *vop_find_vq(struct virtio_device *dev,
 	struct _mic_vring_info __iomem *info;
 	void *used;
 	int vr_size, _vr_size, err, magic;
-	struct vring *vr;
 	u8 type = ioread8(&vdev->desc->type);
 
 	if (index >= ioread8(&vdev->desc->num_vq))
@@ -322,17 +342,7 @@ static struct virtqueue *vop_find_vq(struct virtio_device *dev,
 		return ERR_PTR(-ENOMEM);
 	vdev->vr[index] = va;
 	memset_io(va, 0x0, _vr_size);
-	vq = vring_new_virtqueue(
-				index,
-				le16_to_cpu(config.num), MIC_VIRTIO_RING_ALIGN,
-				dev,
-				false,
-				ctx,
-				(void __force *)va, vop_notify, callback, name);
-	if (!vq) {
-		err = -ENOMEM;
-		goto unmap;
-	}
+
 	info = va + _vr_size;
 	magic = ioread32(&info->magic);
 
@@ -341,7 +351,6 @@ static struct virtqueue *vop_find_vq(struct virtio_device *dev,
 		goto unmap;
 	}
 
-	/* Allocate and reassign used ring now */
 	vdev->used_size[index] = PAGE_ALIGN(sizeof(__u16) * 3 +
 					     sizeof(struct vring_used_elem) *
 					     le16_to_cpu(config.num));
@@ -351,8 +360,17 @@ static struct virtqueue *vop_find_vq(struct virtio_device *dev,
 		err = -ENOMEM;
 		dev_err(_vop_dev(vdev), "%s %d err %d\n",
 			__func__, __LINE__, err);
-		goto del_vq;
+		goto unmap;
 	}
+
+	vq = vop_new_virtqueue(index, le16_to_cpu(config.num), dev, ctx,
+			       (void __force *)va, vop_notify, callback,
+			       name, used);
+	if (!vq) {
+		err = -ENOMEM;
+		goto free_used;
+	}
+
 	vdev->used[index] = dma_map_single(&vpdev->dev, used,
 					    vdev->used_size[index],
 					    DMA_BIDIRECTIONAL);
@@ -360,26 +378,17 @@ static struct virtqueue *vop_find_vq(struct virtio_device *dev,
 		err = -ENOMEM;
 		dev_err(_vop_dev(vdev), "%s %d err %d\n",
 			__func__, __LINE__, err);
-		goto free_used;
+		goto del_vq;
 	}
 	writeq(vdev->used[index], &vqconfig->used_address);
-	/*
-	 * To reassign the used ring here we are directly accessing
-	 * struct vring_virtqueue which is a private data structure
-	 * in virtio_ring.c. At the minimum, a BUILD_BUG_ON() in
-	 * vring_new_virtqueue() would ensure that
-	 *  (&vq->vring == (struct vring *) (&vq->vq + 1));
-	 */
-	vr = (struct vring *)(vq + 1);
-	vr->used = used;
 
 	vq->priv = vdev;
 	return vq;
+del_vq:
+	vring_del_virtqueue(vq);
 free_used:
 	free_pages((unsigned long)used,
 		   get_order(vdev->used_size[index]));
-del_vq:
-	vring_del_virtqueue(vq);
 unmap:
 	vpdev->hw_ops->iounmap(vpdev, vdev->vr[index]);
 	return ERR_PTR(err);
@@ -426,7 +435,7 @@ static int vop_find_vqs(struct virtio_device *dev, unsigned nvqs,
 		if (!ioread8(&dc->used_address_updated))
 			break;
 		msleep(100);
-	};
+	}
 
 	dev_dbg(_vop_dev(vdev), "%s: retry: %d\n", __func__, retry);
 	if (!retry) {
