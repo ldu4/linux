@@ -508,7 +508,7 @@ static void brcmf_usb_rx_complete(struct urb *urb)
 	skb = req->skb;
 	req->skb = NULL;
 
-	/* zero lenght packets indicate usb "failure". Do not refill */
+	/* zero length packets indicate usb "failure". Do not refill */
 	if (urb->status != 0 || !urb->actual_length) {
 		brcmu_pkt_buf_free_skb(skb);
 		brcmf_usb_enq(devinfo, &devinfo->rx_freeq, req, NULL);
@@ -1550,6 +1550,10 @@ void brcmf_usb_exit(void)
 
 void brcmf_usb_register(void)
 {
+	int ret;
+
 	brcmf_dbg(USB, "Enter\n");
-	usb_register(&brcmf_usbdrvr);
+	ret = usb_register(&brcmf_usbdrvr);
+	if (ret)
+		brcmf_err("usb_register failed %d\n", ret);
 }
