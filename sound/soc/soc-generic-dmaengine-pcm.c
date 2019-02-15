@@ -270,7 +270,6 @@ static int dmaengine_pcm_new(struct snd_soc_pcm_runtime *rtd)
 	size_t prealloc_buffer_size;
 	size_t max_buffer_size;
 	unsigned int i;
-	int ret;
 
 	if (config && config->prealloc_buffer_size) {
 		prealloc_buffer_size = config->prealloc_buffer_size;
@@ -288,9 +287,16 @@ static int dmaengine_pcm_new(struct snd_soc_pcm_runtime *rtd)
 		dma_data = snd_soc_dai_get_dma_data(rtd->cpu_dai, substream);
 
 		if (!pcm->chan[i] &&
-		    (pcm->flags & SND_DMAENGINE_PCM_FLAG_CUSTOM_CHANNEL_NAME))
+		    ((pcm->flags & SND_DMAENGINE_PCM_FLAG_CUSTOM_CHANNEL_NAME) ||
+		     (config && config->chan_names[i]))) {
+			const char *chan_name = dma_data->chan_name;
+
+			if (config && config->chan_names[i])
+				chan_name = config->chan_names[i];
+
 			pcm->chan[i] = dma_request_slave_channel(dev,
-				dma_data->chan_name);
+				chan_name);
+		}
 
 		if (!pcm->chan[i] && (pcm->flags & SND_DMAENGINE_PCM_FLAG_COMPAT)) {
 			pcm->chan[i] = dmaengine_pcm_compat_request_channel(rtd,
@@ -303,13 +309,11 @@ static int dmaengine_pcm_new(struct snd_soc_pcm_runtime *rtd)
 			return -EINVAL;
 		}
 
-		ret = snd_pcm_lib_preallocate_pages(substream,
+		snd_pcm_lib_preallocate_pages(substream,
 				SNDRV_DMA_TYPE_DEV_IRAM,
 				dmaengine_dma_dev(pcm, substream),
 				prealloc_buffer_size,
 				max_buffer_size);
-		if (ret)
-			return ret;
 
 		if (!dmaengine_pcm_can_report_residue(dev, pcm->chan[i]))
 			pcm->flags |= SND_DMAENGINE_PCM_FLAG_NO_RESIDUE;
@@ -415,7 +419,8 @@ static int dmaengine_pcm_request_chan_of(struct dmaengine_pcm *pcm,
 
 	if ((pcm->flags & (SND_DMAENGINE_PCM_FLAG_NO_DT |
 			   SND_DMAENGINE_PCM_FLAG_CUSTOM_CHANNEL_NAME)) ||
-	    !dev->of_node)
+	     (!dev->of_node && !(config && config->dma_dev &&
+				config->dma_dev->of_node)))
 		return 0;
 
 	if (config && config->dma_dev) {

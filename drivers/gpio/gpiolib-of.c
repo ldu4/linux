@@ -125,7 +125,7 @@ static void of_gpio_flags_quirks(struct device_node *np,
 
 		for_each_child_of_node(np, child) {
 			ret = of_property_read_u32(child, "reg", &cs);
-			if (!ret)
+			if (ret)
 				continue;
 			if (cs == index) {
 				/*
@@ -344,6 +344,11 @@ struct gpio_desc *of_find_gpio(struct device *dev, const char *con_id,
 
 	if (of_flags & OF_GPIO_TRANSITORY)
 		*flags |= GPIO_TRANSITORY;
+
+	if (of_flags & OF_GPIO_PULL_UP)
+		*flags |= GPIO_PULL_UP;
+	if (of_flags & OF_GPIO_PULL_DOWN)
+		*flags |= GPIO_PULL_DOWN;
 
 	return desc;
 }
