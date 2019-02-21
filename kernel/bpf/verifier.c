@@ -1653,10 +1653,7 @@ static int check_sock_access(struct bpf_verifier_env *env, int insn_idx,
 	struct bpf_reg_state *regs = cur_regs(env);
 	struct bpf_reg_state *reg = &regs[regno];
 	struct bpf_insn_access_aux info = {};
-<<<<<<< HEAD
-=======
 	bool valid;
->>>>>>> linux-next/akpm-base
 
 	if (reg->smin_value < 0) {
 		verbose(env, "R%d min value is negative, either use unsigned index or do a if (index >=0) check.\n",
@@ -1678,11 +1675,6 @@ static int check_sock_access(struct bpf_verifier_env *env, int insn_idx,
 		valid = false;
 	}
 
-<<<<<<< HEAD
-	env->insn_aux_data[insn_idx].ctx_field_size = info.ctx_field_size;
-
-	return 0;
-=======
 
 	if (valid) {
 		env->insn_aux_data[insn_idx].ctx_field_size =
@@ -1694,7 +1686,6 @@ static int check_sock_access(struct bpf_verifier_env *env, int insn_idx,
 		regno, reg_type_str[reg->type], off, size);
 
 	return -EACCES;
->>>>>>> linux-next/akpm-base
 }
 
 static bool __is_pointer_value(bool allow_ptr_leaks,

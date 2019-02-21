@@ -545,40 +545,6 @@ static int simple_parse_of(struct simple_priv *priv)
 		return ret;
 
 	/* Single/Muti DAI link(s) & New style of DT node */
-<<<<<<< HEAD
-	loop		= 1;
-	link_idx	= 0;
-	dai_idx		= 0;
-	conf_idx	= 0;
-	node = of_get_child_by_name(top, PREFIX "dai-link");
-	if (!node) {
-		node = of_node_get(top);
-		loop = 0;
-	}
-
-	do  {
-		/* DPCM */
-		if (of_get_child_count(node) > 2) {
-			for_each_child_of_node(node, np) {
-				codec = of_get_child_by_name(node,
-							loop ?	"codec" :
-								PREFIX "codec");
-				if (!codec)
-					return -ENODEV;
-
-				is_fe = (np != codec);
-
-				ret = asoc_simple_card_dai_link_of_dpcm(
-						top, node, np, codec, priv,
-						&dai_idx, link_idx++, &conf_idx,
-						is_fe, !loop);
-			}
-		} else {
-			ret = asoc_simple_card_dai_link_of(
-						top, node, priv,
-						&dai_idx, link_idx++, !loop);
-		}
-=======
 	memset(&li, 0, sizeof(li));
 	for (li.cpu = 1; li.cpu >= 0; li.cpu--) {
 		/*
@@ -596,7 +562,6 @@ static int simple_parse_of(struct simple_priv *priv)
 		ret = simple_for_each_link(priv, &li,
 					   simple_dai_link_of,
 					   simple_dai_link_of_dpcm);
->>>>>>> linux-next/akpm-base
 		if (ret < 0)
 			return ret;
 	}

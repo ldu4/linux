@@ -688,12 +688,7 @@ static int i2s_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 		 * CLK_I2S_RCLK_SRC clock is not exposed so we ensure any
 		 * clock configuration assigned in DT is not overwritten.
 		 */
-<<<<<<< HEAD
-		if (i2s->rclk_srcrate == 0 && i2s->clk_data.clks == NULL &&
-		    other->clk_data.clks == NULL)
-=======
 		if (priv->rclk_srcrate == 0 && priv->clk_data.clks == NULL)
->>>>>>> linux-next/akpm-base
 			i2s_set_sysclk(dai, SAMSUNG_I2S_RCLKSRC_0,
 							0, SND_SOC_CLOCK_IN);
 		break;
@@ -817,14 +812,7 @@ static int i2s_hw_params(struct snd_pcm_substream *substream,
 
 	i2s->frmclk = params_rate(params);
 
-<<<<<<< HEAD
-	rclksrc = i2s->clk_table[CLK_I2S_RCLK_SRC];
-	if (!rclksrc || IS_ERR(rclksrc))
-		rclksrc = other->clk_table[CLK_I2S_RCLK_SRC];
-
-=======
 	rclksrc = priv->clk_table[CLK_I2S_RCLK_SRC];
->>>>>>> linux-next/akpm-base
 	if (rclksrc && !IS_ERR(rclksrc))
 		priv->rclk_srcrate = clk_get_rate(rclksrc);
 

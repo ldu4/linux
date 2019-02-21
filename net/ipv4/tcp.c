@@ -2596,10 +2596,6 @@ int tcp_disconnect(struct sock *sk, int flags)
 	tp->write_seq += tp->max_window + 2;
 	if (tp->write_seq == 0)
 		tp->write_seq = 1;
-<<<<<<< HEAD
-	tp->snd_cwnd = 2;
-=======
->>>>>>> linux-next/akpm-base
 	icsk->icsk_probes_out = 0;
 	icsk->icsk_rto = TCP_TIMEOUT_INIT;
 	tp->snd_ssthresh = TCP_INFINITE_SSTHRESH;
