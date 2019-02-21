@@ -1,12 +1,14 @@
 /******************************************************************************
  *
+ * This file is provided under a dual BSD/GPLv2 license.  When using or
+ * redistributing this file, you may do so under either license.
+ *
+ * GPL LICENSE SUMMARY
+ *
  * Copyright(c) 2003 - 2014 Intel Corporation. All rights reserved.
  * Copyright(c) 2013 - 2015 Intel Mobile Communications GmbH
  * Copyright(c) 2016 - 2017 Intel Deutschland GmbH
- * Copyright(c) 2018 Intel Corporation
- *
- * Portions of this file are derived from the ipw3945 project, as well
- * as portions of the ieee80211 subsystem header files.
+ * Copyright(c) 2018 - 2019 Intel Corporation
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -18,11 +20,45 @@
  * more details.
  *
  * The full GNU General Public License is included in this distribution in the
- * file called LICENSE.
+ * file called COPYING.
  *
  * Contact Information:
  *  Intel Linux Wireless <linuxwifi@intel.com>
  * Intel Corporation, 5200 N.E. Elam Young Parkway, Hillsboro, OR 97124-6497
+ *
+ * BSD LICENSE
+ *
+ * Copyright(c) 2003 - 2014 Intel Corporation. All rights reserved.
+ * Copyright(c) 2013 - 2015 Intel Mobile Communications GmbH
+ * Copyright(c) 2016 - 2017 Intel Deutschland GmbH
+ * Copyright(c) 2018 - 2019 Intel Corporation
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ *  * Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *  * Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *  * Neither the name Intel Corporation nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *****************************************************************************/
 #include <linux/sched.h>
@@ -166,9 +202,9 @@ int iwl_pcie_rx_stop(struct iwl_trans *trans)
 {
 	if (trans->cfg->device_family >= IWL_DEVICE_FAMILY_22560) {
 		/* TODO: remove this for 22560 once fw does it */
-		iwl_write_prph(trans, RFH_RXF_DMA_CFG_GEN3, 0);
-		return iwl_poll_prph_bit(trans, RFH_GEN_STATUS_GEN3,
-					 RXF_DMA_IDLE, RXF_DMA_IDLE, 1000);
+		iwl_write_umac_prph(trans, RFH_RXF_DMA_CFG_GEN3, 0);
+		return iwl_poll_umac_prph_bit(trans, RFH_GEN_STATUS_GEN3,
+					      RXF_DMA_IDLE, RXF_DMA_IDLE, 1000);
 	} else if (trans->cfg->mq_rx_supported) {
 		iwl_write_prph(trans, RFH_RXF_DMA_CFG, 0);
 		return iwl_poll_prph_bit(trans, RFH_GEN_STATUS,
@@ -211,7 +247,7 @@ static void iwl_pcie_rxq_inc_wr_ptr(struct iwl_trans *trans,
 	}
 
 	rxq->write_actual = round_down(rxq->write, 8);
-	if (trans->cfg->device_family >= IWL_DEVICE_FAMILY_22560)
+	if (trans->cfg->device_family == IWL_DEVICE_FAMILY_22560)
 		iwl_write32(trans, HBUS_TARG_WRPTR,
 			    (rxq->write_actual |
 			     ((FIRST_RX_QUEUE + rxq->id) << 16)));
@@ -256,6 +292,9 @@ static void iwl_pcie_restock_bd(struct iwl_trans *trans,
 
 		bd[rxq->write] = cpu_to_le64(rxb->page_dma | rxb->vid);
 	}
+
+	IWL_DEBUG_RX(trans, "Assigned virtual RB ID %u to queue %d index %d\n",
+		     (u32)rxb->vid, rxq->id, rxq->write);
 }
 
 /*
@@ -499,9 +538,9 @@ static void iwl_pcie_rx_allocator(struct iwl_trans *trans)
 	struct iwl_trans_pcie *trans_pcie = IWL_TRANS_GET_PCIE_TRANS(trans);
 	struct iwl_rb_allocator *rba = &trans_pcie->rba;
 	struct list_head local_empty;
-	int pending = atomic_xchg(&rba->req_pending, 0);
+	int pending = atomic_read(&rba->req_pending);
 
-	IWL_DEBUG_RX(trans, "Pending allocation requests = %d\n", pending);
+	IWL_DEBUG_TPT(trans, "Pending allocation requests = %d\n", pending);
 
 	/* If we were scheduled - there is at least one request */
 	spin_lock(&rba->lock);
@@ -554,12 +593,15 @@ static void iwl_pcie_rx_allocator(struct iwl_trans *trans)
 			i++;
 		}
 
+		atomic_dec(&rba->req_pending);
 		pending--;
+
 		if (!pending) {
-			pending = atomic_xchg(&rba->req_pending, 0);
-			IWL_DEBUG_RX(trans,
-				     "Pending allocation requests = %d\n",
-				     pending);
+			pending = atomic_read(&rba->req_pending);
+			if (pending)
+				IWL_DEBUG_TPT(trans,
+					      "Got more pending allocation requests = %d\n",
+					      pending);
 		}
 
 		spin_lock(&rba->lock);
@@ -570,12 +612,15 @@ static void iwl_pcie_rx_allocator(struct iwl_trans *trans)
 		spin_unlock(&rba->lock);
 
 		atomic_inc(&rba->req_ready);
+
 	}
 
 	spin_lock(&rba->lock);
 	/* return unused rbds to the allocator empty list */
 	list_splice_tail(&local_empty, &rba->rbd_empty);
 	spin_unlock(&rba->lock);
+
+	IWL_DEBUG_TPT(trans, "%s, exit.\n", __func__);
 }
 
 /*
@@ -860,30 +905,6 @@ static void iwl_pcie_rx_hw_init(struct iwl_trans *trans, struct iwl_rxq *rxq)
 		iwl_set_bit(trans, CSR_INT_COALESCING, IWL_HOST_INT_OPER_MODE);
 }
 
-void iwl_pcie_enable_rx_wake(struct iwl_trans *trans, bool enable)
-{
-	if (trans->cfg->device_family != IWL_DEVICE_FAMILY_9000)
-		return;
-
-	if (CSR_HW_REV_STEP(trans->hw_rev) != SILICON_A_STEP)
-		return;
-
-	if (!trans->cfg->integrated)
-		return;
-
-	/*
-	 * Turn on the chicken-bits that cause MAC wakeup for RX-related
-	 * values.
-	 * This costs some power, but needed for W/A 9000 integrated A-step
-	 * bug where shadow registers are not in the retention list and their
-	 * value is lost when NIC powers down
-	 */
-	iwl_set_bit(trans, CSR_MAC_SHADOW_REG_CTRL,
-		    CSR_MAC_SHADOW_REG_CTRL_RX_WAKE);
-	iwl_set_bit(trans, CSR_MAC_SHADOW_REG_CTL2,
-		    CSR_MAC_SHADOW_REG_CTL2_RX_WAKE);
-}
-
 static void iwl_pcie_rx_mq_hw_init(struct iwl_trans *trans)
 {
 	struct iwl_trans_pcie *trans_pcie = IWL_TRANS_GET_PCIE_TRANS(trans);
@@ -971,8 +992,6 @@ static void iwl_pcie_rx_mq_hw_init(struct iwl_trans *trans)
 
 	/* Set interrupt coalescing timer to default (2048 usecs) */
 	iwl_write8(trans, CSR_INT_COALESCING, IWL_HOST_INT_TIMEOUT_DEF);
-
-	iwl_pcie_enable_rx_wake(trans, true);
 }
 
 void iwl_pcie_rx_init_rxb_lists(struct iwl_rxq *rxq)
@@ -1360,6 +1379,8 @@ static struct iwl_rx_mem_buffer *iwl_pcie_get_rxb(struct iwl_trans *trans,
 	if (rxb->invalid)
 		goto out_err;
 
+	IWL_DEBUG_RX(trans, "Got virtual RB ID %u\n", (u32)rxb->vid);
+
 	if (trans->cfg->device_family >= IWL_DEVICE_FAMILY_22560)
 		rxb->size = le32_to_cpu(rxq->cd[i].size) & IWL_RX_CD_SIZE;
 
@@ -1409,13 +1430,17 @@ restart:
 			     !emergency)) {
 			iwl_pcie_rx_move_to_allocator(rxq, rba);
 			emergency = true;
+			IWL_DEBUG_TPT(trans,
+				      "RX path is in emergency. Pending allocations %d\n",
+				      rb_pending_alloc);
 		}
+
+		IWL_DEBUG_RX(trans, "Q %d: HW = %d, SW = %d\n", rxq->id, r, i);
 
 		rxb = iwl_pcie_get_rxb(trans, rxq, i);
 		if (!rxb)
 			goto out;
 
-		IWL_DEBUG_RX(trans, "Q %d: HW = %d, SW = %d\n", rxq->id, r, i);
 		iwl_pcie_rx_handle_rb(trans, rxq, rxb, emergency, i);
 
 		i = (i + 1) & (rxq->queue_size - 1);
@@ -1437,8 +1462,12 @@ restart:
 			count++;
 			if (count == 8) {
 				count = 0;
-				if (rb_pending_alloc < rxq->queue_size / 3)
+				if (rb_pending_alloc < rxq->queue_size / 3) {
+					IWL_DEBUG_TPT(trans,
+						      "RX path exited emergency. Pending allocations %d\n",
+						      rb_pending_alloc);
 					emergency = false;
+				}
 
 				rxq->read = i;
 				spin_unlock(&rxq->lock);
@@ -2104,7 +2133,7 @@ irqreturn_t iwl_pcie_irq_msix_handler(int irq, void *dev_id)
 		}
 	}
 
-	if (trans->cfg->device_family >= IWL_DEVICE_FAMILY_22560 &&
+	if (trans->cfg->device_family == IWL_DEVICE_FAMILY_22560 &&
 	    inta_hw & MSIX_HW_INT_CAUSES_REG_IPC) {
 		/* Reflect IML transfer status */
 		int res = iwl_read32(trans, CSR_IML_RESP_ADDR);
@@ -2121,6 +2150,17 @@ irqreturn_t iwl_pcie_irq_msix_handler(int irq, void *dev_id)
 		iwl_pcie_txq_check_wrptrs(trans);
 
 		isr_stats->wakeup++;
+	}
+
+	if (inta_hw & MSIX_HW_INT_CAUSES_REG_IML) {
+		/* Reflect IML transfer status */
+		int res = iwl_read32(trans, CSR_IML_RESP_ADDR);
+
+		IWL_DEBUG_ISR(trans, "IML transfer status: %d\n", res);
+		if (res == IWL_IMAGE_RESP_FAIL) {
+			isr_stats->sw++;
+			iwl_pcie_irq_handle_error(trans);
+		}
 	}
 
 	/* Chip got too hot and stopped itself */

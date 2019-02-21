@@ -18,7 +18,7 @@ SYNOPSIS
 	{ **show** | **list** | **dump xlated** | **dump jited** | **pin** | **load**
 	| **loadall** | **help** }
 
-MAP COMMANDS
+PROG COMMANDS
 =============
 
 |	**bpftool** **prog { show | list }** [*PROG*]
@@ -42,7 +42,7 @@ MAP COMMANDS
 |		**cgroup/connect4** | **cgroup/connect6** | **cgroup/sendmsg4** | **cgroup/sendmsg6**
 |	}
 |       *ATTACH_TYPE* := {
-|		**msg_verdict** | **skb_verdict** | **skb_parse** | **flow_dissector**
+|		**msg_verdict** | **stream_verdict** | **stream_parser** | **flow_dissector**
 |	}
 
 
@@ -258,5 +258,6 @@ SEE ALSO
 	**bpftool**\ (8),
 	**bpftool-map**\ (8),
 	**bpftool-cgroup**\ (8),
+	**bpftool-feature**\ (8),
 	**bpftool-net**\ (8),
 	**bpftool-perf**\ (8)

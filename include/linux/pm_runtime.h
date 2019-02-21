@@ -59,6 +59,8 @@ extern void pm_runtime_clean_up_links(struct device *dev);
 extern void pm_runtime_get_suppliers(struct device *dev);
 extern void pm_runtime_put_suppliers(struct device *dev);
 extern void pm_runtime_new_link(struct device *dev);
+extern void pm_runtime_active_link(struct device_link *link,
+				   struct device *supplier);
 extern void pm_runtime_drop_link(struct device *dev);
 
 static inline void pm_suspend_ignore_children(struct device *dev, bool enable)
@@ -112,6 +114,8 @@ static inline bool pm_runtime_is_irq_safe(struct device *dev)
 {
 	return dev->power.irq_safe;
 }
+
+extern u64 pm_runtime_suspended_time(struct device *dev);
 
 #else /* !CONFIG_PM */
 
@@ -176,6 +180,8 @@ static inline void pm_runtime_clean_up_links(struct device *dev) {}
 static inline void pm_runtime_get_suppliers(struct device *dev) {}
 static inline void pm_runtime_put_suppliers(struct device *dev) {}
 static inline void pm_runtime_new_link(struct device *dev) {}
+static inline void pm_runtime_active_link(struct device_link *link,
+					  struct device *supplier) {}
 static inline void pm_runtime_drop_link(struct device *dev) {}
 
 #endif /* !CONFIG_PM */
