@@ -47,6 +47,7 @@ struct dm_table {
 
 	bool integrity_supported:1;
 	bool singleton:1;
+	bool no_clone:1;
 	unsigned integrity_added:1;
 
 	/*
@@ -190,6 +191,8 @@ int dm_table_create(struct dm_table **result, fmode_t mode,
 
 	if (!t)
 		return -ENOMEM;
+
+	t->no_clone = true;
 
 	INIT_LIST_HEAD(&t->devices);
 	INIT_LIST_HEAD(&t->target_callbacks);
@@ -789,6 +792,9 @@ int dm_table_add_target(struct dm_table *t, const char *type,
 	if (r)
 		goto bad;
 
+	if (!tgt->no_clone)
+		t->no_clone = false;
+
 	t->highs[t->num_targets++] = tgt->begin + tgt->len - 1;
 
 	if (!tgt->num_discard_bios && tgt->discards_supported)
@@ -1376,6 +1382,11 @@ static int count_device(struct dm_target *ti, struct dm_dev *dev,
 	return 0;
 }
 
+bool dm_table_supports_noclone(struct dm_table *table)
+{
+	return table->no_clone;
+}
+
 /*
  * Check whether a table has no data devices attached using each
  * target's iterate_devices method.
@@ -1698,14 +1709,6 @@ static int device_is_not_random(struct dm_target *ti, struct dm_dev *dev,
 	return q && !blk_queue_add_random(q);
 }
 
-static int queue_supports_sg_merge(struct dm_target *ti, struct dm_dev *dev,
-				   sector_t start, sector_t len, void *data)
-{
-	struct request_queue *q = bdev_get_queue(dev->bdev);
-
-	return q && !test_bit(QUEUE_FLAG_NO_SG_MERGE, &q->queue_flags);
-}
-
 static bool dm_table_all_devices_attribute(struct dm_table *t,
 					   iterate_devices_callout_fn func)
 {
@@ -1901,11 +1904,6 @@ void dm_table_set_restrictions(struct dm_table *t, struct request_queue *q,
 		q->limits.max_write_same_sectors = 0;
 	if (!dm_table_supports_write_zeroes(t))
 		q->limits.max_write_zeroes_sectors = 0;
-
-	if (dm_table_all_devices_attribute(t, queue_supports_sg_merge))
-		blk_queue_flag_clear(QUEUE_FLAG_NO_SG_MERGE, q);
-	else
-		blk_queue_flag_set(QUEUE_FLAG_NO_SG_MERGE, q);
 
 	dm_table_verify_integrity(t);
 
