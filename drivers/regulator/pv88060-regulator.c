@@ -135,7 +135,7 @@ static int pv88060_set_current_limit(struct regulator_dev *rdev, int min,
 	int i;
 
 	/* search for closest to maximum */
-	for (i = info->n_current_limits; i >= 0; i--) {
+	for (i = info->n_current_limits - 1; i >= 0; i--) {
 		if (min <= info->current_limits[i]
 			&& max >= info->current_limits[i]) {
 			return regmap_update_bits(rdev->regmap,
@@ -182,6 +182,12 @@ static const struct regulator_ops pv88060_ldo_ops = {
 	.set_voltage_sel = regulator_set_voltage_sel_regmap,
 	.get_voltage_sel = regulator_get_voltage_sel_regmap,
 	.list_voltage = regulator_list_voltage_linear,
+};
+
+static const struct regulator_ops pv88060_sw_ops = {
+	.enable = regulator_enable_regmap,
+	.disable = regulator_disable_regmap,
+	.is_enabled = regulator_is_enabled_regmap,
 };
 
 #define PV88060_BUCK(chip, regl_name, min, step, max, limits_array) \
@@ -237,9 +243,8 @@ static const struct regulator_ops pv88060_ldo_ops = {
 		.regulators_node = of_match_ptr("regulators"),\
 		.type = REGULATOR_VOLTAGE,\
 		.owner = THIS_MODULE,\
-		.ops = &pv88060_ldo_ops,\
-		.min_uV = max,\
-		.uV_step = 0,\
+		.ops = &pv88060_sw_ops,\
+		.fixed_uV = max,\
 		.n_voltages = 1,\
 		.enable_reg = PV88060_REG_##regl_name##_CONF,\
 		.enable_mask = PV88060_SW_EN,\
