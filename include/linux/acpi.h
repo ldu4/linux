@@ -400,9 +400,14 @@ extern bool acpi_osi_is_win8(void);
 
 #ifdef CONFIG_ACPI_NUMA
 int acpi_map_pxm_to_online_node(int pxm);
+int acpi_map_pxm_to_node(int pxm);
 int acpi_get_node(acpi_handle handle);
 #else
 static inline int acpi_map_pxm_to_online_node(int pxm)
+{
+	return 0;
+}
+static inline int acpi_map_pxm_to_node(int pxm)
 {
 	return 0;
 }
@@ -1007,6 +1012,13 @@ struct acpi_gpio_mapping {
 
 /* Ignore IoRestriction field */
 #define ACPI_GPIO_QUIRK_NO_IO_RESTRICTION	BIT(0)
+/*
+ * When ACPI GPIO mapping table is in use the index parameter inside it
+ * refers to the GPIO resource in _CRS method. That index has no
+ * distinction of actual type of the resource. When consumer wants to
+ * get GpioIo type explicitly, this quirk may be used.
+ */
+#define ACPI_GPIO_QUIRK_ONLY_GPIOIO		BIT(1)
 
 	unsigned int quirks;
 };
@@ -1051,17 +1063,6 @@ static inline bool acpi_gpio_get_irq_resource(struct acpi_resource *ares,
 static inline int acpi_dev_gpio_irq_get(struct acpi_device *adev, int index)
 {
 	return -ENXIO;
-}
-#endif
-
-#if defined(CONFIG_ACPI) && IS_ENABLED(CONFIG_I2C)
-bool i2c_acpi_get_i2c_resource(struct acpi_resource *ares,
-			       struct acpi_resource_i2c_serialbus **i2c);
-#else
-static inline bool i2c_acpi_get_i2c_resource(struct acpi_resource *ares,
-					     struct acpi_resource_i2c_serialbus **i2c)
-{
-	return false;
 }
 #endif
 
