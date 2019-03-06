@@ -4,29 +4,15 @@
 
 #include <linux/types.h>
 
-<<<<<<< HEAD
-#ifndef __kernel_timespec
-=======
->>>>>>> linux-next/akpm-base
 struct __kernel_timespec {
 	__kernel_time64_t       tv_sec;                 /* seconds */
 	long long               tv_nsec;                /* nanoseconds */
 };
-<<<<<<< HEAD
-#endif
 
-#ifndef __kernel_itimerspec
-=======
-
->>>>>>> linux-next/akpm-base
 struct __kernel_itimerspec {
 	struct __kernel_timespec it_interval;    /* timer period */
 	struct __kernel_timespec it_value;       /* timer expiration */
 };
-<<<<<<< HEAD
-#endif
-=======
->>>>>>> linux-next/akpm-base
 
 /*
  * legacy timeval structure, only embedded in structures that

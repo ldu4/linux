@@ -33,8 +33,6 @@ struct dpio_priv {
 
 static cpumask_var_t cpus_unused_mask;
 
-<<<<<<< HEAD
-=======
 static const struct soc_device_attribute ls1088a_soc[] = {
 	{.family = "QorIQ LS1088A"},
 	{ /* sentinel */ }
@@ -75,7 +73,6 @@ static int dpaa2_dpio_get_cluster_sdest(struct fsl_mc_device *dpio_dev, int cpu)
 	return cluster_base + cpu / cluster_size;
 }
 
->>>>>>> linux-next/akpm-base
 static irqreturn_t dpio_irq_handler(int irq_num, void *arg)
 {
 	struct device *dev = (struct device *)arg;
@@ -133,10 +130,7 @@ static int dpaa2_dpio_probe(struct fsl_mc_device *dpio_dev)
 	int err = -ENOMEM;
 	struct device *dev = &dpio_dev->dev;
 	int possible_next_cpu;
-<<<<<<< HEAD
-=======
 	int sdest;
->>>>>>> linux-next/akpm-base
 
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
@@ -192,8 +186,6 @@ static int dpaa2_dpio_probe(struct fsl_mc_device *dpio_dev)
 	}
 	desc.cpu = possible_next_cpu;
 	cpumask_clear_cpu(possible_next_cpu, cpus_unused_mask);
-<<<<<<< HEAD
-=======
 
 	sdest = dpaa2_dpio_get_cluster_sdest(dpio_dev, desc.cpu);
 	if (sdest >= 0) {
@@ -204,7 +196,6 @@ static int dpaa2_dpio_probe(struct fsl_mc_device *dpio_dev)
 			dev_err(dev, "dpio_set_stashing_destination failed for cpu%d\n",
 				desc.cpu);
 	}
->>>>>>> linux-next/akpm-base
 
 	/*
 	 * Set the CENA regs to be the cache inhibited area of the portal to
@@ -287,10 +278,6 @@ static int dpaa2_dpio_remove(struct fsl_mc_device *dpio_dev)
 
 	dpio_teardown_irqs(dpio_dev);
 
-<<<<<<< HEAD
-	cpu = dpaa2_io_get_cpu(priv->io);
-=======
->>>>>>> linux-next/akpm-base
 	cpumask_set_cpu(cpu, cpus_unused_mask);
 
 	err = dpio_open(dpio_dev->mc_io, 0, dpio_dev->obj_desc.id,
