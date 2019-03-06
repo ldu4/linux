@@ -467,12 +467,8 @@ static int handle_hca_cap_odp(struct mlx5_core_dev *dev)
 	int set_sz;
 	int err;
 
-<<<<<<< HEAD
-	if (!MLX5_CAP_GEN(dev, pg))
-=======
 	if (!IS_ENABLED(CONFIG_INFINIBAND_ON_DEMAND_PAGING) ||
 	    !MLX5_CAP_GEN(dev, pg))
->>>>>>> linux-next/akpm-base
 		return 0;
 
 	err = mlx5_core_get_caps(dev, MLX5_CAP_ODP);

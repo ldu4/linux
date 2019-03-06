@@ -2038,13 +2038,8 @@ out:
 
 int cgroup_do_get_tree(struct fs_context *fc)
 {
-<<<<<<< HEAD
-	struct dentry *dentry;
-	bool new_sb = false;
-=======
 	struct cgroup_fs_context *ctx = cgroup_fc2context(fc);
 	int ret;
->>>>>>> linux-next/akpm-base
 
 	ctx->kfc.root = ctx->root->kf_root;
 	if (fc->fs_type == &cgroup2_fs_type)
@@ -2059,11 +2054,7 @@ int cgroup_do_get_tree(struct fs_context *fc)
 	 */
 	if (!ret && ctx->ns != &init_cgroup_ns) {
 		struct dentry *nsdentry;
-<<<<<<< HEAD
-		struct super_block *sb = dentry->d_sb;
-=======
 		struct super_block *sb = fc->root->d_sb;
->>>>>>> linux-next/akpm-base
 		struct cgroup *cgrp;
 
 		mutex_lock(&cgroup_mutex);
@@ -2075,16 +2066,6 @@ int cgroup_do_get_tree(struct fs_context *fc)
 		mutex_unlock(&cgroup_mutex);
 
 		nsdentry = kernfs_node_dentry(cgrp->kn, sb);
-<<<<<<< HEAD
-		dput(dentry);
-		if (IS_ERR(nsdentry))
-			deactivate_locked_super(sb);
-		dentry = nsdentry;
-	}
-
-	if (!new_sb)
-		cgroup_put(&root->cgrp);
-=======
 		dput(fc->root);
 		fc->root = nsdentry;
 		if (IS_ERR(nsdentry)) {
@@ -2095,7 +2076,6 @@ int cgroup_do_get_tree(struct fs_context *fc)
 
 	if (!ctx->kfc.new_sb_created)
 		cgroup_put(&ctx->root->cgrp);
->>>>>>> linux-next/akpm-base
 
 	return ret;
 }

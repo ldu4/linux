@@ -1145,19 +1145,10 @@ struct kernfs_syscall_ops cgroup1_kf_syscall_ops = {
  */
 static int cgroup1_root_to_use(struct fs_context *fc)
 {
-<<<<<<< HEAD
-	struct cgroup_sb_opts opts;
-=======
 	struct cgroup_fs_context *ctx = cgroup_fc2context(fc);
->>>>>>> linux-next/akpm-base
 	struct cgroup_root *root;
 	struct cgroup_subsys *ss;
 	int i, ret;
-<<<<<<< HEAD
-
-	cgroup_lock_and_drain_offline(&cgrp_dfl_root.cgrp);
-=======
->>>>>>> linux-next/akpm-base
 
 	/* First find the desired set of subsystems */
 	ret = check_cgroupfs_options(fc);
@@ -1212,13 +1203,8 @@ static int cgroup1_root_to_use(struct fs_context *fc)
 		if (root->flags ^ ctx->flags)
 			pr_warn("new mount options do not match the existing superblock, will be ignored\n");
 
-<<<<<<< HEAD
-		ret = 0;
-		goto out_unlock;
-=======
 		ctx->root = root;
 		return 0;
->>>>>>> linux-next/akpm-base
 	}
 
 	/*
@@ -1234,47 +1220,22 @@ static int cgroup1_root_to_use(struct fs_context *fc)
 		return -EPERM;
 
 	root = kzalloc(sizeof(*root), GFP_KERNEL);
-<<<<<<< HEAD
-	if (!root) {
-		ret = -ENOMEM;
-		goto out_unlock;
-	}
-=======
 	if (!root)
 		return -ENOMEM;
->>>>>>> linux-next/akpm-base
 
 	ctx->root = root;
 	init_cgroup_root(ctx);
 
-<<<<<<< HEAD
-	ret = cgroup_setup_root(root, opts.subsys_mask);
-=======
 	ret = cgroup_setup_root(root, ctx->subsys_mask);
->>>>>>> linux-next/akpm-base
 	if (ret)
 		cgroup_free_root(root);
 	return ret;
 }
 
-<<<<<<< HEAD
-out_unlock:
-	if (!ret && !percpu_ref_tryget_live(&root->cgrp.self.refcnt)) {
-		mutex_unlock(&cgroup_mutex);
-		msleep(10);
-		ret = restart_syscall();
-		goto out_free;
-	}
-	mutex_unlock(&cgroup_mutex);
-out_free:
-	kfree(opts.release_agent);
-	kfree(opts.name);
-=======
 int cgroup1_get_tree(struct fs_context *fc)
 {
 	struct cgroup_fs_context *ctx = cgroup_fc2context(fc);
 	int ret;
->>>>>>> linux-next/akpm-base
 
 	/* Check if the caller has permission to mount. */
 	if (!ns_capable(ctx->ns->user_ns, CAP_SYS_ADMIN))
@@ -1282,16 +1243,6 @@ int cgroup1_get_tree(struct fs_context *fc)
 
 	cgroup_lock_and_drain_offline(&cgrp_dfl_root.cgrp);
 
-<<<<<<< HEAD
-	if (!IS_ERR(dentry) && percpu_ref_is_dying(&root->cgrp.self.refcnt)) {
-		struct super_block *sb = dentry->d_sb;
-		dput(dentry);
-		deactivate_locked_super(sb);
-		msleep(10);
-		dentry = ERR_PTR(restart_syscall());
-	}
-	return dentry;
-=======
 	ret = cgroup1_root_to_use(fc);
 	if (!ret && !percpu_ref_tryget_live(&ctx->root->cgrp.self.refcnt))
 		ret = 1;	/* restart */
@@ -1313,7 +1264,6 @@ int cgroup1_get_tree(struct fs_context *fc)
 		return restart_syscall();
 	}
 	return ret;
->>>>>>> linux-next/akpm-base
 }
 
 static int __init cgroup1_wq_init(void)

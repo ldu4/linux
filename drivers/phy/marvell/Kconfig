@@ -21,8 +21,6 @@ config PHY_BERLIN_USB
 	help
 	  Enable this to support the USB PHY on Marvell Berlin SoCs.
 
-<<<<<<< HEAD
-=======
 config PHY_MVEBU_A3700_COMPHY
 	tristate "Marvell A3700 comphy driver"
 	depends on ARCH_MVEBU || COMPILE_TEST
@@ -44,7 +42,6 @@ config PHY_MVEBU_A3700_UTMI
 	help
 	  Enable this to support Marvell A3700 UTMI PHY driver.
 
->>>>>>> linux-next/akpm-base
 config PHY_MVEBU_A38X_COMPHY
 	tristate "Marvell Armada 38x comphy driver"
 	depends on ARCH_MVEBU || COMPILE_TEST

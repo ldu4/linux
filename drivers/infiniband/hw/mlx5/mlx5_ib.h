@@ -589,10 +589,7 @@ struct mlx5_ib_mr {
 	atomic_t		num_leaf_free;
 	wait_queue_head_t       q_leaf_free;
 	struct mlx5_async_work  cb_work;
-<<<<<<< HEAD
-=======
 	atomic_t		num_pending_prefetch;
->>>>>>> linux-next/akpm-base
 };
 
 static inline bool is_odp_mr(struct mlx5_ib_mr *mr)
