@@ -26,6 +26,10 @@
 #define DPIO_CMDID_DISABLE				DPIO_CMD(0x003)
 #define DPIO_CMDID_GET_ATTR				DPIO_CMD(0x004)
 #define DPIO_CMDID_RESET				DPIO_CMD(0x005)
+<<<<<<< HEAD
+=======
+#define DPIO_CMDID_SET_STASHING_DEST			DPIO_CMD(0x120)
+>>>>>>> linux-next/akpm-base
 
 struct dpio_cmd_open {
 	__le32 dpio_id;
@@ -45,6 +49,10 @@ struct dpio_rsp_get_attr {
 	__le64 qbman_portal_ci_addr;
 	/* cmd word 3 */
 	__le32 qbman_version;
+};
+
+struct dpio_stashing_dest {
+	u8 sdest;
 };
 
 #endif /* _FSL_DPIO_CMD_H */
