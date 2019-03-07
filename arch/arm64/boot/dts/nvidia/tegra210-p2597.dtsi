@@ -1323,6 +1323,10 @@
 	};
 
 	hda@70030000 {
+<<<<<<< HEAD
+=======
+		nvidia,model = "jetson-tx1-hda";
+>>>>>>> linux-next/akpm-base
 		status = "okay";
 	};
 

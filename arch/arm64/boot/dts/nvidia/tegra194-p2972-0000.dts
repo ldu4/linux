@@ -21,6 +21,10 @@
 		};
 
 		hda@3510000 {
+<<<<<<< HEAD
+=======
+			nvidia,model = "jetson-xavier-hda";
+>>>>>>> linux-next/akpm-base
 			status = "okay";
 		};
 
