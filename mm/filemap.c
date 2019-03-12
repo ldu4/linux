@@ -1663,7 +1663,7 @@ no_page:
 		 * add_to_page_cache_lru locks the page, and for mmap we expect
 		 * an unlocked page.
 		 */
-		if (fgp_flags & FGP_FOR_MMAP)
+		if (page && (fgp_flags & FGP_FOR_MMAP))
 			unlock_page(page);
 	}
 
