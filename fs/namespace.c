@@ -1640,6 +1640,8 @@ int ksys_umount(char __user *name, int flags)
 	if (!(flags & UMOUNT_NOFOLLOW))
 		lookup_flags |= LOOKUP_FOLLOW;
 
+	lookup_flags |= LOOKUP_NO_EVAL;
+
 	retval = user_path_mountpoint_at(AT_FDCWD, name, lookup_flags, &path);
 	if (retval)
 		goto out;
@@ -2744,7 +2746,7 @@ void *copy_mount_options(const void __user * data)
 
 char *copy_mount_string(const void __user *data)
 {
-	return data ? strndup_user(data, PAGE_SIZE) : NULL;
+	return data ? strndup_user(data, PATH_MAX) : NULL;
 }
 
 /*
