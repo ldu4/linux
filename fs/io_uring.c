@@ -923,7 +923,11 @@ static void io_async_list_note(int rw, struct io_kiocb *req, size_t len)
 		/* Use 8x RA size as a decent limiter for both reads/writes */
 		max_pages = filp->f_ra.ra_pages;
 		if (!max_pages)
+<<<<<<< HEAD
 			max_pages = VM_READAHEAD_PAGES;
+=======
+			max_pages = VM_MAX_READAHEAD >> (PAGE_SHIFT - 10);
+>>>>>>> linux-next/akpm-base
 		max_pages *= 8;
 
 		/* If max pages are exceeded, reset the state */
@@ -1258,15 +1262,24 @@ static int io_poll_wake(struct wait_queue_entry *wait, unsigned mode, int sync,
 
 	/* for instances that support it check for an event match first: */
 	if (mask) {
+<<<<<<< HEAD
 		unsigned long flags;
 
+=======
+>>>>>>> linux-next/akpm-base
 		if (!(mask & poll->events))
 			return 0;
 
 		/* try to complete the iocb inline if we can: */
+<<<<<<< HEAD
 		if (spin_trylock_irqsave(&ctx->completion_lock, flags)) {
 			list_del(&req->list);
 			spin_unlock_irqrestore(&ctx->completion_lock, flags);
+=======
+		if (spin_trylock_irq(&ctx->completion_lock)) {
+			list_del(&req->list);
+			spin_unlock_irq(&ctx->completion_lock);
+>>>>>>> linux-next/akpm-base
 
 			list_del_init(&poll->wait.entry);
 			io_poll_complete(req, mask);

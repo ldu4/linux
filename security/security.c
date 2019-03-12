@@ -351,6 +351,7 @@ int __init security_init(void)
 
 /* Save user chosen LSM */
 static int __init choose_major_lsm(char *str)
+<<<<<<< HEAD
 {
 	chosen_major_lsm = str;
 	return 1;
@@ -363,6 +364,20 @@ static int __init choose_lsm_order(char *str)
 	chosen_lsm_order = str;
 	return 1;
 }
+=======
+{
+	chosen_major_lsm = str;
+	return 1;
+}
+__setup("security=", choose_major_lsm);
+
+/* Explicitly choose LSM initialization order. */
+static int __init choose_lsm_order(char *str)
+{
+	chosen_lsm_order = str;
+	return 1;
+}
+>>>>>>> linux-next/akpm-base
 __setup("lsm=", choose_lsm_order);
 
 /* Enable LSM order debugging. */
@@ -762,6 +777,16 @@ void security_bprm_committing_creds(struct linux_binprm *bprm)
 void security_bprm_committed_creds(struct linux_binprm *bprm)
 {
 	call_void_hook(bprm_committed_creds, bprm);
+}
+
+int security_fs_context_dup(struct fs_context *fc, struct fs_context *src_fc)
+{
+	return call_int_hook(fs_context_dup, 0, fc, src_fc);
+}
+
+int security_fs_context_parse_param(struct fs_context *fc, struct fs_parameter *param)
+{
+	return call_int_hook(fs_context_parse_param, -ENOPARAM, fc, param);
 }
 
 int security_sb_alloc(struct super_block *sb)

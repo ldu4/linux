@@ -24,6 +24,7 @@ struct bpf_map SEC("maps") name = {				\
 	.key_size    = sizeof(type_key),			\
 	.value_size  = sizeof(type_val),			\
 	.max_entries = _max_entries,				\
+<<<<<<< HEAD
 };								\
 struct ____btf_map_##name {					\
 	type_key key;						\
@@ -31,6 +32,9 @@ struct ____btf_map_##name {					\
 };								\
 struct ____btf_map_##name __attribute__((section(".maps." #name), used)) \
 	____btf_map_##name = { }
+=======
+}
+>>>>>>> linux-next/akpm-base
 
 /*
  * FIXME: this should receive .max_entries as a parameter, as careful

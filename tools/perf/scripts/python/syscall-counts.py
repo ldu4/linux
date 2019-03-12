@@ -51,6 +51,7 @@ def syscalls__sys_enter(event_name, context, common_cpu,
 	raw_syscalls__sys_enter(**locals())
 
 def print_syscall_totals():
+<<<<<<< HEAD
 	if for_comm is not None:
 		print("\nsyscall events for %s:\n" % (for_comm))
 	else:
@@ -63,3 +64,17 @@ def print_syscall_totals():
 	for id, val in sorted(syscalls.items(),
 			key = lambda kv: (kv[1], kv[0]), reverse = True):
 		print("%-40s  %10d" % (syscall_name(id), val))
+=======
+    if for_comm is not None:
+	    print("\nsyscall events for %s:\n" % (for_comm))
+    else:
+	    print("\nsyscall events:\n")
+
+    print("%-40s  %10s" % ("event", "count"))
+    print("%-40s  %10s" % ("----------------------------------------",
+                              "-----------"))
+
+    for id, val in sorted(syscalls.items(), key = lambda kv: (kv[1], kv[0]), \
+				  reverse = True):
+	    print("%-40s  %10d" % (syscall_name(id), val))
+>>>>>>> linux-next/akpm-base

@@ -52,10 +52,18 @@ missing-syscalls: scripts/checksyscalls.sh $(offsets-file) FORCE
 
 #####
 # Check atomic headers are up-to-date
+<<<<<<< HEAD
 
 always += old-atomics
 targets += old-atomics
 
+=======
+#
+
+always += old-atomics
+targets += old-atomics
+
+>>>>>>> linux-next/akpm-base
 quiet_cmd_atomics = CALL    $<
       cmd_atomics = $(CONFIG_SHELL) $<
 

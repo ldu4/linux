@@ -40,4 +40,14 @@ Documentation for individual filesystem types can be found here.
 .. toctree::
    :maxdepth: 2
 
+<<<<<<< HEAD
+=======
+   path-lookup.rst
+
+binderfs
+========
+
+.. toctree::
+
+>>>>>>> linux-next/akpm-base
    binderfs.rst

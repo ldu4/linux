@@ -1305,8 +1305,11 @@ config HUAWEI_WMI
 
 config PCENGINES_APU2
 	tristate "PC Engines APUv2/3 front button and LEDs driver"
+<<<<<<< HEAD
 	depends on INPUT && INPUT_KEYBOARD
 	depends on LEDS_CLASS
+=======
+>>>>>>> linux-next/akpm-base
 	select GPIO_AMD_FCH
 	select KEYBOARD_GPIO_POLLED
 	select LEDS_GPIO

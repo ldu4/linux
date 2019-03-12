@@ -1949,11 +1949,19 @@ class SampleTimeRangesDataItem(LineEditDataItem):
 				return self.InvalidValue(value)
 		ranges = [("(" + self.column_name + " >= " + r[0] + " AND " + self.column_name + " <= " + r[1] + ")") for r in ranges]
 		self.value = " OR ".join(ranges)
+<<<<<<< HEAD
 
 # Report Dialog Base
 
 class ReportDialogBase(QDialog):
 
+=======
+
+# Report Dialog Base
+
+class ReportDialogBase(QDialog):
+
+>>>>>>> linux-next/akpm-base
 	def __init__(self, glb, title, items, partial, parent=None):
 		super(ReportDialogBase, self).__init__(parent)
 
@@ -2057,10 +2065,17 @@ def GetEventList(db):
 
 # Is a table selectable
 
+<<<<<<< HEAD
 def IsSelectable(db, table, sql = ""):
 	query = QSqlQuery(db)
 	try:
 		QueryExec(query, "SELECT * FROM " + table + " " + sql + " LIMIT 1")
+=======
+def IsSelectable(db, table):
+	query = QSqlQuery(db)
+	try:
+		QueryExec(query, "SELECT * FROM " + table + " LIMIT 1")
+>>>>>>> linux-next/akpm-base
 	except:
 		return False
 	return True
@@ -2469,10 +2484,16 @@ p.c2 {
 </style>
 <p class=c1><a href=#reports>1. Reports</a></p>
 <p class=c2><a href=#callgraph>1.1 Context-Sensitive Call Graph</a></p>
+<<<<<<< HEAD
 <p class=c2><a href=#calltree>1.2 Call Tree</a></p>
 <p class=c2><a href=#allbranches>1.3 All branches</a></p>
 <p class=c2><a href=#selectedbranches>1.4 Selected branches</a></p>
 <p class=c2><a href=#topcallsbyelapsedtime>1.5 Top calls by elapsed time</a></p>
+=======
+<p class=c2><a href=#allbranches>1.2 All branches</a></p>
+<p class=c2><a href=#selectedbranches>1.3 Selected branches</a></p>
+<p class=c2><a href=#topcallsbyelapsedtime>1.4 Top calls by elapsed time</a></p>
+>>>>>>> linux-next/akpm-base
 <p class=c1><a href=#tables>2. Tables</a></p>
 <h1 id=reports>1. Reports</h1>
 <h2 id=callgraph>1.1 Context-Sensitive Call Graph</h2>
@@ -2551,7 +2572,11 @@ ms, us or ns. Also, negative values are relative to the end of trace.  Examples:
 	-10ms-			The last 10ms
 </pre>
 N.B. Due to the granularity of timestamps, there could be no branches in any given time range.
+<<<<<<< HEAD
 <h2 id=topcallsbyelapsedtime>1.5 Top calls by elapsed time</h2>
+=======
+<h2 id=topcallsbyelapsedtime>1.4 Top calls by elapsed time</h2>
+>>>>>>> linux-next/akpm-base
 The Top calls by elapsed time report displays calls in descending order of time elapsed between when the function was called and when it returned.
 The data is reduced by various selection criteria. A dialog box displays available criteria which are AND'ed together.
 If not all data is fetched, a Fetch bar is provided. Ctrl-F displays a Find bar.
@@ -2686,9 +2711,12 @@ class MainWindow(QMainWindow):
 		reports_menu = menu.addMenu("&Reports")
 		if IsSelectable(glb.db, "calls"):
 			reports_menu.addAction(CreateAction("Context-Sensitive Call &Graph", "Create a new window containing a context-sensitive call graph", self.NewCallGraph, self))
+<<<<<<< HEAD
 
 		if IsSelectable(glb.db, "calls", "WHERE parent_id >= 0"):
 			reports_menu.addAction(CreateAction("Call &Tree", "Create a new window containing a call tree", self.NewCallTree, self))
+=======
+>>>>>>> linux-next/akpm-base
 
 		self.EventMenu(GetEventList(glb.db), reports_menu)
 
@@ -2750,9 +2778,12 @@ class MainWindow(QMainWindow):
 	def NewCallGraph(self):
 		CallGraphWindow(self.glb, self)
 
+<<<<<<< HEAD
 	def NewCallTree(self):
 		CallTreeWindow(self.glb, self)
 
+=======
+>>>>>>> linux-next/akpm-base
 	def NewTopCalls(self):
 		dialog = TopCallsDialog(self.glb, self)
 		ret = dialog.exec_()

@@ -22,6 +22,10 @@ TPM2_CC_UNSEAL = 0x015E
 TPM2_CC_FLUSH_CONTEXT = 0x0165
 TPM2_CC_START_AUTH_SESSION = 0x0176
 TPM2_CC_GET_CAPABILITY	= 0x017A
+<<<<<<< HEAD
+=======
+TPM2_CC_GET_RANDOM = 0x017B
+>>>>>>> linux-next/akpm-base
 TPM2_CC_PCR_READ = 0x017E
 TPM2_CC_POLICY_PCR = 0x017F
 TPM2_CC_PCR_EXTEND = 0x0182
@@ -357,9 +361,15 @@ class Client:
         self.flags = flags
 
         if (self.flags & Client.FLAG_SPACE) == 0:
+<<<<<<< HEAD
             self.tpm = open('/dev/tpm0', 'r+b')
         else:
             self.tpm = open('/dev/tpmrm0', 'r+b')
+=======
+            self.tpm = open('/dev/tpm0', 'r+b', buffering=0)
+        else:
+            self.tpm = open('/dev/tpmrm0', 'r+b', buffering=0)
+>>>>>>> linux-next/akpm-base
 
     def close(self):
         self.tpm.close()

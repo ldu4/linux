@@ -912,11 +912,14 @@ static struct mlxreg_core_data mlxplat_mlxcpld_default_ng_led_data[] = {
 		.mask = MLXPLAT_CPLD_LED_HI_NIBBLE_MASK,
 		.capability = MLXPLAT_CPLD_LPC_REG_FAN_DRW_CAP_OFFSET,
 		.bit = BIT(5),
+<<<<<<< HEAD
 	},
 	{
 		.label = "uid:blue",
 		.reg = MLXPLAT_CPLD_LPC_REG_LED5_OFFSET,
 		.mask = MLXPLAT_CPLD_LED_LO_NIBBLE_MASK,
+=======
+>>>>>>> linux-next/akpm-base
 	},
 };
 
@@ -1240,7 +1243,11 @@ static struct mlxreg_core_data mlxplat_mlxcpld_default_ng_regs_io_data[] = {
 		.label = "fan_dir",
 		.reg = MLXPLAT_CPLD_LPC_REG_FAN_DIRECTION,
 		.bit = GENMASK(7, 0),
+<<<<<<< HEAD
 		.mode = 0444,
+=======
+		.mode = 0200,
+>>>>>>> linux-next/akpm-base
 	},
 };
 

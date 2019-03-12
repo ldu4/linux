@@ -12,7 +12,10 @@
 #include "debug.h"
 #include "namespaces.h"
 #include "comm.h"
+<<<<<<< HEAD
 #include "map.h"
+=======
+>>>>>>> linux-next/akpm-base
 #include "symbol.h"
 #include "unwind.h"
 

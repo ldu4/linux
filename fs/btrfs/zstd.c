@@ -90,6 +90,12 @@ static inline struct workspace *list_to_workspace(struct list_head *list)
 	return container_of(list, struct workspace, list);
 }
 
+<<<<<<< HEAD
+=======
+static void zstd_free_workspace(struct list_head *ws);
+static struct list_head *zstd_alloc_workspace(unsigned int level);
+
+>>>>>>> linux-next/akpm-base
 /*
  * zstd_reclaim_timer_fn - reclaim timer
  * @t: timer
@@ -124,7 +130,11 @@ static void zstd_reclaim_timer_fn(struct timer_list *timer)
 		level = victim->level;
 		list_del(&victim->lru_list);
 		list_del(&victim->list);
+<<<<<<< HEAD
 		wsm.ops->free_workspace(&victim->list);
+=======
+		zstd_free_workspace(&victim->list);
+>>>>>>> linux-next/akpm-base
 
 		if (list_empty(&wsm.idle_ws[level - 1]))
 			clear_bit(level - 1, &wsm.active_map);
@@ -180,7 +190,11 @@ static void zstd_init_workspace_manager(void)
 	for (i = 0; i < ZSTD_BTRFS_MAX_LEVEL; i++)
 		INIT_LIST_HEAD(&wsm.idle_ws[i]);
 
+<<<<<<< HEAD
 	ws = wsm.ops->alloc_workspace(ZSTD_BTRFS_MAX_LEVEL);
+=======
+	ws = zstd_alloc_workspace(ZSTD_BTRFS_MAX_LEVEL);
+>>>>>>> linux-next/akpm-base
 	if (IS_ERR(ws)) {
 		pr_warn(
 		"BTRFS: cannot preallocate zstd compression workspace\n");
@@ -195,17 +209,30 @@ static void zstd_cleanup_workspace_manager(void)
 	struct workspace *workspace;
 	int i;
 
+<<<<<<< HEAD
 	del_timer(&wsm.timer);
 
+=======
+	spin_lock(&wsm.lock);
+>>>>>>> linux-next/akpm-base
 	for (i = 0; i < ZSTD_BTRFS_MAX_LEVEL; i++) {
 		while (!list_empty(&wsm.idle_ws[i])) {
 			workspace = container_of(wsm.idle_ws[i].next,
 						 struct workspace, list);
 			list_del(&workspace->list);
 			list_del(&workspace->lru_list);
+<<<<<<< HEAD
 			wsm.ops->free_workspace(&workspace->list);
 		}
 	}
+=======
+			zstd_free_workspace(&workspace->list);
+		}
+	}
+	spin_unlock(&wsm.lock);
+
+	del_timer_sync(&wsm.timer);
+>>>>>>> linux-next/akpm-base
 }
 
 /*
@@ -270,7 +297,11 @@ again:
 		return ws;
 
 	nofs_flag = memalloc_nofs_save();
+<<<<<<< HEAD
 	ws = wsm.ops->alloc_workspace(level);
+=======
+	ws = zstd_alloc_workspace(level);
+>>>>>>> linux-next/akpm-base
 	memalloc_nofs_restore(nofs_flag);
 
 	if (IS_ERR(ws)) {

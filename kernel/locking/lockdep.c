@@ -842,9 +842,13 @@ static bool class_lock_list_valid(struct lock_class *c, struct list_head *h)
 	return true;
 }
 
+<<<<<<< HEAD
 #ifdef CONFIG_PROVE_LOCKING
 static u16 chain_hlocks[MAX_LOCKDEP_CHAIN_HLOCKS];
 #endif
+=======
+static u16 chain_hlocks[];
+>>>>>>> linux-next/akpm-base
 
 static bool check_lock_chain_key(struct lock_chain *chain)
 {
@@ -982,6 +986,7 @@ static inline void check_data_structures(void) { }
  */
 static void init_data_structures_once(void)
 {
+<<<<<<< HEAD
 	static bool ds_initialized, rcu_head_initialized;
 	int i;
 
@@ -998,6 +1003,17 @@ static void init_data_structures_once(void)
 
 	ds_initialized = true;
 
+=======
+	static bool initialization_happened;
+	int i;
+
+	if (likely(initialization_happened))
+		return;
+
+	initialization_happened = true;
+
+	init_rcu_head(&delayed_free.rcu_head);
+>>>>>>> linux-next/akpm-base
 	INIT_LIST_HEAD(&delayed_free.pf[0].zapped);
 	INIT_LIST_HEAD(&delayed_free.pf[1].zapped);
 

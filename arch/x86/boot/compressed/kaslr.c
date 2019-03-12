@@ -697,8 +697,13 @@ static bool process_mem_region(struct mem_vector *region,
 			return 1;
 		}
 	}
+<<<<<<< HEAD
 #endif
 	return 0;
+=======
+	return 0;
+#endif
+>>>>>>> linux-next/akpm-base
 }
 
 #ifdef CONFIG_EFI

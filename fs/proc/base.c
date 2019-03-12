@@ -2595,7 +2595,11 @@ static struct dentry *proc_##LSM##_attr_dir_lookup(struct inode *dir, \
 { \
 	return proc_pident_lookup(dir, dentry, \
 				  LSM##_attr_dir_stuff, \
+<<<<<<< HEAD
 				  LSM##_attr_dir_stuff + ARRAY_SIZE(LSM##_attr_dir_stuff)); \
+=======
+				  ARRAY_SIZE(LSM##_attr_dir_stuff)); \
+>>>>>>> linux-next/akpm-base
 } \
 \
 static const struct inode_operations proc_##LSM##_attr_dir_inode_ops = { \
@@ -3073,6 +3077,15 @@ static const struct file_operations proc_tgid_base_operations = {
 	.iterate_shared	= proc_tgid_base_readdir,
 	.llseek		= generic_file_llseek,
 };
+
+struct pid *tgid_pidfd_to_pid(const struct file *file)
+{
+	if (!d_is_dir(file->f_path.dentry) ||
+	    (file->f_op != &proc_tgid_base_operations))
+		return ERR_PTR(-EBADF);
+
+	return proc_pid(file_inode(file));
+}
 
 static struct dentry *proc_tgid_base_lookup(struct inode *dir, struct dentry *dentry, unsigned int flags)
 {

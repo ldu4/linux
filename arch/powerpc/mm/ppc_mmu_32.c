@@ -190,6 +190,7 @@ void mmu_mark_initmem_nx(void)
 		size = block_size(base, top);
 		setibat(i++, PAGE_OFFSET + base, base, size, PAGE_KERNEL_TEXT);
 		base += size;
+<<<<<<< HEAD
 	}
 	if (base < top) {
 		size = block_size(base, top);
@@ -202,6 +203,20 @@ void mmu_mark_initmem_nx(void)
 		setibat(i++, PAGE_OFFSET + base, base, size, PAGE_KERNEL_TEXT);
 		base += size;
 	}
+=======
+	}
+	if (base < top) {
+		size = block_size(base, top);
+		size = max(size, 128UL << 10);
+		if ((top - base) > size) {
+			if (strict_kernel_rwx_enabled())
+				pr_warn("Kernel _etext not properly aligned\n");
+			size <<= 1;
+		}
+		setibat(i++, PAGE_OFFSET + base, base, size, PAGE_KERNEL_TEXT);
+		base += size;
+	}
+>>>>>>> linux-next/akpm-base
 	for (; i < nb; i++)
 		clearibat(i);
 
@@ -220,6 +235,7 @@ void mmu_mark_rodata_ro(void)
 {
 	int nb = mmu_has_feature(MMU_FTR_USE_HIGH_BATS) ? 8 : 4;
 	int i;
+<<<<<<< HEAD
 
 	if (cpu_has_feature(CPU_FTR_601))
 		return;
@@ -227,6 +243,15 @@ void mmu_mark_rodata_ro(void)
 	for (i = 0; i < nb; i++) {
 		struct ppc_bat *bat = BATS[i];
 
+=======
+
+	if (cpu_has_feature(CPU_FTR_601))
+		return;
+
+	for (i = 0; i < nb; i++) {
+		struct ppc_bat *bat = BATS[i];
+
+>>>>>>> linux-next/akpm-base
 		if (bat_addrs[i].start < (unsigned long)__init_begin)
 			bat[1].batl = (bat[1].batl & ~BPP_RW) | BPP_RX;
 	}

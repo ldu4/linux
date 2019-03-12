@@ -106,6 +106,7 @@ bool intel_engine_breadcrumbs_irq(struct intel_engine_cs *engine)
 
 			GEM_BUG_ON(!test_bit(I915_FENCE_FLAG_SIGNAL,
 					     &rq->fence.flags));
+<<<<<<< HEAD
 			clear_bit(I915_FENCE_FLAG_SIGNAL, &rq->fence.flags);
 
 			/*
@@ -118,11 +119,26 @@ bool intel_engine_breadcrumbs_irq(struct intel_engine_cs *engine)
 				continue;
 
 			/*
+=======
+
+			/*
+>>>>>>> linux-next/akpm-base
 			 * Queue for execution after dropping the signaling
 			 * spinlock as the callback chain may end up adding
 			 * more signalers to the same context or engine.
 			 */
 			i915_request_get(rq);
+<<<<<<< HEAD
+=======
+
+			/*
+			 * We may race with direct invocation of
+			 * dma_fence_signal(), e.g. i915_request_retire(),
+			 * so we need to acquire our reference to the request
+			 * before we cancel the breadcrumb.
+			 */
+			clear_bit(I915_FENCE_FLAG_SIGNAL, &rq->fence.flags);
+>>>>>>> linux-next/akpm-base
 			list_add_tail(&rq->signal_link, &signal);
 		}
 

@@ -65,6 +65,7 @@ static int amd_fch_gpio_direction_output(struct gpio_chip *gc,
 	unsigned long flags;
 	struct amd_fch_gpio_priv *priv = gpiochip_get_data(gc);
 	void __iomem *ptr = amd_fch_gpio_addr(priv, gpio);
+<<<<<<< HEAD
 	u32 val;
 
 	spin_lock_irqsave(&priv->lock, flags);
@@ -77,6 +78,11 @@ static int amd_fch_gpio_direction_output(struct gpio_chip *gc,
 
 	writel_relaxed(val | AMD_FCH_GPIO_FLAG_DIRECTION, ptr);
 
+=======
+
+	spin_lock_irqsave(&priv->lock, flags);
+	writel_relaxed(readl_relaxed(ptr) | AMD_FCH_GPIO_FLAG_DIRECTION, ptr);
+>>>>>>> linux-next/akpm-base
 	spin_unlock_irqrestore(&priv->lock, flags);
 
 	return 0;

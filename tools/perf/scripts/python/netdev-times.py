@@ -124,16 +124,24 @@ def print_receive(hunk):
 		event = event_list[i]
 		if event['event_name'] == 'napi_poll':
 			print(PF_NAPI_POLL %
+<<<<<<< HEAD
 				(diff_msec(base_t, event['event_t']),
 				event['dev']))
+=======
+			    (diff_msec(base_t, event['event_t']), event['dev']))
+>>>>>>> linux-next/akpm-base
 			if i == len(event_list) - 1:
 				print("")
 			else:
 				print(PF_JOINT)
 		else:
 			print(PF_NET_RECV %
+<<<<<<< HEAD
 				(diff_msec(base_t, event['event_t']),
 				event['skbaddr'],
+=======
+			    (diff_msec(base_t, event['event_t']), event['skbaddr'],
+>>>>>>> linux-next/akpm-base
 				event['len']))
 			if 'comm' in event.keys():
 				print(PF_WJOINT)
