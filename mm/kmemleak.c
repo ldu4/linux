@@ -1275,7 +1275,7 @@ EXPORT_SYMBOL(kmemleak_ignore_phys);
  * @start:	start of the range
  * @stop:	end of the range
  */
-void kmemleak_bss_hole(void *start, void *stop)
+void __init kmemleak_bss_hole(void *start, void *stop)
 {
 	bss_hole_start = start;
 	bss_hole_stop = stop;
