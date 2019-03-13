@@ -710,6 +710,7 @@ __sseu_prepare(struct drm_i915_private *i915,
 	       unsigned int flags,
 	       struct i915_gem_context *ctx,
 	       struct intel_engine_cs *engine,
+<<<<<<< HEAD
 	       struct igt_spinner **spin_out)
 {
 	int ret = 0;
@@ -751,6 +752,47 @@ __sseu_prepare(struct drm_i915_private *i915,
 	}
 
 out:
+=======
+	       struct igt_spinner **spin)
+{
+	struct i915_request *rq;
+	int ret;
+
+	*spin = NULL;
+	if (!(flags & (TEST_BUSY | TEST_RESET)))
+		return 0;
+
+	*spin = kzalloc(sizeof(**spin), GFP_KERNEL);
+	if (!*spin)
+		return -ENOMEM;
+
+	ret = igt_spinner_init(*spin, i915);
+	if (ret)
+		goto err_free;
+
+	rq = igt_spinner_create_request(*spin, ctx, engine, MI_NOOP);
+	if (IS_ERR(rq)) {
+		ret = PTR_ERR(rq);
+		goto err_fini;
+	}
+
+	i915_request_add(rq);
+
+	if (!igt_wait_for_spinner(*spin, rq)) {
+		pr_err("%s: Spinner failed to start!\n", name);
+		ret = -ETIMEDOUT;
+		goto err_end;
+	}
+
+	return 0;
+
+err_end:
+	igt_spinner_end(*spin);
+err_fini:
+	igt_spinner_fini(*spin);
+err_free:
+	kfree(fetch_and_zero(spin));
+>>>>>>> linux-next/akpm-base
 	return ret;
 }
 
@@ -897,22 +939,38 @@ __sseu_test(struct drm_i915_private *i915,
 
 	ret = __sseu_prepare(i915, name, flags, ctx, engine, &spin);
 	if (ret)
+<<<<<<< HEAD
 		goto out;
 
 	ret = __i915_gem_context_reconfigure_sseu(ctx, engine, sseu);
 	if (ret)
 		goto out;
+=======
+		goto out_context;
+
+	ret = __i915_gem_context_reconfigure_sseu(ctx, engine, sseu);
+	if (ret)
+		goto out_spin;
+>>>>>>> linux-next/akpm-base
 
 	ret = __sseu_finish(i915, name, flags, ctx, kctx, engine, obj,
 			    hweight32(sseu.slice_mask), spin);
 
+<<<<<<< HEAD
 out:
+=======
+out_spin:
+>>>>>>> linux-next/akpm-base
 	if (spin) {
 		igt_spinner_end(spin);
 		igt_spinner_fini(spin);
 		kfree(spin);
 	}
 
+<<<<<<< HEAD
+=======
+out_context:
+>>>>>>> linux-next/akpm-base
 	kernel_context_close(kctx);
 
 	return ret;

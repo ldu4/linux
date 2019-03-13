@@ -2620,11 +2620,8 @@ cifs_resend_wdata(struct cifs_writedata *wdata, struct list_head *wdata_list,
 	struct TCP_Server_Info *server =
 		tlink_tcon(wdata->cfile->tlink)->ses->server;
 
-	/*
-	 * Wait for credits to resend this wdata.
-	 * Note: we are attempting to resend the whole wdata not in segments
-	 */
 	do {
+<<<<<<< HEAD
 		rc = server->ops->wait_mtu_credits(server, wdata->bytes, &wsize,
 						   &credits);
 
@@ -2640,23 +2637,51 @@ cifs_resend_wdata(struct cifs_writedata *wdata, struct list_head *wdata_list,
 	wdata->credits = credits;
 	rc = -EAGAIN;
 	while (rc == -EAGAIN) {
+=======
+		/*
+		 * Wait for credits to resend this wdata.
+		 * Note: we are attempting to resend the whole wdata not in
+		 * segments
+		 */
+		do {
+			rc = server->ops->wait_mtu_credits(server, wdata->bytes,
+						&wsize, &credits);
+			if (rc)
+				goto fail;
+
+			if (wsize < wdata->bytes) {
+				add_credits_and_wake_if(server, &credits, 0);
+				msleep(1000);
+			}
+		} while (wsize < wdata->bytes);
+
+		wdata->credits = credits;
+>>>>>>> linux-next/akpm-base
 		rc = 0;
 		if (wdata->cfile->invalidHandle)
 			rc = cifs_reopen_file(wdata->cfile, false);
 		if (!rc)
 			rc = server->ops->async_writev(wdata,
-					cifs_uncached_writedata_release);
-	}
+				cifs_uncached_writedata_release);
 
-	if (!rc) {
-		list_add_tail(&wdata->list, wdata_list);
-		return 0;
-	}
+		/* If the write was successfully sent, we are done */
+		if (!rc) {
+			list_add_tail(&wdata->list, wdata_list);
+			return 0;
+		}
 
+<<<<<<< HEAD
 	add_credits_and_wake_if(server, &wdata->credits, 0);
 out:
 	kref_put(&wdata->refcount, cifs_uncached_writedata_release);
+=======
+		/* Roll back credits and retry if needed */
+		add_credits_and_wake_if(server, &wdata->credits, 0);
+	} while (rc == -EAGAIN);
+>>>>>>> linux-next/akpm-base
 
+fail:
+	kref_put(&wdata->refcount, cifs_uncached_writedata_release);
 	return rc;
 }
 
@@ -2884,12 +2909,12 @@ restart_loop:
 						wdata->bytes, &tmp_from,
 						ctx->cfile, cifs_sb, &tmp_list,
 						ctx);
+
+					kref_put(&wdata->refcount,
+						cifs_uncached_writedata_release);
 				}
 
 				list_splice(&tmp_list, &ctx->list);
-
-				kref_put(&wdata->refcount,
-					 cifs_uncached_writedata_release);
 				goto restart_loop;
 			}
 		}
@@ -3336,17 +3361,20 @@ static int cifs_resend_rdata(struct cifs_readdata *rdata,
 	struct TCP_Server_Info *server =
 		tlink_tcon(rdata->cfile->tlink)->ses->server;
 
-	/*
-	 * Wait for credits to resend this rdata.
-	 * Note: we are attempting to resend the whole rdata not in segments
-	 */
 	do {
-		rc = server->ops->wait_mtu_credits(server, rdata->bytes,
+		/*
+		 * Wait for credits to resend this rdata.
+		 * Note: we are attempting to resend the whole rdata not in
+		 * segments
+		 */
+		do {
+			rc = server->ops->wait_mtu_credits(server, rdata->bytes,
 						&rsize, &credits);
 
-		if (rc)
-			goto out;
+			if (rc)
+				goto fail;
 
+<<<<<<< HEAD
 		if (rsize < rdata->bytes) {
 			add_credits_and_wake_if(server, &credits, 0);
 			msleep(1000);
@@ -3356,24 +3384,41 @@ static int cifs_resend_rdata(struct cifs_readdata *rdata,
 	rdata->credits = credits;
 	rc = -EAGAIN;
 	while (rc == -EAGAIN) {
+=======
+			if (rsize < rdata->bytes) {
+				add_credits_and_wake_if(server, &credits, 0);
+				msleep(1000);
+			}
+		} while (rsize < rdata->bytes);
+
+		rdata->credits = credits;
+>>>>>>> linux-next/akpm-base
 		rc = 0;
 		if (rdata->cfile->invalidHandle)
 			rc = cifs_reopen_file(rdata->cfile, true);
 		if (!rc)
 			rc = server->ops->async_readv(rdata);
-	}
 
-	if (!rc) {
-		/* Add to aio pending list */
-		list_add_tail(&rdata->list, rdata_list);
-		return 0;
-	}
+		/* If the read was successfully sent, we are done */
+		if (!rc) {
+			/* Add to aio pending list */
+			list_add_tail(&rdata->list, rdata_list);
+			return 0;
+		}
 
+<<<<<<< HEAD
 	add_credits_and_wake_if(server, &rdata->credits, 0);
 out:
 	kref_put(&rdata->refcount,
 		cifs_uncached_readdata_release);
+=======
+		/* Roll back credits and retry if needed */
+		add_credits_and_wake_if(server, &rdata->credits, 0);
+	} while (rc == -EAGAIN);
+>>>>>>> linux-next/akpm-base
 
+fail:
+	kref_put(&rdata->refcount, cifs_uncached_readdata_release);
 	return rc;
 }
 

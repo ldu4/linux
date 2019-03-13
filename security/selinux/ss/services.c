@@ -49,6 +49,10 @@
 #include <linux/sched.h>
 #include <linux/audit.h>
 #include <linux/mutex.h>
+<<<<<<< HEAD
+=======
+#include <linux/flex_array.h>
+>>>>>>> linux-next/akpm-base
 #include <linux/vmalloc.h>
 #include <net/netlabel.h>
 

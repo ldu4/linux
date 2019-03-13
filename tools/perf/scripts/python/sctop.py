@@ -13,9 +13,15 @@ from __future__ import print_function
 import os, sys, time
 
 try:
+<<<<<<< HEAD
 	import thread
 except ImportError:
 	import _thread as thread
+=======
+        import thread
+except ImportError:
+        import _thread as thread
+>>>>>>> linux-next/akpm-base
 
 sys.path.append(os.environ['PERF_EXEC_PATH'] + \
 	'/scripts/python/Perf-Trace-Util/lib/Perf/Trace')
@@ -75,12 +81,20 @@ def print_syscall_totals(interval):
 
 		print("%-40s  %10s" % ("event", "count"))
 		print("%-40s  %10s" %
+<<<<<<< HEAD
 			("----------------------------------------",
 			"----------"))
 
 		for id, val in sorted(syscalls.items(),
 				key = lambda kv: (kv[1], kv[0]),
 				reverse = True):
+=======
+                        ("----------------------------------------",
+                        "----------"))
+
+		for id, val in sorted(syscalls.items(), key = lambda kv: (kv[1], kv[0]), \
+					      reverse = True):
+>>>>>>> linux-next/akpm-base
 			try:
 				print("%-40s  %10d" % (syscall_name(id), val))
 			except TypeError:

@@ -502,8 +502,15 @@ static int tegra_thermctl_get_trend(void *data, int trip,
 	if (ret)
 		return ret;
 
+<<<<<<< HEAD
 	temp = READ_ONCE(tz->temperature);
 	last_temp = READ_ONCE(tz->last_temperature);
+=======
+	mutex_lock(&tz->lock);
+	temp = tz->temperature;
+	last_temp = tz->last_temperature;
+	mutex_unlock(&tz->lock);
+>>>>>>> linux-next/akpm-base
 
 	if (temp > trip_temp) {
 		if (temp >= last_temp)

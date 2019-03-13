@@ -32,6 +32,7 @@ TARGETS += net
 TARGETS += netfilter
 TARGETS += networking/timestamping
 TARGETS += nsfs
+TARGETS += pidfd
 TARGETS += powerpc
 TARGETS += proc
 TARGETS += pstore
@@ -49,7 +50,10 @@ TARGETS += sysctl
 ifneq (1, $(quicktest))
 TARGETS += timers
 endif
+<<<<<<< HEAD
 TARGETS += tmpfs
+=======
+>>>>>>> linux-next/akpm-base
 TARGETS += tpm2
 TARGETS += user
 TARGETS += vm

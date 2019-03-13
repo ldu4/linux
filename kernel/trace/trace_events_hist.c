@@ -3478,6 +3478,7 @@ create_target_field_var(struct hist_trigger_data *target_hist_data,
 }
 
 static bool check_track_val_max(u64 track_val, u64 var_val)
+<<<<<<< HEAD
 {
 	if (var_val <= track_val)
 		return false;
@@ -3655,6 +3656,185 @@ static void track_data_print(struct seq_file *m,
 	else if (data->handler == HANDLER_ONCHANGE)
 		seq_printf(m, "\n\tchanged: %10llu", track_val);
 
+=======
+{
+	if (var_val <= track_val)
+		return false;
+
+	return true;
+}
+
+static bool check_track_val_changed(u64 track_val, u64 var_val)
+{
+	if (var_val == track_val)
+		return false;
+
+	return true;
+}
+
+static u64 get_track_val(struct hist_trigger_data *hist_data,
+			 struct tracing_map_elt *elt,
+			 struct action_data *data)
+{
+	unsigned int track_var_idx = data->track_data.track_var->var.idx;
+	u64 track_val;
+
+	track_val = tracing_map_read_var(elt, track_var_idx);
+
+	return track_val;
+}
+
+static void save_track_val(struct hist_trigger_data *hist_data,
+			   struct tracing_map_elt *elt,
+			   struct action_data *data, u64 var_val)
+{
+	unsigned int track_var_idx = data->track_data.track_var->var.idx;
+
+	tracing_map_set_var(elt, track_var_idx, var_val);
+}
+
+static void save_track_data(struct hist_trigger_data *hist_data,
+			    struct tracing_map_elt *elt, void *rec,
+			    struct ring_buffer_event *rbe, void *key,
+			    struct action_data *data, u64 *var_ref_vals)
+{
+	if (data->track_data.save_data)
+		data->track_data.save_data(hist_data, elt, rec, rbe, key, data, var_ref_vals);
+}
+
+static bool check_track_val(struct tracing_map_elt *elt,
+			    struct action_data *data,
+			    u64 var_val)
+{
+	struct hist_trigger_data *hist_data;
+	u64 track_val;
+
+	hist_data = data->track_data.track_var->hist_data;
+	track_val = get_track_val(hist_data, elt, data);
+
+	return data->track_data.check_val(track_val, var_val);
+}
+
+#ifdef CONFIG_TRACER_SNAPSHOT
+static bool cond_snapshot_update(struct trace_array *tr, void *cond_data)
+{
+	/* called with tr->max_lock held */
+	struct track_data *track_data = tr->cond_snapshot->cond_data;
+	struct hist_elt_data *elt_data, *track_elt_data;
+	struct snapshot_context *context = cond_data;
+	u64 track_val;
+
+	if (!track_data)
+		return false;
+
+	track_val = get_track_val(track_data->hist_data, context->elt,
+				  track_data->action_data);
+
+	track_data->track_val = track_val;
+	memcpy(track_data->key, context->key, track_data->key_len);
+
+	elt_data = context->elt->private_data;
+	track_elt_data = track_data->elt.private_data;
+	if (elt_data->comm)
+		memcpy(track_elt_data->comm, elt_data->comm, TASK_COMM_LEN);
+
+	track_data->updated = true;
+
+	return true;
+}
+
+static void save_track_data_snapshot(struct hist_trigger_data *hist_data,
+				     struct tracing_map_elt *elt, void *rec,
+				     struct ring_buffer_event *rbe, void *key,
+				     struct action_data *data,
+				     u64 *var_ref_vals)
+{
+	struct trace_event_file *file = hist_data->event_file;
+	struct snapshot_context context;
+
+	context.elt = elt;
+	context.key = key;
+
+	tracing_snapshot_cond(file->tr, &context);
+}
+
+static void hist_trigger_print_key(struct seq_file *m,
+				   struct hist_trigger_data *hist_data,
+				   void *key,
+				   struct tracing_map_elt *elt);
+
+static struct action_data *snapshot_action(struct hist_trigger_data *hist_data)
+{
+	unsigned int i;
+
+	if (!hist_data->n_actions)
+		return NULL;
+
+	for (i = 0; i < hist_data->n_actions; i++) {
+		struct action_data *data = hist_data->actions[i];
+
+		if (data->action == ACTION_SNAPSHOT)
+			return data;
+	}
+
+	return NULL;
+}
+
+static void track_data_snapshot_print(struct seq_file *m,
+				      struct hist_trigger_data *hist_data)
+{
+	struct trace_event_file *file = hist_data->event_file;
+	struct track_data *track_data;
+	struct action_data *action;
+
+	track_data = tracing_cond_snapshot_data(file->tr);
+	if (!track_data)
+		return;
+
+	if (!track_data->updated)
+		return;
+
+	action = snapshot_action(hist_data);
+	if (!action)
+		return;
+
+	seq_puts(m, "\nSnapshot taken (see tracing/snapshot).  Details:\n");
+	seq_printf(m, "\ttriggering value { %s(%s) }: %10llu",
+		   action->handler == HANDLER_ONMAX ? "onmax" : "onchange",
+		   action->track_data.var_str, track_data->track_val);
+
+	seq_puts(m, "\ttriggered by event with key: ");
+	hist_trigger_print_key(m, hist_data, track_data->key, &track_data->elt);
+	seq_putc(m, '\n');
+}
+#else
+static bool cond_snapshot_update(struct trace_array *tr, void *cond_data)
+{
+	return false;
+}
+static void save_track_data_snapshot(struct hist_trigger_data *hist_data,
+				     struct tracing_map_elt *elt, void *rec,
+				     struct ring_buffer_event *rbe, void *key,
+				     struct action_data *data,
+				     u64 *var_ref_vals) {}
+static void track_data_snapshot_print(struct seq_file *m,
+				      struct hist_trigger_data *hist_data) {}
+#endif /* CONFIG_TRACER_SNAPSHOT */
+
+static void track_data_print(struct seq_file *m,
+			     struct hist_trigger_data *hist_data,
+			     struct tracing_map_elt *elt,
+			     struct action_data *data)
+{
+	u64 track_val = get_track_val(hist_data, elt, data);
+	unsigned int i, save_var_idx;
+
+	if (data->handler == HANDLER_ONMAX)
+		seq_printf(m, "\n\tmax: %10llu", track_val);
+	else if (data->handler == HANDLER_ONCHANGE)
+		seq_printf(m, "\n\tchanged: %10llu", track_val);
+
+>>>>>>> linux-next/akpm-base
 	if (data->action == ACTION_SNAPSHOT)
 		return;
 
@@ -4894,9 +5074,15 @@ static void print_onmatch_spec(struct seq_file *m,
 {
 	seq_printf(m, ":onmatch(%s.%s).", data->match_data.event_system,
 		   data->match_data.event);
+<<<<<<< HEAD
 
 	seq_printf(m, "%s(", data->action_name);
 
+=======
+
+	seq_printf(m, "%s(", data->action_name);
+
+>>>>>>> linux-next/akpm-base
 	print_action_spec(m, hist_data, data);
 
 	seq_puts(m, ")");

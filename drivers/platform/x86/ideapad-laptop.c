@@ -1098,6 +1098,7 @@ static const struct dmi_system_id no_hw_rfkill_list[] = {
 		},
 	},
 	{
+<<<<<<< HEAD
 		.ident = "Lenovo ideapad 530S-14ARR",
 		.matches = {
 			DMI_MATCH(DMI_SYS_VENDOR, "LENOVO"),
@@ -1112,6 +1113,8 @@ static const struct dmi_system_id no_hw_rfkill_list[] = {
 		},
 	},
 	{
+=======
+>>>>>>> linux-next/akpm-base
 		.ident = "Lenovo ideapad Y700-14ISK",
 		.matches = {
 			DMI_MATCH(DMI_SYS_VENDOR, "LENOVO"),

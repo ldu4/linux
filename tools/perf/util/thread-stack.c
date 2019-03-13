@@ -298,6 +298,7 @@ static int thread_stack__call_return(struct thread *thread,
 		cr.flags |= CALL_RETURN_NO_RETURN;
 	if (tse->non_call)
 		cr.flags |= CALL_RETURN_NON_CALL;
+<<<<<<< HEAD
 
 	/*
 	 * The parent db_id must be assigned before exporting the child. Note
@@ -305,6 +306,8 @@ static int thread_stack__call_return(struct thread *thread,
 	 * is not yet complete because its 'return' has not yet been processed.
 	 */
 	parent_db_id = idx ? &(tse - 1)->db_id : NULL;
+=======
+>>>>>>> linux-next/akpm-base
 
 	return crp->process(&cr, parent_db_id, crp->data);
 }
@@ -548,7 +551,10 @@ static int thread_stack__push_cp(struct thread_stack *ts, u64 ret_addr,
 	tse->no_call = no_call;
 	tse->trace_end = trace_end;
 	tse->non_call = false;
+<<<<<<< HEAD
 	tse->db_id = 0;
+=======
+>>>>>>> linux-next/akpm-base
 
 	return 0;
 }
@@ -687,6 +693,7 @@ static int thread_stack__no_call_return(struct thread *thread,
 
 		if (!ts->cnt) {
 			cp = call_path__findnew(cpr, root, tsym, addr, ks);
+<<<<<<< HEAD
 
 			return thread_stack__push_cp(ts, addr, tm, ref, cp,
 						     true, false);
@@ -722,6 +729,43 @@ static int thread_stack__no_call_return(struct thread *thread,
 	if (err)
 		return err;
 
+=======
+
+			return thread_stack__push_cp(ts, addr, tm, ref, cp,
+						     true, false);
+		}
+
+		/*
+		 * Otherwise assume the 'return' is being used as a jump (e.g.
+		 * retpoline) and just push the 'to' symbol.
+		 */
+		cp = call_path__findnew(cpr, parent, tsym, addr, ks);
+
+		err = thread_stack__push_cp(ts, 0, tm, ref, cp, true, false);
+		if (!err)
+			ts->stack[ts->cnt - 1].non_call = true;
+
+		return err;
+	}
+
+	/*
+	 * Assume 'parent' has not yet returned, so push 'to', and then push and
+	 * pop 'from'.
+	 */
+
+	cp = call_path__findnew(cpr, parent, tsym, addr, ks);
+
+	err = thread_stack__push_cp(ts, addr, tm, ref, cp, true, false);
+	if (err)
+		return err;
+
+	cp = call_path__findnew(cpr, cp, fsym, ip, ks);
+
+	err = thread_stack__push_cp(ts, ip, tm, ref, cp, true, false);
+	if (err)
+		return err;
+
+>>>>>>> linux-next/akpm-base
 	return thread_stack__call_return(thread, ts, --ts->cnt, tm, ref, false);
 }
 

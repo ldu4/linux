@@ -788,6 +788,7 @@ struct tee_client_device_id {
 	uuid_t uuid;
 };
 
+<<<<<<< HEAD
 /* WMI */
 
 #define WMI_MODULE_PREFIX	"wmi:"
@@ -800,4 +801,6 @@ struct wmi_device_id {
 	const char guid_string[UUID_STRING_LEN+1];
 };
 
+=======
+>>>>>>> linux-next/akpm-base
 #endif /* LINUX_MOD_DEVICETABLE_H */

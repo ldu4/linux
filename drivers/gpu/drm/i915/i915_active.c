@@ -163,17 +163,36 @@ int i915_active_ref(struct i915_active *ref,
 		    struct i915_request *rq)
 {
 	struct i915_active_request *active;
+<<<<<<< HEAD
 
 	active = active_instance(ref, timeline);
 	if (IS_ERR(active))
 		return PTR_ERR(active);
+=======
+	int err = 0;
+
+	/* Prevent reaping in case we malloc/wait while building the tree */
+	i915_active_acquire(ref);
+
+	active = active_instance(ref, timeline);
+	if (IS_ERR(active)) {
+		err = PTR_ERR(active);
+		goto out;
+	}
+>>>>>>> linux-next/akpm-base
 
 	if (!i915_active_request_isset(active))
 		ref->count++;
 	__i915_active_request_set(active, rq);
 
 	GEM_BUG_ON(!ref->count);
+<<<<<<< HEAD
 	return 0;
+=======
+out:
+	i915_active_release(ref);
+	return err;
+>>>>>>> linux-next/akpm-base
 }
 
 bool i915_active_acquire(struct i915_active *ref)
@@ -223,6 +242,7 @@ int i915_request_await_active_request(struct i915_request *rq,
 int i915_request_await_active(struct i915_request *rq, struct i915_active *ref)
 {
 	struct active_node *it, *n;
+<<<<<<< HEAD
 	int ret;
 
 	ret = i915_request_await_active_request(rq, &ref->last);
@@ -236,6 +256,27 @@ int i915_request_await_active(struct i915_request *rq, struct i915_active *ref)
 	}
 
 	return 0;
+=======
+	int err = 0;
+
+	/* await allocates and so we need to avoid hitting the shrinker */
+	if (i915_active_acquire(ref))
+		goto out; /* was idle */
+
+	err = i915_request_await_active_request(rq, &ref->last);
+	if (err)
+		goto out;
+
+	rbtree_postorder_for_each_entry_safe(it, n, &ref->tree, node) {
+		err = i915_request_await_active_request(rq, &it->base);
+		if (err)
+			goto out;
+	}
+
+out:
+	i915_active_release(ref);
+	return err;
+>>>>>>> linux-next/akpm-base
 }
 
 #if IS_ENABLED(CONFIG_DRM_I915_DEBUG_GEM)

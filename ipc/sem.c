@@ -1687,7 +1687,24 @@ static long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg, int v
 SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
 {
 	return ksys_semctl(semid, semnum, cmd, arg, IPC_64);
+<<<<<<< HEAD
 }
+
+#ifdef CONFIG_ARCH_WANT_IPC_PARSE_VERSION
+long ksys_old_semctl(int semid, int semnum, int cmd, unsigned long arg)
+{
+	int version = ipc_parse_version(&cmd);
+
+	return ksys_semctl(semid, semnum, cmd, arg, version);
+}
+
+SYSCALL_DEFINE4(old_semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
+{
+	return ksys_old_semctl(semid, semnum, cmd, arg);
+=======
+>>>>>>> linux-next/akpm-base
+}
+#endif
 
 #ifdef CONFIG_ARCH_WANT_IPC_PARSE_VERSION
 long ksys_old_semctl(int semid, int semnum, int cmd, unsigned long arg)

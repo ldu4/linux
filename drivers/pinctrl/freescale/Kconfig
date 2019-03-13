@@ -138,7 +138,11 @@ config PINCTRL_IMX8MQ
 
 config PINCTRL_IMX8QM
 	bool "IMX8QM pinctrl driver"
+<<<<<<< HEAD
 	depends on IMX_SCU && ARCH_MXC && ARM64
+=======
+	depends on ARCH_MXC && ARM64
+>>>>>>> linux-next/akpm-base
 	select PINCTRL_IMX_SCU
 	help
 	  Say Y here to enable the imx8qm pinctrl driver

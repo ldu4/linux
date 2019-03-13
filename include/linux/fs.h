@@ -38,8 +38,11 @@
 #include <linux/errseq.h>
 #include <linux/ioprio.h>
 #include <linux/fs_types.h>
+<<<<<<< HEAD
 #include <linux/build_bug.h>
 #include <linux/stddef.h>
+=======
+>>>>>>> linux-next/akpm-base
 
 #include <asm/byteorder.h>
 #include <uapi/linux/fs.h>

@@ -40,7 +40,10 @@ typedef struct {
 typedef struct {
 	__u8 b[16];
 } uuid_t;
+<<<<<<< HEAD
 #define	UUID_STRING_LEN		36
+=======
+>>>>>>> linux-next/akpm-base
 
 /* Big exception to the "don't include kernel headers into userspace, which
  * even potentially has different endianness and word sizes, since
@@ -1309,6 +1312,7 @@ static int do_tee_entry(const char *filename, void *symval, char *alias)
 	return 1;
 }
 
+<<<<<<< HEAD
 /* Looks like: wmi:guid */
 static int do_wmi_entry(const char *filename, void *symval, char *alias)
 {
@@ -1330,6 +1334,8 @@ static int do_wmi_entry(const char *filename, void *symval, char *alias)
 	return 1;
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 /* Does namelen bytes of name exactly match the symbol? */
 static bool sym_is(const char *name, unsigned namelen, const char *symbol)
 {
@@ -1401,7 +1407,10 @@ static const struct devtable devtable[] = {
 	{"tbsvc", SIZE_tb_service_id, do_tbsvc_entry},
 	{"typec", SIZE_typec_device_id, do_typec_entry},
 	{"tee", SIZE_tee_client_device_id, do_tee_entry},
+<<<<<<< HEAD
 	{"wmi", SIZE_wmi_device_id, do_wmi_entry},
+=======
+>>>>>>> linux-next/akpm-base
 };
 
 /* Create MODULE_ALIAS() statements.

@@ -208,6 +208,10 @@ static struct platform_device * __init apu_create_pdev(
 
 static int __init apu_board_init(void)
 {
+<<<<<<< HEAD
+=======
+	int rc;
+>>>>>>> linux-next/akpm-base
 	const struct dmi_system_id *id;
 
 	id = dmi_first_match(apu_gpio_dmi_table);

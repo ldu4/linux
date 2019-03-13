@@ -673,9 +673,56 @@ bool swiotlb_map(struct device *dev, phys_addr_t *phys, dma_addr_t *dma_addr,
 	return true;
 }
 
+<<<<<<< HEAD
 size_t swiotlb_max_mapping_size(struct device *dev)
 {
 	return ((size_t)1 << IO_TLB_SHIFT) * IO_TLB_SEGSIZE;
+=======
+#ifdef CONFIG_DEBUG_FS
+
+static int __init swiotlb_create_debugfs(void)
+{
+	struct dentry *d_swiotlb_usage;
+	struct dentry *ent;
+
+	d_swiotlb_usage = debugfs_create_dir("swiotlb", NULL);
+
+	if (!d_swiotlb_usage)
+		return -ENOMEM;
+
+	ent = debugfs_create_ulong("io_tlb_nslabs", 0400,
+				   d_swiotlb_usage, &io_tlb_nslabs);
+	if (!ent)
+		goto fail;
+
+	ent = debugfs_create_ulong("io_tlb_used", 0400,
+				   d_swiotlb_usage, &io_tlb_used);
+	if (!ent)
+		goto fail;
+
+	return 0;
+
+fail:
+	debugfs_remove_recursive(d_swiotlb_usage);
+	return -ENOMEM;
+}
+late_initcall(swiotlb_create_debugfs);
+
+#endif
+
+size_t swiotlb_max_mapping_size(struct device *dev)
+{
+	return ((size_t)1 << IO_TLB_SHIFT) * IO_TLB_SEGSIZE;
+}
+
+bool is_swiotlb_active(void)
+{
+	/*
+	 * When SWIOTLB is initialized, even if io_tlb_start points to physical
+	 * address zero, io_tlb_end surely doesn't.
+	 */
+	return io_tlb_end != 0;
+>>>>>>> linux-next/akpm-base
 }
 
 bool is_swiotlb_active(void)

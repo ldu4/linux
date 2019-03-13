@@ -228,8 +228,11 @@ int main(void)
 	DEVID(tee_client_device_id);
 	DEVID_FIELD(tee_client_device_id, uuid);
 
+<<<<<<< HEAD
 	DEVID(wmi_device_id);
 	DEVID_FIELD(wmi_device_id, guid_string);
 
+=======
+>>>>>>> linux-next/akpm-base
 	return 0;
 }

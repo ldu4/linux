@@ -172,7 +172,11 @@ The details of these operations are:
 
       After calling ``dmaengine_submit()`` the submitted transfer descriptor
       (``struct dma_async_tx_descriptor``) belongs to the DMA engine.
+<<<<<<< HEAD
       Consequentially, the client must consider invalid the pointer to that
+=======
+      Consequently, the client must consider invalid the pointer to that
+>>>>>>> linux-next/akpm-base
       descriptor.
 
 5. Issue pending DMA requests and wait for callback notification

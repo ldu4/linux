@@ -106,6 +106,10 @@ static int vic_boot(struct vic *vic)
 	if (vic->booted)
 		return 0;
 
+<<<<<<< HEAD
+=======
+#ifdef CONFIG_IOMMU_API
+>>>>>>> linux-next/akpm-base
 	if (vic->config->supports_sid) {
 		struct iommu_fwspec *spec = dev_iommu_fwspec_get(vic->dev);
 		u32 value;
@@ -121,6 +125,10 @@ static int vic_boot(struct vic *vic)
 			vic_writel(vic, value, VIC_THI_STREAMID1);
 		}
 	}
+<<<<<<< HEAD
+=======
+#endif
+>>>>>>> linux-next/akpm-base
 
 	/* setup clockgating registers */
 	vic_writel(vic, CG_IDLE_CG_DLY_CNT(4) |

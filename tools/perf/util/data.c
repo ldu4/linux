@@ -237,7 +237,11 @@ static int open_file(struct perf_data *data)
 	     open_file_read(data) : open_file_write(data);
 
 	if (fd < 0) {
+<<<<<<< HEAD
 		zfree(&data->file.path);
+=======
+		free(data->file.path);
+>>>>>>> linux-next/akpm-base
 		return -1;
 	}
 
@@ -270,7 +274,11 @@ int perf_data__open(struct perf_data *data)
 
 void perf_data__close(struct perf_data *data)
 {
+<<<<<<< HEAD
 	zfree(&data->file.path);
+=======
+	free(data->file.path);
+>>>>>>> linux-next/akpm-base
 	close(data->file.fd);
 }
 

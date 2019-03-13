@@ -2411,8 +2411,11 @@ out_retry:
 				xprt_conditional_disconnect(req->rq_xprt,
 							    req->rq_connect_cookie);
 		}
+<<<<<<< HEAD
 		task->tk_action = call_encode;
 		rpc_check_timeout(task);
+=======
+>>>>>>> linux-next/akpm-base
 	}
 }
 

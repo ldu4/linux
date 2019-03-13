@@ -13,7 +13,11 @@
 
 #include <linux/clk.h>
 #include <linux/err.h>
+<<<<<<< HEAD
 #include <linux/gpio/consumer.h>
+=======
+#include <linux/gpio.h>
+>>>>>>> linux-next/akpm-base
 #include <linux/input.h>
 #include <linux/io.h>
 #include <linux/module.h>

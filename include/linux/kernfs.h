@@ -25,7 +25,10 @@ struct seq_file;
 struct vm_area_struct;
 struct super_block;
 struct file_system_type;
+<<<<<<< HEAD
 struct poll_table_struct;
+=======
+>>>>>>> linux-next/akpm-base
 struct fs_context;
 
 struct kernfs_fs_context;

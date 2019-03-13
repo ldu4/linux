@@ -482,6 +482,7 @@ static int add_client_context(struct ib_device *device,
 		    CLIENT_DATA_REGISTERED);
 	up_read(&device->client_data_rwsem);
 	return 0;
+<<<<<<< HEAD
 
 out:
 	up_write(&device->client_data_rwsem);
@@ -494,6 +495,20 @@ static void remove_client_context(struct ib_device *device,
 	struct ib_client *client;
 	void *client_data;
 
+=======
+
+out:
+	up_write(&device->client_data_rwsem);
+	return ret;
+}
+
+static void remove_client_context(struct ib_device *device,
+				  unsigned int client_id)
+{
+	struct ib_client *client;
+	void *client_data;
+
+>>>>>>> linux-next/akpm-base
 	down_write(&device->client_data_rwsem);
 	if (!xa_get_mark(&device->client_data, client_id,
 			 CLIENT_DATA_REGISTERED)) {
@@ -504,6 +519,7 @@ static void remove_client_context(struct ib_device *device,
 	xa_clear_mark(&device->client_data, client_id, CLIENT_DATA_REGISTERED);
 	client = xa_load(&clients, client_id);
 	downgrade_write(&device->client_data_rwsem);
+<<<<<<< HEAD
 
 	/*
 	 * Notice we cannot be holding any exclusive locks when calling the
@@ -534,6 +550,38 @@ static int alloc_port_data(struct ib_device *device)
 	if (device->port_data)
 		return 0;
 
+=======
+
+	/*
+	 * Notice we cannot be holding any exclusive locks when calling the
+	 * remove callback as the remove callback can recurse back into any
+	 * public functions in this module and thus try for any locks those
+	 * functions take.
+	 *
+	 * For this reason clients and drivers should not call the
+	 * unregistration functions will holdling any locks.
+	 *
+	 * It tempting to drop the client_data_rwsem too, but this is required
+	 * to ensure that unregister_client does not return until all clients
+	 * are completely unregistered, which is required to avoid module
+	 * unloading races.
+	 */
+	if (client->remove)
+		client->remove(device, client_data);
+
+	xa_erase(&device->client_data, client_id);
+	up_read(&device->client_data_rwsem);
+}
+
+static int alloc_port_data(struct ib_device *device)
+{
+	struct ib_port_data_rcu *pdata_rcu;
+	unsigned int port;
+
+	if (device->port_data)
+		return 0;
+
+>>>>>>> linux-next/akpm-base
 	/* This can only be called once the physical port range is defined */
 	if (WARN_ON(!device->phys_port_cnt))
 		return -EINVAL;
@@ -583,10 +631,17 @@ static int setup_port_data(struct ib_device *device)
 	ret = alloc_port_data(device);
 	if (ret)
 		return ret;
+<<<<<<< HEAD
 
 	rdma_for_each_port (device, port) {
 		struct ib_port_data *pdata = &device->port_data[port];
 
+=======
+
+	rdma_for_each_port (device, port) {
+		struct ib_port_data *pdata = &device->port_data[port];
+
+>>>>>>> linux-next/akpm-base
 		ret = device->ops.get_port_immutable(device, port,
 						     &pdata->immutable);
 		if (ret)
@@ -661,6 +716,7 @@ static int assign_name(struct ib_device *device, const char *name)
 		ret = dev_set_name(&device->dev, name);
 	if (ret)
 		goto out;
+<<<<<<< HEAD
 
 	if (__ib_device_get_by_name(dev_name(&device->dev))) {
 		ret = -ENFILE;
@@ -672,6 +728,29 @@ static int assign_name(struct ib_device *device, const char *name)
 			&last_id, GFP_KERNEL);
 	if (ret > 0)
 		ret = 0;
+=======
+
+	if (__ib_device_get_by_name(dev_name(&device->dev))) {
+		ret = -ENFILE;
+		goto out;
+	}
+	strlcpy(device->name, dev_name(&device->dev), IB_DEVICE_NAME_MAX);
+
+	/* Cyclically allocate a user visible ID for the device */
+	device->index = last_id;
+	ret = xa_alloc(&devices, &device->index, device,
+		       XA_LIMIT(last_id, INT_MAX), GFP_KERNEL);
+	if (ret == -ENOSPC) {
+		device->index = 0;
+		ret = xa_alloc(&devices, &device->index, device,
+			       XA_LIMIT(0, INT_MAX), GFP_KERNEL);
+	}
+	if (ret)
+		goto out;
+	last_id = device->index + 1;
+
+	ret = 0;
+>>>>>>> linux-next/akpm-base
 
 out:
 	up_write(&devices_rwsem);
@@ -989,6 +1068,7 @@ void ib_unregister_driver(enum rdma_driver_id driver_id)
 {
 	struct ib_device *ib_dev;
 	unsigned long index;
+<<<<<<< HEAD
 
 	down_read(&devices_rwsem);
 	xa_for_each (&devices, index, ib_dev) {
@@ -1001,6 +1081,20 @@ void ib_unregister_driver(enum rdma_driver_id driver_id)
 		WARN_ON(!ib_dev->ops.dealloc_driver);
 		__ib_unregister_device(ib_dev);
 
+=======
+
+	down_read(&devices_rwsem);
+	xa_for_each (&devices, index, ib_dev) {
+		if (ib_dev->driver_id != driver_id)
+			continue;
+
+		get_device(&ib_dev->dev);
+		up_read(&devices_rwsem);
+
+		WARN_ON(!ib_dev->ops.dealloc_driver);
+		__ib_unregister_device(ib_dev);
+
+>>>>>>> linux-next/akpm-base
 		put_device(&ib_dev->dev);
 		down_read(&devices_rwsem);
 	}
@@ -1050,6 +1144,7 @@ static int assign_client_id(struct ib_client *client)
 	 * to get the LIFO order. The extra linked list can go away if xarray
 	 * learns to reverse iterate.
 	 */
+<<<<<<< HEAD
 	if (list_empty(&client_list)) {
 		client->client_id = 0;
 	} else {
@@ -1065,6 +1160,22 @@ static int assign_client_id(struct ib_client *client)
 	xa_set_mark(&clients, client->client_id, CLIENT_REGISTERED);
 	list_add_tail(&client->list, &client_list);
 
+=======
+	if (list_empty(&client_list))
+		client->client_id = 0;
+	else
+		client->client_id =
+			list_last_entry(&client_list, struct ib_client, list)
+				->client_id;
+	ret = xa_alloc(&clients, &client->client_id, client,
+		       XA_LIMIT(client->client_id, INT_MAX), GFP_KERNEL);
+	if (ret)
+		goto out;
+
+	xa_set_mark(&clients, client->client_id, CLIENT_REGISTERED);
+	list_add_tail(&client->list, &client_list);
+
+>>>>>>> linux-next/akpm-base
 out:
 	up_write(&clients_rwsem);
 	return ret;
