@@ -46,6 +46,7 @@ extern void kmemleak_alloc_phys(phys_addr_t phys, size_t size, int min_count,
 extern void kmemleak_free_part_phys(phys_addr_t phys, size_t size) __ref;
 extern void kmemleak_not_leak_phys(phys_addr_t phys) __ref;
 extern void kmemleak_ignore_phys(phys_addr_t phys) __ref;
+extern void kmemleak_bss_hole(void *start, void *stop);
 
 static inline void kmemleak_alloc_recursive(const void *ptr, size_t size,
 					    int min_count, slab_flags_t flags,
@@ -129,6 +130,9 @@ static inline void kmemleak_not_leak_phys(phys_addr_t phys)
 {
 }
 static inline void kmemleak_ignore_phys(phys_addr_t phys)
+{
+}
+static inline void kmemleak_bss_hole(void *start, void *stop)
 {
 }
 
