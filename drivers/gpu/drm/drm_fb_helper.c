@@ -934,6 +934,7 @@ struct fb_info *drm_fb_helper_alloc_fbi(struct drm_fb_helper *fb_helper)
 	}
 
 	fb_helper->fbdev = info;
+	info->skip_vt_switch = true;
 
 	return info;
 
@@ -1963,7 +1964,7 @@ static int drm_fb_helper_single_fb_probe(struct drm_fb_helper *fb_helper,
 				best_depth = fmt->depth;
 		}
 	}
-	if (sizes.surface_depth != best_depth) {
+	if (sizes.surface_depth != best_depth && best_depth) {
 		DRM_INFO("requested bpp %d, scaled depth down to %d",
 			 sizes.surface_bpp, best_depth);
 		sizes.surface_depth = best_depth;
@@ -3024,7 +3025,8 @@ static int drm_fbdev_fb_open(struct fb_info *info, int user)
 {
 	struct drm_fb_helper *fb_helper = info->par;
 
-	if (!try_module_get(fb_helper->dev->driver->fops->owner))
+	/* No need to take a ref for fbcon because it unbinds on unregister */
+	if (user && !try_module_get(fb_helper->dev->driver->fops->owner))
 		return -ENODEV;
 
 	return 0;
@@ -3034,7 +3036,8 @@ static int drm_fbdev_fb_release(struct fb_info *info, int user)
 {
 	struct drm_fb_helper *fb_helper = info->par;
 
-	module_put(fb_helper->dev->driver->fops->owner);
+	if (user)
+		module_put(fb_helper->dev->driver->fops->owner);
 
 	return 0;
 }
