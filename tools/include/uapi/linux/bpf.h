@@ -2445,8 +2445,6 @@ union bpf_attr {
  *	Return
  *		A **struct bpf_sock** pointer on success, or **NULL** in
  *		case of failure.
-<<<<<<< HEAD
-=======
  *
  * struct bpf_sock *bpf_skc_lookup_tcp(void *ctx, struct bpf_sock_tuple *tuple, u32 tuple_size, u64 netns, u64 flags)
  *	Description
@@ -2479,7 +2477,6 @@ union bpf_attr {
  * 	Return
  * 		0 if iph and th are a valid SYN cookie ACK, or a negative error
  * 		otherwise.
->>>>>>> linux-next/akpm-base
  */
 #define __BPF_FUNC_MAPPER(FN)		\
 	FN(unspec),			\
@@ -2580,13 +2577,9 @@ union bpf_attr {
 	FN(sk_fullsock),		\
 	FN(tcp_sock),			\
 	FN(skb_ecn_set_ce),		\
-<<<<<<< HEAD
-	FN(get_listener_sock),
-=======
 	FN(get_listener_sock),		\
 	FN(skc_lookup_tcp),		\
 	FN(tcp_check_syncookie),
->>>>>>> linux-next/akpm-base
 
 /* integer value in 'imm' field of BPF_CALL instruction selects which helper
  * function eBPF program intends to call

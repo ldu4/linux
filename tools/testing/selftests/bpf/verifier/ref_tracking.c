@@ -656,11 +656,7 @@
 {
 	"reference tracking: use ptr from bpf_tcp_sock() after release",
 	.insns = {
-<<<<<<< HEAD
-	BPF_SK_LOOKUP,
-=======
 	BPF_SK_LOOKUP(sk_lookup_tcp),
->>>>>>> linux-next/akpm-base
 	BPF_JMP_IMM(BPF_JNE, BPF_REG_0, 0, 1),
 	BPF_EXIT_INSN(),
 	BPF_MOV64_REG(BPF_REG_6, BPF_REG_0),
@@ -683,11 +679,7 @@
 {
 	"reference tracking: use ptr from bpf_sk_fullsock() after release",
 	.insns = {
-<<<<<<< HEAD
-	BPF_SK_LOOKUP,
-=======
 	BPF_SK_LOOKUP(sk_lookup_tcp),
->>>>>>> linux-next/akpm-base
 	BPF_JMP_IMM(BPF_JNE, BPF_REG_0, 0, 1),
 	BPF_EXIT_INSN(),
 	BPF_MOV64_REG(BPF_REG_6, BPF_REG_0),
@@ -710,11 +702,7 @@
 {
 	"reference tracking: use ptr from bpf_sk_fullsock(tp) after release",
 	.insns = {
-<<<<<<< HEAD
-	BPF_SK_LOOKUP,
-=======
 	BPF_SK_LOOKUP(sk_lookup_tcp),
->>>>>>> linux-next/akpm-base
 	BPF_JMP_IMM(BPF_JNE, BPF_REG_0, 0, 1),
 	BPF_EXIT_INSN(),
 	BPF_MOV64_REG(BPF_REG_6, BPF_REG_0),
@@ -741,11 +729,7 @@
 {
 	"reference tracking: use sk after bpf_sk_release(tp)",
 	.insns = {
-<<<<<<< HEAD
-	BPF_SK_LOOKUP,
-=======
 	BPF_SK_LOOKUP(sk_lookup_tcp),
->>>>>>> linux-next/akpm-base
 	BPF_JMP_IMM(BPF_JNE, BPF_REG_0, 0, 1),
 	BPF_EXIT_INSN(),
 	BPF_MOV64_REG(BPF_REG_6, BPF_REG_0),
@@ -767,11 +751,7 @@
 {
 	"reference tracking: use ptr from bpf_get_listener_sock() after bpf_sk_release(sk)",
 	.insns = {
-<<<<<<< HEAD
-	BPF_SK_LOOKUP,
-=======
 	BPF_SK_LOOKUP(sk_lookup_tcp),
->>>>>>> linux-next/akpm-base
 	BPF_JMP_IMM(BPF_JNE, BPF_REG_0, 0, 1),
 	BPF_EXIT_INSN(),
 	BPF_MOV64_REG(BPF_REG_6, BPF_REG_0),
@@ -793,11 +773,7 @@
 {
 	"reference tracking: bpf_sk_release(listen_sk)",
 	.insns = {
-<<<<<<< HEAD
-	BPF_SK_LOOKUP,
-=======
 	BPF_SK_LOOKUP(sk_lookup_tcp),
->>>>>>> linux-next/akpm-base
 	BPF_JMP_IMM(BPF_JNE, BPF_REG_0, 0, 1),
 	BPF_EXIT_INSN(),
 	BPF_MOV64_REG(BPF_REG_6, BPF_REG_0),
@@ -822,11 +798,7 @@
 	/* !bpf_sk_fullsock(sk) is checked but !bpf_tcp_sock(sk) is not checked */
 	"reference tracking: tp->snd_cwnd after bpf_sk_fullsock(sk) and bpf_tcp_sock(sk)",
 	.insns = {
-<<<<<<< HEAD
-	BPF_SK_LOOKUP,
-=======
 	BPF_SK_LOOKUP(sk_lookup_tcp),
->>>>>>> linux-next/akpm-base
 	BPF_JMP_IMM(BPF_JNE, BPF_REG_0, 0, 1),
 	BPF_EXIT_INSN(),
 	BPF_MOV64_REG(BPF_REG_6, BPF_REG_0),

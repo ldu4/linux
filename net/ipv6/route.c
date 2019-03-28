@@ -1046,17 +1046,10 @@ static struct rt6_info *ip6_create_rt_rcu(struct fib6_info *rt)
 		fib6_info_release(rt);
 		goto fallback;
 	}
-<<<<<<< HEAD
 
 	ip6_rt_copy_init(nrt, rt);
 	return nrt;
 
-=======
-
-	ip6_rt_copy_init(nrt, rt);
-	return nrt;
-
->>>>>>> linux-next/akpm-base
 fallback:
 	nrt = dev_net(dev)->ipv6.ip6_null_entry;
 	dst_hold(&nrt->dst);

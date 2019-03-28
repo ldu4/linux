@@ -2107,12 +2107,9 @@ static int btf_dedup_is_equiv(struct btf_dedup *d, __u32 cand_id,
 		return fwd_kind == real_kind;
 	}
 
-<<<<<<< HEAD
-=======
 	if (cand_kind != canon_kind)
 		return 0;
 
->>>>>>> linux-next/akpm-base
 	switch (cand_kind) {
 	case BTF_KIND_INT:
 		return btf_equal_int(cand_type, canon_type);
