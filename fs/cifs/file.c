@@ -4579,12 +4579,15 @@ void cifs_oplock_break(struct work_struct *work)
 			break_lease(inode, O_RDONLY);
 		else
 			break_lease(inode, O_WRONLY);
+
+		cifsFileInfo_get(cfile);
 		rc = filemap_fdatawrite(inode->i_mapping);
 		if (!CIFS_CACHE_READ(cinode)) {
 			rc = filemap_fdatawait(inode->i_mapping);
 			mapping_set_error(inode->i_mapping, rc);
 			cifs_zap_mapping(inode);
 		}
+		cifsFileInfo_put(cfile);
 		cifs_dbg(FYI, "Oplock flush inode %p rc %d\n", inode, rc);
 	}
 
