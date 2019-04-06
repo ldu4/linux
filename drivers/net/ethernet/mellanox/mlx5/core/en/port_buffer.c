@@ -167,15 +167,6 @@ static int update_xoff_threshold(struct mlx5e_port_buffer *port_buffer,
 }
 
 /**
-<<<<<<< HEAD
- * update_buffer_lossy()
- *   max_mtu: netdev's max_mtu
- *   pfc_en: <input> current pfc configuration
- *   buffer: <input> current prio to buffer mapping
- *   xoff:   <input> xoff value
- *   port_buffer: <output> port receive buffer configuration
- *   change: <output>
-=======
  *	update_buffer_lossy	- Update buffer configuration based on pfc
  *	@max_mtu: netdev's max_mtu
  *	@pfc_en: <input> current pfc configuration
@@ -183,7 +174,6 @@ static int update_xoff_threshold(struct mlx5e_port_buffer *port_buffer,
  *	@xoff:   <input> xoff value
  *	@port_buffer: <output> port receive buffer configuration
  *	@change: <output>
->>>>>>> linux-next/akpm-base
  *
  *	Update buffer configuration based on pfc configuraiton and
  *	priority to buffer mapping.

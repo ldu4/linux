@@ -231,13 +231,10 @@ install_headers:
 		$(call do_install,libbpf.h,$(prefix)/include/bpf,644); \
 		$(call do_install,btf.h,$(prefix)/include/bpf,644); \
 		$(call do_install,xsk.h,$(prefix)/include/bpf,644);
-<<<<<<< HEAD
-=======
 
 install_pkgconfig: $(PC_FILE)
 	$(call QUIET_INSTALL, $(PC_FILE)) \
 		$(call do_install,$(PC_FILE),$(libdir_SQ)/pkgconfig,644)
->>>>>>> linux-next/akpm-base
 
 install: install_lib install_pkgconfig
 

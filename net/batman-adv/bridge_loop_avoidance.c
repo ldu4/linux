@@ -807,21 +807,12 @@ static void batadv_bla_del_claim(struct batadv_priv *bat_priv,
 						batadv_choose_claim, claim);
 	if (!claim_removed_node)
 		goto free_claim;
-<<<<<<< HEAD
 
 	/* reference from the hash is gone */
 	claim_removed_entry = hlist_entry(claim_removed_node,
 					  struct batadv_bla_claim, hash_entry);
 	batadv_claim_put(claim_removed_entry);
 
-=======
-
-	/* reference from the hash is gone */
-	claim_removed_entry = hlist_entry(claim_removed_node,
-					  struct batadv_bla_claim, hash_entry);
-	batadv_claim_put(claim_removed_entry);
-
->>>>>>> linux-next/akpm-base
 free_claim:
 	/* don't need the reference from hash_find() anymore */
 	batadv_claim_put(claim);
