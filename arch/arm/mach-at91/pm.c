@@ -678,13 +678,8 @@ static int __init at91_pm_backup_init(void)
 securam_fail:
 	put_device(&pdev->dev);
 securam_fail_no_ref_dev:
-<<<<<<< HEAD
-	iounmap(pm_data.sfrbu);
-	pm_data.sfrbu = NULL;
-=======
 	iounmap(soc_pm.data.sfrbu);
 	soc_pm.data.sfrbu = NULL;
->>>>>>> linux-next/akpm-base
 	return ret;
 }
 

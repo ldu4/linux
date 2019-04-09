@@ -703,15 +703,7 @@ static bool bfq_asymmetric_scenario(struct bfq_data *bfqd,
 		(bfqd->busy_queues[0] && bfqd->busy_queues[2]) ||
 		(bfqd->busy_queues[1] && bfqd->busy_queues[2]);
 
-<<<<<<< HEAD
-	/*
-	 * For queue weights to differ, queue_weights_tree must contain
-	 * at least two nodes.
-	 */
-	return !(varied_queue_weights || multiple_classes_busy
-=======
 	return varied_queue_weights || multiple_classes_busy
->>>>>>> linux-next/akpm-base
 #ifdef CONFIG_BFQ_GROUP_IOSCHED
 	       || bfqd->num_groups_with_pending_reqs > 0
 #endif
