@@ -52,6 +52,7 @@ static struct drm_driver driver = {
 	.driver_features = DRIVER_MODESET | DRIVER_GEM | DRIVER_PRIME,
 	.load = udl_driver_load,
 	.unload = udl_driver_unload,
+	.release = udl_driver_release,
 
 	/* gem hooks */
 	.gem_free_object_unlocked = udl_gem_free_object,
@@ -107,6 +108,7 @@ static void udl_usb_disconnect(struct usb_interface *interface)
 	udl_fbdev_unplug(dev);
 	udl_drop_usb(dev);
 	drm_dev_unplug(dev);
+	drm_dev_put(dev);
 }
 
 /*
