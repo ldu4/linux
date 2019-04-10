@@ -32,6 +32,10 @@
 #include <drm/drm_print.h>
 
 #include "i915_drv.h"
+#include "intel_cdclk.h"
+#include "intel_crt.h"
+#include "intel_csr.h"
+#include "intel_dp.h"
 #include "intel_drv.h"
 
 /**
@@ -565,7 +569,7 @@ static void hsw_wait_for_power_well_enable(struct drm_i915_private *dev_priv,
 	int pw_idx = power_well->desc->hsw.idx;
 
 	/* Timeout for PW1:10 us, AUX:not specified, other PWs:20 us. */
-	WARN_ON(intel_wait_for_register(dev_priv,
+	WARN_ON(intel_wait_for_register(&dev_priv->uncore,
 					regs->driver,
 					HSW_PWR_WELL_CTL_STATE(pw_idx),
 					HSW_PWR_WELL_CTL_STATE(pw_idx),
@@ -620,7 +624,7 @@ static void gen9_wait_for_power_well_fuses(struct drm_i915_private *dev_priv,
 					   enum skl_power_gate pg)
 {
 	/* Timeout 5us for PG#0, for other PGs 1us */
-	WARN_ON(intel_wait_for_register(dev_priv, SKL_FUSE_STATUS,
+	WARN_ON(intel_wait_for_register(&dev_priv->uncore, SKL_FUSE_STATUS,
 					SKL_FUSE_PG_DIST_STATUS(pg),
 					SKL_FUSE_PG_DIST_STATUS(pg), 1));
 }
@@ -1521,7 +1525,7 @@ static void assert_chv_phy_status(struct drm_i915_private *dev_priv)
 	 * The PHY may be busy with some initial calibration and whatnot,
 	 * so the power state can take a while to actually change.
 	 */
-	if (intel_wait_for_register(dev_priv,
+	if (intel_wait_for_register(&dev_priv->uncore,
 				    DISPLAY_PHY_STATUS,
 				    phy_status_mask,
 				    phy_status,
@@ -1556,7 +1560,7 @@ static void chv_dpio_cmn_power_well_enable(struct drm_i915_private *dev_priv,
 	vlv_set_power_well(dev_priv, power_well, true);
 
 	/* Poll for phypwrgood signal */
-	if (intel_wait_for_register(dev_priv,
+	if (intel_wait_for_register(&dev_priv->uncore,
 				    DISPLAY_PHY_STATUS,
 				    PHY_POWERGOOD(phy),
 				    PHY_POWERGOOD(phy),
@@ -1760,7 +1764,7 @@ static bool chv_pipe_power_well_enabled(struct drm_i915_private *dev_priv,
 
 	mutex_lock(&dev_priv->pcu_lock);
 
-	state = vlv_punit_read(dev_priv, PUNIT_REG_DSPFREQ) & DP_SSS_MASK(pipe);
+	state = vlv_punit_read(dev_priv, PUNIT_REG_DSPSSPM) & DP_SSS_MASK(pipe);
 	/*
 	 * We only ever set the power-on and power-gate states, anything
 	 * else is unexpected.
@@ -1772,7 +1776,7 @@ static bool chv_pipe_power_well_enabled(struct drm_i915_private *dev_priv,
 	 * A transient state at this point would mean some unexpected party
 	 * is poking at the power controls too.
 	 */
-	ctrl = vlv_punit_read(dev_priv, PUNIT_REG_DSPFREQ) & DP_SSC_MASK(pipe);
+	ctrl = vlv_punit_read(dev_priv, PUNIT_REG_DSPSSPM) & DP_SSC_MASK(pipe);
 	WARN_ON(ctrl << 16 != state);
 
 	mutex_unlock(&dev_priv->pcu_lock);
@@ -1793,20 +1797,20 @@ static void chv_set_pipe_power_well(struct drm_i915_private *dev_priv,
 	mutex_lock(&dev_priv->pcu_lock);
 
 #define COND \
-	((vlv_punit_read(dev_priv, PUNIT_REG_DSPFREQ) & DP_SSS_MASK(pipe)) == state)
+	((vlv_punit_read(dev_priv, PUNIT_REG_DSPSSPM) & DP_SSS_MASK(pipe)) == state)
 
 	if (COND)
 		goto out;
 
-	ctrl = vlv_punit_read(dev_priv, PUNIT_REG_DSPFREQ);
+	ctrl = vlv_punit_read(dev_priv, PUNIT_REG_DSPSSPM);
 	ctrl &= ~DP_SSC_MASK(pipe);
 	ctrl |= enable ? DP_SSC_PWR_ON(pipe) : DP_SSC_PWR_GATE(pipe);
-	vlv_punit_write(dev_priv, PUNIT_REG_DSPFREQ, ctrl);
+	vlv_punit_write(dev_priv, PUNIT_REG_DSPSSPM, ctrl);
 
 	if (wait_for(COND, 100))
 		DRM_ERROR("timeout setting power well state %08x (%08x)\n",
 			  state,
-			  vlv_punit_read(dev_priv, PUNIT_REG_DSPFREQ));
+			  vlv_punit_read(dev_priv, PUNIT_REG_DSPSSPM));
 
 #undef COND
 
@@ -3576,7 +3580,11 @@ static void icl_dbuf_enable(struct drm_i915_private *dev_priv)
 	    !(I915_READ(DBUF_CTL_S2) & DBUF_POWER_STATE))
 		DRM_ERROR("DBuf power enable timeout\n");
 	else
-		dev_priv->wm.skl_hw.ddb.enabled_slices = 2;
+		/*
+		 * FIXME: for now pretend that we only have 1 slice, see
+		 * intel_enabled_dbuf_slices_num().
+		 */
+		dev_priv->wm.skl_hw.ddb.enabled_slices = 1;
 }
 
 static void icl_dbuf_disable(struct drm_i915_private *dev_priv)
@@ -3591,7 +3599,11 @@ static void icl_dbuf_disable(struct drm_i915_private *dev_priv)
 	    (I915_READ(DBUF_CTL_S2) & DBUF_POWER_STATE))
 		DRM_ERROR("DBuf power disable timeout!\n");
 	else
-		dev_priv->wm.skl_hw.ddb.enabled_slices = 0;
+		/*
+		 * FIXME: for now pretend that the first slice is always
+		 * enabled, see intel_enabled_dbuf_slices_num().
+		 */
+		dev_priv->wm.skl_hw.ddb.enabled_slices = 1;
 }
 
 static void icl_mbus_init(struct drm_i915_private *dev_priv)
@@ -3652,7 +3664,7 @@ static void skl_display_core_init(struct drm_i915_private *dev_priv,
 
 	mutex_unlock(&power_domains->lock);
 
-	skl_init_cdclk(dev_priv);
+	intel_cdclk_init(dev_priv);
 
 	gen9_dbuf_enable(dev_priv);
 
@@ -3669,7 +3681,7 @@ static void skl_display_core_uninit(struct drm_i915_private *dev_priv)
 
 	gen9_dbuf_disable(dev_priv);
 
-	skl_uninit_cdclk(dev_priv);
+	intel_cdclk_uninit(dev_priv);
 
 	/* The spec doesn't call for removing the reset handshake flag */
 	/* disable PG1 and Misc I/O */
@@ -3714,7 +3726,7 @@ void bxt_display_core_init(struct drm_i915_private *dev_priv,
 
 	mutex_unlock(&power_domains->lock);
 
-	bxt_init_cdclk(dev_priv);
+	intel_cdclk_init(dev_priv);
 
 	gen9_dbuf_enable(dev_priv);
 
@@ -3731,7 +3743,7 @@ void bxt_display_core_uninit(struct drm_i915_private *dev_priv)
 
 	gen9_dbuf_disable(dev_priv);
 
-	bxt_uninit_cdclk(dev_priv);
+	intel_cdclk_uninit(dev_priv);
 
 	/* The spec doesn't call for removing the reset handshake flag */
 
@@ -3773,7 +3785,7 @@ static void cnl_display_core_init(struct drm_i915_private *dev_priv, bool resume
 	mutex_unlock(&power_domains->lock);
 
 	/* 5. Enable CD clock */
-	cnl_init_cdclk(dev_priv);
+	intel_cdclk_init(dev_priv);
 
 	/* 6. Enable DBUF */
 	gen9_dbuf_enable(dev_priv);
@@ -3795,7 +3807,7 @@ static void cnl_display_core_uninit(struct drm_i915_private *dev_priv)
 	gen9_dbuf_disable(dev_priv);
 
 	/* 3. Disable CD clock */
-	cnl_uninit_cdclk(dev_priv);
+	intel_cdclk_uninit(dev_priv);
 
 	/*
 	 * 4. Disable Power Well 1 (PG1).
@@ -3837,7 +3849,7 @@ void icl_display_core_init(struct drm_i915_private *dev_priv,
 	mutex_unlock(&power_domains->lock);
 
 	/* 5. Enable CDCLK. */
-	icl_init_cdclk(dev_priv);
+	intel_cdclk_init(dev_priv);
 
 	/* 6. Enable DBUF. */
 	icl_dbuf_enable(dev_priv);
@@ -3862,7 +3874,7 @@ void icl_display_core_uninit(struct drm_i915_private *dev_priv)
 	icl_dbuf_disable(dev_priv);
 
 	/* 3. Disable CD clock */
-	icl_uninit_cdclk(dev_priv);
+	intel_cdclk_uninit(dev_priv);
 
 	/*
 	 * 4. Disable Power Well 1 (PG1).
@@ -3993,6 +4005,36 @@ static void vlv_cmnlane_wa(struct drm_i915_private *dev_priv)
 	cmn->desc->ops->disable(dev_priv, cmn);
 }
 
+static bool vlv_punit_is_power_gated(struct drm_i915_private *dev_priv, u32 reg0)
+{
+	bool ret;
+
+	mutex_lock(&dev_priv->pcu_lock);
+	ret = (vlv_punit_read(dev_priv, reg0) & SSPM0_SSC_MASK) == SSPM0_SSC_PWR_GATE;
+	mutex_unlock(&dev_priv->pcu_lock);
+
+	return ret;
+}
+
+static void assert_ved_power_gated(struct drm_i915_private *dev_priv)
+{
+	WARN(!vlv_punit_is_power_gated(dev_priv, PUNIT_REG_VEDSSPM0),
+	     "VED not power gated\n");
+}
+
+static void assert_isp_power_gated(struct drm_i915_private *dev_priv)
+{
+	static const struct pci_device_id isp_ids[] = {
+		{PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x0f38)},
+		{PCI_DEVICE(PCI_VENDOR_ID_INTEL, 0x22b8)},
+		{}
+	};
+
+	WARN(!pci_dev_present(isp_ids) &&
+	     !vlv_punit_is_power_gated(dev_priv, PUNIT_REG_ISPSSPM0),
+	     "ISP not power gated\n");
+}
+
 static void intel_power_domains_verify_state(struct drm_i915_private *dev_priv);
 
 /**
@@ -4029,10 +4071,13 @@ void intel_power_domains_init_hw(struct drm_i915_private *i915, bool resume)
 		mutex_lock(&power_domains->lock);
 		chv_phy_control_init(i915);
 		mutex_unlock(&power_domains->lock);
+		assert_isp_power_gated(i915);
 	} else if (IS_VALLEYVIEW(i915)) {
 		mutex_lock(&power_domains->lock);
 		vlv_cmnlane_wa(i915);
 		mutex_unlock(&power_domains->lock);
+		assert_ved_power_gated(i915);
+		assert_isp_power_gated(i915);
 	} else if (IS_IVYBRIDGE(i915) || INTEL_GEN(i915) >= 7) {
 		intel_pch_reset_handshake(i915, !HAS_PCH_NOP(i915));
 	}
