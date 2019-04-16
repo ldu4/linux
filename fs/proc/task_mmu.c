@@ -1251,8 +1251,10 @@ static ssize_t clear_refs_write(struct file *file, const char __user *buf,
 				}
 				mas_set(&mas, 0);
 				mas_for_each(&mas, vma, ULONG_MAX) {
-					vma->vm_flags &= ~VM_SOFTDIRTY;
+					WRITE_ONCE(vma->vm_flags,
+						 vma->vm_flags & ~VM_SOFTDIRTY);
 					vma_set_page_prot(vma);
+					vm_write_end(vma);
 				}
 				mmap_write_downgrade(mm);
 				break;
