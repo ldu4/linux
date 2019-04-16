@@ -167,6 +167,19 @@ void __free_vma(struct vm_area_struct *vma)
 	vm_area_free(vma);
 }
 
+#ifdef CONFIG_SPECULATIVE_PAGE_FAULT
+static void __vm_rcu_put(struct rcu_head *head)
+{
+	struct vm_area_struct *vma = container_of(head, struct vm_area_struct,
+						  vm_rcu);
+	__free_vma(vma);
+}
+void vm_rcu_put(struct vm_area_struct *vma)
+{
+	call_rcu(&vma->vm_rcu, __vm_rcu_put);
+}
+#endif /* CONFIG_SPECULATIVE_PAGE_FAULT */
+
 /*
  * Close a vm structure and free it, returning the next.
  */
@@ -1970,6 +1983,27 @@ find_vma_prev(struct mm_struct *mm, unsigned long addr,
 	rcu_read_unlock();
 	return vma;
 }
+
+#ifdef CONFIG_SPECULATIVE_PAGE_FAULT
+/*
+ * Like find_vma() but under the protection of RCU and the mm sequence counter.
+ * The vma returned has to be relaesed by the caller through the call to
+ * put_vma()
+ */
+struct vm_area_struct *find_vma_rcu(struct mm_struct *mm, unsigned long addr)
+{
+	struct vm_area_struct *vma = NULL;
+	MA_STATE(mas, &mm->mm_mt, addr, addr);
+
+	rcu_read_lock();
+	vma = mas_walk(&mas);
+	if (vma)
+		get_vma(vma);
+	rcu_read_unlock();
+
+	return vma;
+}
+#endif
 
 /*
  * Verify that the stack growth is acceptable and

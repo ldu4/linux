@@ -359,6 +359,7 @@ struct vm_area_struct {
 #ifdef CONFIG_SPECULATIVE_PAGE_FAULT
 	seqcount_t vm_sequence;
 	atomic_t vm_ref_count;
+	struct rcu_head vm_rcu;
 #endif
 } __randomize_layout;
 
