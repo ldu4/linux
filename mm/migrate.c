@@ -238,7 +238,7 @@ static bool remove_migration_pte(struct page *page, struct vm_area_struct *vma,
 		 */
 		entry = pte_to_swp_entry(*pvmw.pte);
 		if (is_write_migration_entry(entry))
-			pte = maybe_mkwrite(pte, vma);
+			pte = maybe_mkwrite(pte, vma->vm_flags);
 		else if (pte_swp_uffd_wp(*pvmw.pte))
 			pte = pte_mkuffd_wp(pte);
 
@@ -2233,7 +2233,7 @@ int migrate_misplaced_transhuge_page(struct mm_struct *mm,
 	}
 
 	entry = mk_huge_pmd(new_page, vma->vm_page_prot);
-	entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
+	entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma->vm_flags);
 
 	/*
 	 * Overwrite the old entry under pagetable lock and establish
