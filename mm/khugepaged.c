@@ -1012,6 +1012,8 @@ static bool __collapse_huge_page_swapin(struct mm_struct *mm,
 		.flags = FAULT_FLAG_ALLOW_RETRY,
 		.pmd = pmd,
 		.pgoff = linear_page_index(vma, address),
+		.vma_flags = vma->vm_flags,
+		.vma_page_prot = vma->vm_page_prot,
 	};
 
 	vmf.pte = pte_offset_map(pmd, address);
@@ -1190,7 +1192,7 @@ static void collapse_huge_page(struct mm_struct *mm,
 	pgtable = pmd_pgtable(_pmd);
 
 	_pmd = mk_huge_pmd(new_page, vma->vm_page_prot);
-	_pmd = maybe_pmd_mkwrite(pmd_mkdirty(_pmd), vma);
+	_pmd = maybe_pmd_mkwrite(pmd_mkdirty(_pmd), vma->vm_flags);
 
 	/*
 	 * spin_lock() below is not the equivalent of smp_wmb(), so
