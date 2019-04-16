@@ -2618,6 +2618,7 @@ cannot_expand:
 		goto unacct_error;
 	}
 
+	INIT_VMA(vma);
 	vma->vm_start = addr;
 	vma->vm_end = end;
 	vma->vm_flags = vm_flags;
@@ -3057,6 +3058,7 @@ static int do_brk_flags(struct ma_state *mas, struct ma_state *ma_prev,
 		goto vma_alloc_fail;
 
 	vma_set_anonymous(vma);
+	INIT_VMA(vma);
 	vma->vm_start = addr;
 	vma->vm_end = addr + len;
 	vma->vm_pgoff = addr >> PAGE_SHIFT;
@@ -3460,6 +3462,7 @@ static struct vm_area_struct *__install_special_mapping(
 	if (unlikely(vma == NULL))
 		return ERR_PTR(-ENOMEM);
 
+	INIT_VMA(vma);
 	vma->vm_start = addr;
 	vma->vm_end = addr + len;
 
