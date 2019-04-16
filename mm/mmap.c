@@ -168,6 +168,12 @@ void unlink_file_vma(struct vm_area_struct *vma)
 	}
 }
 
+void __free_vma(struct vm_area_struct *vma)
+{
+	mpol_put(vma_policy(vma));
+	vm_area_free(vma);
+}
+
 #ifdef CONFIG_SPECULATIVE_PAGE_FAULT
 static inline void mm_write_seqlock(struct mm_struct *mm)
 {
@@ -198,8 +204,8 @@ static struct vm_area_struct *remove_vma(struct vm_area_struct *vma)
 		vma->vm_ops->close(vma);
 	if (vma->vm_file)
 		fput(vma->vm_file);
-	mpol_put(vma_policy(vma));
-	vm_area_free(vma);
+	vma->vm_file = NULL;
+	put_vma(vma);
 	return next;
 }
 
@@ -676,6 +682,7 @@ void __vma_link_rb(struct mm_struct *mm, struct vm_area_struct *vma,
 	rb_link_node(&vma->vm_rb, rb_parent, rb_link);
 	vma->rb_subtree_gap = 0;
 	vma_gap_update(vma);
+	get_vma(vma);
 	vma_rb_insert(vma, mm);
 	mm_write_sequnlock(mm);
 }
@@ -1011,8 +1018,7 @@ again:
 		if (next->anon_vma)
 			anon_vma_merge(vma, next);
 		mm->map_count--;
-		mpol_put(vma_policy(next));
-		vm_area_free(next);
+		put_vma(next);
 		/*
 		 * In mprotect's case 6 (see comments on vma_merge),
 		 * we must remove another next too. It would clutter
