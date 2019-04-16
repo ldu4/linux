@@ -3140,6 +3140,15 @@ static struct ctl_table vm_table[] = {
 		.extra2		= SYSCTL_ONE,
 	},
 #endif
+#ifdef CONFIG_SPECULATIVE_PAGE_FAULT
+	{
+		.procname       = "speculative_page_fault",
+		.data           = &sysctl_speculative_page_fault,
+		.maxlen         = sizeof(sysctl_speculative_page_fault),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec,
+	},
+#endif
 	{ }
 };
 
