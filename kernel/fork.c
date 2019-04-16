@@ -468,7 +468,8 @@ EXPORT_SYMBOL(free_task);
 static __latent_entropy int dup_mmap(struct mm_struct *mm,
 					struct mm_struct *oldmm)
 {
-	struct vm_area_struct *mpnt, *tmp;
+
+	struct vm_area_struct *mpnt, *tmp, *last = NULL;
 	int retval;
 	unsigned long charge = 0;
 	MA_STATE(old_mas, &oldmm->mm_mt, 0, 0);
@@ -582,8 +583,18 @@ static __latent_entropy int dup_mmap(struct mm_struct *mm,
 		mas_store(&mas, tmp);
 
 		mm->map_count++;
-		if (!(tmp->vm_flags & VM_WIPEONFORK))
+		if (!(tmp->vm_flags & VM_WIPEONFORK)) {
+			if (IS_ENABLED(CONFIG_SPECULATIVE_PAGE_FAULT)) {
+				/*
+				 * Mark this VMA as changing to prevent the
+				 * speculative page fault handler to process
+				 * it until the TLB are flushed below.
+				 */
+				last = mpnt;
+				vm_raw_write_begin(mpnt);
+			}
 			retval = copy_page_range(tmp, mpnt);
+		}
 
 		if (tmp->vm_ops && tmp->vm_ops->open)
 			tmp->vm_ops->open(tmp);
@@ -597,6 +608,26 @@ loop_out:
 out:
 	mmap_write_unlock(mm);
 	flush_tlb_mm(oldmm);
+
+	if (IS_ENABLED(CONFIG_SPECULATIVE_PAGE_FAULT)) {
+		/*
+		 * Since the TLB has been flush, we can safely unmark the
+		 * copied VMAs and allows the speculative page fault handler to
+		 * process them again.
+		 * Walk back the VMA list from the last marked VMA.
+		 */
+		mas_reset(&old_mas);
+		mas_for_each(&old_mas, mpnt, ULONG_MAX) {
+			if (mpnt->vm_flags & VM_DONTCOPY)
+				continue;
+			if (!(mpnt->vm_flags & VM_WIPEONFORK)) {
+				vm_raw_write_end(mpnt);
+				if (mpnt == last)
+					break;
+			}
+		}
+	}
+
 	mmap_write_unlock(oldmm);
 	mas_destroy(&mas);
 	dup_userfaultfd_complete(&uf);
