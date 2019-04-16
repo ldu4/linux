@@ -1320,6 +1320,18 @@ void do_user_addr_fault(struct pt_regs *regs,
 #endif
 
 	/*
+	 * Do not try to do a speculative page fault if the fault was due to
+	 * protection keys since it can't be resolved.
+	 */
+	if (!(hw_error_code & X86_PF_PK)) {
+		fault = handle_speculative_fault(mm, address, flags, regs);
+		if (fault != VM_FAULT_RETRY) {
+			perf_sw_event(PERF_COUNT_SW_SPF, 1, regs, address);
+			goto done;
+		}
+	}
+
+	/*
 	 * Kernel-mode access to the user address space should only occur
 	 * on well-defined single instructions listed in the exception
 	 * tables.  But, an erroneous kernel fault occurring outside one of
@@ -1412,6 +1424,8 @@ good_area:
 	}
 
 	mmap_read_unlock(mm);
+
+done:
 	if (unlikely(fault & VM_FAULT_ERROR)) {
 		mm_fault_error(regs, hw_error_code, address, fault);
 		return;
