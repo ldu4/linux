@@ -39,6 +39,18 @@ vm_fault_t do_swap_page(struct vm_fault *vmf);
 #ifdef CONFIG_SPECULATIVE_PAGE_FAULT
 extern struct vm_area_struct *find_vma_rcu(struct mm_struct *mm,
 					   unsigned long addr);
+
+static inline bool vma_has_changed(struct vm_fault *vmf)
+{
+	unsigned int seq = READ_ONCE(vmf->vma->vm_sequence.sequence);
+
+	/*
+	 * Matches both the wmb in write_seqlock_{begin,end}()
+	 */
+	smp_rmb();
+
+	return seq != vmf->sequence;
+}
 #endif /* CONFIG_SPECULATIVE_PAGE_FAULT */
 
 void free_pgtables(struct mmu_gather *tlb, struct ma_state *mas,
