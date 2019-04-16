@@ -161,6 +161,12 @@ void unlink_file_vma(struct vm_area_struct *vma)
 	}
 }
 
+void __free_vma(struct vm_area_struct *vma)
+{
+	mpol_put(vma_policy(vma));
+	vm_area_free(vma);
+}
+
 /*
  * Close a vm structure and free it, returning the next.
  */
@@ -171,8 +177,8 @@ static void remove_vma(struct vm_area_struct *vma)
 		vma->vm_ops->close(vma);
 	if (vma->vm_file)
 		fput(vma->vm_file);
-	mpol_put(vma_policy(vma));
-	vm_area_free(vma);
+	vma->vm_file = NULL;
+	put_vma(vma);
 }
 
 static int do_brk_munmap(struct ma_state *mas, struct vm_area_struct *vma,
@@ -509,6 +515,7 @@ static inline void vma_mt_szero(struct mm_struct *mm, unsigned long start,
 static inline void vma_mt_store(struct mm_struct *mm, struct vm_area_struct *vma)
 {
 	trace_vma_mt_store(mm, vma);
+	WARN_ON_ONCE(atomic_read(&vma->vm_ref_count) < 1);
 	mtree_store_range(&mm->mm_mt, vma->vm_start, vma->vm_end - 1, vma,
 		GFP_KERNEL);
 }
@@ -522,6 +529,9 @@ static void vma_mas_link(struct mm_struct *mm, struct vm_area_struct *vma,
 		mapping = vma->vm_file->f_mapping;
 		i_mmap_lock_write(mapping);
 	}
+
+	VM_BUG_ON(atomic_read(&vma->vm_ref_count));
+	get_vma(vma);
 
 	vma_mas_store(vma, mas);
 	__vma_link_file(vma);
@@ -552,6 +562,10 @@ static inline void __insert_vm_struct(struct mm_struct *mm,
 	BUG_ON(mas_find(&mas, vma->vm_end - 1));
 	mas_reset(&mas);
 
+	VM_BUG_ON(atomic_read(&vma->vm_ref_count));
+	get_vma(vma);
+
+	mas_set_range(&mas, vma->vm_start, vma->vm_end - 1);
 	vma_mas_store(vma, &mas);
 	mm->map_count++;
 }
@@ -631,8 +645,7 @@ inline int vma_expand(struct ma_state *mas, struct vm_area_struct *vma,
 		if (next->anon_vma)
 			anon_vma_merge(vma, next);
 		mm->map_count--;
-		mpol_put(vma_policy(next));
-		vm_area_free(next);
+		put_vma(next);
 	}
 
 	validate_mm(mm);
@@ -880,8 +893,7 @@ again:
 		if (next->anon_vma)
 			anon_vma_merge(vma, next);
 		mm->map_count--;
-		mpol_put(vma_policy(next));
-		vm_area_free(next);
+		put_vma(next);
 		/*
 		 * In mprotect's case 6 (see comments on vma_merge),
 		 * we must remove another next too. It would clutter
@@ -3143,6 +3155,9 @@ static int do_brk_flags(struct ma_state *mas, struct ma_state *ma_prev,
 	vma->vm_pgoff = addr >> PAGE_SHIFT;
 	vma->vm_flags = flags;
 	vma->vm_page_prot = vm_get_page_prot(flags);
+
+	VM_BUG_ON(atomic_read(&vma->vm_ref_count));
+	get_vma(vma);
 	if (vma_mas_store(vma, mas))
 		goto mas_store_fail;
 

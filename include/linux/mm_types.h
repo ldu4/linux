@@ -358,6 +358,7 @@ struct vm_area_struct {
 	struct vm_userfaultfd_ctx vm_userfaultfd_ctx;
 #ifdef CONFIG_SPECULATIVE_PAGE_FAULT
 	seqcount_t vm_sequence;
+	atomic_t vm_ref_count;
 #endif
 } __randomize_layout;
 

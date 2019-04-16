@@ -578,6 +578,8 @@ static __latent_entropy int dup_mmap(struct mm_struct *mm,
 			reset_vma_resv_huge_pages(tmp);
 
 		/* Link the vma into the MT */
+		VM_BUG_ON(atomic_read(&tmp->vm_ref_count));
+		get_vma(tmp);
 		mas.index = tmp->vm_start;
 		mas.last = tmp->vm_end - 1;
 		mas_store(&mas, tmp);
