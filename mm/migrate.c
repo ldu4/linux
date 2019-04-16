@@ -2113,7 +2113,7 @@ static inline bool is_shared_exec_page(struct vm_area_struct *vma,
  * node. Caller is expected to have an elevated reference count on
  * the page that will be dropped by this function before returning.
  */
-int migrate_misplaced_page(struct page *page, struct vm_area_struct *vma,
+int migrate_misplaced_page(struct page *page, struct vm_fault *vmf,
 			   int node)
 {
 	pg_data_t *pgdat = NODE_DATA(node);
@@ -2124,8 +2124,16 @@ int migrate_misplaced_page(struct page *page, struct vm_area_struct *vma,
 	/*
 	 * Don't migrate file pages that are mapped in multiple processes
 	 * with execute permissions as they are probably shared libraries.
+	 *
+	 * We can't call is_shared_exec_page() here, because we need to use
+	 * vmf->vm_flags instead of vma->vm_flags directly because this can be
+	 * called in a speculative page fault path. vma_is_shmem() is safe,
+	 * because it is checking the vm_ops fields which is not expected to
+	 * change in our back.
 	 */
-	if (is_shared_exec_page(vma, page))
+	if (page_mapcount(page) != 1 &&
+	    (page_is_file_lru(page) || vma_is_shmem(vmf->vma)) &&
+	    (vmf->vma_flags & VM_EXEC))
 		goto out;
 
 	/*
