@@ -1668,7 +1668,7 @@ static void setup_getcpu(int cpu)
 	unsigned long cpudata = vdso_encode_cpunode(cpu, early_cpu_to_node(cpu));
 	struct desc_struct d = { };
 
-	if (static_cpu_has(X86_FEATURE_RDTSCP))
+	if (boot_cpu_has(X86_FEATURE_RDTSCP))
 		write_rdtscp_aux(cpudata);
 
 	/* Store CPU and node number in limit. */
@@ -1863,23 +1863,6 @@ void cpu_init(void)
 	load_fixmap_gdt(cpu);
 }
 #endif
-
-static void bsp_resume(void)
-{
-	if (this_cpu->c_bsp_resume)
-		this_cpu->c_bsp_resume(&boot_cpu_data);
-}
-
-static struct syscore_ops cpu_syscore_ops = {
-	.resume		= bsp_resume,
-};
-
-static int __init init_cpu_syscore(void)
-{
-	register_syscore_ops(&cpu_syscore_ops);
-	return 0;
-}
-core_initcall(init_cpu_syscore);
 
 /*
  * The microcode loader calls this upon late microcode load to recheck features,
