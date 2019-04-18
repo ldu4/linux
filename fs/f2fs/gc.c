@@ -665,12 +665,18 @@ static int ra_data_block(struct inode *inode, pgoff_t index)
 		goto put_page;
 	f2fs_put_dnode(&dn);
 
+	if (!__is_valid_data_blkaddr(dn.data_blkaddr)) {
+		err = -ENOENT;
+		goto put_page;
+	}
+
+got_it:
 	if (unlikely(!f2fs_is_valid_blkaddr(sbi, dn.data_blkaddr,
-						DATA_GENERIC))) {
+						DATA_GENERIC_ENHANCE))) {
 		err = -EFAULT;
 		goto put_page;
 	}
-got_it:
+
 	/* read page */
 	fio.page = page;
 	fio.new_blkaddr = fio.old_blkaddr = dn.data_blkaddr;
@@ -1175,6 +1181,7 @@ static int do_garbage_collect(struct f2fs_sb_info *sbi,
 				"type [%d, %d] in SSA and SIT",
 				segno, type, GET_SUM_TYPE((&sum->footer)));
 			set_sbi_flag(sbi, SBI_NEED_FSCK);
+			f2fs_stop_checkpoint(sbi, false);
 			goto skip;
 		}
 
@@ -1346,7 +1353,7 @@ void f2fs_build_gc_manager(struct f2fs_sb_info *sbi)
 	sbi->gc_pin_file_threshold = DEF_GC_FAILED_PINNED_FILES;
 
 	/* give warm/cold data area from slower device */
-	if (sbi->s_ndevs && !__is_large_section(sbi))
+	if (f2fs_is_multi_device(sbi) && !__is_large_section(sbi))
 		SIT_I(sbi)->last_victim[ALLOC_NEXT] =
 				GET_SEGNO(sbi, FDEV(0).end_blk) + 1;
 }

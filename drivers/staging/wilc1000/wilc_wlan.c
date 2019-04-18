@@ -11,7 +11,7 @@
 
 static inline bool is_wilc1000(u32 id)
 {
-	return ((id & 0xfffff000) == 0x100000 ? true : false);
+	return (id & 0xfffff000) == 0x100000;
 }
 
 static inline void acquire_bus(struct wilc *wilc, enum bus_acquire acquire)
@@ -408,7 +408,7 @@ void chip_wakeup(struct wilc *wilc)
 			wilc->hif_func->hif_write_reg(wilc, 1, reg & ~BIT(1));
 
 			do {
-				usleep_range(2 * 1000, 2 * 1000);
+				usleep_range(2000, 2500);
 				wilc_get_chipid(wilc, true);
 			} while (wilc_get_chipid(wilc, true) == 0);
 		} while (wilc_get_chipid(wilc, true) == 0);
@@ -423,7 +423,7 @@ void chip_wakeup(struct wilc *wilc)
 						     &clk_status_reg);
 
 			while ((clk_status_reg & 0x1) == 0) {
-				usleep_range(2 * 1000, 2 * 1000);
+				usleep_range(2000, 2500);
 
 				wilc->hif_func->hif_read_reg(wilc, 0xf1,
 							     &clk_status_reg);

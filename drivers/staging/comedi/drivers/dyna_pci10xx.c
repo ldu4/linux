@@ -54,7 +54,7 @@ static int dyna_pci10xx_ai_eoc(struct comedi_device *dev,
 	unsigned int status;
 
 	status = inw_p(dev->iobase);
-	if (status & (1 << 15))
+	if (status & BIT(15))
 		return 0;
 	return -EBUSY;
 }
@@ -106,10 +106,6 @@ static int dyna_pci10xx_insn_write_ao(struct comedi_device *dev,
 {
 	struct dyna_pci10xx_private *devpriv = dev->private;
 	int n;
-	unsigned int chan, range;
-
-	chan = CR_CHAN(insn->chanspec);
-	range = range_codes_pci1050_ai[CR_RANGE((insn->chanspec))];
 
 	mutex_lock(&devpriv->mutex);
 	for (n = 0; n < insn->n; n++) {
