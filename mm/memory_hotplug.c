@@ -542,7 +542,7 @@ static void __remove_section(struct zone *zone, struct mem_section *ms,
  * @zone: zone from which pages need to be removed
  * @phys_start_pfn: starting pageframe (must be aligned to start of a section)
  * @nr_pages: number of pages to remove (must be multiple of section size)
- * @altmap: alternative device page map or %NULL if default memmap is used
+ * @restrictions: optional alternative device page map and other features
  *
  * Generic helper function to remove section mappings and sysfs entries
  * for the section of the memory we are removing. Caller needs to make
@@ -550,17 +550,15 @@ static void __remove_section(struct zone *zone, struct mem_section *ms,
  * calling offline_pages().
  */
 void __remove_pages(struct zone *zone, unsigned long phys_start_pfn,
-		    unsigned long nr_pages, struct vmem_altmap *altmap)
+		unsigned long nr_pages, struct mhp_restrictions *restrictions)
 {
 	unsigned long i;
-	unsigned long map_offset = 0;
 	int sections_to_remove;
+	unsigned long map_offset = 0;
+	struct vmem_altmap *altmap = restrictions->altmap;
 
-	/* In the ZONE_DEVICE case device driver owns the memory region */
-	if (is_dev_zone(zone)) {
-		if (altmap)
-			map_offset = vmem_altmap_offset(altmap);
-	}
+	if (altmap)
+		map_offset = vmem_altmap_offset(altmap);
 
 	clear_zone_contiguous(zone);
 
@@ -1830,6 +1828,7 @@ static void __release_memory_resource(u64 start, u64 size)
  */
 void __ref __remove_memory(int nid, u64 start, u64 size)
 {
+	struct mhp_restrictions restrictions = { 0 };
 	int ret;
 
 	BUG_ON(check_hotplug_memory_range(start, size));
@@ -1851,7 +1850,7 @@ void __ref __remove_memory(int nid, u64 start, u64 size)
 	memblock_free(start, size);
 	memblock_remove(start, size);
 
-	arch_remove_memory(nid, start, size, NULL);
+	arch_remove_memory(nid, start, size, &restrictions);
 	__release_memory_resource(start, size);
 
 	try_offline_node(nid);

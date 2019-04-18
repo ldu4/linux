@@ -430,14 +430,14 @@ EXPORT_SYMBOL_GPL(memory_add_physaddr_to_nid);
 
 #ifdef CONFIG_MEMORY_HOTREMOVE
 void arch_remove_memory(int nid, u64 start, u64 size,
-			struct vmem_altmap *altmap)
+		struct mhp_restrictions *restrictions)
 {
 	unsigned long start_pfn = PFN_DOWN(start);
 	unsigned long nr_pages = size >> PAGE_SHIFT;
 	struct zone *zone;
 
 	zone = page_zone(pfn_to_page(start_pfn));
-	__remove_pages(zone, start_pfn, nr_pages, altmap);
+	__remove_pages(zone, start_pfn, nr_pages, restrictions);
 }
 #endif
 #endif /* CONFIG_MEMORY_HOTPLUG */
