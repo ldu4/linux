@@ -1142,8 +1142,9 @@ kernel_physical_mapping_remove(unsigned long start, unsigned long end)
 }
 
 void __ref arch_remove_memory(int nid, u64 start, u64 size,
-			      struct vmem_altmap *altmap)
+		struct mhp_restrictions *restrictions)
 {
+	struct vmem_altmap *altmap = restrictions->altmap;
 	unsigned long start_pfn = start >> PAGE_SHIFT;
 	unsigned long nr_pages = size >> PAGE_SHIFT;
 	struct page *page = pfn_to_page(start_pfn);
@@ -1153,7 +1154,7 @@ void __ref arch_remove_memory(int nid, u64 start, u64 size,
 	if (altmap)
 		page += vmem_altmap_offset(altmap);
 	zone = page_zone(page);
-	__remove_pages(zone, start_pfn, nr_pages, altmap);
+	__remove_pages(zone, start_pfn, nr_pages, restrictions);
 	kernel_physical_mapping_remove(start, start + size);
 }
 #endif

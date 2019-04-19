@@ -125,9 +125,10 @@ static inline bool movable_node_is_enabled(void)
 
 #ifdef CONFIG_MEMORY_HOTREMOVE
 extern void arch_remove_memory(int nid, u64 start, u64 size,
-			       struct vmem_altmap *altmap);
+		struct mhp_restrictions *restrictions);
 extern void __remove_pages(struct zone *zone, unsigned long start_pfn,
-			   unsigned long nr_pages, struct vmem_altmap *altmap);
+		unsigned long nr_pages,
+		struct mhp_restrictions *restrictions);
 #endif /* CONFIG_MEMORY_HOTREMOVE */
 
 /*
