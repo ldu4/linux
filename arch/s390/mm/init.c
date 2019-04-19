@@ -235,7 +235,7 @@ int arch_add_memory(int nid, u64 start, u64 size,
 
 #ifdef CONFIG_MEMORY_HOTREMOVE
 void arch_remove_memory(int nid, u64 start, u64 size,
-			struct vmem_altmap *altmap)
+		struct mhp_restrictions *restrictions)
 {
 	/*
 	 * There is no hardware or firmware interface which could trigger a

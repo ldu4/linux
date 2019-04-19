@@ -132,10 +132,11 @@ int __meminit arch_add_memory(int nid, u64 start, u64 size,
 
 #ifdef CONFIG_MEMORY_HOTREMOVE
 void __meminit arch_remove_memory(int nid, u64 start, u64 size,
-				  struct vmem_altmap *altmap)
+		struct mhp_restrictions *restrictions)
 {
 	unsigned long start_pfn = start >> PAGE_SHIFT;
 	unsigned long nr_pages = size >> PAGE_SHIFT;
+	struct vmem_altmap *altmap = restrictions->altmap;
 	struct page *page;
 	int ret;
 
@@ -147,7 +148,7 @@ void __meminit arch_remove_memory(int nid, u64 start, u64 size,
 	if (altmap)
 		page += vmem_altmap_offset(altmap);
 
-	__remove_pages(page_zone(page), start_pfn, nr_pages, altmap);
+	__remove_pages(page_zone(page), start_pfn, nr_pages, restrictions);
 
 	/* Remove htab bolted mappings for this section of memory */
 	start = (unsigned long)__va(start);
