@@ -1097,6 +1097,10 @@ static inline unsigned long section_nr_to_pfn(unsigned long sec)
 #define PAGES_PER_SUB_SECTION (SECTION_ACTIVE_SIZE / PAGE_SIZE)
 #define PAGE_SUB_SECTION_MASK (~(PAGES_PER_SUB_SECTION-1))
 
+#define SUB_SECTION_ALIGN_UP(pfn) (((pfn) + PAGES_PER_SUB_SECTION - 1) \
+		& PAGE_SUB_SECTION_MASK)
+#define SUB_SECTION_ALIGN_DOWN(pfn) ((pfn) & PAGE_SUB_SECTION_MASK)
+
 struct mem_section_usage {
 	/*
 	 * SECTION_ACTIVE_SIZE portions of the section that are populated in
