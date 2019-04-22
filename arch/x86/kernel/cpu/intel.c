@@ -596,6 +596,7 @@ detect_keyid_bits:
 	c->x86_phys_bits -= keyid_bits;
 }
 
+<<<<<<< HEAD
 static void init_intel_energy_perf(struct cpuinfo_x86 *c)
 {
 	u64 epb;
@@ -626,6 +627,8 @@ static void intel_bsp_resume(struct cpuinfo_x86 *c)
 	init_intel_energy_perf(c);
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 static void init_cpuid_fault(struct cpuinfo_x86 *c)
 {
 	u64 msr;
@@ -762,8 +765,6 @@ static void init_intel(struct cpuinfo_x86 *c)
 
 	if (cpu_has(c, X86_FEATURE_TME))
 		detect_tme(c);
-
-	init_intel_energy_perf(c);
 
 	init_intel_misc_features(c);
 }
@@ -1023,9 +1024,7 @@ static const struct cpu_dev intel_cpu_dev = {
 	.c_detect_tlb	= intel_detect_tlb,
 	.c_early_init   = early_init_intel,
 	.c_init		= init_intel,
-	.c_bsp_resume	= intel_bsp_resume,
 	.c_x86_vendor	= X86_VENDOR_INTEL,
 };
 
 cpu_dev_register(intel_cpu_dev);
-
