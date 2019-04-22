@@ -120,8 +120,6 @@ struct amd_nb {
 	 (1ULL << PERF_REG_X86_R13)   | \
 	 (1ULL << PERF_REG_X86_R14)   | \
 	 (1ULL << PERF_REG_X86_R15))
-<<<<<<< HEAD
-=======
 
 #define PEBS_XMM_REGS                   \
 	((1ULL << PERF_REG_X86_XMM0)  | \
@@ -140,7 +138,6 @@ struct amd_nb {
 	 (1ULL << PERF_REG_X86_XMM13) | \
 	 (1ULL << PERF_REG_X86_XMM14) | \
 	 (1ULL << PERF_REG_X86_XMM15))
->>>>>>> linux-next/akpm-base
 
 /*
  * Per register state.
