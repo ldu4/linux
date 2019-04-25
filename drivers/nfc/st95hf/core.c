@@ -995,8 +995,6 @@ static int st95hf_in_send_cmd(struct nfc_digital_dev *ddev,
 		goto free_skb_resp;
 	}
 
-	kfree_skb(skb);
-
 	return rc;
 
 free_skb_resp:
@@ -1074,6 +1072,12 @@ static const struct spi_device_id st95hf_id[] = {
 };
 MODULE_DEVICE_TABLE(spi, st95hf_id);
 
+static const struct of_device_id st95hf_spi_of_match[] = {
+        { .compatible = "st,st95hf" },
+        { },
+};
+MODULE_DEVICE_TABLE(of, st95hf_spi_of_match);
+
 static int st95hf_probe(struct spi_device *nfc_spi_dev)
 {
 	int ret;
@@ -1112,8 +1116,10 @@ static int st95hf_probe(struct spi_device *nfc_spi_dev)
 		}
 	}
 
+	sema_init(&st95context->exchange_lock, 1);
 	init_completion(&spicontext->done);
 	mutex_init(&spicontext->spi_lock);
+	mutex_init(&st95context->rm_lock);
 
 	/*
 	 * Store spicontext in spi device object for using it in
@@ -1197,9 +1203,6 @@ static int st95hf_probe(struct spi_device *nfc_spi_dev)
 	/* store st95context in nfc device object */
 	nfc_digital_set_drvdata(st95context->ddev, st95context);
 
-	sema_init(&st95context->exchange_lock, 1);
-	mutex_init(&st95context->rm_lock);
-
 	return ret;
 
 err_free_digital_device:
@@ -1260,6 +1263,7 @@ static struct spi_driver st95hf_driver = {
 	.driver = {
 		.name = "st95hf",
 		.owner = THIS_MODULE,
+		.of_match_table = of_match_ptr(st95hf_spi_of_match),
 	},
 	.id_table = st95hf_id,
 	.probe = st95hf_probe,
