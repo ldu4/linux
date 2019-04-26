@@ -769,7 +769,6 @@ ecryptfs_write_tag_70_packet(char *dest, size_t *remaining_bytes,
 	}
 
 	s->hash_desc->tfm = s->hash_tfm;
-	s->hash_desc->flags = CRYPTO_TFM_REQ_MAY_SLEEP;
 
 	rc = crypto_shash_digest(s->hash_desc,
 				 (u8 *)s->auth_tok->token.password.session_key_encryption_key,
@@ -1063,8 +1062,9 @@ ecryptfs_parse_tag_70_packet(char **filename, size_t *filename_size,
 		       "rc = [%d]\n", __func__, rc);
 		goto out_free_unlock;
 	}
-	while (s->decrypted_filename[s->i] != '\0'
-	       && s->i < s->block_aligned_filename_size)
+
+	while (s->i < s->block_aligned_filename_size &&
+	       s->decrypted_filename[s->i] != '\0')
 		s->i++;
 	if (s->i == s->block_aligned_filename_size) {
 		printk(KERN_WARNING "%s: Invalid tag 70 packet; could not "

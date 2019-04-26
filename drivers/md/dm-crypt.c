@@ -332,7 +332,6 @@ static int crypt_iv_essiv_init(struct crypt_config *cc)
 	int err;
 
 	desc->tfm = essiv->hash_tfm;
-	desc->flags = 0;
 
 	err = crypto_shash_digest(desc, cc->key, cc->key_size, essiv->salt);
 	shash_desc_zero(desc);
@@ -606,7 +605,6 @@ static int crypt_iv_lmk_one(struct crypt_config *cc, u8 *iv,
 	int i, r;
 
 	desc->tfm = lmk->hash_tfm;
-	desc->flags = 0;
 
 	r = crypto_shash_init(desc);
 	if (r)
@@ -768,7 +766,6 @@ static int crypt_iv_tcw_whitening(struct crypt_config *cc,
 
 	/* calculate crc32 for every 32bit part and xor it */
 	desc->tfm = tcw->crc32_tfm;
-	desc->flags = 0;
 	for (i = 0; i < 4; i++) {
 		r = crypto_shash_init(desc);
 		if (r)
@@ -1034,11 +1031,11 @@ static u8 *org_iv_of_dmreq(struct crypt_config *cc,
 	return iv_of_dmreq(cc, dmreq) + cc->iv_size;
 }
 
-static uint64_t *org_sector_of_dmreq(struct crypt_config *cc,
+static __le64 *org_sector_of_dmreq(struct crypt_config *cc,
 		       struct dm_crypt_request *dmreq)
 {
 	u8 *ptr = iv_of_dmreq(cc, dmreq) + cc->iv_size + cc->iv_size;
-	return (uint64_t*) ptr;
+	return (__le64 *) ptr;
 }
 
 static unsigned int *org_tag_of_dmreq(struct crypt_config *cc,
@@ -1074,7 +1071,7 @@ static int crypt_convert_block_aead(struct crypt_config *cc,
 	struct bio_vec bv_out = bio_iter_iovec(ctx->bio_out, ctx->iter_out);
 	struct dm_crypt_request *dmreq;
 	u8 *iv, *org_iv, *tag_iv, *tag;
-	uint64_t *sector;
+	__le64 *sector;
 	int r = 0;
 
 	BUG_ON(cc->integrity_iv_size && cc->integrity_iv_size != cc->iv_size);
@@ -1169,7 +1166,7 @@ static int crypt_convert_block_skcipher(struct crypt_config *cc,
 	struct scatterlist *sg_in, *sg_out;
 	struct dm_crypt_request *dmreq;
 	u8 *iv, *org_iv, *tag_iv;
-	uint64_t *sector;
+	__le64 *sector;
 	int r = 0;
 
 	/* Reject unexpected unaligned bio. */
