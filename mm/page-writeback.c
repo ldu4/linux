@@ -2818,7 +2818,7 @@ void wait_on_page_writeback(struct page *page)
 		wait_on_page_bit(page, PG_writeback);
 	}
 }
-EXPORT_SYMBOL_GPL(wait_on_page_writeback);
+EXPORT_SYMBOL(wait_on_page_writeback);
 
 /**
  * wait_for_stable_page() - wait for writeback to finish, if necessary.
