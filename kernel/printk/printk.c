@@ -2552,8 +2552,12 @@ void console_flush_on_panic(enum con_flush_mode mode)
 	console_may_schedule = 0;
 
 	if (mode == CONSOLE_REPLAY_ALL) {
+		unsigned long flags;
+
+		logbuf_lock_irqsave(flags);
 		console_seq = log_first_seq;
 		console_idx = log_first_idx;
+		logbuf_unlock_irqrestore(flags);
 	}
 	console_unlock();
 }
