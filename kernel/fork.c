@@ -1736,22 +1736,19 @@ static int pidfd_create(struct pid *pid)
 	return fd;
 }
 
-#ifdef CONFIG_MEMCG
 static void __delayed_free_task(struct rcu_head *rhp)
 {
 	struct task_struct *tsk = container_of(rhp, struct task_struct, rcu);
 
 	free_task(tsk);
 }
-#endif /* CONFIG_MEMCG */
 
 static __always_inline void delayed_free_task(struct task_struct *tsk)
 {
-#ifdef CONFIG_MEMCG
-	call_rcu(&tsk->rcu, __delayed_free_task);
-#else /* CONFIG_MEMCG */
-	free_task(tsk);
-#endif /* CONFIG_MEMCG */
+	if (IS_ENABLED(CONFIG_MEMCG))
+		call_rcu(&tsk->rcu, __delayed_free_task);
+	else
+		free_task(tsk);
 }
 
 /*
