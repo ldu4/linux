@@ -2255,7 +2255,7 @@ void kvm_vcpu_block(struct kvm_vcpu *vcpu)
 	u64 block_ns;
 
 	start = cur = ktime_get();
-	if (vcpu->halt_poll_ns) {
+	if (vcpu->halt_poll_ns && !kvm_arch_no_poll(vcpu)) {
 		ktime_t stop = ktime_add_ns(ktime_get(), vcpu->halt_poll_ns);
 
 		++vcpu->stat.halt_attempted_poll;
@@ -2886,6 +2886,16 @@ out:
 }
 #endif
 
+static int kvm_device_mmap(struct file *filp, struct vm_area_struct *vma)
+{
+	struct kvm_device *dev = filp->private_data;
+
+	if (dev->ops->mmap)
+		return dev->ops->mmap(dev, vma);
+
+	return -ENODEV;
+}
+
 static int kvm_device_ioctl_attr(struct kvm_device *dev,
 				 int (*accessor)(struct kvm_device *dev,
 						 struct kvm_device_attr *attr),
@@ -2930,6 +2940,19 @@ static int kvm_device_release(struct inode *inode, struct file *filp)
 	struct kvm_device *dev = filp->private_data;
 	struct kvm *kvm = dev->kvm;
 
+	if (!dev)
+		return -ENODEV;
+
+	if (dev->kvm != kvm)
+		return -EPERM;
+
+	if (dev->ops->release) {
+		mutex_lock(&kvm->lock);
+		list_del(&dev->vm_node);
+		dev->ops->release(dev);
+		mutex_unlock(&kvm->lock);
+	}
+
 	kvm_put_kvm(kvm);
 	return 0;
 }
@@ -2938,6 +2961,7 @@ static const struct file_operations kvm_device_fops = {
 	.unlocked_ioctl = kvm_device_ioctl,
 	.release = kvm_device_release,
 	KVM_COMPAT(kvm_device_ioctl),
+	.mmap = kvm_device_mmap,
 };
 
 struct kvm_device *kvm_device_from_filp(struct file *filp)
@@ -3065,6 +3089,8 @@ static long kvm_vm_ioctl_check_extension_generic(struct kvm *kvm, long arg)
 #endif
 	case KVM_CAP_MAX_VCPU_ID:
 		return KVM_MAX_VCPU_ID;
+	case KVM_CAP_NR_MEMSLOTS:
+		return KVM_USER_MEM_SLOTS;
 	default:
 		break;
 	}
