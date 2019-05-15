@@ -94,6 +94,7 @@ config IOMMU_DMA
 	bool
 	select IOMMU_API
 	select IOMMU_IOVA
+	select IRQ_MSI_IOMMU
 	select NEED_SG_DMA_LENGTH
 
 config FSL_PAMU
@@ -470,5 +471,16 @@ config HYPERV_IOMMU
 	help
 	  Stub IOMMU driver to handle IRQs as to allow Hyper-V Linux
 	  guests to run with x2APIC mode enabled.
+
+config VIRTIO_IOMMU
+	bool "Virtio IOMMU driver"
+	depends on VIRTIO=y
+	depends on ARM64
+	select IOMMU_API
+	select INTERVAL_TREE
+	help
+	  Para-virtualised IOMMU driver with virtio.
+
+	  Say Y here if you intend to run this kernel as a guest.
 
 endif # IOMMU_SUPPORT
