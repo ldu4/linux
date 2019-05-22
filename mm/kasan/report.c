@@ -230,7 +230,7 @@ static void print_decoded_frame_descr(const char *frame_descr)
 		return;
 
 	pr_err("\n");
-	pr_err("this frame has %zu %s:\n", num_objects,
+	pr_err("this frame has %lu %s:\n", num_objects,
 	       num_objects == 1 ? "object" : "objects");
 
 	while (num_objects--) {
@@ -257,7 +257,7 @@ static void print_decoded_frame_descr(const char *frame_descr)
 		strreplace(token, ':', '\0');
 
 		/* Finally, print object information. */
-		pr_err(" [%zu, %zu) '%s'", offset, offset + size, token);
+		pr_err(" [%lu, %lu) '%s'", offset, offset + size, token);
 	}
 }
 
