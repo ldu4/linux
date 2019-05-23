@@ -517,6 +517,10 @@ struct drm_connector_state {
 	 * Used by the atomic helpers to select the encoder, through the
 	 * &drm_connector_helper_funcs.atomic_best_encoder or
 	 * &drm_connector_helper_funcs.best_encoder callbacks.
+	 *
+	 * NOTE: Atomic drivers must fill this out (either themselves or through
+	 * helpers), for otherwise the GETCONNECTOR and GETENCODER IOCTLs will
+	 * not return correct data to userspace.
 	 */
 	struct drm_encoder *best_encoder;
 
@@ -1062,12 +1066,6 @@ struct drm_connector {
 	struct drm_property *vrr_capable_property;
 
 	/**
-	 * @content_protection_property: DRM ENUM property for content
-	 * protection. See drm_connector_attach_content_protection_property().
-	 */
-	struct drm_property *content_protection_property;
-
-	/**
 	 * @colorspace_property: Connector property to set the suitable
 	 * colorspace supported by the sink.
 	 */
@@ -1344,8 +1342,6 @@ int drm_connector_attach_content_type_property(struct drm_connector *dev);
 int drm_connector_attach_scaling_mode_property(struct drm_connector *connector,
 					       u32 scaling_mode_mask);
 int drm_connector_attach_vrr_capable_property(
-		struct drm_connector *connector);
-int drm_connector_attach_content_protection_property(
 		struct drm_connector *connector);
 int drm_mode_create_aspect_ratio_property(struct drm_device *dev);
 int drm_mode_create_colorspace_property(struct drm_connector *connector);
