@@ -2205,7 +2205,7 @@ static int io_cqring_wait(struct io_ring_ctx *ctx, int min_events,
 		ret = -EINTR;
 
 	if (sig) {
-		signal_detected = restore_user_sigmask(sig, &sigsaved);
+		int signal_detected = restore_user_sigmask(sig, &sigsaved);
 		if (signal_detected && !ret)
 			ret  = -EINTR;
 	}
