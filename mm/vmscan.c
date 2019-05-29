@@ -1138,8 +1138,10 @@ static unsigned long shrink_page_list(struct list_head *page_list,
 		if (unlikely(!page_evictable(page)))
 			goto activate_locked;
 
-		if (!sc->may_unmap && page_mapped(page))
+		if (!sc->may_unmap && page_mapped(page)) {
+			VM_WARN_ON(true);
 			goto keep_locked;
+		}
 
 		may_enter_fs = (sc->gfp_mask & __GFP_FS) ||
 			(PageSwapCache(page) && (sc->gfp_mask & __GFP_IO));
@@ -1657,7 +1659,6 @@ static __always_inline void update_lru_sizes(struct lruvec *lruvec,
  * @dst:	The temp list to put pages on to.
  * @nr_scanned:	The number of pages that were scanned.
  * @sc:		The scan_control struct for this reclaim session
- * @mode:	One of the LRU isolation modes
  * @lru:	LRU list id for isolating
  *
  * returns how many pages were moved onto *@dst.
