@@ -331,15 +331,12 @@ static int dp83867_config_init(struct phy_device *phydev)
 			return ret;
 
 		/* Set up RGMII delays */
-<<<<<<< HEAD
-=======
 		/* If rgmii mode with no internal delay is selected,
 		 * we do NOT use aligned mode as one might expect.  Instead
 		 * we use the PHY's default based on pin strapping.  And the
 		 * "mode 0" default is to *use* * internal delay with a
 		 * value of 7 (2.00 ns).
 		*/
->>>>>>> linux-next/akpm-base
 		val = phy_read_mmd(phydev, DP83867_DEVADDR, DP83867_RGMIICTL);
 
 		val &= ~(DP83867_RGMII_TX_CLK_DELAY_EN | DP83867_RGMII_RX_CLK_DELAY_EN);

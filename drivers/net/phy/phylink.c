@@ -496,27 +496,6 @@ static void phylink_resolve(struct work_struct *w)
 		}
 	}
 
-<<<<<<< HEAD
-	if (link_state.link != netif_carrier_ok(ndev)) {
-		if (!link_state.link) {
-			netif_carrier_off(ndev);
-			pl->ops->mac_link_down(ndev, pl->link_an_mode,
-					       pl->cur_interface);
-			netdev_info(ndev, "Link is Down\n");
-		} else {
-			pl->cur_interface = link_state.interface;
-			pl->ops->mac_link_up(ndev, pl->link_an_mode,
-					     pl->cur_interface, pl->phydev);
-
-			netif_carrier_on(ndev);
-
-			netdev_info(ndev,
-				    "Link is Up - %s/%s - flow control %s\n",
-				    phy_speed_to_str(link_state.speed),
-				    phy_duplex_to_str(link_state.duplex),
-				    phylink_pause_to_str(link_state.pause));
-		}
-=======
 	if (pl->netdev)
 		link_changed = (link_state.link != netif_carrier_ok(ndev));
 	else
@@ -528,7 +507,6 @@ static void phylink_resolve(struct work_struct *w)
 			phylink_mac_link_down(pl);
 		else
 			phylink_mac_link_up(pl, link_state);
->>>>>>> linux-next/akpm-base
 	}
 	if (!link_state.link && pl->mac_link_dropped) {
 		pl->mac_link_dropped = false;

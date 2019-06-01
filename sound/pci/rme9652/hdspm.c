@@ -23,8 +23,6 @@
  *      Modified 2011-01-14 added S/PDIF input on RayDATs by Adrian Knoth
  *
  *	Modified 2011-01-25 variable period sizes on RayDAT/AIO by Adrian Knoth
-<<<<<<< HEAD
-=======
  *
  *      Modified 2019-05-23 fix AIO single speed ADAT capture and playback
  *      by Philippe.Bekaert@uhasselt.be
@@ -43,7 +41,6 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
->>>>>>> linux-next/akpm-base
  */
 
 /* *************    Register Documentation   *******************************************************

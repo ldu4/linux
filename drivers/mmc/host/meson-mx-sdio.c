@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-// SPDX-License-Identifier: GPL-2.0-or-later
-=======
 // SPDX-License-Identifier: GPL-2.0+
->>>>>>> linux-next/akpm-base
 /*
  * meson-mx-sdio.c - Meson6, Meson8 and Meson8b SDIO/MMC Host Controller
  *

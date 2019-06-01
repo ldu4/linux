@@ -398,12 +398,7 @@ static int toneport_setup(struct usb_line6_toneport *toneport)
 */
 static void line6_toneport_disconnect(struct usb_line6 *line6)
 {
-<<<<<<< HEAD
-	struct usb_line6_toneport *toneport =
-		(struct usb_line6_toneport *)line6;
-=======
 	struct usb_line6_toneport *toneport = line6_to_toneport(line6);
->>>>>>> linux-next/akpm-base
 
 	if (toneport_has_led(toneport))
 		toneport_remove_leds(toneport);

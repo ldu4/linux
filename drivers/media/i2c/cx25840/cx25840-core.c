@@ -1,29 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
-/* cx25840 - Conexant CX25840 audio/video decoder driver
- *
- * Copyright (C) 2004 Ulf Eklund
- *
- * Based on the saa7115 driver and on the first version of Chris Kennedy's
- * cx25840 driver.
- *
- * Changes by Tyler Trafford <tatrafford@comcast.net>
- *    - cleanup/rewrite for V4L2 API (2005)
- *
- * VBI support by Hans Verkuil <hverkuil@xs4all.nl>.
- *
- * NTSC sliced VBI support by Christopher Neufeld <television@cneufeld.ca>
- * with additional fixes by Hans Verkuil <hverkuil@xs4all.nl>.
- *
- * CX23885 support by Steven Toth <stoth@linuxtv.org>.
- *
- * CX2388[578] IRQ handling, IO Pin mux configuration and other small fixes are
- * Copyright (C) 2010 Andy Walls <awalls@md.metrocast.net>
- *
- * CX23888 DIF support for the HVR1850
- * Copyright (C) 2011 Steven Toth <stoth@kernellabs.com>
-<<<<<<< HEAD
-=======
- *
+/*
  * CX2584x pin to pad mapping and output format configuration support are
  * Copyright (C) 2011 Maciej S. Szmigiero <mail@maciej.szmigiero.name>
  *
@@ -36,7 +11,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
->>>>>>> linux-next/akpm-base
  */
 
 #include <linux/kernel.h>

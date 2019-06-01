@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-// SPDX-License-Identifier: GPL-2.0-or-later
-=======
 // SPDX-License-Identifier: GPL-2.0+
->>>>>>> linux-next/akpm-base
 /*
  * OnKey device driver for DA9063, DA9062 and DA9061 PMICs
  * Copyright (C) 2015  Dialog Semiconductor Ltd.

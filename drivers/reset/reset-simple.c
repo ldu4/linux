@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-// SPDX-License-Identifier: GPL-2.0-or-later
-=======
 // SPDX-License-Identifier: GPL-2.0+
->>>>>>> linux-next/akpm-base
 /*
  * Simple Reset Controller Driver
  *

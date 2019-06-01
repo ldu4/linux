@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-// SPDX-License-Identifier: GPL-2.0-only
-=======
 // SPDX-License-Identifier: GPL-2.0
->>>>>>> linux-next/akpm-base
 /*
  * Copyright (C) 2003 Christoph Hellwig.
  */
