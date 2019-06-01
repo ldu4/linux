@@ -1,12 +1,19 @@
+<<<<<<< HEAD
 /* SPDX-License-Identifier: GPL-2.0-or-later */
+=======
+/* SPDX-License-Identifier: GPL-2.0+ */
+>>>>>>> linux-next/akpm-base
 /*
  * RFC 3720 (iSCSI) protocol data types
  *
  * Copyright (C) 2005 Dmitry Yusupov
  * Copyright (C) 2005 Alex Aizman
  * maintained by open-iscsi@googlegroups.com
+<<<<<<< HEAD
  *
  * See the file COPYING included with this distribution for more details.
+=======
+>>>>>>> linux-next/akpm-base
  */
 
 #ifndef ISCSI_PROTO_H

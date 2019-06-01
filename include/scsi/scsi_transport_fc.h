@@ -1,11 +1,18 @@
+<<<<<<< HEAD
 /* SPDX-License-Identifier: GPL-2.0-or-later */
+=======
+/* SPDX-License-Identifier: GPL-2.0+ */
+>>>>>>> linux-next/akpm-base
 /*
  *  FiberChannel transport specific attributes exported to sysfs.
  *
  *  Copyright (c) 2003 Silicon Graphics, Inc.  All rights reserved.
+<<<<<<< HEAD
  *
  *  ========
  *
+=======
+>>>>>>> linux-next/akpm-base
  *  Copyright (C) 2004-2007   James Smart, Emulex Corporation
  *    Rewrite for host, target, device, and remote port attributes,
  *    statistics, and service functions...

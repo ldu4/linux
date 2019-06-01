@@ -253,16 +253,22 @@ void arm64_force_sig_fault(int signo, int code, void __user *addr,
 {
 	arm64_show_signal(signo, str);
 	if (signo == SIGKILL)
+<<<<<<< HEAD
 		force_sig(SIGKILL, current);
 	else
 		force_sig_fault(signo, code, addr, current);
+=======
+		force_sig(SIGKILL);
+	else
+		force_sig_fault(signo, code, addr);
+>>>>>>> linux-next/akpm-base
 }
 
 void arm64_force_sig_mceerr(int code, void __user *addr, short lsb,
 			    const char *str)
 {
 	arm64_show_signal(SIGBUS, str);
-	force_sig_mceerr(code, addr, lsb, current);
+	force_sig_mceerr(code, addr, lsb);
 }
 
 void arm64_force_sig_ptrace_errno_trap(int errno, void __user *addr,

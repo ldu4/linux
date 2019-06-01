@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // SPDX-License-Identifier: GPL-2.0-or-later
+=======
+// SPDX-License-Identifier: GPL-2.0+
+>>>>>>> linux-next/akpm-base
 /*
  * iSCSI over TCP/IP Data-Path lib
  *
@@ -8,8 +12,11 @@
  * Copyright (C) 2006 Red Hat, Inc.  All rights reserved.
  * maintained by open-iscsi@googlegroups.com
  *
+<<<<<<< HEAD
  * See the file COPYING included with this distribution for more details.
  *
+=======
+>>>>>>> linux-next/akpm-base
  * Credits:
  *	Christoph Hellwig
  *	FUJITA Tomonori

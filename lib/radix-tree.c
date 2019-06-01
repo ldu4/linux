@@ -291,7 +291,7 @@ out:
 		ret->count = count;
 		ret->nr_values = nr_values;
 		ret->parent = parent;
-		ret->array = root;
+		ret->tree = root;
 	}
 	return ret;
 }
