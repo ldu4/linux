@@ -270,7 +270,7 @@ struct ib_port_data_rcu {
 	struct ib_port_data pdata[];
 };
 
-static int ib_device_check_mandatory(struct ib_device *device)
+static void ib_device_check_mandatory(struct ib_device *device)
 {
 #define IB_MANDATORY_FUNC(x) { offsetof(struct ib_device_ops, x), #x }
 	static const struct {
@@ -305,8 +305,6 @@ static int ib_device_check_mandatory(struct ib_device *device)
 			break;
 		}
 	}
-
-	return 0;
 }
 
 /*
@@ -409,27 +407,44 @@ static int rename_compat_devs(struct ib_device *device)
 
 int ib_device_rename(struct ib_device *ibdev, const char *name)
 {
+	unsigned long index;
+	void *client_data;
 	int ret;
 
 	down_write(&devices_rwsem);
 	if (!strcmp(name, dev_name(&ibdev->dev))) {
-		ret = 0;
-		goto out;
+		up_write(&devices_rwsem);
+		return 0;
 	}
 
 	if (__ib_device_get_by_name(name)) {
-		ret = -EEXIST;
-		goto out;
+		up_write(&devices_rwsem);
+		return -EEXIST;
 	}
 
 	ret = device_rename(&ibdev->dev, name);
-	if (ret)
-		goto out;
+	if (ret) {
+		up_write(&devices_rwsem);
+		return ret;
+	}
+
 	strlcpy(ibdev->name, name, IB_DEVICE_NAME_MAX);
 	ret = rename_compat_devs(ibdev);
-out:
-	up_write(&devices_rwsem);
-	return ret;
+
+	downgrade_write(&devices_rwsem);
+	down_read(&ibdev->client_data_rwsem);
+	xan_for_each_marked(&ibdev->client_data, index, client_data,
+			    CLIENT_DATA_REGISTERED) {
+		struct ib_client *client = xa_load(&clients, index);
+
+		if (!client || !client->rename)
+			continue;
+
+		client->rename(ibdev, client_data);
+	}
+	up_read(&ibdev->client_data_rwsem);
+	up_read(&devices_rwsem);
+	return 0;
 }
 
 static int alloc_name(struct ib_device *ibdev, const char *name)
@@ -474,14 +489,15 @@ static void ib_device_release(struct device *device)
 
 	free_netdevs(dev);
 	WARN_ON(refcount_read(&dev->refcount));
-	ib_cache_release_one(dev);
-	ib_security_release_port_pkey_list(dev);
-	xa_destroy(&dev->compat_devs);
-	xa_destroy(&dev->client_data);
-	if (dev->port_data)
+	if (dev->port_data) {
+		ib_cache_release_one(dev);
+		ib_security_release_port_pkey_list(dev);
 		kfree_rcu(container_of(dev->port_data, struct ib_port_data_rcu,
 				       pdata[0]),
 			  rcu_head);
+	}
+	xa_destroy(&dev->compat_devs);
+	xa_destroy(&dev->client_data);
 	kfree_rcu(dev, rcu_head);
 }
 
@@ -1175,10 +1191,7 @@ static int setup_device(struct ib_device *device)
 	int ret;
 
 	setup_dma_device(device);
-
-	ret = ib_device_check_mandatory(device);
-	if (ret)
-		return ret;
+	ib_device_check_mandatory(device);
 
 	ret = setup_port_data(device);
 	if (ret) {
@@ -1934,6 +1947,9 @@ static void free_netdevs(struct ib_device *ib_dev)
 {
 	unsigned long flags;
 	unsigned int port;
+
+	if (!ib_dev->port_data)
+		return;
 
 	rdma_for_each_port (ib_dev, port) {
 		struct ib_port_data *pdata = &ib_dev->port_data[port];

@@ -252,7 +252,7 @@ static int tls_push_record(struct sock *sk,
 			 skb_frag_address(frag),
 			 record->len - prot->prepend_size,
 			 record_type,
-			 ctx->crypto_send.info.version);
+			 prot->version);
 
 	/* HW doesn't care about the data in the tag, because it fills it. */
 	dummy_tag_frag.page = skb_frag_page(frag);
@@ -264,7 +264,7 @@ static int tls_push_record(struct sock *sk,
 	list_add_tail(&record->list, &offload_ctx->records_list);
 	spin_unlock_irq(&offload_ctx->lock);
 	offload_ctx->open_record = NULL;
-	tls_advance_record_sn(sk, &ctx->tx, ctx->crypto_send.info.version);
+	tls_advance_record_sn(sk, prot, &ctx->tx);
 
 	for (i = 0; i < record->num_frags; i++) {
 		frag = &record->frags[i];
@@ -550,11 +550,23 @@ void tls_device_write_space(struct sock *sk, struct tls_context *ctx)
 	}
 }
 
+static void tls_device_resync_rx(struct tls_context *tls_ctx,
+				 struct sock *sk, u32 seq, u64 rcd_sn)
+{
+	struct net_device *netdev;
+
+	if (WARN_ON(test_and_set_bit(TLS_RX_SYNC_RUNNING, &tls_ctx->flags)))
+		return;
+	netdev = READ_ONCE(tls_ctx->netdev);
+	if (netdev)
+		netdev->tlsdev_ops->tls_dev_resync_rx(netdev, sk, seq, rcd_sn);
+	clear_bit_unlock(TLS_RX_SYNC_RUNNING, &tls_ctx->flags);
+}
+
 void handle_device_resync(struct sock *sk, u32 seq, u64 rcd_sn)
 {
 	struct tls_context *tls_ctx = tls_get_ctx(sk);
 	struct tls_offload_context_rx *rx_ctx;
-	struct net_device *netdev;
 	u32 is_req_pending;
 	s64 resync_req;
 	u32 req_seq;
@@ -570,12 +582,7 @@ void handle_device_resync(struct sock *sk, u32 seq, u64 rcd_sn)
 	if (unlikely(is_req_pending) && req_seq == seq &&
 	    atomic64_try_cmpxchg(&rx_ctx->resync_req, &resync_req, 0)) {
 		seq += TLS_HEADER_SIZE - 1;
-		down_read(&device_offload_lock);
-		netdev = tls_ctx->netdev;
-		if (netdev)
-			netdev->tlsdev_ops->tls_dev_resync_rx(netdev, sk, seq,
-							      rcd_sn);
-		up_read(&device_offload_lock);
+		tls_device_resync_rx(tls_ctx, sk, seq, rcd_sn);
 	}
 }
 
@@ -603,8 +610,10 @@ static int tls_device_reencrypt(struct sock *sk, struct sk_buff *skb)
 	sg_set_buf(&sg[0], buf,
 		   rxm->full_len + TLS_HEADER_SIZE +
 		   TLS_CIPHER_AES_GCM_128_IV_SIZE);
-	skb_copy_bits(skb, offset, buf,
-		      TLS_HEADER_SIZE + TLS_CIPHER_AES_GCM_128_IV_SIZE);
+	err = skb_copy_bits(skb, offset, buf,
+			    TLS_HEADER_SIZE + TLS_CIPHER_AES_GCM_128_IV_SIZE);
+	if (err)
+		goto free_buf;
 
 	/* We are interested only in the decrypted data not the auth */
 	err = decrypt_skb(sk, skb, sg);
@@ -618,8 +627,11 @@ static int tls_device_reencrypt(struct sock *sk, struct sk_buff *skb)
 	if (skb_pagelen(skb) > offset) {
 		copy = min_t(int, skb_pagelen(skb) - offset, data_len);
 
-		if (skb->decrypted)
-			skb_store_bits(skb, offset, buf, copy);
+		if (skb->decrypted) {
+			err = skb_store_bits(skb, offset, buf, copy);
+			if (err)
+				goto free_buf;
+		}
 
 		offset += copy;
 		buf += copy;
@@ -642,8 +654,11 @@ static int tls_device_reencrypt(struct sock *sk, struct sk_buff *skb)
 		copy = min_t(int, skb_iter->len - frag_pos,
 			     data_len + rxm->offset - offset);
 
-		if (skb_iter->decrypted)
-			skb_store_bits(skb_iter, frag_pos, buf, copy);
+		if (skb_iter->decrypted) {
+			err = skb_store_bits(skb_iter, frag_pos, buf, copy);
+			if (err)
+				goto free_buf;
+		}
 
 		offset += copy;
 		buf += copy;
@@ -663,10 +678,6 @@ int tls_device_decrypted(struct sock *sk, struct sk_buff *skb)
 	int is_decrypted = skb->decrypted;
 	int is_encrypted = !is_decrypted;
 	struct sk_buff *skb_iter;
-
-	/* Skip if it is already decrypted */
-	if (ctx->sw.decrypted)
-		return 0;
 
 	/* Check if all the data is decrypted already */
 	skb_walk_frags(skb, skb_iter) {
@@ -977,7 +988,10 @@ static int tls_device_down(struct net_device *netdev)
 		if (ctx->rx_conf == TLS_HW)
 			netdev->tlsdev_ops->tls_dev_del(netdev, ctx,
 							TLS_OFFLOAD_CTX_DIR_RX);
-		ctx->netdev = NULL;
+		WRITE_ONCE(ctx->netdev, NULL);
+		smp_mb__before_atomic(); /* pairs with test_and_set_bit() */
+		while (test_bit(TLS_RX_SYNC_RUNNING, &ctx->flags))
+			usleep_range(10, 200);
 		dev_put(netdev);
 		list_del_init(&ctx->list);
 
