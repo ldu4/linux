@@ -630,6 +630,29 @@ struct drm_color_lut {
 	__u16 reserved;
 };
 
+/* HDR Metadata Infoframe as per 861.G spec */
+struct hdr_metadata_infoframe {
+	__u8 eotf;
+	__u8 metadata_type;
+	struct {
+		__u16 x, y;
+		} display_primaries[3];
+	struct {
+		__u16 x, y;
+		} white_point;
+	__u16 max_display_mastering_luminance;
+	__u16 min_display_mastering_luminance;
+	__u16 max_cll;
+	__u16 max_fall;
+};
+
+struct hdr_output_metadata {
+	__u32 metadata_type;
+	union {
+		struct hdr_metadata_infoframe hdmi_metadata_type1;
+	};
+};
+
 #define DRM_MODE_PAGE_FLIP_EVENT 0x01
 #define DRM_MODE_PAGE_FLIP_ASYNC 0x02
 #define DRM_MODE_PAGE_FLIP_TARGET_ABSOLUTE 0x4
@@ -803,6 +826,10 @@ struct drm_format_modifier {
 };
 
 /**
+ * struct drm_mode_create_blob - Create New block property
+ * @data: Pointer to data to copy.
+ * @length: Length of data to copy.
+ * @blob_id: new property ID.
  * Create a new 'blob' data property, copying length bytes from data pointer,
  * and returning new blob ID.
  */
@@ -816,6 +843,8 @@ struct drm_mode_create_blob {
 };
 
 /**
+ * struct drm_mode_destroy_blob - Destroy user blob
+ * @blob_id: blob_id to destroy
  * Destroy a user-created blob property.
  */
 struct drm_mode_destroy_blob {
@@ -823,6 +852,12 @@ struct drm_mode_destroy_blob {
 };
 
 /**
+ * struct drm_mode_create_lease - Create lease
+ * @object_ids: Pointer to array of object ids.
+ * @object_count: Number of object ids.
+ * @flags: flags for new FD.
+ * @lessee_id: unique identifier for lessee.
+ * @fd: file descriptor to new drm_master file.
  * Lease mode resources, creating another drm_master.
  */
 struct drm_mode_create_lease {
@@ -840,6 +875,10 @@ struct drm_mode_create_lease {
 };
 
 /**
+ * struct drm_mode_list_lessees - List lessees
+ * @count_lessees: Number of lessees.
+ * @pad: pad.
+ * @lessees_ptr: Pointer to lessess.
  * List lesses from a drm_master
  */
 struct drm_mode_list_lessees {
@@ -860,6 +899,10 @@ struct drm_mode_list_lessees {
 };
 
 /**
+ * struct drm_mode_get_lease - Get Lease
+ * @count_objects: Number of leased objects.
+ * @pad: pad.
+ * @objects_ptr: Pointer to objects.
  * Get leased objects
  */
 struct drm_mode_get_lease {
@@ -880,6 +923,8 @@ struct drm_mode_get_lease {
 };
 
 /**
+ * struct drm_mode_revoke_lease - Revoke lease
+ * @lessee_id: Unique ID of lessee.
  * Revoke lease
  */
 struct drm_mode_revoke_lease {
