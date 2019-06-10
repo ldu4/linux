@@ -1,5 +1,11 @@
+<<<<<<< HEAD
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* * Copyright(c) 2011 Intel Corporation. All rights reserved.
+=======
+/* SPDX-License-Identifier: GPL-2.0 */
+/*
+ * Copyright(c) 2011 Intel Corporation. All rights reserved.
+>>>>>>> linux-next/akpm-base
  *
  * Maintained at www.Open-FCoE.org
  */

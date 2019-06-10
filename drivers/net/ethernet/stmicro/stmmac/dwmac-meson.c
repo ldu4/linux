@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // SPDX-License-Identifier: GPL-2.0-only
+=======
+// SPDX-License-Identifier: GPL-2.0
+>>>>>>> linux-next/akpm-base
 /*
  * Amlogic Meson6 and Meson8 DWMAC glue layer
  *

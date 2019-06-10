@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // SPDX-License-Identifier: GPL-2.0-only
+=======
+// SPDX-License-Identifier: GPL-2.0
+>>>>>>> linux-next/akpm-base
 /**
  * AES routines supporting VMX instructions on the Power 8
  *

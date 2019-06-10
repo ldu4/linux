@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 /* SPDX-License-Identifier: GPL-2.0-only */
+=======
+/* SPDX-License-Identifier: GPL-2.0 */
+>>>>>>> linux-next/akpm-base
 /*
  * GPIO definitions for Amlogic Meson GXL SoCs
  *
