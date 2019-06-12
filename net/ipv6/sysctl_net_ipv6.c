@@ -23,6 +23,7 @@
 
 static int zero;
 static int one = 1;
+static int three = 3;
 static int auto_flowlabels_min;
 static int auto_flowlabels_max = IP6_AUTO_FLOW_LABEL_MAX;
 
