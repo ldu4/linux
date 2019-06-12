@@ -114,6 +114,8 @@ static struct ctl_table ipv6_table_template[] = {
 		.maxlen		= sizeof(int),
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec,
+		.extra1		= &zero,
+		.extra2		= &three,
 	},
 	{
 		.procname	= "max_dst_opts_number",
