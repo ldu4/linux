@@ -72,11 +72,7 @@ static irqreturn_t cnl_ipc_irq_thread(int irq, void *context)
 
 		spin_unlock_irq(&sdev->ipc_lock);
 
-<<<<<<< HEAD
-		ret = IRQ_HANDLED;
-=======
 		ipc_irq = true;
->>>>>>> linux-next/akpm-base
 	}
 
 	/* new message from DSP */

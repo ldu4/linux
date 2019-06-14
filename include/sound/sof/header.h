@@ -49,10 +49,7 @@
 #define SOF_IPC_GLB_DAI_MSG			SOF_GLB_TYPE(0x8U)
 #define SOF_IPC_GLB_TRACE_MSG			SOF_GLB_TYPE(0x9U)
 #define SOF_IPC_GLB_GDB_DEBUG                   SOF_GLB_TYPE(0xAU)
-<<<<<<< HEAD
-=======
 #define SOF_IPC_GLB_TEST_MSG			SOF_GLB_TYPE(0xBU)
->>>>>>> linux-next/akpm-base
 
 /*
  * DSP Command Message Types

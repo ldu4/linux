@@ -189,11 +189,7 @@ irqreturn_t hda_dsp_ipc_irq_thread(int irq, void *context)
 
 		spin_unlock_irq(&sdev->ipc_lock);
 
-<<<<<<< HEAD
-		ret = IRQ_HANDLED;
-=======
 		ipc_irq = true;
->>>>>>> linux-next/akpm-base
 	}
 
 	/* is this a new message from DSP */

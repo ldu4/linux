@@ -211,10 +211,6 @@ int snd_sof_bytes_put(struct snd_kcontrol *kcontrol,
 	struct sof_ipc_ctrl_data *cdata = scontrol->control_data;
 	struct sof_abi_hdr *data = cdata->data;
 	size_t size = data->size + sizeof(*data);
-<<<<<<< HEAD
-	int ret, err;
-=======
->>>>>>> linux-next/akpm-base
 
 	if (be->max > sizeof(ucontrol->value.bytes.data)) {
 		dev_err_ratelimited(sdev->dev,
