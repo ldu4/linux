@@ -89,8 +89,14 @@ LIBBPF_API int bpf_object__unpin_programs(struct bpf_object *obj,
 LIBBPF_API int bpf_object__pin(struct bpf_object *object, const char *path);
 LIBBPF_API void bpf_object__close(struct bpf_object *object);
 
+struct bpf_object_load_attr {
+	struct bpf_object *obj;
+	int log_level;
+};
+
 /* Load/unload object into/from kernel */
 LIBBPF_API int bpf_object__load(struct bpf_object *obj);
+LIBBPF_API int bpf_object__load_xattr(struct bpf_object_load_attr *attr);
 LIBBPF_API int bpf_object__unload(struct bpf_object *obj);
 LIBBPF_API const char *bpf_object__name(struct bpf_object *obj);
 LIBBPF_API unsigned int bpf_object__kversion(struct bpf_object *obj);
@@ -320,6 +326,7 @@ struct bpf_prog_load_attr {
 	enum bpf_attach_type expected_attach_type;
 	int ifindex;
 	int log_level;
+	int prog_flags;
 };
 
 LIBBPF_API int bpf_prog_load_xattr(const struct bpf_prog_load_attr *attr,
@@ -446,6 +453,22 @@ bpf_program__bpil_addr_to_offs(struct bpf_prog_info_linear *info_linear);
 
 LIBBPF_API void
 bpf_program__bpil_offs_to_addr(struct bpf_prog_info_linear *info_linear);
+
+/*
+ * A helper function to get the number of possible CPUs before looking up
+ * per-CPU maps. Negative errno is returned on failure.
+ *
+ * Example usage:
+ *
+ *     int ncpus = libbpf_num_possible_cpus();
+ *     if (ncpus < 0) {
+ *          // error handling
+ *     }
+ *     long values[ncpus];
+ *     bpf_map_lookup_elem(per_cpu_map_fd, key, values);
+ *
+ */
+LIBBPF_API int libbpf_num_possible_cpus(void);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -6,9 +6,12 @@
 
 #include <linux/irq.h>
 #include <linux/pm_runtime.h>
-#include "i915_pmu.h"
-#include "intel_ringbuffer.h"
+
+#include "gt/intel_engine.h"
+
 #include "i915_drv.h"
+#include "i915_pmu.h"
+#include "intel_pm.h"
 
 /* Frequency for the sampling timer for events which need it. */
 #define FREQUENCY 200
@@ -224,9 +227,11 @@ frequency_sample(struct drm_i915_private *dev_priv, unsigned int period_ns)
 		if (dev_priv->gt.awake) {
 			intel_wakeref_t wakeref;
 
-			with_intel_runtime_pm_if_in_use(dev_priv, wakeref)
-				val = intel_get_cagf(dev_priv,
-						     I915_READ_NOTRACE(GEN6_RPSTAT1));
+			with_intel_runtime_pm_if_in_use(dev_priv, wakeref) {
+				val = intel_uncore_read_notrace(&dev_priv->uncore,
+								GEN6_RPSTAT1);
+				val = intel_get_cagf(dev_priv, val);
+			}
 		}
 
 		add_sample_mult(&dev_priv->pmu.sample[__I915_SAMPLE_FREQ_ACT],
