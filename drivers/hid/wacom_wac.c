@@ -1296,19 +1296,11 @@ static void wacom_intuos_pro2_bt_pen(struct wacom_wac *wacom)
 				input_report_abs(pen_input, ABS_DISTANCE,
 						 range ? frame[7] : wacom->features.distance_max);
 			}
-<<<<<<< HEAD
 
 			input_report_key(pen_input, BTN_TOUCH, frame[0] & 0x09);
 			input_report_key(pen_input, BTN_STYLUS, frame[0] & 0x02);
 			input_report_key(pen_input, BTN_STYLUS2, frame[0] & 0x04);
 
-=======
-
-			input_report_key(pen_input, BTN_TOUCH, frame[0] & 0x09);
-			input_report_key(pen_input, BTN_STYLUS, frame[0] & 0x02);
-			input_report_key(pen_input, BTN_STYLUS2, frame[0] & 0x04);
-
->>>>>>> linux-next/akpm-base
 			input_report_key(pen_input, wacom->tool[0], prox);
 			input_event(pen_input, EV_MSC, MSC_SERIAL, wacom->serial[0]);
 			input_report_abs(pen_input, ABS_MISC,
