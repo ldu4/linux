@@ -63,6 +63,7 @@
 #include "accel/tls.h"
 #include "lib/clock.h"
 #include "lib/vxlan.h"
+#include "lib/geneve.h"
 #include "lib/devcom.h"
 #include "diag/fw_tracer.h"
 #include "ecpf.h"
@@ -169,17 +170,27 @@ static struct mlx5_profile profile[] = {
 
 #define FW_INIT_TIMEOUT_MILI		2000
 #define FW_INIT_WAIT_MS			2
-#define FW_PRE_INIT_TIMEOUT_MILI	10000
+#define FW_PRE_INIT_TIMEOUT_MILI	120000
+#define FW_INIT_WARN_MESSAGE_INTERVAL	20000
 
-static int wait_fw_init(struct mlx5_core_dev *dev, u32 max_wait_mili)
+static int wait_fw_init(struct mlx5_core_dev *dev, u32 max_wait_mili,
+			u32 warn_time_mili)
 {
+	unsigned long warn = jiffies + msecs_to_jiffies(warn_time_mili);
 	unsigned long end = jiffies + msecs_to_jiffies(max_wait_mili);
 	int err = 0;
+
+	BUILD_BUG_ON(FW_PRE_INIT_TIMEOUT_MILI < FW_INIT_WARN_MESSAGE_INTERVAL);
 
 	while (fw_initializing(dev)) {
 		if (time_after(jiffies, end)) {
 			err = -EBUSY;
 			break;
+		}
+		if (warn_time_mili && time_after(jiffies, warn)) {
+			mlx5_core_warn(dev, "Waiting for FW initialization, timeout abort in %ds\n",
+				       jiffies_to_msecs(end - warn) / 1000);
+			warn = jiffies + msecs_to_jiffies(warn_time_mili);
 		}
 		msleep(FW_INIT_WAIT_MS);
 	}
@@ -794,10 +805,16 @@ static int mlx5_init_once(struct mlx5_core_dev *dev)
 		goto err_devcom;
 	}
 
+	err = mlx5_irq_table_init(dev);
+	if (err) {
+		mlx5_core_err(dev, "failed to initialize irq table\n");
+		goto err_devcom;
+	}
+
 	err = mlx5_eq_table_init(dev);
 	if (err) {
 		mlx5_core_err(dev, "failed to initialize eq\n");
-		goto err_devcom;
+		goto err_irq_cleanup;
 	}
 
 	err = mlx5_events_init(dev);
@@ -821,6 +838,7 @@ static int mlx5_init_once(struct mlx5_core_dev *dev)
 	mlx5_init_clock(dev);
 
 	dev->vxlan = mlx5_vxlan_create(dev);
+	dev->geneve = mlx5_geneve_create(dev);
 
 	err = mlx5_init_rl_table(dev);
 	if (err) {
@@ -834,37 +852,38 @@ static int mlx5_init_once(struct mlx5_core_dev *dev)
 		goto err_rl_cleanup;
 	}
 
-	err = mlx5_eswitch_init(dev);
-	if (err) {
-		mlx5_core_err(dev, "Failed to init eswitch %d\n", err);
-		goto err_mpfs_cleanup;
-	}
-
 	err = mlx5_sriov_init(dev);
 	if (err) {
 		mlx5_core_err(dev, "Failed to init sriov %d\n", err);
-		goto err_eswitch_cleanup;
+		goto err_mpfs_cleanup;
+	}
+
+	err = mlx5_eswitch_init(dev);
+	if (err) {
+		mlx5_core_err(dev, "Failed to init eswitch %d\n", err);
+		goto err_sriov_cleanup;
 	}
 
 	err = mlx5_fpga_init(dev);
 	if (err) {
 		mlx5_core_err(dev, "Failed to init fpga device %d\n", err);
-		goto err_sriov_cleanup;
+		goto err_eswitch_cleanup;
 	}
 
 	dev->tracer = mlx5_fw_tracer_create(dev);
 
 	return 0;
 
-err_sriov_cleanup:
-	mlx5_sriov_cleanup(dev);
 err_eswitch_cleanup:
 	mlx5_eswitch_cleanup(dev->priv.eswitch);
+err_sriov_cleanup:
+	mlx5_sriov_cleanup(dev);
 err_mpfs_cleanup:
 	mlx5_mpfs_cleanup(dev);
 err_rl_cleanup:
 	mlx5_cleanup_rl_table(dev);
 err_tables_cleanup:
+	mlx5_geneve_destroy(dev->geneve);
 	mlx5_vxlan_destroy(dev->vxlan);
 	mlx5_cleanup_mkey_table(dev);
 	mlx5_cleanup_qp_table(dev);
@@ -873,6 +892,8 @@ err_events_cleanup:
 	mlx5_events_cleanup(dev);
 err_eq_cleanup:
 	mlx5_eq_table_cleanup(dev);
+err_irq_cleanup:
+	mlx5_irq_table_cleanup(dev);
 err_devcom:
 	mlx5_devcom_unregister_device(dev->priv.devcom);
 
@@ -883,10 +904,11 @@ static void mlx5_cleanup_once(struct mlx5_core_dev *dev)
 {
 	mlx5_fw_tracer_destroy(dev->tracer);
 	mlx5_fpga_cleanup(dev);
-	mlx5_sriov_cleanup(dev);
 	mlx5_eswitch_cleanup(dev->priv.eswitch);
+	mlx5_sriov_cleanup(dev);
 	mlx5_mpfs_cleanup(dev);
 	mlx5_cleanup_rl_table(dev);
+	mlx5_geneve_destroy(dev->geneve);
 	mlx5_vxlan_destroy(dev->vxlan);
 	mlx5_cleanup_clock(dev);
 	mlx5_cleanup_reserved_gids(dev);
@@ -895,6 +917,7 @@ static void mlx5_cleanup_once(struct mlx5_core_dev *dev)
 	mlx5_cq_debugfs_cleanup(dev);
 	mlx5_events_cleanup(dev);
 	mlx5_eq_table_cleanup(dev);
+	mlx5_irq_table_cleanup(dev);
 	mlx5_devcom_unregister_device(dev->priv.devcom);
 }
 
@@ -911,7 +934,7 @@ static int mlx5_function_setup(struct mlx5_core_dev *dev, bool boot)
 
 	/* wait for firmware to accept initialization segments configurations
 	 */
-	err = wait_fw_init(dev, FW_PRE_INIT_TIMEOUT_MILI);
+	err = wait_fw_init(dev, FW_PRE_INIT_TIMEOUT_MILI, FW_INIT_WARN_MESSAGE_INTERVAL);
 	if (err) {
 		mlx5_core_err(dev, "Firmware over %d MS in pre-initializing state, aborting\n",
 			      FW_PRE_INIT_TIMEOUT_MILI);
@@ -924,7 +947,7 @@ static int mlx5_function_setup(struct mlx5_core_dev *dev, bool boot)
 		return err;
 	}
 
-	err = wait_fw_init(dev, FW_INIT_TIMEOUT_MILI);
+	err = wait_fw_init(dev, FW_INIT_TIMEOUT_MILI, 0);
 	if (err) {
 		mlx5_core_err(dev, "Firmware over %d MS in initializing state, aborting\n",
 			      FW_INIT_TIMEOUT_MILI);
@@ -1028,6 +1051,12 @@ static int mlx5_load(struct mlx5_core_dev *dev)
 	mlx5_events_start(dev);
 	mlx5_pagealloc_start(dev);
 
+	err = mlx5_irq_table_create(dev);
+	if (err) {
+		mlx5_core_err(dev, "Failed to alloc IRQs\n");
+		goto err_irq_table;
+	}
+
 	err = mlx5_eq_table_create(dev);
 	if (err) {
 		mlx5_core_err(dev, "Failed to create EQs\n");
@@ -1099,6 +1128,8 @@ err_fpga_start:
 err_fw_tracer:
 	mlx5_eq_table_destroy(dev);
 err_eq_table:
+	mlx5_irq_table_destroy(dev);
+err_irq_table:
 	mlx5_pagealloc_stop(dev);
 	mlx5_events_stop(dev);
 	mlx5_put_uars_page(dev, dev->priv.uar);
@@ -1115,6 +1146,7 @@ static void mlx5_unload(struct mlx5_core_dev *dev)
 	mlx5_fpga_device_stop(dev);
 	mlx5_fw_tracer_cleanup(dev->tracer);
 	mlx5_eq_table_destroy(dev);
+	mlx5_irq_table_destroy(dev);
 	mlx5_pagealloc_stop(dev);
 	mlx5_events_stop(dev);
 	mlx5_put_uars_page(dev, dev->priv.uar);
@@ -1210,6 +1242,25 @@ out:
 	return err;
 }
 
+static int mlx5_devlink_flash_update(struct devlink *devlink,
+				     const char *file_name,
+				     const char *component,
+				     struct netlink_ext_ack *extack)
+{
+	struct mlx5_core_dev *dev = devlink_priv(devlink);
+	const struct firmware *fw;
+	int err;
+
+	if (component)
+		return -EOPNOTSUPP;
+
+	err = request_firmware_direct(&fw, file_name, &dev->pdev->dev);
+	if (err)
+		return err;
+
+	return mlx5_firmware_flash(dev, fw, extack);
+}
+
 static const struct devlink_ops mlx5_devlink_ops = {
 #ifdef CONFIG_MLX5_ESWITCH
 	.eswitch_mode_set = mlx5_devlink_eswitch_mode_set,
@@ -1219,6 +1270,7 @@ static const struct devlink_ops mlx5_devlink_ops = {
 	.eswitch_encap_mode_set = mlx5_devlink_eswitch_encap_mode_set,
 	.eswitch_encap_mode_get = mlx5_devlink_eswitch_encap_mode_get,
 #endif
+	.flash_update = mlx5_devlink_flash_update,
 };
 
 static int mlx5_mdev_init(struct mlx5_core_dev *dev, int profile_idx)

@@ -157,6 +157,7 @@ static inline unsigned long gen_pool_alloc(struct gen_pool *pool, size_t size)
 
 extern void *gen_pool_dma_alloc(struct gen_pool *pool, size_t size,
 		dma_addr_t *dma);
+<<<<<<< HEAD
 extern void gen_pool_free_owner(struct gen_pool *pool, unsigned long addr,
 		size_t size, void **owner);
 static inline void gen_pool_free(struct gen_pool *pool, unsigned long addr,
@@ -165,6 +166,10 @@ static inline void gen_pool_free(struct gen_pool *pool, unsigned long addr,
 	gen_pool_free_owner(pool, addr, size, NULL);
 }
 
+=======
+void *gen_pool_dma_zalloc(struct gen_pool *pool, size_t size, dma_addr_t *dma);
+extern void gen_pool_free(struct gen_pool *, unsigned long, size_t);
+>>>>>>> linux-next/akpm-base
 extern void gen_pool_for_each_chunk(struct gen_pool *,
 	void (*)(struct gen_pool *, struct gen_pool_chunk *, void *), void *);
 extern size_t gen_pool_avail(struct gen_pool *);
