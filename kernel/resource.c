@@ -54,6 +54,12 @@ struct resource_constraint {
 static DEFINE_RWLOCK(resource_lock);
 
 /*
+ * Cache of the top-level resource that was most recently use by
+ * find_next_iomem_res().
+ */
+static DEFINE_PER_CPU(struct resource *, resource_cache);
+
+/*
  * For memory hotplug, there is no way to free resource entries allocated
  * by boot mem after the system is up. So for reusing the resource entry
  * we need to remember the resource.
@@ -262,9 +268,20 @@ static void __release_child_resources(struct resource *r)
 	}
 }
 
+static void invalidate_resource_cache(void)
+{
+	int cpu;
+
+	lockdep_assert_held_exclusive(&resource_lock);
+
+	for_each_possible_cpu(cpu)
+		per_cpu(resource_cache, cpu) = NULL;
+}
+
 void release_child_resources(struct resource *r)
 {
 	write_lock(&resource_lock);
+	invalidate_resource_cache();
 	__release_child_resources(r);
 	write_unlock(&resource_lock);
 }
@@ -281,6 +298,7 @@ struct resource *request_resource_conflict(struct resource *root, struct resourc
 	struct resource *conflict;
 
 	write_lock(&resource_lock);
+	invalidate_resource_cache();
 	conflict = __request_resource(root, new);
 	write_unlock(&resource_lock);
 	return conflict;
@@ -312,6 +330,7 @@ int release_resource(struct resource *old)
 	int retval;
 
 	write_lock(&resource_lock);
+	invalidate_resource_cache();
 	retval = __release_resource(old, true);
 	write_unlock(&resource_lock);
 	return retval;
@@ -343,7 +362,7 @@ static int find_next_iomem_res(resource_size_t start, resource_size_t end,
 			       bool first_lvl, struct resource *res)
 {
 	bool siblings_only = true;
-	struct resource *p;
+	struct resource *p, *res_first_lvl;
 
 	if (!res)
 		return -EINVAL;
@@ -353,7 +372,15 @@ static int find_next_iomem_res(resource_size_t start, resource_size_t end,
 
 	read_lock(&resource_lock);
 
-	for (p = iomem_resource.child; p; p = next_resource(p, siblings_only)) {
+	/*
+	 * If our cached entry preceded or matches the range that we are looking
+	 * for, start with it. Otherwise, start from the beginning.
+	 */
+	p = res_first_lvl = this_cpu_read(resource_cache);
+	if (!p || start < p->start)
+		p = iomem_resource.child;
+
+	for (; p; p = next_resource(p, siblings_only)) {
 		/* If we passed the resource we are looking for, stop */
 		if (p->start > end) {
 			p = NULL;
@@ -363,6 +390,10 @@ static int find_next_iomem_res(resource_size_t start, resource_size_t end,
 		/* Skip until we find a range that matches what we look for */
 		if (p->end < start)
 			continue;
+
+		/* We only cache the first level for correctness */
+		if (p->parent == &iomem_resource)
+			res_first_lvl = p;
 
 		/*
 		 * Now that we found a range that matches what we look for,
@@ -386,6 +417,9 @@ static int find_next_iomem_res(resource_size_t start, resource_size_t end,
 		res->end = min(end, p->end);
 		res->flags = p->flags;
 		res->desc = p->desc;
+
+		/* Update the cache */
+		this_cpu_write(resource_cache, res_first_lvl);
 	}
 
 	read_unlock(&resource_lock);
@@ -674,6 +708,7 @@ static int reallocate_resource(struct resource *root, struct resource *old,
 	struct resource *conflict;
 
 	write_lock(&resource_lock);
+	invalidate_resource_cache();
 
 	if ((err = __find_resource(root, old, &new, newsize, constraint)))
 		goto out;
@@ -744,6 +779,7 @@ int allocate_resource(struct resource *root, struct resource *new,
 	}
 
 	write_lock(&resource_lock);
+	invalidate_resource_cache();
 	err = find_resource(root, new, size, &constraint);
 	if (err >= 0 && __request_resource(root, new))
 		err = -EBUSY;
@@ -848,6 +884,7 @@ struct resource *insert_resource_conflict(struct resource *parent, struct resour
 	struct resource *conflict;
 
 	write_lock(&resource_lock);
+	invalidate_resource_cache();
 	conflict = __insert_resource(parent, new);
 	write_unlock(&resource_lock);
 	return conflict;
@@ -886,6 +923,7 @@ void insert_resource_expand_to_fit(struct resource *root, struct resource *new)
 		return;
 
 	write_lock(&resource_lock);
+	invalidate_resource_cache();
 	for (;;) {
 		struct resource *conflict;
 
@@ -926,6 +964,7 @@ int remove_resource(struct resource *old)
 	int retval;
 
 	write_lock(&resource_lock);
+	invalidate_resource_cache();
 	retval = __release_resource(old, false);
 	write_unlock(&resource_lock);
 	return retval;
@@ -985,6 +1024,7 @@ int adjust_resource(struct resource *res, resource_size_t start,
 	int result;
 
 	write_lock(&resource_lock);
+	invalidate_resource_cache();
 	result = __adjust_resource(res, start, size);
 	write_unlock(&resource_lock);
 	return result;
@@ -1059,6 +1099,8 @@ reserve_region_with_split(struct resource *root, resource_size_t start,
 	int abort = 0;
 
 	write_lock(&resource_lock);
+	invalidate_resource_cache();
+
 	if (root->start > start || root->end < end) {
 		pr_err("requested range [0x%llx-0x%llx] not in root %pr\n",
 		       (unsigned long long)start, (unsigned long long)end,
@@ -1135,6 +1177,7 @@ struct resource * __request_region(struct resource *parent,
 	res->end = start + n - 1;
 
 	write_lock(&resource_lock);
+	invalidate_resource_cache();
 
 	for (;;) {
 		struct resource *conflict;
@@ -1168,6 +1211,7 @@ struct resource * __request_region(struct resource *parent,
 			schedule();
 			remove_wait_queue(&muxed_resource_wait, &wait);
 			write_lock(&resource_lock);
+			invalidate_resource_cache();
 			continue;
 		}
 		/* Uhhuh, that didn't work out.. */
@@ -1198,6 +1242,7 @@ void __release_region(struct resource *parent, resource_size_t start,
 	end = start + n - 1;
 
 	write_lock(&resource_lock);
+	invalidate_resource_cache();
 
 	for (;;) {
 		struct resource *res = *p;
@@ -1211,6 +1256,7 @@ void __release_region(struct resource *parent, resource_size_t start,
 			}
 			if (res->start != start || res->end != end)
 				break;
+
 			*p = res->sibling;
 			write_unlock(&resource_lock);
 			if (res->flags & IORESOURCE_MUXED)
@@ -1268,6 +1314,7 @@ int release_mem_region_adjustable(struct resource *parent,
 
 	p = &parent->child;
 	write_lock(&resource_lock);
+	invalidate_resource_cache();
 
 	while ((res = *p)) {
 		if (res->start >= end)
