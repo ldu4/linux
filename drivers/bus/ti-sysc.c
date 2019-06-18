@@ -766,16 +766,11 @@ static int sysc_ioremap(struct sysc *ddata)
 			    ddata->offsets[SYSC_SYSCONFIG],
 			    ddata->offsets[SYSC_SYSSTATUS]);
 
-<<<<<<< HEAD
-		if ((size + sizeof(u32)) > ddata->module_size)
-			return -EINVAL;
-=======
 		if (size < SZ_1K)
 			size = SZ_1K;
 
 		if ((size + sizeof(u32)) > ddata->module_size)
 			size = ddata->module_size;
->>>>>>> linux-next/akpm-base
 	}
 
 	ddata->module_va = devm_ioremap(ddata->dev,
