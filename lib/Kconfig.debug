@@ -1701,7 +1701,7 @@ config LKDTM
 	called lkdtm.
 
 	Documentation on how to use the module can be found in
-	Documentation/fault-injection/provoke-crashes.txt
+	Documentation/fault-injection/provoke-crashes.rst
 
 config TEST_LIST_SORT
 	tristate "Linked list sorting test"
@@ -1855,6 +1855,14 @@ config TEST_PARMAN
 	help
 	  Enable this option to test priority array manager on boot
 	  (or module load).
+
+	  If unsure, say N.
+
+config TEST_IRQ_TIMINGS
+	bool "IRQ timings selftest"
+	depends on IRQ_TIMINGS
+	help
+	  Enable this option to test the irq timings code on boot.
 
 	  If unsure, say N.
 
