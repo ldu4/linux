@@ -1107,19 +1107,6 @@ static const struct dmi_system_id elantech_dmi_has_middle_button[] = {
 	{ }
 };
 
-<<<<<<< HEAD
-static const char * const middle_button_pnp_ids[] = {
-	"LEN2131", /* ThinkPad P52 w/ NFC */
-	"LEN2132", /* ThinkPad P52 */
-	"LEN2133", /* ThinkPad P72 w/ NFC */
-	"LEN2134", /* ThinkPad P72 */
-	"LEN0407",
-	"LEN0408",
-	NULL
-};
-
-=======
->>>>>>> linux-next/akpm-base
 /*
  * Set the appropriate event bits for the input subsystem
  */
