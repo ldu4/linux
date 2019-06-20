@@ -54,8 +54,8 @@ static void fan_alarm_notify(struct work_struct *ws)
 	struct gpio_fan_data *fan_data =
 		container_of(ws, struct gpio_fan_data, alarm_work);
 
-	sysfs_notify(&fan_data->dev->kobj, NULL, "fan1_alarm");
-	kobject_uevent(&fan_data->dev->kobj, KOBJ_CHANGE);
+	sysfs_notify(&fan_data->hwmon_dev->kobj, NULL, "fan1_alarm");
+	kobject_uevent(&fan_data->hwmon_dev->kobj, KOBJ_CHANGE);
 }
 
 static irqreturn_t fan_alarm_irq_handler(int irq, void *dev_id)
@@ -524,7 +524,9 @@ static int gpio_fan_probe(struct platform_device *pdev)
 		err = fan_ctrl_init(fan_data);
 		if (err)
 			return err;
-		devm_add_action_or_reset(dev, gpio_fan_stop, fan_data);
+		err = devm_add_action_or_reset(dev, gpio_fan_stop, fan_data);
+		if (err)
+			return err;
 	}
 
 	/* Make this driver part of hwmon class. */
