@@ -2,7 +2,15 @@
 /* Copyright (C) 2000-2002 Joakim Axelsson <gozem@linux.nu>
  *                         Patrick Schaaf <bof@bof.de>
  *                         Martin Josefsson <gandalf@wlug.westbo.se>
+<<<<<<< HEAD
  * Copyright (C) 2003-2013 Jozsef Kadlecsik <kadlec@blackhole.kfki.hu>
+=======
+ * Copyright (C) 2003-2013 Jozsef Kadlecsik <kadlec@netfilter.org>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+>>>>>>> linux-next/akpm-base
  */
 #ifndef _IP_SET_H
 #define _IP_SET_H

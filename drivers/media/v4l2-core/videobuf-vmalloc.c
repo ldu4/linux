@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // SPDX-License-Identifier: GPL-2.0-only
+=======
+// SPDX-License-Identifier: GPL-2.0
+>>>>>>> linux-next/akpm-base
 /*
  * helper functions for vmalloc video4linux capture buffers
  *
@@ -7,7 +11,11 @@
  * into PAGE_SIZE chunks).  They also assume the driver does not need
  * to touch the video data.
  *
+<<<<<<< HEAD
  * (c) 2007 Mauro Carvalho Chehab, <mchehab@kernel.org>
+=======
+ * (c) 2007 Mauro Carvalho Chehab <mchehab@kernel.org>
+>>>>>>> linux-next/akpm-base
  */
 
 #include <linux/init.h>

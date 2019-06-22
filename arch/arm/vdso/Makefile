@@ -12,8 +12,12 @@ ccflags-y += -DDISABLE_BRANCH_PROFILING
 
 ldflags-$(CONFIG_CPU_ENDIAN_BE8) := --be8
 ldflags-y := -Bsymbolic --no-undefined -soname=linux-vdso.so.1 \
+<<<<<<< HEAD
 	    -z max-page-size=4096 -z common-page-size=4096 \
 	    -nostdlib -shared $(ldflags-y) \
+=======
+	    -z max-page-size=4096 -nostdlib -shared $(ldflags-y) \
+>>>>>>> linux-next/akpm-base
 	    $(call ld-option, --hash-style=sysv) \
 	    $(call ld-option, --build-id) \
 	    -T
