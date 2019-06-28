@@ -2685,7 +2685,8 @@ DECLARE_STATIC_KEY_FALSE(init_on_alloc);
 #endif
 static inline bool want_init_on_alloc(gfp_t flags)
 {
-	if (static_branch_unlikely(&init_on_alloc))
+	if (static_branch_unlikely(&init_on_alloc) &&
+	    !page_poisoning_enabled())
 		return true;
 	return flags & __GFP_ZERO;
 }
@@ -2697,7 +2698,8 @@ DECLARE_STATIC_KEY_FALSE(init_on_free);
 #endif
 static inline bool want_init_on_free(void)
 {
-	return static_branch_unlikely(&init_on_free);
+	return static_branch_unlikely(&init_on_free) &&
+	       !page_poisoning_enabled();
 }
 
 #ifdef CONFIG_DEBUG_PAGEALLOC_ENABLE_DEFAULT
