@@ -436,9 +436,9 @@ int ksz_switch_register(struct ksz_device *dev,
 		return PTR_ERR(dev->reset_gpio);
 
 	if (dev->reset_gpio) {
-		gpiod_set_value(dev->reset_gpio, 1);
+		gpiod_set_value_cansleep(dev->reset_gpio, 1);
 		mdelay(10);
-		gpiod_set_value(dev->reset_gpio, 0);
+		gpiod_set_value_cansleep(dev->reset_gpio, 0);
 	}
 
 	mutex_init(&dev->dev_mutex);
@@ -463,6 +463,8 @@ int ksz_switch_register(struct ksz_device *dev,
 		ret = of_get_phy_mode(dev->dev->of_node);
 		if (ret >= 0)
 			dev->interface = ret;
+		dev->synclko_125 = of_property_read_bool(dev->dev->of_node,
+							 "microchip,synclko-125");
 	}
 
 	ret = dsa_register_switch(dev->ds);
@@ -487,7 +489,7 @@ void ksz_switch_remove(struct ksz_device *dev)
 	dsa_unregister_switch(dev->ds);
 
 	if (dev->reset_gpio)
-		gpiod_set_value(dev->reset_gpio, 1);
+		gpiod_set_value_cansleep(dev->reset_gpio, 1);
 
 }
 EXPORT_SYMBOL(ksz_switch_remove);
