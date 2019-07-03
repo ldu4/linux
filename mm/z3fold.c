@@ -919,6 +919,9 @@ retry:
 		set_bit(PAGE_HEADLESS, &page->private);
 		goto headless;
 	}
+	/*
+	 * z3fold_alloc() can be called from atomic contexts, hence the trylock
+	 */
 	if (!WARN_ON(!trylock_page(page))) {
 		__SetPageMovable(page, pool->inode->i_mapping);
 		unlock_page(page);
