@@ -919,7 +919,10 @@ retry:
 		set_bit(PAGE_HEADLESS, &page->private);
 		goto headless;
 	}
-	__SetPageMovable(page, pool->inode->i_mapping);
+	if (!WARN_ON(!trylock_page(page))) {
+		__SetPageMovable(page, pool->inode->i_mapping);
+		unlock_page(page);
+	}
 	z3fold_page_lock(zhdr);
 
 found:
@@ -1326,6 +1329,7 @@ static int z3fold_page_migrate(struct address_space *mapping, struct page *newpa
 
 	VM_BUG_ON_PAGE(!PageMovable(page), page);
 	VM_BUG_ON_PAGE(!PageIsolated(page), page);
+	VM_BUG_ON_PAGE(!PageLocked(newpage), newpage);
 
 	zhdr = page_address(page);
 	pool = zhdr_to_pool(zhdr);
