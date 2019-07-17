@@ -436,7 +436,6 @@ struct bio {
        struct bvec_iter	bi_iter;	/* current index into bio_vec array */
 
        unsigned int	bi_size;     /* total size in bytes */
-       unsigned short 	bi_phys_segments; /* segments after physaddr coalesce*/
        unsigned short	bi_hw_segments; /* segments after DMA remapping */
        unsigned int	bi_max;	     /* max bio_vecs we can hold
                                         used as index into pool */
@@ -843,11 +842,6 @@ elevator_latter_req_fn		These return the request before or after the
 				block layer to find merge possibilities.
 
 elevator_completed_req_fn	called when a request is completed.
-
-elevator_may_queue_fn		returns true if the scheduler wants to allow the
-				current context to queue a new request even if
-				it is over the queue limit. This must be used
-				very carefully!!
 
 elevator_set_req_fn
 elevator_put_req_fn		Must be used to allocate and free any elevator
