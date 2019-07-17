@@ -81,7 +81,11 @@ i915_gem_object_lookup(struct drm_file *file, u32 handle)
 }
 
 __deprecated
+<<<<<<< HEAD
 extern struct drm_gem_object *
+=======
+struct drm_gem_object *
+>>>>>>> linux-next/akpm-base
 drm_gem_object_lookup(struct drm_file *file, u32 handle);
 
 __attribute__((nonnull))
@@ -159,12 +163,15 @@ i915_gem_object_needs_async_cancel(const struct drm_i915_gem_object *obj)
 }
 
 static inline bool
+<<<<<<< HEAD
 i915_gem_object_is_active(const struct drm_i915_gem_object *obj)
 {
 	return READ_ONCE(obj->active_count);
 }
 
 static inline bool
+=======
+>>>>>>> linux-next/akpm-base
 i915_gem_object_is_framebuffer(const struct drm_i915_gem_object *obj)
 {
 	return READ_ONCE(obj->framebuffer_references);

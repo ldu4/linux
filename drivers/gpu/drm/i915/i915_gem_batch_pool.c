@@ -94,7 +94,10 @@ i915_gem_batch_pool_get(struct i915_gem_batch_pool *pool,
 	list = &pool->cache_list[n];
 
 	list_for_each_entry(obj, list, batch_pool_link) {
+		struct reservation_object *resv = obj->base.resv;
+
 		/* The batches are strictly LRU ordered */
+<<<<<<< HEAD
 		if (i915_gem_object_is_active(obj)) {
 			struct reservation_object *resv = obj->base.resv;
 
@@ -122,6 +125,25 @@ i915_gem_batch_pool_get(struct i915_gem_batch_pool *pool,
 		GEM_BUG_ON(!reservation_object_test_signaled_rcu(obj->base.resv,
 								 true));
 
+=======
+		if (!reservation_object_test_signaled_rcu(resv, true))
+			break;
+
+		/*
+		 * The object is now idle, clear the array of shared
+		 * fences before we add a new request. Although, we
+		 * remain on the same engine, we may be on a different
+		 * timeline and so may continually grow the array,
+		 * trapping a reference to all the old fences, rather
+		 * than replace the existing fence.
+		 */
+		if (rcu_access_pointer(resv->fence)) {
+			reservation_object_lock(resv, NULL);
+			reservation_object_add_excl_fence(resv, NULL);
+			reservation_object_unlock(resv);
+		}
+
+>>>>>>> linux-next/akpm-base
 		if (obj->base.size >= size)
 			goto found;
 	}

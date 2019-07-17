@@ -26,7 +26,11 @@ struct pid;
 struct drm_i915_private;
 struct drm_i915_file_private;
 struct i915_address_space;
+<<<<<<< HEAD
 struct i915_timeline;
+=======
+struct intel_timeline;
+>>>>>>> linux-next/akpm-base
 struct intel_ring;
 
 struct i915_gem_engines {
@@ -77,7 +81,11 @@ struct i915_gem_context {
 	struct i915_gem_engines __rcu *engines;
 	struct mutex engines_mutex; /* guards writes to engines */
 
+<<<<<<< HEAD
 	struct i915_timeline *timeline;
+=======
+	struct intel_timeline *timeline;
+>>>>>>> linux-next/akpm-base
 
 	/**
 	 * @vm: unique address space (GTT)

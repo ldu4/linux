@@ -202,63 +202,111 @@ static void dsi_program_swing_and_deemphasis(struct intel_encoder *encoder)
 {
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	struct intel_dsi *intel_dsi = enc_to_intel_dsi(&encoder->base);
+<<<<<<< HEAD
 	enum port port;
 	u32 tmp;
 	int lane;
 
 	for_each_dsi_port(port, intel_dsi->ports) {
 
+=======
+	enum phy phy;
+	u32 tmp;
+	int lane;
+
+	for_each_dsi_phy(phy, intel_dsi->phys) {
+>>>>>>> linux-next/akpm-base
 		/*
 		 * Program voltage swing and pre-emphasis level values as per
 		 * table in BSPEC under DDI buffer programing
 		 */
+<<<<<<< HEAD
 		tmp = I915_READ(ICL_PORT_TX_DW5_LN0(port));
+=======
+		tmp = I915_READ(ICL_PORT_TX_DW5_LN0(phy));
+>>>>>>> linux-next/akpm-base
 		tmp &= ~(SCALING_MODE_SEL_MASK | RTERM_SELECT_MASK);
 		tmp |= SCALING_MODE_SEL(0x2);
 		tmp |= TAP2_DISABLE | TAP3_DISABLE;
 		tmp |= RTERM_SELECT(0x6);
+<<<<<<< HEAD
 		I915_WRITE(ICL_PORT_TX_DW5_GRP(port), tmp);
 
 		tmp = I915_READ(ICL_PORT_TX_DW5_AUX(port));
+=======
+		I915_WRITE(ICL_PORT_TX_DW5_GRP(phy), tmp);
+
+		tmp = I915_READ(ICL_PORT_TX_DW5_AUX(phy));
+>>>>>>> linux-next/akpm-base
 		tmp &= ~(SCALING_MODE_SEL_MASK | RTERM_SELECT_MASK);
 		tmp |= SCALING_MODE_SEL(0x2);
 		tmp |= TAP2_DISABLE | TAP3_DISABLE;
 		tmp |= RTERM_SELECT(0x6);
+<<<<<<< HEAD
 		I915_WRITE(ICL_PORT_TX_DW5_AUX(port), tmp);
 
 		tmp = I915_READ(ICL_PORT_TX_DW2_LN0(port));
+=======
+		I915_WRITE(ICL_PORT_TX_DW5_AUX(phy), tmp);
+
+		tmp = I915_READ(ICL_PORT_TX_DW2_LN0(phy));
+>>>>>>> linux-next/akpm-base
 		tmp &= ~(SWING_SEL_LOWER_MASK | SWING_SEL_UPPER_MASK |
 			 RCOMP_SCALAR_MASK);
 		tmp |= SWING_SEL_UPPER(0x2);
 		tmp |= SWING_SEL_LOWER(0x2);
 		tmp |= RCOMP_SCALAR(0x98);
+<<<<<<< HEAD
 		I915_WRITE(ICL_PORT_TX_DW2_GRP(port), tmp);
 
 		tmp = I915_READ(ICL_PORT_TX_DW2_AUX(port));
+=======
+		I915_WRITE(ICL_PORT_TX_DW2_GRP(phy), tmp);
+
+		tmp = I915_READ(ICL_PORT_TX_DW2_AUX(phy));
+>>>>>>> linux-next/akpm-base
 		tmp &= ~(SWING_SEL_LOWER_MASK | SWING_SEL_UPPER_MASK |
 			 RCOMP_SCALAR_MASK);
 		tmp |= SWING_SEL_UPPER(0x2);
 		tmp |= SWING_SEL_LOWER(0x2);
 		tmp |= RCOMP_SCALAR(0x98);
+<<<<<<< HEAD
 		I915_WRITE(ICL_PORT_TX_DW2_AUX(port), tmp);
 
 		tmp = I915_READ(ICL_PORT_TX_DW4_AUX(port));
+=======
+		I915_WRITE(ICL_PORT_TX_DW2_AUX(phy), tmp);
+
+		tmp = I915_READ(ICL_PORT_TX_DW4_AUX(phy));
+>>>>>>> linux-next/akpm-base
 		tmp &= ~(POST_CURSOR_1_MASK | POST_CURSOR_2_MASK |
 			 CURSOR_COEFF_MASK);
 		tmp |= POST_CURSOR_1(0x0);
 		tmp |= POST_CURSOR_2(0x0);
 		tmp |= CURSOR_COEFF(0x3f);
+<<<<<<< HEAD
 		I915_WRITE(ICL_PORT_TX_DW4_AUX(port), tmp);
 
 		for (lane = 0; lane <= 3; lane++) {
 			/* Bspec: must not use GRP register for write */
 			tmp = I915_READ(ICL_PORT_TX_DW4_LN(lane, port));
+=======
+		I915_WRITE(ICL_PORT_TX_DW4_AUX(phy), tmp);
+
+		for (lane = 0; lane <= 3; lane++) {
+			/* Bspec: must not use GRP register for write */
+			tmp = I915_READ(ICL_PORT_TX_DW4_LN(lane, phy));
+>>>>>>> linux-next/akpm-base
 			tmp &= ~(POST_CURSOR_1_MASK | POST_CURSOR_2_MASK |
 				 CURSOR_COEFF_MASK);
 			tmp |= POST_CURSOR_1(0x0);
 			tmp |= POST_CURSOR_2(0x0);
 			tmp |= CURSOR_COEFF(0x3f);
+<<<<<<< HEAD
 			I915_WRITE(ICL_PORT_TX_DW4_LN(lane, port), tmp);
+=======
+			I915_WRITE(ICL_PORT_TX_DW4_LN(lane, phy), tmp);
+>>>>>>> linux-next/akpm-base
 		}
 	}
 }
@@ -364,10 +412,17 @@ static void gen11_dsi_power_up_lanes(struct intel_encoder *encoder)
 {
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	struct intel_dsi *intel_dsi = enc_to_intel_dsi(&encoder->base);
+<<<<<<< HEAD
 	enum port port;
 
 	for_each_dsi_port(port, intel_dsi->ports)
 		intel_combo_phy_power_up_lanes(dev_priv, port, true,
+=======
+	enum phy phy;
+
+	for_each_dsi_phy(phy, intel_dsi->phys)
+		intel_combo_phy_power_up_lanes(dev_priv, phy, true,
+>>>>>>> linux-next/akpm-base
 					       intel_dsi->lane_count, false);
 }
 
@@ -375,11 +430,16 @@ static void gen11_dsi_config_phy_lanes_sequence(struct intel_encoder *encoder)
 {
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	struct intel_dsi *intel_dsi = enc_to_intel_dsi(&encoder->base);
+<<<<<<< HEAD
 	enum port port;
+=======
+	enum phy phy;
+>>>>>>> linux-next/akpm-base
 	u32 tmp;
 	int lane;
 
 	/* Step 4b(i) set loadgen select for transmit and aux lanes */
+<<<<<<< HEAD
 	for_each_dsi_port(port, intel_dsi->ports) {
 		tmp = I915_READ(ICL_PORT_TX_DW4_AUX(port));
 		tmp &= ~LOADGEN_SELECT;
@@ -390,10 +450,23 @@ static void gen11_dsi_config_phy_lanes_sequence(struct intel_encoder *encoder)
 			if (lane != 2)
 				tmp |= LOADGEN_SELECT;
 			I915_WRITE(ICL_PORT_TX_DW4_LN(lane, port), tmp);
+=======
+	for_each_dsi_phy(phy, intel_dsi->phys) {
+		tmp = I915_READ(ICL_PORT_TX_DW4_AUX(phy));
+		tmp &= ~LOADGEN_SELECT;
+		I915_WRITE(ICL_PORT_TX_DW4_AUX(phy), tmp);
+		for (lane = 0; lane <= 3; lane++) {
+			tmp = I915_READ(ICL_PORT_TX_DW4_LN(lane, phy));
+			tmp &= ~LOADGEN_SELECT;
+			if (lane != 2)
+				tmp |= LOADGEN_SELECT;
+			I915_WRITE(ICL_PORT_TX_DW4_LN(lane, phy), tmp);
+>>>>>>> linux-next/akpm-base
 		}
 	}
 
 	/* Step 4b(ii) set latency optimization for transmit and aux lanes */
+<<<<<<< HEAD
 	for_each_dsi_port(port, intel_dsi->ports) {
 		tmp = I915_READ(ICL_PORT_TX_DW2_AUX(port));
 		tmp &= ~FRC_LATENCY_OPTIM_MASK;
@@ -403,6 +476,30 @@ static void gen11_dsi_config_phy_lanes_sequence(struct intel_encoder *encoder)
 		tmp &= ~FRC_LATENCY_OPTIM_MASK;
 		tmp |= FRC_LATENCY_OPTIM_VAL(0x5);
 		I915_WRITE(ICL_PORT_TX_DW2_GRP(port), tmp);
+=======
+	for_each_dsi_phy(phy, intel_dsi->phys) {
+		tmp = I915_READ(ICL_PORT_TX_DW2_AUX(phy));
+		tmp &= ~FRC_LATENCY_OPTIM_MASK;
+		tmp |= FRC_LATENCY_OPTIM_VAL(0x5);
+		I915_WRITE(ICL_PORT_TX_DW2_AUX(phy), tmp);
+		tmp = I915_READ(ICL_PORT_TX_DW2_LN0(phy));
+		tmp &= ~FRC_LATENCY_OPTIM_MASK;
+		tmp |= FRC_LATENCY_OPTIM_VAL(0x5);
+		I915_WRITE(ICL_PORT_TX_DW2_GRP(phy), tmp);
+
+		/* For EHL set latency optimization for PCS_DW1 lanes */
+		if (IS_ELKHARTLAKE(dev_priv)) {
+			tmp = I915_READ(ICL_PORT_PCS_DW1_AUX(phy));
+			tmp &= ~LATENCY_OPTIM_MASK;
+			tmp |= LATENCY_OPTIM_VAL(0);
+			I915_WRITE(ICL_PORT_PCS_DW1_AUX(phy), tmp);
+
+			tmp = I915_READ(ICL_PORT_PCS_DW1_LN0(phy));
+			tmp &= ~LATENCY_OPTIM_MASK;
+			tmp |= LATENCY_OPTIM_VAL(0x1);
+			I915_WRITE(ICL_PORT_PCS_DW1_GRP(phy), tmp);
+		}
+>>>>>>> linux-next/akpm-base
 	}
 
 }
@@ -412,6 +509,7 @@ static void gen11_dsi_voltage_swing_program_seq(struct intel_encoder *encoder)
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	struct intel_dsi *intel_dsi = enc_to_intel_dsi(&encoder->base);
 	u32 tmp;
+<<<<<<< HEAD
 	enum port port;
 
 	/* clear common keeper enable bit */
@@ -422,6 +520,18 @@ static void gen11_dsi_voltage_swing_program_seq(struct intel_encoder *encoder)
 		tmp = I915_READ(ICL_PORT_PCS_DW1_AUX(port));
 		tmp &= ~COMMON_KEEPER_EN;
 		I915_WRITE(ICL_PORT_PCS_DW1_AUX(port), tmp);
+=======
+	enum phy phy;
+
+	/* clear common keeper enable bit */
+	for_each_dsi_phy(phy, intel_dsi->phys) {
+		tmp = I915_READ(ICL_PORT_PCS_DW1_LN0(phy));
+		tmp &= ~COMMON_KEEPER_EN;
+		I915_WRITE(ICL_PORT_PCS_DW1_GRP(phy), tmp);
+		tmp = I915_READ(ICL_PORT_PCS_DW1_AUX(phy));
+		tmp &= ~COMMON_KEEPER_EN;
+		I915_WRITE(ICL_PORT_PCS_DW1_AUX(phy), tmp);
+>>>>>>> linux-next/akpm-base
 	}
 
 	/*
@@ -429,6 +539,7 @@ static void gen11_dsi_voltage_swing_program_seq(struct intel_encoder *encoder)
 	 * Note: loadgen select program is done
 	 * as part of lane phy sequence configuration
 	 */
+<<<<<<< HEAD
 	for_each_dsi_port(port, intel_dsi->ports) {
 		tmp = I915_READ(ICL_PORT_CL_DW5(port));
 		tmp |= SUS_CLOCK_CONFIG;
@@ -443,12 +554,29 @@ static void gen11_dsi_voltage_swing_program_seq(struct intel_encoder *encoder)
 		tmp = I915_READ(ICL_PORT_TX_DW5_AUX(port));
 		tmp &= ~TX_TRAINING_EN;
 		I915_WRITE(ICL_PORT_TX_DW5_AUX(port), tmp);
+=======
+	for_each_dsi_phy(phy, intel_dsi->phys) {
+		tmp = I915_READ(ICL_PORT_CL_DW5(phy));
+		tmp |= SUS_CLOCK_CONFIG;
+		I915_WRITE(ICL_PORT_CL_DW5(phy), tmp);
+	}
+
+	/* Clear training enable to change swing values */
+	for_each_dsi_phy(phy, intel_dsi->phys) {
+		tmp = I915_READ(ICL_PORT_TX_DW5_LN0(phy));
+		tmp &= ~TX_TRAINING_EN;
+		I915_WRITE(ICL_PORT_TX_DW5_GRP(phy), tmp);
+		tmp = I915_READ(ICL_PORT_TX_DW5_AUX(phy));
+		tmp &= ~TX_TRAINING_EN;
+		I915_WRITE(ICL_PORT_TX_DW5_AUX(phy), tmp);
+>>>>>>> linux-next/akpm-base
 	}
 
 	/* Program swing and de-emphasis */
 	dsi_program_swing_and_deemphasis(encoder);
 
 	/* Set training enable to trigger update */
+<<<<<<< HEAD
 	for_each_dsi_port(port, intel_dsi->ports) {
 		tmp = I915_READ(ICL_PORT_TX_DW5_LN0(port));
 		tmp |= TX_TRAINING_EN;
@@ -456,6 +584,15 @@ static void gen11_dsi_voltage_swing_program_seq(struct intel_encoder *encoder)
 		tmp = I915_READ(ICL_PORT_TX_DW5_AUX(port));
 		tmp |= TX_TRAINING_EN;
 		I915_WRITE(ICL_PORT_TX_DW5_AUX(port), tmp);
+=======
+	for_each_dsi_phy(phy, intel_dsi->phys) {
+		tmp = I915_READ(ICL_PORT_TX_DW5_LN0(phy));
+		tmp |= TX_TRAINING_EN;
+		I915_WRITE(ICL_PORT_TX_DW5_GRP(phy), tmp);
+		tmp = I915_READ(ICL_PORT_TX_DW5_AUX(phy));
+		tmp |= TX_TRAINING_EN;
+		I915_WRITE(ICL_PORT_TX_DW5_AUX(phy), tmp);
+>>>>>>> linux-next/akpm-base
 	}
 }
 
@@ -484,6 +621,10 @@ static void gen11_dsi_setup_dphy_timings(struct intel_encoder *encoder)
 	struct intel_dsi *intel_dsi = enc_to_intel_dsi(&encoder->base);
 	u32 tmp;
 	enum port port;
+<<<<<<< HEAD
+=======
+	enum phy phy;
+>>>>>>> linux-next/akpm-base
 
 	/* Program T-INIT master registers */
 	for_each_dsi_port(port, intel_dsi->ports) {
@@ -531,6 +672,17 @@ static void gen11_dsi_setup_dphy_timings(struct intel_encoder *encoder)
 			I915_WRITE(DSI_TA_TIMING_PARAM(port), tmp);
 		}
 	}
+<<<<<<< HEAD
+=======
+
+	if (IS_ELKHARTLAKE(dev_priv)) {
+		for_each_dsi_phy(phy, intel_dsi->phys) {
+			tmp = I915_READ(ICL_DPHY_CHKN(phy));
+			tmp |= ICL_DPHY_CHKN_AFE_OVER_PPI_STRAP;
+			I915_WRITE(ICL_DPHY_CHKN(phy), tmp);
+		}
+	}
+>>>>>>> linux-next/akpm-base
 }
 
 static void gen11_dsi_gate_clocks(struct intel_encoder *encoder)
@@ -538,6 +690,7 @@ static void gen11_dsi_gate_clocks(struct intel_encoder *encoder)
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	struct intel_dsi *intel_dsi = enc_to_intel_dsi(&encoder->base);
 	u32 tmp;
+<<<<<<< HEAD
 	enum port port;
 
 	mutex_lock(&dev_priv->dpll_lock);
@@ -547,6 +700,16 @@ static void gen11_dsi_gate_clocks(struct intel_encoder *encoder)
 	}
 
 	I915_WRITE(DPCLKA_CFGCR0_ICL, tmp);
+=======
+	enum phy phy;
+
+	mutex_lock(&dev_priv->dpll_lock);
+	tmp = I915_READ(ICL_DPCLKA_CFGCR0);
+	for_each_dsi_phy(phy, intel_dsi->phys)
+		tmp |= ICL_DPCLKA_CFGCR0_DDI_CLK_OFF(phy);
+
+	I915_WRITE(ICL_DPCLKA_CFGCR0, tmp);
+>>>>>>> linux-next/akpm-base
 	mutex_unlock(&dev_priv->dpll_lock);
 }
 
@@ -555,6 +718,7 @@ static void gen11_dsi_ungate_clocks(struct intel_encoder *encoder)
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	struct intel_dsi *intel_dsi = enc_to_intel_dsi(&encoder->base);
 	u32 tmp;
+<<<<<<< HEAD
 	enum port port;
 
 	mutex_lock(&dev_priv->dpll_lock);
@@ -564,6 +728,16 @@ static void gen11_dsi_ungate_clocks(struct intel_encoder *encoder)
 	}
 
 	I915_WRITE(DPCLKA_CFGCR0_ICL, tmp);
+=======
+	enum phy phy;
+
+	mutex_lock(&dev_priv->dpll_lock);
+	tmp = I915_READ(ICL_DPCLKA_CFGCR0);
+	for_each_dsi_phy(phy, intel_dsi->phys)
+		tmp &= ~ICL_DPCLKA_CFGCR0_DDI_CLK_OFF(phy);
+
+	I915_WRITE(ICL_DPCLKA_CFGCR0, tmp);
+>>>>>>> linux-next/akpm-base
 	mutex_unlock(&dev_priv->dpll_lock);
 }
 
@@ -573,11 +747,16 @@ static void gen11_dsi_map_pll(struct intel_encoder *encoder,
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	struct intel_dsi *intel_dsi = enc_to_intel_dsi(&encoder->base);
 	struct intel_shared_dpll *pll = crtc_state->shared_dpll;
+<<<<<<< HEAD
 	enum port port;
+=======
+	enum phy phy;
+>>>>>>> linux-next/akpm-base
 	u32 val;
 
 	mutex_lock(&dev_priv->dpll_lock);
 
+<<<<<<< HEAD
 	val = I915_READ(DPCLKA_CFGCR0_ICL);
 	for_each_dsi_port(port, intel_dsi->ports) {
 		val &= ~DPCLKA_CFGCR0_DDI_CLK_SEL_MASK(port);
@@ -591,6 +770,21 @@ static void gen11_dsi_map_pll(struct intel_encoder *encoder,
 	I915_WRITE(DPCLKA_CFGCR0_ICL, val);
 
 	POSTING_READ(DPCLKA_CFGCR0_ICL);
+=======
+	val = I915_READ(ICL_DPCLKA_CFGCR0);
+	for_each_dsi_phy(phy, intel_dsi->phys) {
+		val &= ~ICL_DPCLKA_CFGCR0_DDI_CLK_SEL_MASK(phy);
+		val |= ICL_DPCLKA_CFGCR0_DDI_CLK_SEL(pll->info->id, phy);
+	}
+	I915_WRITE(ICL_DPCLKA_CFGCR0, val);
+
+	for_each_dsi_phy(phy, intel_dsi->phys) {
+		val &= ~ICL_DPCLKA_CFGCR0_DDI_CLK_OFF(phy);
+	}
+	I915_WRITE(ICL_DPCLKA_CFGCR0, val);
+
+	POSTING_READ(ICL_DPCLKA_CFGCR0);
+>>>>>>> linux-next/akpm-base
 
 	mutex_unlock(&dev_priv->dpll_lock);
 }
@@ -1487,6 +1681,29 @@ static void icl_dphy_param_init(struct intel_dsi *intel_dsi)
 	intel_dsi_log_params(intel_dsi);
 }
 
+<<<<<<< HEAD
+=======
+static void icl_dsi_add_properties(struct intel_connector *connector)
+{
+	u32 allowed_scalers;
+
+	allowed_scalers = BIT(DRM_MODE_SCALE_ASPECT) |
+			   BIT(DRM_MODE_SCALE_FULLSCREEN) |
+			   BIT(DRM_MODE_SCALE_CENTER);
+
+	drm_connector_attach_scaling_mode_property(&connector->base,
+						   allowed_scalers);
+
+	connector->base.state->scaling_mode = DRM_MODE_SCALE_ASPECT;
+
+	connector->base.display_info.panel_orientation =
+			intel_dsi_get_panel_orientation(connector);
+	drm_connector_init_panel_orientation_property(&connector->base,
+				connector->panel.fixed_mode->hdisplay,
+				connector->panel.fixed_mode->vdisplay);
+}
+
+>>>>>>> linux-next/akpm-base
 void icl_dsi_init(struct drm_i915_private *dev_priv)
 {
 	struct drm_device *dev = &dev_priv->drm;
@@ -1580,6 +1797,11 @@ void icl_dsi_init(struct drm_i915_private *dev_priv)
 	}
 
 	icl_dphy_param_init(intel_dsi);
+<<<<<<< HEAD
+=======
+
+	icl_dsi_add_properties(intel_connector);
+>>>>>>> linux-next/akpm-base
 	return;
 
 err:

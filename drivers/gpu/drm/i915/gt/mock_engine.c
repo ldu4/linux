@@ -33,15 +33,26 @@
 
 struct mock_ring {
 	struct intel_ring base;
+<<<<<<< HEAD
 	struct i915_timeline timeline;
 };
 
 static void mock_timeline_pin(struct i915_timeline *tl)
+=======
+	struct intel_timeline timeline;
+};
+
+static void mock_timeline_pin(struct intel_timeline *tl)
+>>>>>>> linux-next/akpm-base
 {
 	tl->pin_count++;
 }
 
+<<<<<<< HEAD
 static void mock_timeline_unpin(struct i915_timeline *tl)
+=======
+static void mock_timeline_unpin(struct intel_timeline *tl)
+>>>>>>> linux-next/akpm-base
 {
 	GEM_BUG_ON(!tl->pin_count);
 	tl->pin_count--;
@@ -56,7 +67,11 @@ static struct intel_ring *mock_ring(struct intel_engine_cs *engine)
 	if (!ring)
 		return NULL;
 
+<<<<<<< HEAD
 	if (i915_timeline_init(engine->i915, &ring->timeline, NULL)) {
+=======
+	if (intel_timeline_init(&ring->timeline, engine->gt, NULL)) {
+>>>>>>> linux-next/akpm-base
 		kfree(ring);
 		return NULL;
 	}
@@ -66,6 +81,10 @@ static struct intel_ring *mock_ring(struct intel_engine_cs *engine)
 	ring->base.effective_size = sz;
 	ring->base.vaddr = (void *)(ring + 1);
 	ring->base.timeline = &ring->timeline;
+<<<<<<< HEAD
+=======
+	atomic_set(&ring->base.pin_count, 1);
+>>>>>>> linux-next/akpm-base
 
 	INIT_LIST_HEAD(&ring->base.request_list);
 	intel_ring_update_space(&ring->base);
@@ -77,7 +96,11 @@ static void mock_ring_free(struct intel_ring *base)
 {
 	struct mock_ring *ring = container_of(base, typeof(*ring), base);
 
+<<<<<<< HEAD
 	i915_timeline_fini(&ring->timeline);
+=======
+	intel_timeline_fini(&ring->timeline);
+>>>>>>> linux-next/akpm-base
 	kfree(ring);
 }
 
@@ -154,7 +177,11 @@ static int mock_context_pin(struct intel_context *ce)
 			return -ENOMEM;
 	}
 
+<<<<<<< HEAD
 	ret = intel_context_active_acquire(ce, PIN_HIGH);
+=======
+	ret = intel_context_active_acquire(ce);
+>>>>>>> linux-next/akpm-base
 	if (ret)
 		return ret;
 
@@ -256,6 +283,10 @@ struct intel_engine_cs *mock_engine(struct drm_i915_private *i915,
 
 	/* minimal engine setup for requests */
 	engine->base.i915 = i915;
+<<<<<<< HEAD
+=======
+	engine->base.gt = &i915->gt;
+>>>>>>> linux-next/akpm-base
 	snprintf(engine->base.name, sizeof(engine->base.name), "%s", name);
 	engine->base.id = id;
 	engine->base.mask = BIT(id);

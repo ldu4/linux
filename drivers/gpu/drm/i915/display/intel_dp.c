@@ -62,6 +62,10 @@
 #include "intel_panel.h"
 #include "intel_psr.h"
 #include "intel_sideband.h"
+<<<<<<< HEAD
+=======
+#include "intel_tc.h"
+>>>>>>> linux-next/akpm-base
 #include "intel_vdsc.h"
 
 #define DP_DPRX_ESI_LEN 14
@@ -211,6 +215,7 @@ static int intel_dp_max_common_rate(struct intel_dp *intel_dp)
 	return intel_dp->common_rates[intel_dp->num_common_rates - 1];
 }
 
+<<<<<<< HEAD
 static int intel_dp_get_fia_supported_lane_count(struct intel_dp *intel_dp)
 {
 	struct intel_digital_port *dig_port = dp_to_dig_port(intel_dp);
@@ -244,13 +249,19 @@ static int intel_dp_get_fia_supported_lane_count(struct intel_dp *intel_dp)
 	}
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 /* Theoretical max between source and sink */
 static int intel_dp_max_common_lane_count(struct intel_dp *intel_dp)
 {
 	struct intel_digital_port *intel_dig_port = dp_to_dig_port(intel_dp);
 	int source_max = intel_dig_port->max_lanes;
 	int sink_max = drm_dp_max_lane_count(intel_dp->dpcd);
+<<<<<<< HEAD
 	int fia_max = intel_dp_get_fia_supported_lane_count(intel_dp);
+=======
+	int fia_max = intel_tc_port_fia_max_lane_count(intel_dig_port);
+>>>>>>> linux-next/akpm-base
 
 	return min3(source_max, sink_max, fia_max);
 }
@@ -329,9 +340,15 @@ static int icl_max_source_rate(struct intel_dp *intel_dp)
 {
 	struct intel_digital_port *dig_port = dp_to_dig_port(intel_dp);
 	struct drm_i915_private *dev_priv = to_i915(dig_port->base.base.dev);
+<<<<<<< HEAD
 	enum port port = dig_port->base.port;
 
 	if (intel_port_is_combophy(dev_priv, port) &&
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, dig_port->base.port);
+
+	if (intel_phy_is_combo(dev_priv, phy) &&
+>>>>>>> linux-next/akpm-base
 	    !IS_ELKHARTLAKE(dev_priv) &&
 	    !intel_dp_is_edp(intel_dp))
 		return 540000;
@@ -1208,7 +1225,11 @@ static u32 skl_get_aux_send_ctl(struct intel_dp *intel_dp,
 	      DP_AUX_CH_CTL_FW_SYNC_PULSE_SKL(32) |
 	      DP_AUX_CH_CTL_SYNC_PULSE_SKL(32);
 
+<<<<<<< HEAD
 	if (intel_dig_port->tc_type == TC_PORT_TBT)
+=======
+	if (intel_dig_port->tc_mode == TC_PORT_TBT_ALT)
+>>>>>>> linux-next/akpm-base
 		ret |= DP_AUX_CH_CTL_TBT_IO;
 
 	return ret;
@@ -1224,6 +1245,11 @@ intel_dp_aux_xfer(struct intel_dp *intel_dp,
 	struct drm_i915_private *i915 =
 			to_i915(intel_dig_port->base.base.dev);
 	struct intel_uncore *uncore = &i915->uncore;
+<<<<<<< HEAD
+=======
+	enum phy phy = intel_port_to_phy(i915, intel_dig_port->base.port);
+	bool is_tc_port = intel_phy_is_tc(i915, phy);
+>>>>>>> linux-next/akpm-base
 	i915_reg_t ch_ctl, ch_data[5];
 	u32 aux_clock_divider;
 	enum intel_display_power_domain aux_domain =
@@ -1239,6 +1265,12 @@ intel_dp_aux_xfer(struct intel_dp *intel_dp,
 	for (i = 0; i < ARRAY_SIZE(ch_data); i++)
 		ch_data[i] = intel_dp->aux_ch_data_reg(intel_dp, i);
 
+<<<<<<< HEAD
+=======
+	if (is_tc_port)
+		intel_tc_port_lock(intel_dig_port);
+
+>>>>>>> linux-next/akpm-base
 	aux_wakeref = intel_display_power_get(i915, aux_domain);
 	pps_wakeref = pps_lock(intel_dp);
 
@@ -1391,6 +1423,12 @@ out:
 	pps_unlock(intel_dp, pps_wakeref);
 	intel_display_power_put_async(i915, aux_domain, aux_wakeref);
 
+<<<<<<< HEAD
+=======
+	if (is_tc_port)
+		intel_tc_port_unlock(intel_dig_port);
+
+>>>>>>> linux-next/akpm-base
 	return ret;
 }
 
@@ -1878,8 +1916,15 @@ intel_dp_compute_link_config_wide(struct intel_dp *intel_dp,
 	int mode_rate, link_clock, link_avail;
 
 	for (bpp = limits->max_bpp; bpp >= limits->min_bpp; bpp -= 2 * 3) {
+<<<<<<< HEAD
 		mode_rate = intel_dp_link_required(adjusted_mode->crtc_clock,
 						   bpp);
+=======
+		int output_bpp = intel_dp_output_bpp(pipe_config, bpp);
+
+		mode_rate = intel_dp_link_required(adjusted_mode->crtc_clock,
+						   output_bpp);
+>>>>>>> linux-next/akpm-base
 
 		for (clock = limits->min_clock; clock <= limits->max_clock; clock++) {
 			for (lane_count = limits->min_lane_count;
@@ -4243,8 +4288,19 @@ intel_dp_get_dpcd(struct intel_dp *intel_dp)
 	if (!intel_dp_read_dpcd(intel_dp))
 		return false;
 
+<<<<<<< HEAD
 	/* Don't clobber cached eDP rates. */
 	if (!intel_dp_is_edp(intel_dp)) {
+=======
+	/*
+	 * Don't clobber cached eDP rates. Also skip re-reading
+	 * the OUI/ID since we know it won't change.
+	 */
+	if (!intel_dp_is_edp(intel_dp)) {
+		drm_dp_read_desc(&intel_dp->aux, &intel_dp->desc,
+				 drm_dp_is_branch(intel_dp->dpcd));
+
+>>>>>>> linux-next/akpm-base
 		intel_dp_set_sink_rates(intel_dp);
 		intel_dp_set_common_rates(intel_dp);
 	}
@@ -4253,7 +4309,12 @@ intel_dp_get_dpcd(struct intel_dp *intel_dp)
 	 * Some eDP panels do not set a valid value for sink count, that is why
 	 * it don't care about read it here and in intel_edp_init_dpcd().
 	 */
+<<<<<<< HEAD
 	if (!intel_dp_is_edp(intel_dp)) {
+=======
+	if (!intel_dp_is_edp(intel_dp) &&
+	    !drm_dp_has_quirk(&intel_dp->desc, DP_DPCD_QUIRK_NO_SINK_COUNT)) {
+>>>>>>> linux-next/akpm-base
 		u8 count;
 		ssize_t r;
 
@@ -4878,6 +4939,7 @@ int intel_dp_retrain_link(struct intel_encoder *encoder,
  * retrain the link to get a picture. That's in case no
  * userspace component reacted to intermittent HPD dip.
  */
+<<<<<<< HEAD
 static bool intel_dp_hotplug(struct intel_encoder *encoder,
 			     struct intel_connector *connector)
 {
@@ -4886,6 +4948,18 @@ static bool intel_dp_hotplug(struct intel_encoder *encoder,
 	int ret;
 
 	changed = intel_encoder_hotplug(encoder, connector);
+=======
+static enum intel_hotplug_state
+intel_dp_hotplug(struct intel_encoder *encoder,
+		 struct intel_connector *connector,
+		 bool irq_received)
+{
+	struct drm_modeset_acquire_ctx ctx;
+	enum intel_hotplug_state state;
+	int ret;
+
+	state = intel_encoder_hotplug(encoder, connector, irq_received);
+>>>>>>> linux-next/akpm-base
 
 	drm_modeset_acquire_init(&ctx, 0);
 
@@ -4904,7 +4978,18 @@ static bool intel_dp_hotplug(struct intel_encoder *encoder,
 	drm_modeset_acquire_fini(&ctx);
 	WARN(ret, "Acquiring modeset locks failed with %i\n", ret);
 
+<<<<<<< HEAD
 	return changed;
+=======
+	/*
+	 * Keeping it consistent with intel_ddi_hotplug() and
+	 * intel_hdmi_hotplug().
+	 */
+	if (state == INTEL_HOTPLUG_UNCHANGED && irq_received)
+		state = INTEL_HOTPLUG_RETRY;
+
+	return state;
+>>>>>>> linux-next/akpm-base
 }
 
 static void intel_dp_check_service_irq(struct intel_dp *intel_dp)
@@ -5232,6 +5317,7 @@ static bool icl_combo_port_connected(struct drm_i915_private *dev_priv,
 	return I915_READ(SDEISR) & SDE_DDI_HOTPLUG_ICP(port);
 }
 
+<<<<<<< HEAD
 static const char *tc_type_name(enum tc_port_type type)
 {
 	static const char * const names[] = {
@@ -5421,15 +5507,26 @@ static bool icl_tc_port_connected(struct drm_i915_private *dev_priv,
 	return true;
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 static bool icl_digital_port_connected(struct intel_encoder *encoder)
 {
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	struct intel_digital_port *dig_port = enc_to_dig_port(&encoder->base);
+<<<<<<< HEAD
 
 	if (intel_port_is_combophy(dev_priv, encoder->port))
 		return icl_combo_port_connected(dev_priv, dig_port);
 	else if (intel_port_is_tc(dev_priv, encoder->port))
 		return icl_tc_port_connected(dev_priv, dig_port);
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, encoder->port);
+
+	if (intel_phy_is_combo(dev_priv, phy))
+		return icl_combo_port_connected(dev_priv, dig_port);
+	else if (intel_phy_is_tc(dev_priv, phy))
+		return intel_tc_port_connected(dig_port);
+>>>>>>> linux-next/akpm-base
 	else
 		MISSING_CASE(encoder->hpd_pin);
 
@@ -5587,9 +5684,12 @@ intel_dp_detect(struct drm_connector *connector,
 	if (INTEL_GEN(dev_priv) >= 11)
 		intel_dp_get_dsc_sink_cap(intel_dp);
 
+<<<<<<< HEAD
 	drm_dp_read_desc(&intel_dp->aux, &intel_dp->desc,
 			 drm_dp_is_branch(intel_dp->dpcd));
 
+=======
+>>>>>>> linux-next/akpm-base
 	intel_dp_configure_mst(intel_dp);
 
 	if (intel_dp->is_mst) {
@@ -6834,8 +6934,11 @@ static void intel_dp_set_drrs_state(struct drm_i915_private *dev_priv,
 				    const struct intel_crtc_state *crtc_state,
 				    int refresh_rate)
 {
+<<<<<<< HEAD
 	struct intel_encoder *encoder;
 	struct intel_digital_port *dig_port = NULL;
+=======
+>>>>>>> linux-next/akpm-base
 	struct intel_dp *intel_dp = dev_priv->drrs.dp;
 	struct intel_crtc *intel_crtc = to_intel_crtc(crtc_state->base.crtc);
 	enum drrs_refresh_rate_type index = DRRS_HIGH_RR;
@@ -6850,9 +6953,12 @@ static void intel_dp_set_drrs_state(struct drm_i915_private *dev_priv,
 		return;
 	}
 
+<<<<<<< HEAD
 	dig_port = dp_to_dig_port(intel_dp);
 	encoder = &dig_port->base;
 
+=======
+>>>>>>> linux-next/akpm-base
 	if (!intel_crtc) {
 		DRM_DEBUG_KMS("DRRS: intel_crtc not initialized\n");
 		return;
@@ -7332,6 +7438,10 @@ intel_dp_init_connector(struct intel_digital_port *intel_dig_port,
 	struct drm_device *dev = intel_encoder->base.dev;
 	struct drm_i915_private *dev_priv = to_i915(dev);
 	enum port port = intel_encoder->port;
+<<<<<<< HEAD
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, port);
+>>>>>>> linux-next/akpm-base
 	int type;
 
 	/* Initialize the work for modeset in case of link train failure */
@@ -7358,7 +7468,11 @@ intel_dp_init_connector(struct intel_digital_port *intel_dig_port,
 		 * Currently we don't support eDP on TypeC ports, although in
 		 * theory it could work on TypeC legacy ports.
 		 */
+<<<<<<< HEAD
 		WARN_ON(intel_port_is_tc(dev_priv, port));
+=======
+		WARN_ON(intel_phy_is_tc(dev_priv, phy));
+>>>>>>> linux-next/akpm-base
 		type = DRM_MODE_CONNECTOR_eDP;
 	} else {
 		type = DRM_MODE_CONNECTOR_DisplayPort;

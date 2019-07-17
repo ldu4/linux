@@ -52,11 +52,16 @@ struct komeda_plane_state {
 	/** @zlist_node: zorder list node */
 	struct list_head zlist_node;
 
+<<<<<<< HEAD
 	/* @img_enhancement: on/off image enhancement
 	 * @layer_split: on/off layer_split
 	 */
 	u8 img_enhancement : 1,
 	   layer_split : 1;
+=======
+	/** @layer_split: on/off layer_split */
+	u8 layer_split : 1;
+>>>>>>> linux-next/akpm-base
 };
 
 /**

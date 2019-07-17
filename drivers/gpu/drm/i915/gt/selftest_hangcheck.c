@@ -25,13 +25,20 @@
 #include <linux/kthread.h>
 
 #include "gem/i915_gem_context.h"
+<<<<<<< HEAD
+=======
+#include "gt/intel_gt.h"
+>>>>>>> linux-next/akpm-base
 #include "intel_engine_pm.h"
 
 #include "i915_selftest.h"
 #include "selftests/i915_random.h"
 #include "selftests/igt_flush_test.h"
 #include "selftests/igt_reset.h"
+<<<<<<< HEAD
 #include "selftests/igt_wedge_me.h"
+=======
+>>>>>>> linux-next/akpm-base
 #include "selftests/igt_atomic.h"
 
 #include "selftests/mock_drm.h"
@@ -42,7 +49,11 @@
 #define IGT_IDLE_TIMEOUT 50 /* ms; time to wait after flushing between tests */
 
 struct hang {
+<<<<<<< HEAD
 	struct drm_i915_private *i915;
+=======
+	struct intel_gt *gt;
+>>>>>>> linux-next/akpm-base
 	struct drm_i915_gem_object *hws;
 	struct drm_i915_gem_object *obj;
 	struct i915_gem_context *ctx;
@@ -50,27 +61,45 @@ struct hang {
 	u32 *batch;
 };
 
+<<<<<<< HEAD
 static int hang_init(struct hang *h, struct drm_i915_private *i915)
+=======
+static int hang_init(struct hang *h, struct intel_gt *gt)
+>>>>>>> linux-next/akpm-base
 {
 	void *vaddr;
 	int err;
 
 	memset(h, 0, sizeof(*h));
+<<<<<<< HEAD
 	h->i915 = i915;
 
 	h->ctx = kernel_context(i915);
+=======
+	h->gt = gt;
+
+	h->ctx = kernel_context(gt->i915);
+>>>>>>> linux-next/akpm-base
 	if (IS_ERR(h->ctx))
 		return PTR_ERR(h->ctx);
 
 	GEM_BUG_ON(i915_gem_context_is_bannable(h->ctx));
 
+<<<<<<< HEAD
 	h->hws = i915_gem_object_create_internal(i915, PAGE_SIZE);
+=======
+	h->hws = i915_gem_object_create_internal(gt->i915, PAGE_SIZE);
+>>>>>>> linux-next/akpm-base
 	if (IS_ERR(h->hws)) {
 		err = PTR_ERR(h->hws);
 		goto err_ctx;
 	}
 
+<<<<<<< HEAD
 	h->obj = i915_gem_object_create_internal(i915, PAGE_SIZE);
+=======
+	h->obj = i915_gem_object_create_internal(gt->i915, PAGE_SIZE);
+>>>>>>> linux-next/akpm-base
 	if (IS_ERR(h->obj)) {
 		err = PTR_ERR(h->obj);
 		goto err_hws;
@@ -85,7 +114,11 @@ static int hang_init(struct hang *h, struct drm_i915_private *i915)
 	h->seqno = memset(vaddr, 0xff, PAGE_SIZE);
 
 	vaddr = i915_gem_object_pin_map(h->obj,
+<<<<<<< HEAD
 					i915_coherent_map_type(i915));
+=======
+					i915_coherent_map_type(gt->i915));
+>>>>>>> linux-next/akpm-base
 	if (IS_ERR(vaddr)) {
 		err = PTR_ERR(vaddr);
 		goto err_unpin_hws;
@@ -127,6 +160,7 @@ static int move_to_active(struct i915_vma *vma,
 static struct i915_request *
 hang_create_request(struct hang *h, struct intel_engine_cs *engine)
 {
+<<<<<<< HEAD
 	struct drm_i915_private *i915 = h->i915;
 	struct i915_address_space *vm = h->ctx->vm ?: &i915->ggtt.vm;
 	struct i915_request *rq = NULL;
@@ -156,6 +190,33 @@ hang_create_request(struct hang *h, struct intel_engine_cs *engine)
 		h->obj = obj;
 		h->batch = vaddr;
 	}
+=======
+	struct intel_gt *gt = h->gt;
+	struct i915_address_space *vm = h->ctx->vm ?: &engine->gt->ggtt->vm;
+	struct drm_i915_gem_object *obj;
+	struct i915_request *rq = NULL;
+	struct i915_vma *hws, *vma;
+	unsigned int flags;
+	void *vaddr;
+	u32 *batch;
+	int err;
+
+	obj = i915_gem_object_create_internal(gt->i915, PAGE_SIZE);
+	if (IS_ERR(obj))
+		return ERR_CAST(obj);
+
+	vaddr = i915_gem_object_pin_map(obj, i915_coherent_map_type(gt->i915));
+	if (IS_ERR(vaddr)) {
+		i915_gem_object_put(obj);
+		return ERR_CAST(vaddr);
+	}
+
+	i915_gem_object_unpin_map(h->obj);
+	i915_gem_object_put(h->obj);
+
+	h->obj = obj;
+	h->batch = vaddr;
+>>>>>>> linux-next/akpm-base
 
 	vma = i915_vma_instance(h->obj, vm, NULL);
 	if (IS_ERR(vma))
@@ -188,7 +249,11 @@ hang_create_request(struct hang *h, struct intel_engine_cs *engine)
 		goto cancel_rq;
 
 	batch = h->batch;
+<<<<<<< HEAD
 	if (INTEL_GEN(i915) >= 8) {
+=======
+	if (INTEL_GEN(gt->i915) >= 8) {
+>>>>>>> linux-next/akpm-base
 		*batch++ = MI_STORE_DWORD_IMM_GEN4;
 		*batch++ = lower_32_bits(hws_address(hws, rq));
 		*batch++ = upper_32_bits(hws_address(hws, rq));
@@ -202,7 +267,11 @@ hang_create_request(struct hang *h, struct intel_engine_cs *engine)
 		*batch++ = MI_BATCH_BUFFER_START | 1 << 8 | 1;
 		*batch++ = lower_32_bits(vma->node.start);
 		*batch++ = upper_32_bits(vma->node.start);
+<<<<<<< HEAD
 	} else if (INTEL_GEN(i915) >= 6) {
+=======
+	} else if (INTEL_GEN(gt->i915) >= 6) {
+>>>>>>> linux-next/akpm-base
 		*batch++ = MI_STORE_DWORD_IMM_GEN4;
 		*batch++ = 0;
 		*batch++ = lower_32_bits(hws_address(hws, rq));
@@ -215,7 +284,11 @@ hang_create_request(struct hang *h, struct intel_engine_cs *engine)
 		*batch++ = MI_ARB_CHECK;
 		*batch++ = MI_BATCH_BUFFER_START | 1 << 8;
 		*batch++ = lower_32_bits(vma->node.start);
+<<<<<<< HEAD
 	} else if (INTEL_GEN(i915) >= 4) {
+=======
+	} else if (INTEL_GEN(gt->i915) >= 4) {
+>>>>>>> linux-next/akpm-base
 		*batch++ = MI_STORE_DWORD_IMM_GEN4 | MI_USE_GGTT;
 		*batch++ = 0;
 		*batch++ = lower_32_bits(hws_address(hws, rq));
@@ -242,7 +315,11 @@ hang_create_request(struct hang *h, struct intel_engine_cs *engine)
 		*batch++ = lower_32_bits(vma->node.start);
 	}
 	*batch++ = MI_BATCH_BUFFER_END; /* not reached */
+<<<<<<< HEAD
 	i915_gem_chipset_flush(h->i915);
+=======
+	intel_gt_chipset_flush(engine->gt);
+>>>>>>> linux-next/akpm-base
 
 	if (rq->engine->emit_init_breadcrumb) {
 		err = rq->engine->emit_init_breadcrumb(rq);
@@ -251,7 +328,11 @@ hang_create_request(struct hang *h, struct intel_engine_cs *engine)
 	}
 
 	flags = 0;
+<<<<<<< HEAD
 	if (INTEL_GEN(vm->i915) <= 5)
+=======
+	if (INTEL_GEN(gt->i915) <= 5)
+>>>>>>> linux-next/akpm-base
 		flags |= I915_DISPATCH_SECURE;
 
 	err = rq->engine->emit_bb_start(rq, vma->node.start, PAGE_SIZE, flags);
@@ -276,7 +357,13 @@ static u32 hws_seqno(const struct hang *h, const struct i915_request *rq)
 static void hang_fini(struct hang *h)
 {
 	*h->batch = MI_BATCH_BUFFER_END;
+<<<<<<< HEAD
 	i915_gem_chipset_flush(h->i915);
+=======
+
+	if (h->gt)
+		intel_gt_chipset_flush(h->gt);
+>>>>>>> linux-next/akpm-base
 
 	i915_gem_object_unpin_map(h->obj);
 	i915_gem_object_put(h->obj);
@@ -286,7 +373,11 @@ static void hang_fini(struct hang *h)
 
 	kernel_context_close(h->ctx);
 
+<<<<<<< HEAD
 	igt_flush_test(h->i915, I915_WAIT_LOCKED);
+=======
+	igt_flush_test(h->gt->i915, I915_WAIT_LOCKED);
+>>>>>>> linux-next/akpm-base
 }
 
 static bool wait_until_running(struct hang *h, struct i915_request *rq)
@@ -301,7 +392,11 @@ static bool wait_until_running(struct hang *h, struct i915_request *rq)
 
 static int igt_hang_sanitycheck(void *arg)
 {
+<<<<<<< HEAD
 	struct drm_i915_private *i915 = arg;
+=======
+	struct intel_gt *gt = arg;
+>>>>>>> linux-next/akpm-base
 	struct i915_request *rq;
 	struct intel_engine_cs *engine;
 	enum intel_engine_id id;
@@ -310,6 +405,7 @@ static int igt_hang_sanitycheck(void *arg)
 
 	/* Basic check that we can execute our hanging batch */
 
+<<<<<<< HEAD
 	mutex_lock(&i915->drm.struct_mutex);
 	err = hang_init(&h, i915);
 	if (err)
@@ -317,6 +413,15 @@ static int igt_hang_sanitycheck(void *arg)
 
 	for_each_engine(engine, i915, id) {
 		struct igt_wedge_me w;
+=======
+	mutex_lock(&gt->i915->drm.struct_mutex);
+	err = hang_init(&h, gt);
+	if (err)
+		goto unlock;
+
+	for_each_engine(engine, gt->i915, id) {
+		struct intel_wedge_me w;
+>>>>>>> linux-next/akpm-base
 		long timeout;
 
 		if (!intel_engine_can_store_dword(engine))
@@ -333,15 +438,26 @@ static int igt_hang_sanitycheck(void *arg)
 		i915_request_get(rq);
 
 		*h.batch = MI_BATCH_BUFFER_END;
+<<<<<<< HEAD
 		i915_gem_chipset_flush(i915);
+=======
+		intel_gt_chipset_flush(engine->gt);
+>>>>>>> linux-next/akpm-base
 
 		i915_request_add(rq);
 
 		timeout = 0;
+<<<<<<< HEAD
 		igt_wedge_on_timeout(&w, i915, HZ / 10 /* 100ms timeout*/)
 			timeout = i915_request_wait(rq, 0,
 						    MAX_SCHEDULE_TIMEOUT);
 		if (i915_reset_failed(i915))
+=======
+		intel_wedge_on_timeout(&w, gt, HZ / 10 /* 100ms */)
+			timeout = i915_request_wait(rq, 0,
+						    MAX_SCHEDULE_TIMEOUT);
+		if (intel_gt_is_wedged(gt))
+>>>>>>> linux-next/akpm-base
 			timeout = -EIO;
 
 		i915_request_put(rq);
@@ -357,7 +473,11 @@ static int igt_hang_sanitycheck(void *arg)
 fini:
 	hang_fini(&h);
 unlock:
+<<<<<<< HEAD
 	mutex_unlock(&i915->drm.struct_mutex);
+=======
+	mutex_unlock(&gt->i915->drm.struct_mutex);
+>>>>>>> linux-next/akpm-base
 	return err;
 }
 
@@ -368,18 +488,27 @@ static bool wait_for_idle(struct intel_engine_cs *engine)
 
 static int igt_reset_nop(void *arg)
 {
+<<<<<<< HEAD
 	struct drm_i915_private *i915 = arg;
+=======
+	struct intel_gt *gt = arg;
+	struct i915_gpu_error *global = &gt->i915->gpu_error;
+>>>>>>> linux-next/akpm-base
 	struct intel_engine_cs *engine;
 	struct i915_gem_context *ctx;
 	unsigned int reset_count, count;
 	enum intel_engine_id id;
+<<<<<<< HEAD
 	intel_wakeref_t wakeref;
+=======
+>>>>>>> linux-next/akpm-base
 	struct drm_file *file;
 	IGT_TIMEOUT(end_time);
 	int err = 0;
 
 	/* Check that we can reset during non-user portions of requests */
 
+<<<<<<< HEAD
 	file = mock_file(i915);
 	if (IS_ERR(file))
 		return PTR_ERR(file);
@@ -387,18 +516,36 @@ static int igt_reset_nop(void *arg)
 	mutex_lock(&i915->drm.struct_mutex);
 	ctx = live_context(i915, file);
 	mutex_unlock(&i915->drm.struct_mutex);
+=======
+	file = mock_file(gt->i915);
+	if (IS_ERR(file))
+		return PTR_ERR(file);
+
+	mutex_lock(&gt->i915->drm.struct_mutex);
+	ctx = live_context(gt->i915, file);
+	mutex_unlock(&gt->i915->drm.struct_mutex);
+>>>>>>> linux-next/akpm-base
 	if (IS_ERR(ctx)) {
 		err = PTR_ERR(ctx);
 		goto out;
 	}
 
 	i915_gem_context_clear_bannable(ctx);
+<<<<<<< HEAD
 	wakeref = intel_runtime_pm_get(&i915->runtime_pm);
 	reset_count = i915_reset_count(&i915->gpu_error);
 	count = 0;
 	do {
 		mutex_lock(&i915->drm.struct_mutex);
 		for_each_engine(engine, i915, id) {
+=======
+	reset_count = i915_reset_count(global);
+	count = 0;
+	do {
+		mutex_lock(&gt->i915->drm.struct_mutex);
+
+		for_each_engine(engine, gt->i915, id) {
+>>>>>>> linux-next/akpm-base
 			int i;
 
 			for (i = 0; i < 16; i++) {
@@ -413,29 +560,48 @@ static int igt_reset_nop(void *arg)
 				i915_request_add(rq);
 			}
 		}
+<<<<<<< HEAD
 		mutex_unlock(&i915->drm.struct_mutex);
 
 		igt_global_reset_lock(i915);
 		i915_reset(i915, ALL_ENGINES, NULL);
 		igt_global_reset_unlock(i915);
 		if (i915_reset_failed(i915)) {
+=======
+
+		igt_global_reset_lock(gt);
+		intel_gt_reset(gt, ALL_ENGINES, NULL);
+		igt_global_reset_unlock(gt);
+
+		mutex_unlock(&gt->i915->drm.struct_mutex);
+		if (intel_gt_is_wedged(gt)) {
+>>>>>>> linux-next/akpm-base
 			err = -EIO;
 			break;
 		}
 
+<<<<<<< HEAD
 		if (i915_reset_count(&i915->gpu_error) !=
 		    reset_count + ++count) {
+=======
+		if (i915_reset_count(global) != reset_count + ++count) {
+>>>>>>> linux-next/akpm-base
 			pr_err("Full GPU reset not recorded!\n");
 			err = -EINVAL;
 			break;
 		}
 
+<<<<<<< HEAD
 		err = igt_flush_test(i915, 0);
+=======
+		err = igt_flush_test(gt->i915, 0);
+>>>>>>> linux-next/akpm-base
 		if (err)
 			break;
 	} while (time_before(jiffies, end_time));
 	pr_info("%s: %d resets\n", __func__, count);
 
+<<<<<<< HEAD
 	mutex_lock(&i915->drm.struct_mutex);
 	err = igt_flush_test(i915, I915_WAIT_LOCKED);
 	mutex_unlock(&i915->drm.struct_mutex);
@@ -445,22 +611,40 @@ static int igt_reset_nop(void *arg)
 out:
 	mock_file_free(i915, file);
 	if (i915_reset_failed(i915))
+=======
+	mutex_lock(&gt->i915->drm.struct_mutex);
+	err = igt_flush_test(gt->i915, I915_WAIT_LOCKED);
+	mutex_unlock(&gt->i915->drm.struct_mutex);
+
+out:
+	mock_file_free(gt->i915, file);
+	if (intel_gt_is_wedged(gt))
+>>>>>>> linux-next/akpm-base
 		err = -EIO;
 	return err;
 }
 
 static int igt_reset_nop_engine(void *arg)
 {
+<<<<<<< HEAD
 	struct drm_i915_private *i915 = arg;
 	struct intel_engine_cs *engine;
 	struct i915_gem_context *ctx;
 	enum intel_engine_id id;
 	intel_wakeref_t wakeref;
+=======
+	struct intel_gt *gt = arg;
+	struct i915_gpu_error *global = &gt->i915->gpu_error;
+	struct intel_engine_cs *engine;
+	struct i915_gem_context *ctx;
+	enum intel_engine_id id;
+>>>>>>> linux-next/akpm-base
 	struct drm_file *file;
 	int err = 0;
 
 	/* Check that we can engine-reset during non-user portions */
 
+<<<<<<< HEAD
 	if (!intel_has_reset_engine(i915))
 		return 0;
 
@@ -471,24 +655,48 @@ static int igt_reset_nop_engine(void *arg)
 	mutex_lock(&i915->drm.struct_mutex);
 	ctx = live_context(i915, file);
 	mutex_unlock(&i915->drm.struct_mutex);
+=======
+	if (!intel_has_reset_engine(gt->i915))
+		return 0;
+
+	file = mock_file(gt->i915);
+	if (IS_ERR(file))
+		return PTR_ERR(file);
+
+	mutex_lock(&gt->i915->drm.struct_mutex);
+	ctx = live_context(gt->i915, file);
+	mutex_unlock(&gt->i915->drm.struct_mutex);
+>>>>>>> linux-next/akpm-base
 	if (IS_ERR(ctx)) {
 		err = PTR_ERR(ctx);
 		goto out;
 	}
 
 	i915_gem_context_clear_bannable(ctx);
+<<<<<<< HEAD
 	wakeref = intel_runtime_pm_get(&i915->runtime_pm);
 	for_each_engine(engine, i915, id) {
+=======
+	for_each_engine(engine, gt->i915, id) {
+>>>>>>> linux-next/akpm-base
 		unsigned int reset_count, reset_engine_count;
 		unsigned int count;
 		IGT_TIMEOUT(end_time);
 
+<<<<<<< HEAD
 		reset_count = i915_reset_count(&i915->gpu_error);
 		reset_engine_count = i915_reset_engine_count(&i915->gpu_error,
 							     engine);
 		count = 0;
 
 		set_bit(I915_RESET_ENGINE + id, &i915->gpu_error.flags);
+=======
+		reset_count = i915_reset_count(global);
+		reset_engine_count = i915_reset_engine_count(global, engine);
+		count = 0;
+
+		set_bit(I915_RESET_ENGINE + id, &gt->reset.flags);
+>>>>>>> linux-next/akpm-base
 		do {
 			int i;
 
@@ -499,7 +707,11 @@ static int igt_reset_nop_engine(void *arg)
 				break;
 			}
 
+<<<<<<< HEAD
 			mutex_lock(&i915->drm.struct_mutex);
+=======
+			mutex_lock(&gt->i915->drm.struct_mutex);
+>>>>>>> linux-next/akpm-base
 			for (i = 0; i < 16; i++) {
 				struct i915_request *rq;
 
@@ -511,21 +723,34 @@ static int igt_reset_nop_engine(void *arg)
 
 				i915_request_add(rq);
 			}
+<<<<<<< HEAD
 			mutex_unlock(&i915->drm.struct_mutex);
 
 			err = i915_reset_engine(engine, NULL);
+=======
+			err = intel_engine_reset(engine, NULL);
+			mutex_unlock(&gt->i915->drm.struct_mutex);
+>>>>>>> linux-next/akpm-base
 			if (err) {
 				pr_err("i915_reset_engine failed\n");
 				break;
 			}
 
+<<<<<<< HEAD
 			if (i915_reset_count(&i915->gpu_error) != reset_count) {
+=======
+			if (i915_reset_count(global) != reset_count) {
+>>>>>>> linux-next/akpm-base
 				pr_err("Full GPU reset recorded! (engine reset expected)\n");
 				err = -EINVAL;
 				break;
 			}
 
+<<<<<<< HEAD
 			if (i915_reset_engine_count(&i915->gpu_error, engine) !=
+=======
+			if (i915_reset_engine_count(global, engine) !=
+>>>>>>> linux-next/akpm-base
 			    reset_engine_count + ++count) {
 				pr_err("%s engine reset not recorded!\n",
 				       engine->name);
@@ -533,17 +758,26 @@ static int igt_reset_nop_engine(void *arg)
 				break;
 			}
 		} while (time_before(jiffies, end_time));
+<<<<<<< HEAD
 		clear_bit(I915_RESET_ENGINE + id, &i915->gpu_error.flags);
+=======
+		clear_bit(I915_RESET_ENGINE + id, &gt->reset.flags);
+>>>>>>> linux-next/akpm-base
 		pr_info("%s(%s): %d resets\n", __func__, engine->name, count);
 
 		if (err)
 			break;
 
+<<<<<<< HEAD
 		err = igt_flush_test(i915, 0);
+=======
+		err = igt_flush_test(gt->i915, 0);
+>>>>>>> linux-next/akpm-base
 		if (err)
 			break;
 	}
 
+<<<<<<< HEAD
 	mutex_lock(&i915->drm.struct_mutex);
 	err = igt_flush_test(i915, I915_WAIT_LOCKED);
 	mutex_unlock(&i915->drm.struct_mutex);
@@ -552,12 +786,27 @@ static int igt_reset_nop_engine(void *arg)
 out:
 	mock_file_free(i915, file);
 	if (i915_reset_failed(i915))
+=======
+	mutex_lock(&gt->i915->drm.struct_mutex);
+	err = igt_flush_test(gt->i915, I915_WAIT_LOCKED);
+	mutex_unlock(&gt->i915->drm.struct_mutex);
+
+out:
+	mock_file_free(gt->i915, file);
+	if (intel_gt_is_wedged(gt))
+>>>>>>> linux-next/akpm-base
 		err = -EIO;
 	return err;
 }
 
+<<<<<<< HEAD
 static int __igt_reset_engine(struct drm_i915_private *i915, bool active)
 {
+=======
+static int __igt_reset_engine(struct intel_gt *gt, bool active)
+{
+	struct i915_gpu_error *global = &gt->i915->gpu_error;
+>>>>>>> linux-next/akpm-base
 	struct intel_engine_cs *engine;
 	enum intel_engine_id id;
 	struct hang h;
@@ -565,6 +814,7 @@ static int __igt_reset_engine(struct drm_i915_private *i915, bool active)
 
 	/* Check that we can issue an engine reset on an idle engine (no-op) */
 
+<<<<<<< HEAD
 	if (!intel_has_reset_engine(i915))
 		return 0;
 
@@ -572,11 +822,24 @@ static int __igt_reset_engine(struct drm_i915_private *i915, bool active)
 		mutex_lock(&i915->drm.struct_mutex);
 		err = hang_init(&h, i915);
 		mutex_unlock(&i915->drm.struct_mutex);
+=======
+	if (!intel_has_reset_engine(gt->i915))
+		return 0;
+
+	if (active) {
+		mutex_lock(&gt->i915->drm.struct_mutex);
+		err = hang_init(&h, gt);
+		mutex_unlock(&gt->i915->drm.struct_mutex);
+>>>>>>> linux-next/akpm-base
 		if (err)
 			return err;
 	}
 
+<<<<<<< HEAD
 	for_each_engine(engine, i915, id) {
+=======
+	for_each_engine(engine, gt->i915, id) {
+>>>>>>> linux-next/akpm-base
 		unsigned int reset_count, reset_engine_count;
 		IGT_TIMEOUT(end_time);
 
@@ -590,30 +853,53 @@ static int __igt_reset_engine(struct drm_i915_private *i915, bool active)
 			break;
 		}
 
+<<<<<<< HEAD
 		reset_count = i915_reset_count(&i915->gpu_error);
 		reset_engine_count = i915_reset_engine_count(&i915->gpu_error,
 							     engine);
 
 		intel_engine_pm_get(engine);
 		set_bit(I915_RESET_ENGINE + id, &i915->gpu_error.flags);
+=======
+		reset_count = i915_reset_count(global);
+		reset_engine_count = i915_reset_engine_count(global, engine);
+
+		intel_engine_pm_get(engine);
+		set_bit(I915_RESET_ENGINE + id, &gt->reset.flags);
+>>>>>>> linux-next/akpm-base
 		do {
 			if (active) {
 				struct i915_request *rq;
 
+<<<<<<< HEAD
 				mutex_lock(&i915->drm.struct_mutex);
 				rq = hang_create_request(&h, engine);
 				if (IS_ERR(rq)) {
 					err = PTR_ERR(rq);
 					mutex_unlock(&i915->drm.struct_mutex);
+=======
+				mutex_lock(&gt->i915->drm.struct_mutex);
+				rq = hang_create_request(&h, engine);
+				if (IS_ERR(rq)) {
+					err = PTR_ERR(rq);
+					mutex_unlock(&gt->i915->drm.struct_mutex);
+>>>>>>> linux-next/akpm-base
 					break;
 				}
 
 				i915_request_get(rq);
 				i915_request_add(rq);
+<<<<<<< HEAD
 				mutex_unlock(&i915->drm.struct_mutex);
 
 				if (!wait_until_running(&h, rq)) {
 					struct drm_printer p = drm_info_printer(i915->drm.dev);
+=======
+				mutex_unlock(&gt->i915->drm.struct_mutex);
+
+				if (!wait_until_running(&h, rq)) {
+					struct drm_printer p = drm_info_printer(gt->i915->drm.dev);
+>>>>>>> linux-next/akpm-base
 
 					pr_err("%s: Failed to start request %llx, at %x\n",
 					       __func__, rq->fence.seqno, hws_seqno(&h, rq));
@@ -628,19 +914,31 @@ static int __igt_reset_engine(struct drm_i915_private *i915, bool active)
 				i915_request_put(rq);
 			}
 
+<<<<<<< HEAD
 			err = i915_reset_engine(engine, NULL);
+=======
+			err = intel_engine_reset(engine, NULL);
+>>>>>>> linux-next/akpm-base
 			if (err) {
 				pr_err("i915_reset_engine failed\n");
 				break;
 			}
 
+<<<<<<< HEAD
 			if (i915_reset_count(&i915->gpu_error) != reset_count) {
+=======
+			if (i915_reset_count(global) != reset_count) {
+>>>>>>> linux-next/akpm-base
 				pr_err("Full GPU reset recorded! (engine reset expected)\n");
 				err = -EINVAL;
 				break;
 			}
 
+<<<<<<< HEAD
 			if (i915_reset_engine_count(&i915->gpu_error, engine) !=
+=======
+			if (i915_reset_engine_count(global, engine) !=
+>>>>>>> linux-next/akpm-base
 			    ++reset_engine_count) {
 				pr_err("%s engine reset not recorded!\n",
 				       engine->name);
@@ -648,17 +946,26 @@ static int __igt_reset_engine(struct drm_i915_private *i915, bool active)
 				break;
 			}
 		} while (time_before(jiffies, end_time));
+<<<<<<< HEAD
 		clear_bit(I915_RESET_ENGINE + id, &i915->gpu_error.flags);
+=======
+		clear_bit(I915_RESET_ENGINE + id, &gt->reset.flags);
+>>>>>>> linux-next/akpm-base
 		intel_engine_pm_put(engine);
 
 		if (err)
 			break;
 
+<<<<<<< HEAD
 		err = igt_flush_test(i915, 0);
+=======
+		err = igt_flush_test(gt->i915, 0);
+>>>>>>> linux-next/akpm-base
 		if (err)
 			break;
 	}
 
+<<<<<<< HEAD
 	if (i915_reset_failed(i915))
 		err = -EIO;
 
@@ -666,6 +973,15 @@ static int __igt_reset_engine(struct drm_i915_private *i915, bool active)
 		mutex_lock(&i915->drm.struct_mutex);
 		hang_fini(&h);
 		mutex_unlock(&i915->drm.struct_mutex);
+=======
+	if (intel_gt_is_wedged(gt))
+		err = -EIO;
+
+	if (active) {
+		mutex_lock(&gt->i915->drm.struct_mutex);
+		hang_fini(&h);
+		mutex_unlock(&gt->i915->drm.struct_mutex);
+>>>>>>> linux-next/akpm-base
 	}
 
 	return err;
@@ -707,7 +1023,11 @@ static int active_request_put(struct i915_request *rq)
 			  rq->fence.seqno);
 		GEM_TRACE_DUMP();
 
+<<<<<<< HEAD
 		i915_gem_set_wedged(rq->i915);
+=======
+		intel_gt_set_wedged(rq->engine->gt);
+>>>>>>> linux-next/akpm-base
 		err = -EIO;
 	}
 
@@ -784,10 +1104,18 @@ err_file:
 	return err;
 }
 
+<<<<<<< HEAD
 static int __igt_reset_engines(struct drm_i915_private *i915,
 			       const char *test_name,
 			       unsigned int flags)
 {
+=======
+static int __igt_reset_engines(struct intel_gt *gt,
+			       const char *test_name,
+			       unsigned int flags)
+{
+	struct i915_gpu_error *global = &gt->i915->gpu_error;
+>>>>>>> linux-next/akpm-base
 	struct intel_engine_cs *engine, *other;
 	enum intel_engine_id id, tmp;
 	struct hang h;
@@ -797,6 +1125,7 @@ static int __igt_reset_engines(struct drm_i915_private *i915,
 	 * with any other engine.
 	 */
 
+<<<<<<< HEAD
 	if (!intel_has_reset_engine(i915))
 		return 0;
 
@@ -804,6 +1133,15 @@ static int __igt_reset_engines(struct drm_i915_private *i915,
 		mutex_lock(&i915->drm.struct_mutex);
 		err = hang_init(&h, i915);
 		mutex_unlock(&i915->drm.struct_mutex);
+=======
+	if (!intel_has_reset_engine(gt->i915))
+		return 0;
+
+	if (flags & TEST_ACTIVE) {
+		mutex_lock(&gt->i915->drm.struct_mutex);
+		err = hang_init(&h, gt);
+		mutex_unlock(&gt->i915->drm.struct_mutex);
+>>>>>>> linux-next/akpm-base
 		if (err)
 			return err;
 
@@ -811,9 +1149,15 @@ static int __igt_reset_engines(struct drm_i915_private *i915,
 			h.ctx->sched.priority = 1024;
 	}
 
+<<<<<<< HEAD
 	for_each_engine(engine, i915, id) {
 		struct active_engine threads[I915_NUM_ENGINES] = {};
 		unsigned long global = i915_reset_count(&i915->gpu_error);
+=======
+	for_each_engine(engine, gt->i915, id) {
+		struct active_engine threads[I915_NUM_ENGINES] = {};
+		unsigned long device = i915_reset_count(global);
+>>>>>>> linux-next/akpm-base
 		unsigned long count = 0, reported;
 		IGT_TIMEOUT(end_time);
 
@@ -829,12 +1173,20 @@ static int __igt_reset_engines(struct drm_i915_private *i915,
 		}
 
 		memset(threads, 0, sizeof(threads));
+<<<<<<< HEAD
 		for_each_engine(other, i915, tmp) {
 			struct task_struct *tsk;
 
 			threads[tmp].resets =
 				i915_reset_engine_count(&i915->gpu_error,
 							other);
+=======
+		for_each_engine(other, gt->i915, tmp) {
+			struct task_struct *tsk;
+
+			threads[tmp].resets =
+				i915_reset_engine_count(global, other);
+>>>>>>> linux-next/akpm-base
 
 			if (!(flags & TEST_OTHERS))
 				continue;
@@ -857,25 +1209,44 @@ static int __igt_reset_engines(struct drm_i915_private *i915,
 		}
 
 		intel_engine_pm_get(engine);
+<<<<<<< HEAD
 		set_bit(I915_RESET_ENGINE + id, &i915->gpu_error.flags);
+=======
+		set_bit(I915_RESET_ENGINE + id, &gt->reset.flags);
+>>>>>>> linux-next/akpm-base
 		do {
 			struct i915_request *rq = NULL;
 
 			if (flags & TEST_ACTIVE) {
+<<<<<<< HEAD
 				mutex_lock(&i915->drm.struct_mutex);
 				rq = hang_create_request(&h, engine);
 				if (IS_ERR(rq)) {
 					err = PTR_ERR(rq);
 					mutex_unlock(&i915->drm.struct_mutex);
+=======
+				mutex_lock(&gt->i915->drm.struct_mutex);
+				rq = hang_create_request(&h, engine);
+				if (IS_ERR(rq)) {
+					err = PTR_ERR(rq);
+					mutex_unlock(&gt->i915->drm.struct_mutex);
+>>>>>>> linux-next/akpm-base
 					break;
 				}
 
 				i915_request_get(rq);
 				i915_request_add(rq);
+<<<<<<< HEAD
 				mutex_unlock(&i915->drm.struct_mutex);
 
 				if (!wait_until_running(&h, rq)) {
 					struct drm_printer p = drm_info_printer(i915->drm.dev);
+=======
+				mutex_unlock(&gt->i915->drm.struct_mutex);
+
+				if (!wait_until_running(&h, rq)) {
+					struct drm_printer p = drm_info_printer(gt->i915->drm.dev);
+>>>>>>> linux-next/akpm-base
 
 					pr_err("%s: Failed to start request %llx, at %x\n",
 					       __func__, rq->fence.seqno, hws_seqno(&h, rq));
@@ -888,7 +1259,11 @@ static int __igt_reset_engines(struct drm_i915_private *i915,
 				}
 			}
 
+<<<<<<< HEAD
 			err = i915_reset_engine(engine, NULL);
+=======
+			err = intel_engine_reset(engine, NULL);
+>>>>>>> linux-next/akpm-base
 			if (err) {
 				pr_err("i915_reset_engine(%s:%s): failed, err=%d\n",
 				       engine->name, test_name, err);
@@ -900,7 +1275,11 @@ static int __igt_reset_engines(struct drm_i915_private *i915,
 			if (rq) {
 				if (i915_request_wait(rq, 0, HZ / 5) < 0) {
 					struct drm_printer p =
+<<<<<<< HEAD
 						drm_info_printer(i915->drm.dev);
+=======
+						drm_info_printer(gt->i915->drm.dev);
+>>>>>>> linux-next/akpm-base
 
 					pr_err("i915_reset_engine(%s:%s):"
 					       " failed to complete request after reset\n",
@@ -910,7 +1289,11 @@ static int __igt_reset_engines(struct drm_i915_private *i915,
 					i915_request_put(rq);
 
 					GEM_TRACE_DUMP();
+<<<<<<< HEAD
 					i915_gem_set_wedged(i915);
+=======
+					intel_gt_set_wedged(gt);
+>>>>>>> linux-next/akpm-base
 					err = -EIO;
 					break;
 				}
@@ -920,7 +1303,11 @@ static int __igt_reset_engines(struct drm_i915_private *i915,
 
 			if (!(flags & TEST_SELF) && !wait_for_idle(engine)) {
 				struct drm_printer p =
+<<<<<<< HEAD
 					drm_info_printer(i915->drm.dev);
+=======
+					drm_info_printer(gt->i915->drm.dev);
+>>>>>>> linux-next/akpm-base
 
 				pr_err("i915_reset_engine(%s:%s):"
 				       " failed to idle after reset\n",
@@ -932,12 +1319,20 @@ static int __igt_reset_engines(struct drm_i915_private *i915,
 				break;
 			}
 		} while (time_before(jiffies, end_time));
+<<<<<<< HEAD
 		clear_bit(I915_RESET_ENGINE + id, &i915->gpu_error.flags);
+=======
+		clear_bit(I915_RESET_ENGINE + id, &gt->reset.flags);
+>>>>>>> linux-next/akpm-base
 		intel_engine_pm_put(engine);
 		pr_info("i915_reset_engine(%s:%s): %lu resets\n",
 			engine->name, test_name, count);
 
+<<<<<<< HEAD
 		reported = i915_reset_engine_count(&i915->gpu_error, engine);
+=======
+		reported = i915_reset_engine_count(global, engine);
+>>>>>>> linux-next/akpm-base
 		reported -= threads[engine->id].resets;
 		if (reported != count) {
 			pr_err("i915_reset_engine(%s:%s): reset %lu times, but reported %lu\n",
@@ -947,7 +1342,11 @@ static int __igt_reset_engines(struct drm_i915_private *i915,
 		}
 
 unwind:
+<<<<<<< HEAD
 		for_each_engine(other, i915, tmp) {
+=======
+		for_each_engine(other, gt->i915, tmp) {
+>>>>>>> linux-next/akpm-base
 			int ret;
 
 			if (!threads[tmp].task)
@@ -962,6 +1361,7 @@ unwind:
 			}
 			put_task_struct(threads[tmp].task);
 
+<<<<<<< HEAD
 			if (other != engine &&
 			    threads[tmp].resets !=
 			    i915_reset_engine_count(&i915->gpu_error, other)) {
@@ -969,15 +1369,29 @@ unwind:
 				       other->name,
 				       i915_reset_engine_count(&i915->gpu_error,
 							       other) -
+=======
+			if (other->uabi_class != engine->uabi_class &&
+			    threads[tmp].resets !=
+			    i915_reset_engine_count(global, other)) {
+				pr_err("Innocent engine %s was reset (count=%ld)\n",
+				       other->name,
+				       i915_reset_engine_count(global, other) -
+>>>>>>> linux-next/akpm-base
 				       threads[tmp].resets);
 				if (!err)
 					err = -EINVAL;
 			}
 		}
 
+<<<<<<< HEAD
 		if (global != i915_reset_count(&i915->gpu_error)) {
 			pr_err("Global reset (count=%ld)!\n",
 			       i915_reset_count(&i915->gpu_error) - global);
+=======
+		if (device != i915_reset_count(global)) {
+			pr_err("Global reset (count=%ld)!\n",
+			       i915_reset_count(global) - device);
+>>>>>>> linux-next/akpm-base
 			if (!err)
 				err = -EINVAL;
 		}
@@ -985,13 +1399,20 @@ unwind:
 		if (err)
 			break;
 
+<<<<<<< HEAD
 		mutex_lock(&i915->drm.struct_mutex);
 		err = igt_flush_test(i915, I915_WAIT_LOCKED);
 		mutex_unlock(&i915->drm.struct_mutex);
+=======
+		mutex_lock(&gt->i915->drm.struct_mutex);
+		err = igt_flush_test(gt->i915, I915_WAIT_LOCKED);
+		mutex_unlock(&gt->i915->drm.struct_mutex);
+>>>>>>> linux-next/akpm-base
 		if (err)
 			break;
 	}
 
+<<<<<<< HEAD
 	if (i915_reset_failed(i915))
 		err = -EIO;
 
@@ -999,6 +1420,15 @@ unwind:
 		mutex_lock(&i915->drm.struct_mutex);
 		hang_fini(&h);
 		mutex_unlock(&i915->drm.struct_mutex);
+=======
+	if (intel_gt_is_wedged(gt))
+		err = -EIO;
+
+	if (flags & TEST_ACTIVE) {
+		mutex_lock(&gt->i915->drm.struct_mutex);
+		hang_fini(&h);
+		mutex_unlock(&gt->i915->drm.struct_mutex);
+>>>>>>> linux-next/akpm-base
 	}
 
 	return err;
@@ -1024,13 +1454,21 @@ static int igt_reset_engines(void *arg)
 		},
 		{ }
 	};
+<<<<<<< HEAD
 	struct drm_i915_private *i915 = arg;
+=======
+	struct intel_gt *gt = arg;
+>>>>>>> linux-next/akpm-base
 	typeof(*phases) *p;
 	int err;
 
 	for (p = phases; p->name; p++) {
 		if (p->flags & TEST_PRIORITY) {
+<<<<<<< HEAD
 			if (!(i915->caps.scheduler & I915_SCHEDULER_CAP_PRIORITY))
+=======
+			if (!(gt->i915->caps.scheduler & I915_SCHEDULER_CAP_PRIORITY))
+>>>>>>> linux-next/akpm-base
 				continue;
 		}
 
@@ -1042,30 +1480,49 @@ static int igt_reset_engines(void *arg)
 	return 0;
 }
 
+<<<<<<< HEAD
 static u32 fake_hangcheck(struct drm_i915_private *i915,
 			  intel_engine_mask_t mask)
 {
 	u32 count = i915_reset_count(&i915->gpu_error);
 
 	i915_reset(i915, mask, NULL);
+=======
+static u32 fake_hangcheck(struct intel_gt *gt, intel_engine_mask_t mask)
+{
+	u32 count = i915_reset_count(&gt->i915->gpu_error);
+
+	intel_gt_reset(gt, mask, NULL);
+>>>>>>> linux-next/akpm-base
 
 	return count;
 }
 
 static int igt_reset_wait(void *arg)
 {
+<<<<<<< HEAD
 	struct drm_i915_private *i915 = arg;
+=======
+	struct intel_gt *gt = arg;
+	struct i915_gpu_error *global = &gt->i915->gpu_error;
+	struct intel_engine_cs *engine = gt->i915->engine[RCS0];
+>>>>>>> linux-next/akpm-base
 	struct i915_request *rq;
 	unsigned int reset_count;
 	struct hang h;
 	long timeout;
 	int err;
 
+<<<<<<< HEAD
 	if (!intel_engine_can_store_dword(i915->engine[RCS0]))
+=======
+	if (!engine || !intel_engine_can_store_dword(engine))
+>>>>>>> linux-next/akpm-base
 		return 0;
 
 	/* Check that we detect a stuck waiter and issue a reset */
 
+<<<<<<< HEAD
 	igt_global_reset_lock(i915);
 
 	mutex_lock(&i915->drm.struct_mutex);
@@ -1074,6 +1531,16 @@ static int igt_reset_wait(void *arg)
 		goto unlock;
 
 	rq = hang_create_request(&h, i915->engine[RCS0]);
+=======
+	igt_global_reset_lock(gt);
+
+	mutex_lock(&gt->i915->drm.struct_mutex);
+	err = hang_init(&h, gt);
+	if (err)
+		goto unlock;
+
+	rq = hang_create_request(&h, engine);
+>>>>>>> linux-next/akpm-base
 	if (IS_ERR(rq)) {
 		err = PTR_ERR(rq);
 		goto fini;
@@ -1083,19 +1550,31 @@ static int igt_reset_wait(void *arg)
 	i915_request_add(rq);
 
 	if (!wait_until_running(&h, rq)) {
+<<<<<<< HEAD
 		struct drm_printer p = drm_info_printer(i915->drm.dev);
+=======
+		struct drm_printer p = drm_info_printer(gt->i915->drm.dev);
+>>>>>>> linux-next/akpm-base
 
 		pr_err("%s: Failed to start request %llx, at %x\n",
 		       __func__, rq->fence.seqno, hws_seqno(&h, rq));
 		intel_engine_dump(rq->engine, &p, "%s\n", rq->engine->name);
 
+<<<<<<< HEAD
 		i915_gem_set_wedged(i915);
+=======
+		intel_gt_set_wedged(gt);
+>>>>>>> linux-next/akpm-base
 
 		err = -EIO;
 		goto out_rq;
 	}
 
+<<<<<<< HEAD
 	reset_count = fake_hangcheck(i915, ALL_ENGINES);
+=======
+	reset_count = fake_hangcheck(gt, ALL_ENGINES);
+>>>>>>> linux-next/akpm-base
 
 	timeout = i915_request_wait(rq, 0, 10);
 	if (timeout < 0) {
@@ -1105,7 +1584,11 @@ static int igt_reset_wait(void *arg)
 		goto out_rq;
 	}
 
+<<<<<<< HEAD
 	if (i915_reset_count(&i915->gpu_error) == reset_count) {
+=======
+	if (i915_reset_count(global) == reset_count) {
+>>>>>>> linux-next/akpm-base
 		pr_err("No GPU reset recorded!\n");
 		err = -EINVAL;
 		goto out_rq;
@@ -1116,10 +1599,17 @@ out_rq:
 fini:
 	hang_fini(&h);
 unlock:
+<<<<<<< HEAD
 	mutex_unlock(&i915->drm.struct_mutex);
 	igt_global_reset_unlock(i915);
 
 	if (i915_reset_failed(i915))
+=======
+	mutex_unlock(&gt->i915->drm.struct_mutex);
+	igt_global_reset_unlock(gt);
+
+	if (intel_gt_is_wedged(gt))
+>>>>>>> linux-next/akpm-base
 		return -EIO;
 
 	return err;
@@ -1178,11 +1668,19 @@ out_unlock:
 	return err;
 }
 
+<<<<<<< HEAD
 static int __igt_reset_evict_vma(struct drm_i915_private *i915,
+=======
+static int __igt_reset_evict_vma(struct intel_gt *gt,
+>>>>>>> linux-next/akpm-base
 				 struct i915_address_space *vm,
 				 int (*fn)(void *),
 				 unsigned int flags)
 {
+<<<<<<< HEAD
+=======
+	struct intel_engine_cs *engine = gt->i915->engine[RCS0];
+>>>>>>> linux-next/akpm-base
 	struct drm_i915_gem_object *obj;
 	struct task_struct *tsk = NULL;
 	struct i915_request *rq;
@@ -1190,17 +1688,30 @@ static int __igt_reset_evict_vma(struct drm_i915_private *i915,
 	struct hang h;
 	int err;
 
+<<<<<<< HEAD
 	if (!intel_engine_can_store_dword(i915->engine[RCS0]))
+=======
+	if (!engine || !intel_engine_can_store_dword(engine))
+>>>>>>> linux-next/akpm-base
 		return 0;
 
 	/* Check that we can recover an unbind stuck on a hanging request */
 
+<<<<<<< HEAD
 	mutex_lock(&i915->drm.struct_mutex);
 	err = hang_init(&h, i915);
 	if (err)
 		goto unlock;
 
 	obj = i915_gem_object_create_internal(i915, SZ_1M);
+=======
+	mutex_lock(&gt->i915->drm.struct_mutex);
+	err = hang_init(&h, gt);
+	if (err)
+		goto unlock;
+
+	obj = i915_gem_object_create_internal(gt->i915, SZ_1M);
+>>>>>>> linux-next/akpm-base
 	if (IS_ERR(obj)) {
 		err = PTR_ERR(obj);
 		goto fini;
@@ -1220,7 +1731,11 @@ static int __igt_reset_evict_vma(struct drm_i915_private *i915,
 		goto out_obj;
 	}
 
+<<<<<<< HEAD
 	rq = hang_create_request(&h, i915->engine[RCS0]);
+=======
+	rq = hang_create_request(&h, engine);
+>>>>>>> linux-next/akpm-base
 	if (IS_ERR(rq)) {
 		err = PTR_ERR(rq);
 		goto out_obj;
@@ -1258,16 +1773,27 @@ static int __igt_reset_evict_vma(struct drm_i915_private *i915,
 	if (err)
 		goto out_rq;
 
+<<<<<<< HEAD
 	mutex_unlock(&i915->drm.struct_mutex);
 
 	if (!wait_until_running(&h, rq)) {
 		struct drm_printer p = drm_info_printer(i915->drm.dev);
+=======
+	mutex_unlock(&gt->i915->drm.struct_mutex);
+
+	if (!wait_until_running(&h, rq)) {
+		struct drm_printer p = drm_info_printer(gt->i915->drm.dev);
+>>>>>>> linux-next/akpm-base
 
 		pr_err("%s: Failed to start request %llx, at %x\n",
 		       __func__, rq->fence.seqno, hws_seqno(&h, rq));
 		intel_engine_dump(rq->engine, &p, "%s\n", rq->engine->name);
 
+<<<<<<< HEAD
 		i915_gem_set_wedged(i915);
+=======
+		intel_gt_set_wedged(gt);
+>>>>>>> linux-next/akpm-base
 		goto out_reset;
 	}
 
@@ -1284,16 +1810,25 @@ static int __igt_reset_evict_vma(struct drm_i915_private *i915,
 	wait_for_completion(&arg.completion);
 
 	if (wait_for(!list_empty(&rq->fence.cb_list), 10)) {
+<<<<<<< HEAD
 		struct drm_printer p = drm_info_printer(i915->drm.dev);
+=======
+		struct drm_printer p = drm_info_printer(gt->i915->drm.dev);
+>>>>>>> linux-next/akpm-base
 
 		pr_err("igt/evict_vma kthread did not wait\n");
 		intel_engine_dump(rq->engine, &p, "%s\n", rq->engine->name);
 
+<<<<<<< HEAD
 		i915_gem_set_wedged(i915);
+=======
+		intel_gt_set_wedged(gt);
+>>>>>>> linux-next/akpm-base
 		goto out_reset;
 	}
 
 out_reset:
+<<<<<<< HEAD
 	igt_global_reset_lock(i915);
 	fake_hangcheck(rq->i915, rq->engine->mask);
 	igt_global_reset_unlock(i915);
@@ -1303,12 +1838,27 @@ out_reset:
 
 		/* The reset, even indirectly, should take less than 10ms. */
 		igt_wedge_on_timeout(&w, i915, HZ / 10 /* 100ms timeout*/)
+=======
+	igt_global_reset_lock(gt);
+	fake_hangcheck(gt, rq->engine->mask);
+	igt_global_reset_unlock(gt);
+
+	if (tsk) {
+		struct intel_wedge_me w;
+
+		/* The reset, even indirectly, should take less than 10ms. */
+		intel_wedge_on_timeout(&w, gt, HZ / 10 /* 100ms */)
+>>>>>>> linux-next/akpm-base
 			err = kthread_stop(tsk);
 
 		put_task_struct(tsk);
 	}
 
+<<<<<<< HEAD
 	mutex_lock(&i915->drm.struct_mutex);
+=======
+	mutex_lock(&gt->i915->drm.struct_mutex);
+>>>>>>> linux-next/akpm-base
 out_rq:
 	i915_request_put(rq);
 out_obj:
@@ -1316,9 +1866,15 @@ out_obj:
 fini:
 	hang_fini(&h);
 unlock:
+<<<<<<< HEAD
 	mutex_unlock(&i915->drm.struct_mutex);
 
 	if (i915_reset_failed(i915))
+=======
+	mutex_unlock(&gt->i915->drm.struct_mutex);
+
+	if (intel_gt_is_wedged(gt))
+>>>>>>> linux-next/akpm-base
 		return -EIO;
 
 	return err;
@@ -1326,19 +1882,30 @@ unlock:
 
 static int igt_reset_evict_ggtt(void *arg)
 {
+<<<<<<< HEAD
 	struct drm_i915_private *i915 = arg;
 
 	return __igt_reset_evict_vma(i915, &i915->ggtt.vm,
+=======
+	struct intel_gt *gt = arg;
+
+	return __igt_reset_evict_vma(gt, &gt->ggtt->vm,
+>>>>>>> linux-next/akpm-base
 				     evict_vma, EXEC_OBJECT_WRITE);
 }
 
 static int igt_reset_evict_ppgtt(void *arg)
 {
+<<<<<<< HEAD
 	struct drm_i915_private *i915 = arg;
+=======
+	struct intel_gt *gt = arg;
+>>>>>>> linux-next/akpm-base
 	struct i915_gem_context *ctx;
 	struct drm_file *file;
 	int err;
 
+<<<<<<< HEAD
 	file = mock_file(i915);
 	if (IS_ERR(file))
 		return PTR_ERR(file);
@@ -1346,6 +1913,15 @@ static int igt_reset_evict_ppgtt(void *arg)
 	mutex_lock(&i915->drm.struct_mutex);
 	ctx = live_context(i915, file);
 	mutex_unlock(&i915->drm.struct_mutex);
+=======
+	file = mock_file(gt->i915);
+	if (IS_ERR(file))
+		return PTR_ERR(file);
+
+	mutex_lock(&gt->i915->drm.struct_mutex);
+	ctx = live_context(gt->i915, file);
+	mutex_unlock(&gt->i915->drm.struct_mutex);
+>>>>>>> linux-next/akpm-base
 	if (IS_ERR(ctx)) {
 		err = PTR_ERR(ctx);
 		goto out;
@@ -1353,16 +1929,25 @@ static int igt_reset_evict_ppgtt(void *arg)
 
 	err = 0;
 	if (ctx->vm) /* aliasing == global gtt locking, covered above */
+<<<<<<< HEAD
 		err = __igt_reset_evict_vma(i915, ctx->vm,
 					    evict_vma, EXEC_OBJECT_WRITE);
 
 out:
 	mock_file_free(i915, file);
+=======
+		err = __igt_reset_evict_vma(gt, ctx->vm,
+					    evict_vma, EXEC_OBJECT_WRITE);
+
+out:
+	mock_file_free(gt->i915, file);
+>>>>>>> linux-next/akpm-base
 	return err;
 }
 
 static int igt_reset_evict_fence(void *arg)
 {
+<<<<<<< HEAD
 	struct drm_i915_private *i915 = arg;
 
 	return __igt_reset_evict_vma(i915, &i915->ggtt.vm,
@@ -1370,12 +1955,25 @@ static int igt_reset_evict_fence(void *arg)
 }
 
 static int wait_for_others(struct drm_i915_private *i915,
+=======
+	struct intel_gt *gt = arg;
+
+	return __igt_reset_evict_vma(gt, &gt->ggtt->vm,
+				     evict_fence, EXEC_OBJECT_NEEDS_FENCE);
+}
+
+static int wait_for_others(struct intel_gt *gt,
+>>>>>>> linux-next/akpm-base
 			   struct intel_engine_cs *exclude)
 {
 	struct intel_engine_cs *engine;
 	enum intel_engine_id id;
 
+<<<<<<< HEAD
 	for_each_engine(engine, i915, id) {
+=======
+	for_each_engine(engine, gt->i915, id) {
+>>>>>>> linux-next/akpm-base
 		if (engine == exclude)
 			continue;
 
@@ -1388,7 +1986,12 @@ static int wait_for_others(struct drm_i915_private *i915,
 
 static int igt_reset_queue(void *arg)
 {
+<<<<<<< HEAD
 	struct drm_i915_private *i915 = arg;
+=======
+	struct intel_gt *gt = arg;
+	struct i915_gpu_error *global = &gt->i915->gpu_error;
+>>>>>>> linux-next/akpm-base
 	struct intel_engine_cs *engine;
 	enum intel_engine_id id;
 	struct hang h;
@@ -1396,6 +1999,7 @@ static int igt_reset_queue(void *arg)
 
 	/* Check that we replay pending requests following a hang */
 
+<<<<<<< HEAD
 	igt_global_reset_lock(i915);
 
 	mutex_lock(&i915->drm.struct_mutex);
@@ -1404,6 +2008,16 @@ static int igt_reset_queue(void *arg)
 		goto unlock;
 
 	for_each_engine(engine, i915, id) {
+=======
+	igt_global_reset_lock(gt);
+
+	mutex_lock(&gt->i915->drm.struct_mutex);
+	err = hang_init(&h, gt);
+	if (err)
+		goto unlock;
+
+	for_each_engine(engine, gt->i915, id) {
+>>>>>>> linux-next/akpm-base
 		struct i915_request *prev;
 		IGT_TIMEOUT(end_time);
 		unsigned int count;
@@ -1444,7 +2058,11 @@ static int igt_reset_queue(void *arg)
 			 * (hangcheck), or we focus on resetting just one
 			 * engine and so avoid repeatedly resetting innocents.
 			 */
+<<<<<<< HEAD
 			err = wait_for_others(i915, engine);
+=======
+			err = wait_for_others(gt, engine);
+>>>>>>> linux-next/akpm-base
 			if (err) {
 				pr_err("%s(%s): Failed to idle other inactive engines after device reset\n",
 				       __func__, engine->name);
@@ -1452,12 +2070,20 @@ static int igt_reset_queue(void *arg)
 				i915_request_put(prev);
 
 				GEM_TRACE_DUMP();
+<<<<<<< HEAD
 				i915_gem_set_wedged(i915);
+=======
+				intel_gt_set_wedged(gt);
+>>>>>>> linux-next/akpm-base
 				goto fini;
 			}
 
 			if (!wait_until_running(&h, prev)) {
+<<<<<<< HEAD
 				struct drm_printer p = drm_info_printer(i915->drm.dev);
+=======
+				struct drm_printer p = drm_info_printer(gt->i915->drm.dev);
+>>>>>>> linux-next/akpm-base
 
 				pr_err("%s(%s): Failed to start request %llx, at %x\n",
 				       __func__, engine->name,
@@ -1468,13 +2094,21 @@ static int igt_reset_queue(void *arg)
 				i915_request_put(rq);
 				i915_request_put(prev);
 
+<<<<<<< HEAD
 				i915_gem_set_wedged(i915);
+=======
+				intel_gt_set_wedged(gt);
+>>>>>>> linux-next/akpm-base
 
 				err = -EIO;
 				goto fini;
 			}
 
+<<<<<<< HEAD
 			reset_count = fake_hangcheck(i915, BIT(id));
+=======
+			reset_count = fake_hangcheck(gt, BIT(id));
+>>>>>>> linux-next/akpm-base
 
 			if (prev->fence.error != -EIO) {
 				pr_err("GPU reset not recorded on hanging request [fence.error=%d]!\n",
@@ -1494,7 +2128,11 @@ static int igt_reset_queue(void *arg)
 				goto fini;
 			}
 
+<<<<<<< HEAD
 			if (i915_reset_count(&i915->gpu_error) == reset_count) {
+=======
+			if (i915_reset_count(global) == reset_count) {
+>>>>>>> linux-next/akpm-base
 				pr_err("No GPU reset recorded!\n");
 				i915_request_put(rq);
 				i915_request_put(prev);
@@ -1509,11 +2147,19 @@ static int igt_reset_queue(void *arg)
 		pr_info("%s: Completed %d resets\n", engine->name, count);
 
 		*h.batch = MI_BATCH_BUFFER_END;
+<<<<<<< HEAD
 		i915_gem_chipset_flush(i915);
 
 		i915_request_put(prev);
 
 		err = igt_flush_test(i915, I915_WAIT_LOCKED);
+=======
+		intel_gt_chipset_flush(engine->gt);
+
+		i915_request_put(prev);
+
+		err = igt_flush_test(gt->i915, I915_WAIT_LOCKED);
+>>>>>>> linux-next/akpm-base
 		if (err)
 			break;
 	}
@@ -1521,10 +2167,17 @@ static int igt_reset_queue(void *arg)
 fini:
 	hang_fini(&h);
 unlock:
+<<<<<<< HEAD
 	mutex_unlock(&i915->drm.struct_mutex);
 	igt_global_reset_unlock(i915);
 
 	if (i915_reset_failed(i915))
+=======
+	mutex_unlock(&gt->i915->drm.struct_mutex);
+	igt_global_reset_unlock(gt);
+
+	if (intel_gt_is_wedged(gt))
+>>>>>>> linux-next/akpm-base
 		return -EIO;
 
 	return err;
@@ -1532,8 +2185,14 @@ unlock:
 
 static int igt_handle_error(void *arg)
 {
+<<<<<<< HEAD
 	struct drm_i915_private *i915 = arg;
 	struct intel_engine_cs *engine = i915->engine[RCS0];
+=======
+	struct intel_gt *gt = arg;
+	struct i915_gpu_error *global = &gt->i915->gpu_error;
+	struct intel_engine_cs *engine = gt->i915->engine[RCS0];
+>>>>>>> linux-next/akpm-base
 	struct hang h;
 	struct i915_request *rq;
 	struct i915_gpu_state *error;
@@ -1541,15 +2200,25 @@ static int igt_handle_error(void *arg)
 
 	/* Check that we can issue a global GPU and engine reset */
 
+<<<<<<< HEAD
 	if (!intel_has_reset_engine(i915))
+=======
+	if (!intel_has_reset_engine(gt->i915))
+>>>>>>> linux-next/akpm-base
 		return 0;
 
 	if (!engine || !intel_engine_can_store_dword(engine))
 		return 0;
 
+<<<<<<< HEAD
 	mutex_lock(&i915->drm.struct_mutex);
 
 	err = hang_init(&h, i915);
+=======
+	mutex_lock(&gt->i915->drm.struct_mutex);
+
+	err = hang_init(&h, gt);
+>>>>>>> linux-next/akpm-base
 	if (err)
 		goto err_unlock;
 
@@ -1563,18 +2232,27 @@ static int igt_handle_error(void *arg)
 	i915_request_add(rq);
 
 	if (!wait_until_running(&h, rq)) {
+<<<<<<< HEAD
 		struct drm_printer p = drm_info_printer(i915->drm.dev);
+=======
+		struct drm_printer p = drm_info_printer(gt->i915->drm.dev);
+>>>>>>> linux-next/akpm-base
 
 		pr_err("%s: Failed to start request %llx, at %x\n",
 		       __func__, rq->fence.seqno, hws_seqno(&h, rq));
 		intel_engine_dump(rq->engine, &p, "%s\n", rq->engine->name);
 
+<<<<<<< HEAD
 		i915_gem_set_wedged(i915);
+=======
+		intel_gt_set_wedged(gt);
+>>>>>>> linux-next/akpm-base
 
 		err = -EIO;
 		goto err_request;
 	}
 
+<<<<<<< HEAD
 	mutex_unlock(&i915->drm.struct_mutex);
 
 	/* Temporarily disable error capture */
@@ -1585,6 +2263,18 @@ static int igt_handle_error(void *arg)
 	xchg(&i915->gpu_error.first_error, error);
 
 	mutex_lock(&i915->drm.struct_mutex);
+=======
+	mutex_unlock(&gt->i915->drm.struct_mutex);
+
+	/* Temporarily disable error capture */
+	error = xchg(&global->first_error, (void *)-1);
+
+	intel_gt_handle_error(gt, engine->mask, 0, NULL);
+
+	xchg(&global->first_error, error);
+
+	mutex_lock(&gt->i915->drm.struct_mutex);
+>>>>>>> linux-next/akpm-base
 
 	if (rq->fence.error != -EIO) {
 		pr_err("Guilty request not identified!\n");
@@ -1597,7 +2287,11 @@ err_request:
 err_fini:
 	hang_fini(&h);
 err_unlock:
+<<<<<<< HEAD
 	mutex_unlock(&i915->drm.struct_mutex);
+=======
+	mutex_unlock(&gt->i915->drm.struct_mutex);
+>>>>>>> linux-next/akpm-base
 	return err;
 }
 
@@ -1614,7 +2308,11 @@ static int __igt_atomic_reset_engine(struct intel_engine_cs *engine,
 	tasklet_disable_nosync(t);
 	p->critical_section_begin();
 
+<<<<<<< HEAD
 	err = i915_reset_engine(engine, NULL);
+=======
+	err = intel_engine_reset(engine, NULL);
+>>>>>>> linux-next/akpm-base
 
 	p->critical_section_end();
 	tasklet_enable(t);
@@ -1629,7 +2327,10 @@ static int __igt_atomic_reset_engine(struct intel_engine_cs *engine,
 static int igt_atomic_reset_engine(struct intel_engine_cs *engine,
 				   const struct igt_atomic_section *p)
 {
+<<<<<<< HEAD
 	struct drm_i915_private *i915 = engine->i915;
+=======
+>>>>>>> linux-next/akpm-base
 	struct i915_request *rq;
 	struct hang h;
 	int err;
@@ -1638,7 +2339,11 @@ static int igt_atomic_reset_engine(struct intel_engine_cs *engine,
 	if (err)
 		return err;
 
+<<<<<<< HEAD
 	err = hang_init(&h, i915);
+=======
+	err = hang_init(&h, engine->gt);
+>>>>>>> linux-next/akpm-base
 	if (err)
 		return err;
 
@@ -1657,16 +2362,28 @@ static int igt_atomic_reset_engine(struct intel_engine_cs *engine,
 		pr_err("%s(%s): Failed to start request %llx, at %x\n",
 		       __func__, engine->name,
 		       rq->fence.seqno, hws_seqno(&h, rq));
+<<<<<<< HEAD
 		i915_gem_set_wedged(i915);
+=======
+		intel_gt_set_wedged(engine->gt);
+>>>>>>> linux-next/akpm-base
 		err = -EIO;
 	}
 
 	if (err == 0) {
+<<<<<<< HEAD
 		struct igt_wedge_me w;
 
 		igt_wedge_on_timeout(&w, i915, HZ / 20 /* 50ms timeout*/)
 			i915_request_wait(rq, 0, MAX_SCHEDULE_TIMEOUT);
 		if (i915_reset_failed(i915))
+=======
+		struct intel_wedge_me w;
+
+		intel_wedge_on_timeout(&w, engine->gt, HZ / 20 /* 50ms */)
+			i915_request_wait(rq, 0, MAX_SCHEDULE_TIMEOUT);
+		if (intel_gt_is_wedged(engine->gt))
+>>>>>>> linux-next/akpm-base
 			err = -EIO;
 	}
 
@@ -1678,12 +2395,17 @@ out:
 
 static int igt_reset_engines_atomic(void *arg)
 {
+<<<<<<< HEAD
 	struct drm_i915_private *i915 = arg;
+=======
+	struct intel_gt *gt = arg;
+>>>>>>> linux-next/akpm-base
 	const typeof(*igt_atomic_phases) *p;
 	int err = 0;
 
 	/* Check that the engines resets are usable from atomic context */
 
+<<<<<<< HEAD
 	if (!intel_has_reset_engine(i915))
 		return 0;
 
@@ -1695,13 +2417,30 @@ static int igt_reset_engines_atomic(void *arg)
 
 	/* Flush any requests before we get started and check basics */
 	if (!igt_force_reset(i915))
+=======
+	if (!intel_has_reset_engine(gt->i915))
+		return 0;
+
+	if (USES_GUC_SUBMISSION(gt->i915))
+		return 0;
+
+	igt_global_reset_lock(gt);
+	mutex_lock(&gt->i915->drm.struct_mutex);
+
+	/* Flush any requests before we get started and check basics */
+	if (!igt_force_reset(gt))
+>>>>>>> linux-next/akpm-base
 		goto unlock;
 
 	for (p = igt_atomic_phases; p->name; p++) {
 		struct intel_engine_cs *engine;
 		enum intel_engine_id id;
 
+<<<<<<< HEAD
 		for_each_engine(engine, i915, id) {
+=======
+		for_each_engine(engine, gt->i915, id) {
+>>>>>>> linux-next/akpm-base
 			err = igt_atomic_reset_engine(engine, p);
 			if (err)
 				goto out;
@@ -1710,11 +2449,19 @@ static int igt_reset_engines_atomic(void *arg)
 
 out:
 	/* As we poke around the guts, do a full reset before continuing. */
+<<<<<<< HEAD
 	igt_force_reset(i915);
 
 unlock:
 	mutex_unlock(&i915->drm.struct_mutex);
 	igt_global_reset_unlock(i915);
+=======
+	igt_force_reset(gt);
+
+unlock:
+	mutex_unlock(&gt->i915->drm.struct_mutex);
+	igt_global_reset_unlock(gt);
+>>>>>>> linux-next/akpm-base
 
 	return err;
 }
@@ -1736,10 +2483,15 @@ int intel_hangcheck_live_selftests(struct drm_i915_private *i915)
 		SUBTEST(igt_reset_evict_fence),
 		SUBTEST(igt_handle_error),
 	};
+<<<<<<< HEAD
+=======
+	struct intel_gt *gt = &i915->gt;
+>>>>>>> linux-next/akpm-base
 	intel_wakeref_t wakeref;
 	bool saved_hangcheck;
 	int err;
 
+<<<<<<< HEAD
 	if (!intel_has_gpu_reset(i915))
 		return 0;
 
@@ -1758,6 +2510,26 @@ int intel_hangcheck_live_selftests(struct drm_i915_private *i915)
 
 	i915_modparams.enable_hangcheck = saved_hangcheck;
 	intel_runtime_pm_put(&i915->runtime_pm, wakeref);
+=======
+	if (!intel_has_gpu_reset(gt->i915))
+		return 0;
+
+	if (intel_gt_is_wedged(gt))
+		return -EIO; /* we're long past hope of a successful reset */
+
+	wakeref = intel_runtime_pm_get(&gt->i915->runtime_pm);
+	saved_hangcheck = fetch_and_zero(&i915_modparams.enable_hangcheck);
+	drain_delayed_work(&gt->hangcheck.work); /* flush param */
+
+	err = intel_gt_live_subtests(tests, gt);
+
+	mutex_lock(&gt->i915->drm.struct_mutex);
+	igt_flush_test(gt->i915, I915_WAIT_LOCKED);
+	mutex_unlock(&gt->i915->drm.struct_mutex);
+
+	i915_modparams.enable_hangcheck = saved_hangcheck;
+	intel_runtime_pm_put(&gt->i915->runtime_pm, wakeref);
+>>>>>>> linux-next/akpm-base
 
 	return err;
 }

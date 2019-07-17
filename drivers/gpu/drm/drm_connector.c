@@ -141,7 +141,11 @@ static void drm_connector_get_cmdline_mode(struct drm_connector *connector)
 
 	DRM_DEBUG_KMS("cmdline mode for connector %s %s %dx%d@%dHz%s%s%s\n",
 		      connector->name,
+<<<<<<< HEAD
 		      mode->name ? mode->name : "",
+=======
+		      mode->name,
+>>>>>>> linux-next/akpm-base
 		      mode->xres, mode->yres,
 		      mode->refresh_specified ? mode->refresh : 60,
 		      mode->rb ? " reduced blanking" : "",

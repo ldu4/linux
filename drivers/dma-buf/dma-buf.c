@@ -24,6 +24,10 @@
 #include <linux/reservation.h>
 #include <linux/mm.h>
 #include <linux/mount.h>
+<<<<<<< HEAD
+=======
+#include <linux/pseudo_fs.h>
+>>>>>>> linux-next/akpm-base
 
 #include <uapi/linux/dma-buf.h>
 #include <uapi/linux/magic.h>
@@ -59,16 +63,31 @@ static const struct dentry_operations dma_buf_dentry_ops = {
 
 static struct vfsmount *dma_buf_mnt;
 
+<<<<<<< HEAD
 static struct dentry *dma_buf_fs_mount(struct file_system_type *fs_type,
 		int flags, const char *name, void *data)
 {
 	return mount_pseudo(fs_type, "dmabuf:", NULL, &dma_buf_dentry_ops,
 			DMA_BUF_MAGIC);
+=======
+static int dma_buf_init_fs_context(struct fs_context *fc)
+{
+	struct pseudo_fs_context *ctx = init_pseudo(fc, DMA_BUF_MAGIC);
+
+	if (!ctx)
+		return -ENOMEM;
+	ctx->dops = &dma_buf_dentry_ops;
+	return 0;
+>>>>>>> linux-next/akpm-base
 }
 
 static struct file_system_type dma_buf_fs_type = {
 	.name = "dmabuf",
+<<<<<<< HEAD
 	.mount = dma_buf_fs_mount,
+=======
+	.init_fs_context = dma_buf_init_fs_context,
+>>>>>>> linux-next/akpm-base
 	.kill_sb = kill_anon_super,
 };
 

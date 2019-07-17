@@ -112,8 +112,11 @@ bool intel_dp_get_colorimetry_status(struct intel_dp *intel_dp);
 int intel_dp_link_required(int pixel_clock, int bpp);
 int intel_dp_max_data_rate(int max_link_clock, int max_lanes);
 bool intel_digital_port_connected(struct intel_encoder *encoder);
+<<<<<<< HEAD
 void icl_tc_phy_disconnect(struct drm_i915_private *dev_priv,
 			   struct intel_digital_port *dig_port);
+=======
+>>>>>>> linux-next/akpm-base
 
 static inline unsigned int intel_dp_unused_lane_mask(int lane_count)
 {

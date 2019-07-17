@@ -316,7 +316,11 @@ static void i915_gem_context_free(struct i915_gem_context *ctx)
 	mutex_destroy(&ctx->engines_mutex);
 
 	if (ctx->timeline)
+<<<<<<< HEAD
 		i915_timeline_put(ctx->timeline);
+=======
+		intel_timeline_put(ctx->timeline);
+>>>>>>> linux-next/akpm-base
 
 	kfree(ctx->name);
 	put_pid(ctx->pid);
@@ -528,9 +532,15 @@ i915_gem_create_context(struct drm_i915_private *dev_priv, unsigned int flags)
 	}
 
 	if (flags & I915_CONTEXT_CREATE_FLAGS_SINGLE_TIMELINE) {
+<<<<<<< HEAD
 		struct i915_timeline *timeline;
 
 		timeline = i915_timeline_create(dev_priv, NULL);
+=======
+		struct intel_timeline *timeline;
+
+		timeline = intel_timeline_create(&dev_priv->gt, NULL);
+>>>>>>> linux-next/akpm-base
 		if (IS_ERR(timeline)) {
 			context_close(ctx);
 			return ERR_CAST(timeline);
@@ -644,20 +654,27 @@ static void init_contexts(struct drm_i915_private *i915)
 	init_llist_head(&i915->contexts.free_list);
 }
 
+<<<<<<< HEAD
 static bool needs_preempt_context(struct drm_i915_private *i915)
 {
 	return HAS_EXECLISTS(i915);
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 int i915_gem_contexts_init(struct drm_i915_private *dev_priv)
 {
 	struct i915_gem_context *ctx;
 
 	/* Reassure ourselves we are only called once */
 	GEM_BUG_ON(dev_priv->kernel_context);
+<<<<<<< HEAD
 	GEM_BUG_ON(dev_priv->preempt_context);
 
 	intel_engine_init_ctx_wa(dev_priv->engine[RCS0]);
+=======
+
+>>>>>>> linux-next/akpm-base
 	init_contexts(dev_priv);
 
 	/* lowest priority; idle task */
@@ -677,6 +694,7 @@ int i915_gem_contexts_init(struct drm_i915_private *dev_priv)
 	GEM_BUG_ON(!atomic_read(&ctx->hw_id_pin_count));
 	dev_priv->kernel_context = ctx;
 
+<<<<<<< HEAD
 	/* highest priority; preempting task */
 	if (needs_preempt_context(dev_priv)) {
 		ctx = i915_gem_context_create_kernel(dev_priv, INT_MAX);
@@ -686,6 +704,8 @@ int i915_gem_contexts_init(struct drm_i915_private *dev_priv)
 			DRM_ERROR("Failed to create preempt context; disabling preemption\n");
 	}
 
+=======
+>>>>>>> linux-next/akpm-base
 	DRM_DEBUG_DRIVER("%s context support initialized\n",
 			 DRIVER_CAPS(dev_priv)->has_logical_contexts ?
 			 "logical" : "fake");
@@ -696,8 +716,11 @@ void i915_gem_contexts_fini(struct drm_i915_private *i915)
 {
 	lockdep_assert_held(&i915->drm.struct_mutex);
 
+<<<<<<< HEAD
 	if (i915->preempt_context)
 		destroy_kernel_context(&i915->preempt_context);
+=======
+>>>>>>> linux-next/akpm-base
 	destroy_kernel_context(&i915->kernel_context);
 
 	/* Must free all deferred contexts (via flush_workqueue) first */
@@ -923,8 +946,17 @@ static int context_barrier_task(struct i915_gem_context *ctx,
 	if (!cb)
 		return -ENOMEM;
 
+<<<<<<< HEAD
 	i915_active_init(i915, &cb->base, cb_retire);
 	i915_active_acquire(&cb->base);
+=======
+	i915_active_init(i915, &cb->base, NULL, cb_retire);
+	err = i915_active_acquire(&cb->base);
+	if (err) {
+		kfree(cb);
+		return err;
+	}
+>>>>>>> linux-next/akpm-base
 
 	for_each_gem_engine(ce, i915_gem_context_lock_engines(ctx), it) {
 		struct i915_request *rq;
@@ -2015,8 +2047,13 @@ static int clone_timeline(struct i915_gem_context *dst,
 		GEM_BUG_ON(src->timeline == dst->timeline);
 
 		if (dst->timeline)
+<<<<<<< HEAD
 			i915_timeline_put(dst->timeline);
 		dst->timeline = i915_timeline_get(src->timeline);
+=======
+			intel_timeline_put(dst->timeline);
+		dst->timeline = intel_timeline_get(src->timeline);
+>>>>>>> linux-next/akpm-base
 	}
 
 	return 0;
@@ -2141,7 +2178,11 @@ int i915_gem_context_create_ioctl(struct drm_device *dev, void *data,
 	if (args->flags & I915_CONTEXT_CREATE_FLAGS_UNKNOWN)
 		return -EINVAL;
 
+<<<<<<< HEAD
 	ret = i915_terminally_wedged(i915);
+=======
+	ret = intel_gt_terminally_wedged(&i915->gt);
+>>>>>>> linux-next/akpm-base
 	if (ret)
 		return ret;
 

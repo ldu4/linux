@@ -709,7 +709,11 @@ static int navi10_force_clk_levels(struct smu_context *smu,
 static int navi10_populate_umd_state_clk(struct smu_context *smu)
 {
 	int ret = 0;
+<<<<<<< HEAD
 	uint32_t min_sclk_freq = 0;
+=======
+	uint32_t min_sclk_freq = 0, min_mclk_freq = 0;
+>>>>>>> linux-next/akpm-base
 
 	ret = smu_get_dpm_freq_range(smu, SMU_SCLK, &min_sclk_freq, NULL);
 	if (ret)
@@ -717,6 +721,15 @@ static int navi10_populate_umd_state_clk(struct smu_context *smu)
 
 	smu->pstate_sclk = min_sclk_freq * 100;
 
+<<<<<<< HEAD
+=======
+	ret = smu_get_dpm_freq_range(smu, SMU_MCLK, &min_mclk_freq, NULL);
+	if (ret)
+		return ret;
+
+	smu->pstate_mclk = min_mclk_freq * 100;
+
+>>>>>>> linux-next/akpm-base
 	return ret;
 }
 
@@ -1157,14 +1170,22 @@ static int navi10_get_profiling_clk_mask(struct smu_context *smu,
 			ret = smu_get_dpm_level_count(smu, SMU_MCLK, &level_count);
 			if (ret)
 				return ret;
+<<<<<<< HEAD
 			*sclk_mask = level_count - 1;
+=======
+			*mclk_mask = level_count - 1;
+>>>>>>> linux-next/akpm-base
 		}
 
 		if(soc_mask) {
 			ret = smu_get_dpm_level_count(smu, SMU_SOCCLK, &level_count);
 			if (ret)
 				return ret;
+<<<<<<< HEAD
 			*sclk_mask = level_count - 1;
+=======
+			*soc_mask = level_count - 1;
+>>>>>>> linux-next/akpm-base
 		}
 	}
 

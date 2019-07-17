@@ -8,6 +8,16 @@
 #define _INTEL_GPU_COMMANDS_H_
 
 /*
+<<<<<<< HEAD
+=======
+ * Target address alignments required for GPU access e.g.
+ * MI_STORE_DWORD_IMM.
+ */
+#define alignof_dword 4
+#define alignof_qword 8
+
+/*
+>>>>>>> linux-next/akpm-base
  * Instruction field definitions used by the command parser
  */
 #define INSTR_CLIENT_SHIFT      29

@@ -32,6 +32,10 @@ struct drm_i915_gem_object;
 struct drm_i915_private;
 struct i915_ggtt;
 struct i915_vma;
+<<<<<<< HEAD
+=======
+struct intel_gt;
+>>>>>>> linux-next/akpm-base
 struct sg_table;
 
 #define I965_FENCE_PAGE 4096UL
@@ -66,4 +70,9 @@ void i915_gem_object_save_bit_17_swizzle(struct drm_i915_gem_object *obj,
 
 void i915_ggtt_init_fences(struct i915_ggtt *ggtt);
 
+<<<<<<< HEAD
+=======
+void intel_gt_init_swizzling(struct intel_gt *gt);
+
+>>>>>>> linux-next/akpm-base
 #endif

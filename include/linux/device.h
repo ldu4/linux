@@ -6,7 +6,7 @@
  * Copyright (c) 2004-2009 Greg Kroah-Hartman <gregkh@suse.de>
  * Copyright (c) 2008-2009 Novell Inc.
  *
- * See Documentation/driver-model/ for more information.
+ * See Documentation/driver-api/driver-model/ for more information.
  */
 
 #ifndef _DEVICE_H_
@@ -1383,6 +1383,7 @@ extern int (*platform_notify_remove)(struct device *dev);
  */
 extern struct device *get_device(struct device *dev);
 extern void put_device(struct device *dev);
+extern bool kill_device(struct device *dev);
 
 #ifdef CONFIG_DEVTMPFS
 extern int devtmpfs_create_node(struct device *dev);

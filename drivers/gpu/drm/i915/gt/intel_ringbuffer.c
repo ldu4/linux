@@ -34,9 +34,16 @@
 #include "gem/i915_gem_context.h"
 
 #include "i915_drv.h"
+<<<<<<< HEAD
 #include "i915_gem_render_state.h"
 #include "i915_trace.h"
 #include "intel_context.h"
+=======
+#include "i915_trace.h"
+#include "intel_context.h"
+#include "intel_gt.h"
+#include "intel_renderstate.h"
+>>>>>>> linux-next/akpm-base
 #include "intel_reset.h"
 #include "intel_workarounds.h"
 
@@ -75,7 +82,12 @@ gen2_render_ring_flush(struct i915_request *rq, u32 mode)
 	*cs++ = cmd;
 	while (num_store_dw--) {
 		*cs++ = MI_STORE_DWORD_IMM | MI_MEM_VIRTUAL;
+<<<<<<< HEAD
 		*cs++ = i915_scratch_offset(rq->i915);
+=======
+		*cs++ = intel_gt_scratch_offset(rq->engine->gt,
+						INTEL_GT_SCRATCH_FIELD_DEFAULT);
+>>>>>>> linux-next/akpm-base
 		*cs++ = 0;
 	}
 	*cs++ = MI_FLUSH | MI_NO_WRITE_FLUSH;
@@ -148,7 +160,13 @@ gen4_render_ring_flush(struct i915_request *rq, u32 mode)
 	 */
 	if (mode & EMIT_INVALIDATE) {
 		*cs++ = GFX_OP_PIPE_CONTROL(4) | PIPE_CONTROL_QW_WRITE;
+<<<<<<< HEAD
 		*cs++ = i915_scratch_offset(rq->i915) | PIPE_CONTROL_GLOBAL_GTT;
+=======
+		*cs++ = intel_gt_scratch_offset(rq->engine->gt,
+						INTEL_GT_SCRATCH_FIELD_DEFAULT) |
+			PIPE_CONTROL_GLOBAL_GTT;
+>>>>>>> linux-next/akpm-base
 		*cs++ = 0;
 		*cs++ = 0;
 
@@ -156,7 +174,13 @@ gen4_render_ring_flush(struct i915_request *rq, u32 mode)
 			*cs++ = MI_FLUSH;
 
 		*cs++ = GFX_OP_PIPE_CONTROL(4) | PIPE_CONTROL_QW_WRITE;
+<<<<<<< HEAD
 		*cs++ = i915_scratch_offset(rq->i915) | PIPE_CONTROL_GLOBAL_GTT;
+=======
+		*cs++ = intel_gt_scratch_offset(rq->engine->gt,
+						INTEL_GT_SCRATCH_FIELD_DEFAULT) |
+			PIPE_CONTROL_GLOBAL_GTT;
+>>>>>>> linux-next/akpm-base
 		*cs++ = 0;
 		*cs++ = 0;
 	}
@@ -208,7 +232,13 @@ gen4_render_ring_flush(struct i915_request *rq, u32 mode)
 static int
 gen6_emit_post_sync_nonzero_flush(struct i915_request *rq)
 {
+<<<<<<< HEAD
 	u32 scratch_addr = i915_scratch_offset(rq->i915) + 2 * CACHELINE_BYTES;
+=======
+	u32 scratch_addr =
+		intel_gt_scratch_offset(rq->engine->gt,
+					INTEL_GT_SCRATCH_FIELD_RENDER_FLUSH);
+>>>>>>> linux-next/akpm-base
 	u32 *cs;
 
 	cs = intel_ring_begin(rq, 6);
@@ -241,7 +271,13 @@ gen6_emit_post_sync_nonzero_flush(struct i915_request *rq)
 static int
 gen6_render_ring_flush(struct i915_request *rq, u32 mode)
 {
+<<<<<<< HEAD
 	u32 scratch_addr = i915_scratch_offset(rq->i915) + 2 * CACHELINE_BYTES;
+=======
+	u32 scratch_addr =
+		intel_gt_scratch_offset(rq->engine->gt,
+					INTEL_GT_SCRATCH_FIELD_RENDER_FLUSH);
+>>>>>>> linux-next/akpm-base
 	u32 *cs, flags = 0;
 	int ret;
 
@@ -299,7 +335,13 @@ static u32 *gen6_rcs_emit_breadcrumb(struct i915_request *rq, u32 *cs)
 
 	*cs++ = GFX_OP_PIPE_CONTROL(4);
 	*cs++ = PIPE_CONTROL_QW_WRITE;
+<<<<<<< HEAD
 	*cs++ = i915_scratch_offset(rq->i915) | PIPE_CONTROL_GLOBAL_GTT;
+=======
+	*cs++ = intel_gt_scratch_offset(rq->engine->gt,
+					INTEL_GT_SCRATCH_FIELD_DEFAULT) |
+		PIPE_CONTROL_GLOBAL_GTT;
+>>>>>>> linux-next/akpm-base
 	*cs++ = 0;
 
 	/* Finally we can flush and with it emit the breadcrumb */
@@ -342,7 +384,13 @@ gen7_render_ring_cs_stall_wa(struct i915_request *rq)
 static int
 gen7_render_ring_flush(struct i915_request *rq, u32 mode)
 {
+<<<<<<< HEAD
 	u32 scratch_addr = i915_scratch_offset(rq->i915) + 2 * CACHELINE_BYTES;
+=======
+	u32 scratch_addr =
+		intel_gt_scratch_offset(rq->engine->gt,
+					INTEL_GT_SCRATCH_FIELD_RENDER_FLUSH);
+>>>>>>> linux-next/akpm-base
 	u32 *cs, flags = 0;
 
 	/*
@@ -781,7 +829,11 @@ static void reset_ring(struct intel_engine_cs *engine, bool stalled)
 		 * If the request was innocent, we try to replay the request
 		 * with the restored context.
 		 */
+<<<<<<< HEAD
 		i915_reset_request(rq, stalled);
+=======
+		__i915_request_reset(rq, stalled);
+>>>>>>> linux-next/akpm-base
 
 		GEM_BUG_ON(rq->ring != engine->buffer);
 		head = rq->head;
@@ -805,7 +857,11 @@ static int intel_rcs_ctx_init(struct i915_request *rq)
 	if (ret != 0)
 		return ret;
 
+<<<<<<< HEAD
 	ret = i915_gem_render_state_emit(rq);
+=======
+	ret = intel_renderstate_emit(rq);
+>>>>>>> linux-next/akpm-base
 	if (ret)
 		return ret;
 
@@ -1033,14 +1089,22 @@ hsw_vebox_irq_enable(struct intel_engine_cs *engine)
 	/* Flush/delay to ensure the RING_IMR is active before the GT IMR */
 	ENGINE_POSTING_READ(engine, RING_IMR);
 
+<<<<<<< HEAD
 	gen6_unmask_pm_irq(engine->i915, engine->irq_enable_mask);
+=======
+	gen6_unmask_pm_irq(engine->gt, engine->irq_enable_mask);
+>>>>>>> linux-next/akpm-base
 }
 
 static void
 hsw_vebox_irq_disable(struct intel_engine_cs *engine)
 {
 	ENGINE_WRITE(engine, RING_IMR, ~0);
+<<<<<<< HEAD
 	gen6_mask_pm_irq(engine->i915, engine->irq_enable_mask);
+=======
+	gen6_mask_pm_irq(engine->gt, engine->irq_enable_mask);
+>>>>>>> linux-next/akpm-base
 }
 
 static int
@@ -1071,9 +1135,17 @@ i830_emit_bb_start(struct i915_request *rq,
 		   u64 offset, u32 len,
 		   unsigned int dispatch_flags)
 {
+<<<<<<< HEAD
 	u32 *cs, cs_offset = i915_scratch_offset(rq->i915);
 
 	GEM_BUG_ON(rq->i915->gt.scratch->size < I830_WA_SIZE);
+=======
+	u32 *cs, cs_offset =
+		intel_gt_scratch_offset(rq->engine->gt,
+					INTEL_GT_SCRATCH_FIELD_DEFAULT);
+
+	GEM_BUG_ON(rq->engine->gt->scratch->size < I830_WA_SIZE);
+>>>>>>> linux-next/akpm-base
 
 	cs = intel_ring_begin(rq, 6);
 	if (IS_ERR(cs))
@@ -1149,16 +1221,28 @@ i915_emit_bb_start(struct i915_request *rq,
 int intel_ring_pin(struct intel_ring *ring)
 {
 	struct i915_vma *vma = ring->vma;
+<<<<<<< HEAD
 	enum i915_map_type map = i915_coherent_map_type(vma->vm->i915);
+=======
+>>>>>>> linux-next/akpm-base
 	unsigned int flags;
 	void *addr;
 	int ret;
 
+<<<<<<< HEAD
 	GEM_BUG_ON(ring->vaddr);
 
 	ret = i915_timeline_pin(ring->timeline);
 	if (ret)
 		return ret;
+=======
+	if (atomic_fetch_inc(&ring->pin_count))
+		return 0;
+
+	ret = intel_timeline_pin(ring->timeline);
+	if (ret)
+		goto err_unpin;
+>>>>>>> linux-next/akpm-base
 
 	flags = PIN_GLOBAL;
 
@@ -1172,19 +1256,32 @@ int intel_ring_pin(struct intel_ring *ring)
 
 	ret = i915_vma_pin(vma, 0, 0, flags);
 	if (unlikely(ret))
+<<<<<<< HEAD
 		goto unpin_timeline;
+=======
+		goto err_timeline;
+>>>>>>> linux-next/akpm-base
 
 	if (i915_vma_is_map_and_fenceable(vma))
 		addr = (void __force *)i915_vma_pin_iomap(vma);
 	else
+<<<<<<< HEAD
 		addr = i915_gem_object_pin_map(vma->obj, map);
 	if (IS_ERR(addr)) {
 		ret = PTR_ERR(addr);
 		goto unpin_ring;
+=======
+		addr = i915_gem_object_pin_map(vma->obj,
+					       i915_coherent_map_type(vma->vm->i915));
+	if (IS_ERR(addr)) {
+		ret = PTR_ERR(addr);
+		goto err_ring;
+>>>>>>> linux-next/akpm-base
 	}
 
 	vma->obj->pin_global++;
 
+<<<<<<< HEAD
 	ring->vaddr = addr;
 	return 0;
 
@@ -1192,6 +1289,20 @@ unpin_ring:
 	i915_vma_unpin(vma);
 unpin_timeline:
 	i915_timeline_unpin(ring->timeline);
+=======
+	GEM_BUG_ON(ring->vaddr);
+	ring->vaddr = addr;
+
+	GEM_TRACE("ring:%llx pin\n", ring->timeline->fence_context);
+	return 0;
+
+err_ring:
+	i915_vma_unpin(vma);
+err_timeline:
+	intel_timeline_unpin(ring->timeline);
+err_unpin:
+	atomic_dec(&ring->pin_count);
+>>>>>>> linux-next/akpm-base
 	return ret;
 }
 
@@ -1207,21 +1318,39 @@ void intel_ring_reset(struct intel_ring *ring, u32 tail)
 
 void intel_ring_unpin(struct intel_ring *ring)
 {
+<<<<<<< HEAD
 	GEM_BUG_ON(!ring->vma);
 	GEM_BUG_ON(!ring->vaddr);
+=======
+	if (!atomic_dec_and_test(&ring->pin_count))
+		return;
+
+	GEM_TRACE("ring:%llx unpin\n", ring->timeline->fence_context);
+>>>>>>> linux-next/akpm-base
 
 	/* Discard any unused bytes beyond that submitted to hw. */
 	intel_ring_reset(ring, ring->tail);
 
+<<<<<<< HEAD
+=======
+	GEM_BUG_ON(!ring->vma);
+	i915_vma_unset_ggtt_write(ring->vma);
+>>>>>>> linux-next/akpm-base
 	if (i915_vma_is_map_and_fenceable(ring->vma))
 		i915_vma_unpin_iomap(ring->vma);
 	else
 		i915_gem_object_unpin_map(ring->vma->obj);
+<<<<<<< HEAD
+=======
+
+	GEM_BUG_ON(!ring->vaddr);
+>>>>>>> linux-next/akpm-base
 	ring->vaddr = NULL;
 
 	ring->vma->obj->pin_global--;
 	i915_vma_unpin(ring->vma);
 
+<<<<<<< HEAD
 	i915_timeline_unpin(ring->timeline);
 }
 
@@ -1235,6 +1364,21 @@ intel_ring_create_vma(struct drm_i915_private *dev_priv, int size)
 	obj = i915_gem_object_create_stolen(dev_priv, size);
 	if (!obj)
 		obj = i915_gem_object_create_internal(dev_priv, size);
+=======
+	intel_timeline_unpin(ring->timeline);
+}
+
+static struct i915_vma *create_ring_vma(struct i915_ggtt *ggtt, int size)
+{
+	struct i915_address_space *vm = &ggtt->vm;
+	struct drm_i915_private *i915 = vm->i915;
+	struct drm_i915_gem_object *obj;
+	struct i915_vma *vma;
+
+	obj = i915_gem_object_create_stolen(i915, size);
+	if (!obj)
+		obj = i915_gem_object_create_internal(i915, size);
+>>>>>>> linux-next/akpm-base
 	if (IS_ERR(obj))
 		return ERR_CAST(obj);
 
@@ -1258,9 +1402,16 @@ err:
 
 struct intel_ring *
 intel_engine_create_ring(struct intel_engine_cs *engine,
+<<<<<<< HEAD
 			 struct i915_timeline *timeline,
 			 int size)
 {
+=======
+			 struct intel_timeline *timeline,
+			 int size)
+{
+	struct drm_i915_private *i915 = engine->i915;
+>>>>>>> linux-next/akpm-base
 	struct intel_ring *ring;
 	struct i915_vma *vma;
 
@@ -1273,7 +1424,11 @@ intel_engine_create_ring(struct intel_engine_cs *engine,
 
 	kref_init(&ring->ref);
 	INIT_LIST_HEAD(&ring->request_list);
+<<<<<<< HEAD
 	ring->timeline = i915_timeline_get(timeline);
+=======
+	ring->timeline = intel_timeline_get(timeline);
+>>>>>>> linux-next/akpm-base
 
 	ring->size = size;
 	/* Workaround an erratum on the i830 which causes a hang if
@@ -1281,12 +1436,20 @@ intel_engine_create_ring(struct intel_engine_cs *engine,
 	 * of the buffer.
 	 */
 	ring->effective_size = size;
+<<<<<<< HEAD
 	if (IS_I830(engine->i915) || IS_I845G(engine->i915))
+=======
+	if (IS_I830(i915) || IS_I845G(i915))
+>>>>>>> linux-next/akpm-base
 		ring->effective_size -= 2 * CACHELINE_BYTES;
 
 	intel_ring_update_space(ring);
 
+<<<<<<< HEAD
 	vma = intel_ring_create_vma(engine->i915, size);
+=======
+	vma = create_ring_vma(engine->gt->ggtt, size);
+>>>>>>> linux-next/akpm-base
 	if (IS_ERR(vma)) {
 		kfree(ring);
 		return ERR_CAST(vma);
@@ -1303,13 +1466,20 @@ void intel_ring_free(struct kref *ref)
 	i915_vma_close(ring->vma);
 	i915_vma_put(ring->vma);
 
+<<<<<<< HEAD
 	i915_timeline_put(ring->timeline);
+=======
+	intel_timeline_put(ring->timeline);
+>>>>>>> linux-next/akpm-base
 	kfree(ring);
 }
 
 static void __ring_context_fini(struct intel_context *ce)
 {
+<<<<<<< HEAD
 	GEM_BUG_ON(i915_gem_object_is_active(ce->state->obj));
+=======
+>>>>>>> linux-next/akpm-base
 	i915_gem_object_put(ce->state->obj);
 }
 
@@ -1404,7 +1574,11 @@ alloc_context_vma(struct intel_engine_cs *engine)
 		i915_gem_object_unpin_map(obj);
 	}
 
+<<<<<<< HEAD
 	vma = i915_vma_instance(obj, &i915->ggtt.vm, NULL);
+=======
+	vma = i915_vma_instance(obj, &engine->gt->ggtt->vm, NULL);
+>>>>>>> linux-next/akpm-base
 	if (IS_ERR(vma)) {
 		err = PTR_ERR(vma);
 		goto err_obj;
@@ -1438,7 +1612,11 @@ static int ring_context_pin(struct intel_context *ce)
 		ce->state = vma;
 	}
 
+<<<<<<< HEAD
 	err = intel_context_active_acquire(ce, PIN_HIGH);
+=======
+	err = intel_context_active_acquire(ce);
+>>>>>>> linux-next/akpm-base
 	if (err)
 		return err;
 
@@ -1484,7 +1662,11 @@ static int load_pd_dir(struct i915_request *rq, const struct i915_ppgtt *ppgtt)
 
 	*cs++ = MI_LOAD_REGISTER_IMM(1);
 	*cs++ = i915_mmio_reg_offset(RING_PP_DIR_BASE(engine->mmio_base));
+<<<<<<< HEAD
 	*cs++ = ppgtt->pd->base.ggtt_offset << 10;
+=======
+	*cs++ = px_base(ppgtt->pd)->ggtt_offset << 10;
+>>>>>>> linux-next/akpm-base
 
 	intel_ring_advance(rq, cs);
 
@@ -1503,7 +1685,12 @@ static int flush_pd_dir(struct i915_request *rq)
 	/* Stall until the page table load is complete */
 	*cs++ = MI_STORE_REGISTER_MEM | MI_SRM_LRM_GLOBAL_GTT;
 	*cs++ = i915_mmio_reg_offset(RING_PP_DIR_BASE(engine->mmio_base));
+<<<<<<< HEAD
 	*cs++ = i915_scratch_offset(rq->i915);
+=======
+	*cs++ = intel_gt_scratch_offset(rq->engine->gt,
+					INTEL_GT_SCRATCH_FIELD_DEFAULT);
+>>>>>>> linux-next/akpm-base
 	*cs++ = MI_NOOP;
 
 	intel_ring_advance(rq, cs);
@@ -1619,7 +1806,12 @@ static inline int mi_set_context(struct i915_request *rq, u32 flags)
 			/* Insert a delay before the next switch! */
 			*cs++ = MI_STORE_REGISTER_MEM | MI_SRM_LRM_GLOBAL_GTT;
 			*cs++ = i915_mmio_reg_offset(last_reg);
+<<<<<<< HEAD
 			*cs++ = i915_scratch_offset(rq->i915);
+=======
+			*cs++ = intel_gt_scratch_offset(rq->engine->gt,
+							INTEL_GT_SCRATCH_FIELD_DEFAULT);
+>>>>>>> linux-next/akpm-base
 			*cs++ = MI_NOOP;
 		}
 		*cs++ = MI_ARB_ON_OFF | MI_ARB_ENABLE;
@@ -2081,10 +2273,18 @@ static void ring_destroy(struct intel_engine_cs *engine)
 	WARN_ON(INTEL_GEN(dev_priv) > 2 &&
 		(ENGINE_READ(engine, RING_MI_MODE) & MODE_IDLE) == 0);
 
+<<<<<<< HEAD
 	intel_ring_unpin(engine->buffer);
 	intel_ring_put(engine->buffer);
 
 	intel_engine_cleanup_common(engine);
+=======
+	intel_engine_cleanup_common(engine);
+
+	intel_ring_unpin(engine->buffer);
+	intel_ring_put(engine->buffer);
+
+>>>>>>> linux-next/akpm-base
 	kfree(engine);
 }
 
@@ -2258,11 +2458,19 @@ int intel_ring_submission_setup(struct intel_engine_cs *engine)
 
 int intel_ring_submission_init(struct intel_engine_cs *engine)
 {
+<<<<<<< HEAD
 	struct i915_timeline *timeline;
 	struct intel_ring *ring;
 	int err;
 
 	timeline = i915_timeline_create(engine->i915, engine->status_page.vma);
+=======
+	struct intel_timeline *timeline;
+	struct intel_ring *ring;
+	int err;
+
+	timeline = intel_timeline_create(engine->gt, engine->status_page.vma);
+>>>>>>> linux-next/akpm-base
 	if (IS_ERR(timeline)) {
 		err = PTR_ERR(timeline);
 		goto err;
@@ -2270,7 +2478,11 @@ int intel_ring_submission_init(struct intel_engine_cs *engine)
 	GEM_BUG_ON(timeline->has_initial_breadcrumb);
 
 	ring = intel_engine_create_ring(engine, timeline, 32 * PAGE_SIZE);
+<<<<<<< HEAD
 	i915_timeline_put(timeline);
+=======
+	intel_timeline_put(timeline);
+>>>>>>> linux-next/akpm-base
 	if (IS_ERR(ring)) {
 		err = PTR_ERR(ring);
 		goto err;

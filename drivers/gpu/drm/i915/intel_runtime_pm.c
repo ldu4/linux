@@ -221,6 +221,7 @@ __untrack_all_wakerefs(struct intel_runtime_pm_debug *debug,
 static void
 dump_and_free_wakeref_tracking(struct intel_runtime_pm_debug *debug)
 {
+<<<<<<< HEAD
 	struct drm_printer p;
 
 	if (!debug->count)
@@ -249,6 +250,34 @@ __intel_wakeref_dec_and_check_tracking(struct intel_runtime_pm *rpm)
 	dump_and_free_wakeref_tracking(&dbg);
 }
 
+=======
+	if (debug->count) {
+		struct drm_printer p = drm_debug_printer("i915");
+
+		__print_intel_runtime_pm_wakeref(&p, debug);
+	}
+
+	kfree(debug->owners);
+}
+
+static noinline void
+__intel_wakeref_dec_and_check_tracking(struct intel_runtime_pm *rpm)
+{
+	struct intel_runtime_pm_debug dbg = {};
+	unsigned long flags;
+
+	if (!atomic_dec_and_lock_irqsave(&rpm->wakeref_count,
+					 &rpm->debug.lock,
+					 flags))
+		return;
+
+	__untrack_all_wakerefs(&rpm->debug, &dbg);
+	spin_unlock_irqrestore(&rpm->debug.lock, flags);
+
+	dump_and_free_wakeref_tracking(&dbg);
+}
+
+>>>>>>> linux-next/akpm-base
 static noinline void
 untrack_all_intel_runtime_pm_wakerefs(struct intel_runtime_pm *rpm)
 {
@@ -358,12 +387,21 @@ static intel_wakeref_t __intel_runtime_pm_get(struct intel_runtime_pm *rpm,
 					      bool wakelock)
 {
 	int ret;
+<<<<<<< HEAD
 
 	ret = pm_runtime_get_sync(rpm->kdev);
 	WARN_ONCE(ret < 0, "pm_runtime_get_sync() failed: %d\n", ret);
 
 	intel_runtime_pm_acquire(rpm, wakelock);
 
+=======
+
+	ret = pm_runtime_get_sync(rpm->kdev);
+	WARN_ONCE(ret < 0, "pm_runtime_get_sync() failed: %d\n", ret);
+
+	intel_runtime_pm_acquire(rpm, wakelock);
+
+>>>>>>> linux-next/akpm-base
 	return track_intel_runtime_pm_wakeref(rpm);
 }
 
@@ -434,6 +472,7 @@ intel_wakeref_t intel_runtime_pm_get_if_in_use(struct intel_runtime_pm *rpm)
 	}
 
 	intel_runtime_pm_acquire(rpm, true);
+<<<<<<< HEAD
 
 	return track_intel_runtime_pm_wakeref(rpm);
 }
@@ -526,9 +565,193 @@ void intel_runtime_pm_put_unchecked(struct intel_runtime_pm *rpm)
 void intel_runtime_pm_put(struct intel_runtime_pm *rpm, intel_wakeref_t wref)
 {
 	__intel_runtime_pm_put(rpm, wref, true);
+=======
+
+	return track_intel_runtime_pm_wakeref(rpm);
+}
+
+/**
+ * intel_runtime_pm_get_noresume - grab a runtime pm reference
+ * @rpm: the intel_runtime_pm structure
+ *
+ * This function grabs a device-level runtime pm reference (mostly used for GEM
+ * code to ensure the GTT or GT is on).
+ *
+ * It will _not_ power up the device but instead only check that it's powered
+ * on.  Therefore it is only valid to call this functions from contexts where
+ * the device is known to be powered up and where trying to power it up would
+ * result in hilarity and deadlocks. That pretty much means only the system
+ * suspend/resume code where this is used to grab runtime pm references for
+ * delayed setup down in work items.
+ *
+ * Any runtime pm reference obtained by this function must have a symmetric
+ * call to intel_runtime_pm_put() to release the reference again.
+ *
+ * Returns: the wakeref cookie to pass to intel_runtime_pm_put()
+ */
+intel_wakeref_t intel_runtime_pm_get_noresume(struct intel_runtime_pm *rpm)
+{
+	assert_rpm_wakelock_held(rpm);
+	pm_runtime_get_noresume(rpm->kdev);
+
+	intel_runtime_pm_acquire(rpm, true);
+
+	return track_intel_runtime_pm_wakeref(rpm);
+}
+
+static void __intel_runtime_pm_put(struct intel_runtime_pm *rpm,
+				   intel_wakeref_t wref,
+				   bool wakelock)
+{
+	struct device *kdev = rpm->kdev;
+
+	untrack_intel_runtime_pm_wakeref(rpm, wref);
+
+	intel_runtime_pm_release(rpm, wakelock);
+
+	pm_runtime_mark_last_busy(kdev);
+	pm_runtime_put_autosuspend(kdev);
+>>>>>>> linux-next/akpm-base
 }
 #endif
 
+/**
+<<<<<<< HEAD
+ * intel_runtime_pm_enable - enable runtime pm
+ * @rpm: the intel_runtime_pm structure
+ *
+ * This function enables runtime pm at the end of the driver load sequence.
+ *
+ * Note that this function does currently not enable runtime pm for the
+ * subordinate display power domains. That is done by
+ * intel_power_domains_enable().
+ */
+void intel_runtime_pm_enable(struct intel_runtime_pm *rpm)
+{
+	struct device *kdev = rpm->kdev;
+
+	/*
+	 * Disable the system suspend direct complete optimization, which can
+	 * leave the device suspended skipping the driver's suspend handlers
+	 * if the device was already runtime suspended. This is needed due to
+	 * the difference in our runtime and system suspend sequence and
+	 * becaue the HDA driver may require us to enable the audio power
+	 * domain during system suspend.
+	 */
+	dev_pm_set_driver_flags(kdev, DPM_FLAG_NEVER_SKIP);
+
+	pm_runtime_set_autosuspend_delay(kdev, 10000); /* 10s */
+	pm_runtime_mark_last_busy(kdev);
+
+	/*
+	 * Take a permanent reference to disable the RPM functionality and drop
+	 * it only when unloading the driver. Use the low level get/put helpers,
+	 * so the driver's own RPM reference tracking asserts also work on
+	 * platforms without RPM support.
+	 */
+	if (!rpm->available) {
+		int ret;
+
+		pm_runtime_dont_use_autosuspend(kdev);
+		ret = pm_runtime_get_sync(kdev);
+		WARN(ret < 0, "pm_runtime_get_sync() failed: %d\n", ret);
+	} else {
+		pm_runtime_use_autosuspend(kdev);
+	}
+
+	/*
+	 * The core calls the driver load handler with an RPM reference held.
+	 * We drop that here and will reacquire it during unloading in
+	 * intel_power_domains_fini().
+	 */
+	pm_runtime_put_autosuspend(kdev);
+}
+
+void intel_runtime_pm_disable(struct intel_runtime_pm *rpm)
+{
+	struct device *kdev = rpm->kdev;
+
+	/* Transfer rpm ownership back to core */
+	WARN(pm_runtime_get_sync(kdev) < 0,
+	     "Failed to pass rpm ownership back to core\n");
+
+	pm_runtime_dont_use_autosuspend(kdev);
+
+	if (!rpm->available)
+		pm_runtime_put(kdev);
+=======
+ * intel_runtime_pm_put_raw - release a raw runtime pm reference
+ * @rpm: the intel_runtime_pm structure
+ * @wref: wakeref acquired for the reference that is being released
+ *
+ * This function drops the device-level runtime pm reference obtained by
+ * intel_runtime_pm_get_raw() and might power down the corresponding
+ * hardware block right away if this is the last reference.
+ */
+void
+intel_runtime_pm_put_raw(struct intel_runtime_pm *rpm, intel_wakeref_t wref)
+{
+	__intel_runtime_pm_put(rpm, wref, false);
+}
+
+/**
+ * intel_runtime_pm_put_unchecked - release an unchecked runtime pm reference
+ * @rpm: the intel_runtime_pm structure
+ *
+ * This function drops the device-level runtime pm reference obtained by
+ * intel_runtime_pm_get() and might power down the corresponding
+ * hardware block right away if this is the last reference.
+ *
+ * This function exists only for historical reasons and should be avoided in
+ * new code, as the correctness of its use cannot be checked. Always use
+ * intel_runtime_pm_put() instead.
+ */
+void intel_runtime_pm_put_unchecked(struct intel_runtime_pm *rpm)
+{
+	__intel_runtime_pm_put(rpm, -1, true);
+}
+
+#if IS_ENABLED(CONFIG_DRM_I915_DEBUG_RUNTIME_PM)
+/**
+ * intel_runtime_pm_put - release a runtime pm reference
+ * @rpm: the intel_runtime_pm structure
+ * @wref: wakeref acquired for the reference that is being released
+ *
+ * This function drops the device-level runtime pm reference obtained by
+ * intel_runtime_pm_get() and might power down the corresponding
+ * hardware block right away if this is the last reference.
+ */
+void intel_runtime_pm_put(struct intel_runtime_pm *rpm, intel_wakeref_t wref)
+{
+	__intel_runtime_pm_put(rpm, wref, true);
+>>>>>>> linux-next/akpm-base
+}
+#endif
+
+<<<<<<< HEAD
+void intel_runtime_pm_cleanup(struct intel_runtime_pm *rpm)
+{
+	int count = atomic_read(&rpm->wakeref_count);
+
+	WARN(count,
+	     "i915 raw-wakerefs=%d wakelocks=%d on cleanup\n",
+	     intel_rpm_raw_wakeref_count(count),
+	     intel_rpm_wakelock_count(count));
+
+	untrack_all_intel_runtime_pm_wakerefs(rpm);
+}
+
+void intel_runtime_pm_init_early(struct intel_runtime_pm *rpm)
+{
+	struct drm_i915_private *i915 =
+			container_of(rpm, struct drm_i915_private, runtime_pm);
+	struct pci_dev *pdev = i915->drm.pdev;
+	struct device *kdev = &pdev->dev;
+
+	rpm->kdev = kdev;
+	rpm->available = HAS_RUNTIME_PM(i915);
+
+=======
 /**
  * intel_runtime_pm_enable - enable runtime pm
  * @rpm: the intel_runtime_pm structure
@@ -594,7 +817,7 @@ void intel_runtime_pm_disable(struct intel_runtime_pm *rpm)
 		pm_runtime_put(kdev);
 }
 
-void intel_runtime_pm_cleanup(struct intel_runtime_pm *rpm)
+void intel_runtime_pm_driver_release(struct intel_runtime_pm *rpm)
 {
 	int count = atomic_read(&rpm->wakeref_count);
 
@@ -616,5 +839,6 @@ void intel_runtime_pm_init_early(struct intel_runtime_pm *rpm)
 	rpm->kdev = kdev;
 	rpm->available = HAS_RUNTIME_PM(i915);
 
+>>>>>>> linux-next/akpm-base
 	init_intel_runtime_pm_wakeref(rpm);
 }

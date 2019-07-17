@@ -7,6 +7,10 @@
 #include <linux/prime_numbers.h>
 
 #include "gem/i915_gem_pm.h"
+<<<<<<< HEAD
+=======
+#include "gt/intel_gt.h"
+>>>>>>> linux-next/akpm-base
 #include "gt/intel_reset.h"
 #include "i915_selftest.h"
 
@@ -31,7 +35,10 @@ static int live_nop_switch(void *arg)
 	struct intel_engine_cs *engine;
 	struct i915_gem_context **ctx;
 	enum intel_engine_id id;
+<<<<<<< HEAD
 	intel_wakeref_t wakeref;
+=======
+>>>>>>> linux-next/akpm-base
 	struct igt_live_test t;
 	struct drm_file *file;
 	unsigned long n;
@@ -53,7 +60,10 @@ static int live_nop_switch(void *arg)
 		return PTR_ERR(file);
 
 	mutex_lock(&i915->drm.struct_mutex);
+<<<<<<< HEAD
 	wakeref = intel_runtime_pm_get(&i915->runtime_pm);
+=======
+>>>>>>> linux-next/akpm-base
 
 	ctx = kcalloc(nctx, sizeof(*ctx), GFP_KERNEL);
 	if (!ctx) {
@@ -85,7 +95,11 @@ static int live_nop_switch(void *arg)
 		}
 		if (i915_request_wait(rq, 0, HZ / 5) < 0) {
 			pr_err("Failed to populated %d contexts\n", nctx);
+<<<<<<< HEAD
 			i915_gem_set_wedged(i915);
+=======
+			intel_gt_set_wedged(&i915->gt);
+>>>>>>> linux-next/akpm-base
 			err = -EIO;
 			goto out_unlock;
 		}
@@ -129,7 +143,11 @@ static int live_nop_switch(void *arg)
 			if (i915_request_wait(rq, 0, HZ / 5) < 0) {
 				pr_err("Switching between %ld contexts timed out\n",
 				       prime);
+<<<<<<< HEAD
 				i915_gem_set_wedged(i915);
+=======
+				intel_gt_set_wedged(&i915->gt);
+>>>>>>> linux-next/akpm-base
 				break;
 			}
 
@@ -152,7 +170,10 @@ static int live_nop_switch(void *arg)
 	}
 
 out_unlock:
+<<<<<<< HEAD
 	intel_runtime_pm_put(&i915->runtime_pm, wakeref);
+=======
+>>>>>>> linux-next/akpm-base
 	mutex_unlock(&i915->drm.struct_mutex);
 	mock_file_free(i915, file);
 	return err;
@@ -237,8 +258,12 @@ static int gpu_fill(struct drm_i915_gem_object *obj,
 		    struct intel_engine_cs *engine,
 		    unsigned int dw)
 {
+<<<<<<< HEAD
 	struct drm_i915_private *i915 = to_i915(obj->base.dev);
 	struct i915_address_space *vm = ctx->vm ?: &i915->ggtt.vm;
+=======
+	struct i915_address_space *vm = ctx->vm ?: &engine->gt->ggtt->vm;
+>>>>>>> linux-next/akpm-base
 	struct i915_request *rq;
 	struct i915_vma *vma;
 	struct i915_vma *batch;
@@ -431,6 +456,12 @@ create_test_object(struct i915_gem_context *ctx,
 	u64 size;
 	int err;
 
+<<<<<<< HEAD
+=======
+	/* Keep in GEM's good graces */
+	i915_retire_requests(ctx->i915);
+
+>>>>>>> linux-next/akpm-base
 	size = min(vm->total / 2, 1024ull * DW_PER_PAGE * PAGE_SIZE);
 	size = round_down(size, DW_PER_PAGE * PAGE_SIZE);
 
@@ -507,7 +538,10 @@ static int igt_ctx_exec(void *arg)
 		dw = 0;
 		while (!time_after(jiffies, end_time)) {
 			struct i915_gem_context *ctx;
+<<<<<<< HEAD
 			intel_wakeref_t wakeref;
+=======
+>>>>>>> linux-next/akpm-base
 
 			ctx = live_context(i915, file);
 			if (IS_ERR(ctx)) {
@@ -523,8 +557,12 @@ static int igt_ctx_exec(void *arg)
 				}
 			}
 
+<<<<<<< HEAD
 			with_intel_runtime_pm(&i915->runtime_pm, wakeref)
 				err = gpu_fill(obj, ctx, engine, dw);
+=======
+			err = gpu_fill(obj, ctx, engine, dw);
+>>>>>>> linux-next/akpm-base
 			if (err) {
 				pr_err("Failed to fill dword %lu [%lu/%lu] with gpu (%s) in ctx %u [full-ppgtt? %s], err=%d\n",
 				       ndwords, dw, max_dwords(obj),
@@ -565,6 +603,11 @@ out_unlock:
 		mock_file_free(i915, file);
 		if (err)
 			return err;
+<<<<<<< HEAD
+=======
+
+		i915_gem_drain_freed_objects(i915);
+>>>>>>> linux-next/akpm-base
 	}
 
 	return 0;
@@ -623,7 +666,10 @@ static int igt_shared_ctx_exec(void *arg)
 		ncontexts = 0;
 		while (!time_after(jiffies, end_time)) {
 			struct i915_gem_context *ctx;
+<<<<<<< HEAD
 			intel_wakeref_t wakeref;
+=======
+>>>>>>> linux-next/akpm-base
 
 			ctx = kernel_context(i915);
 			if (IS_ERR(ctx)) {
@@ -642,9 +688,13 @@ static int igt_shared_ctx_exec(void *arg)
 				}
 			}
 
+<<<<<<< HEAD
 			err = 0;
 			with_intel_runtime_pm(&i915->runtime_pm, wakeref)
 				err = gpu_fill(obj, ctx, engine, dw);
+=======
+			err = gpu_fill(obj, ctx, engine, dw);
+>>>>>>> linux-next/akpm-base
 			if (err) {
 				pr_err("Failed to fill dword %lu [%lu/%lu] with gpu (%s) in ctx %u [full-ppgtt? %s], err=%d\n",
 				       ndwords, dw, max_dwords(obj),
@@ -678,6 +728,13 @@ static int igt_shared_ctx_exec(void *arg)
 
 			dw += rem;
 		}
+<<<<<<< HEAD
+=======
+
+		mutex_unlock(&i915->drm.struct_mutex);
+		i915_gem_drain_freed_objects(i915);
+		mutex_lock(&i915->drm.struct_mutex);
+>>>>>>> linux-next/akpm-base
 	}
 out_test:
 	if (igt_live_test_end(&t))
@@ -956,7 +1013,11 @@ __sseu_finish(struct drm_i915_private *i915,
 	int ret = 0;
 
 	if (flags & TEST_RESET) {
+<<<<<<< HEAD
 		ret = i915_reset_engine(ce->engine, "sseu");
+=======
+		ret = intel_engine_reset(ce->engine, "sseu");
+>>>>>>> linux-next/akpm-base
 		if (ret)
 			goto out;
 	}
@@ -1025,28 +1086,43 @@ __igt_ctx_sseu(struct drm_i915_private *i915,
 	       unsigned int flags)
 {
 	struct intel_engine_cs *engine = i915->engine[RCS0];
+<<<<<<< HEAD
 	struct intel_sseu default_sseu = engine->sseu;
+=======
+>>>>>>> linux-next/akpm-base
 	struct drm_i915_gem_object *obj;
 	struct i915_gem_context *ctx;
 	struct intel_context *ce;
 	struct intel_sseu pg_sseu;
+<<<<<<< HEAD
 	intel_wakeref_t wakeref;
 	struct drm_file *file;
 	int ret;
 
 	if (INTEL_GEN(i915) < 9)
+=======
+	struct drm_file *file;
+	int ret;
+
+	if (INTEL_GEN(i915) < 9 || !engine)
+>>>>>>> linux-next/akpm-base
 		return 0;
 
 	if (!RUNTIME_INFO(i915)->sseu.has_slice_pg)
 		return 0;
 
+<<<<<<< HEAD
 	if (hweight32(default_sseu.slice_mask) < 2)
+=======
+	if (hweight32(engine->sseu.slice_mask) < 2)
+>>>>>>> linux-next/akpm-base
 		return 0;
 
 	/*
 	 * Gen11 VME friendly power-gated configuration with half enabled
 	 * sub-slices.
 	 */
+<<<<<<< HEAD
 	pg_sseu = default_sseu;
 	pg_sseu.slice_mask = 1;
 	pg_sseu.subslice_mask =
@@ -1054,6 +1130,15 @@ __igt_ctx_sseu(struct drm_i915_private *i915,
 
 	pr_info("SSEU subtest '%s', flags=%x, def_slices=%u, pg_slices=%u\n",
 		name, flags, hweight32(default_sseu.slice_mask),
+=======
+	pg_sseu = engine->sseu;
+	pg_sseu.slice_mask = 1;
+	pg_sseu.subslice_mask =
+		~(~0 << (hweight32(engine->sseu.subslice_mask) / 2));
+
+	pr_info("SSEU subtest '%s', flags=%x, def_slices=%u, pg_slices=%u\n",
+		name, flags, hweight32(engine->sseu.slice_mask),
+>>>>>>> linux-next/akpm-base
 		hweight32(pg_sseu.slice_mask));
 
 	file = mock_file(i915);
@@ -1061,7 +1146,11 @@ __igt_ctx_sseu(struct drm_i915_private *i915,
 		return PTR_ERR(file);
 
 	if (flags & TEST_RESET)
+<<<<<<< HEAD
 		igt_global_reset_lock(i915);
+=======
+		igt_global_reset_lock(&i915->gt);
+>>>>>>> linux-next/akpm-base
 
 	mutex_lock(&i915->drm.struct_mutex);
 
@@ -1078,12 +1167,19 @@ __igt_ctx_sseu(struct drm_i915_private *i915,
 		goto out_unlock;
 	}
 
+<<<<<<< HEAD
 	wakeref = intel_runtime_pm_get(&i915->runtime_pm);
 
 	ce = i915_gem_context_get_engine(ctx, RCS0);
 	if (IS_ERR(ce)) {
 		ret = PTR_ERR(ce);
 		goto out_rpm;
+=======
+	ce = i915_gem_context_get_engine(ctx, RCS0);
+	if (IS_ERR(ce)) {
+		ret = PTR_ERR(ce);
+		goto out_put;
+>>>>>>> linux-next/akpm-base
 	}
 
 	ret = intel_context_pin(ce);
@@ -1091,7 +1187,11 @@ __igt_ctx_sseu(struct drm_i915_private *i915,
 		goto out_context;
 
 	/* First set the default mask. */
+<<<<<<< HEAD
 	ret = __sseu_test(i915, name, flags, ce, obj, default_sseu);
+=======
+	ret = __sseu_test(i915, name, flags, ce, obj, engine->sseu);
+>>>>>>> linux-next/akpm-base
 	if (ret)
 		goto out_fail;
 
@@ -1101,7 +1201,11 @@ __igt_ctx_sseu(struct drm_i915_private *i915,
 		goto out_fail;
 
 	/* Back to defaults. */
+<<<<<<< HEAD
 	ret = __sseu_test(i915, name, flags, ce, obj, default_sseu);
+=======
+	ret = __sseu_test(i915, name, flags, ce, obj, engine->sseu);
+>>>>>>> linux-next/akpm-base
 	if (ret)
 		goto out_fail;
 
@@ -1117,15 +1221,23 @@ out_fail:
 	intel_context_unpin(ce);
 out_context:
 	intel_context_put(ce);
+<<<<<<< HEAD
 out_rpm:
 	intel_runtime_pm_put(&i915->runtime_pm, wakeref);
+=======
+out_put:
+>>>>>>> linux-next/akpm-base
 	i915_gem_object_put(obj);
 
 out_unlock:
 	mutex_unlock(&i915->drm.struct_mutex);
 
 	if (flags & TEST_RESET)
+<<<<<<< HEAD
 		igt_global_reset_unlock(i915);
+=======
+		igt_global_reset_unlock(&i915->gt);
+>>>>>>> linux-next/akpm-base
 
 	mock_file_free(i915, file);
 
@@ -1207,8 +1319,11 @@ static int igt_ctx_readonly(void *arg)
 		unsigned int id;
 
 		for_each_engine(engine, i915, id) {
+<<<<<<< HEAD
 			intel_wakeref_t wakeref;
 
+=======
+>>>>>>> linux-next/akpm-base
 			if (!intel_engine_can_store_dword(engine))
 				continue;
 
@@ -1223,9 +1338,13 @@ static int igt_ctx_readonly(void *arg)
 					i915_gem_object_set_readonly(obj);
 			}
 
+<<<<<<< HEAD
 			err = 0;
 			with_intel_runtime_pm(&i915->runtime_pm, wakeref)
 				err = gpu_fill(obj, ctx, engine, dw);
+=======
+			err = gpu_fill(obj, ctx, engine, dw);
+>>>>>>> linux-next/akpm-base
 			if (err) {
 				pr_err("Failed to fill dword %lu [%lu/%lu] with gpu (%s) in ctx %u [full-ppgtt? %s], err=%d\n",
 				       ndwords, dw, max_dwords(obj),
@@ -1488,7 +1607,10 @@ static int igt_vm_isolation(void *arg)
 	struct drm_i915_private *i915 = arg;
 	struct i915_gem_context *ctx_a, *ctx_b;
 	struct intel_engine_cs *engine;
+<<<<<<< HEAD
 	intel_wakeref_t wakeref;
+=======
+>>>>>>> linux-next/akpm-base
 	struct igt_live_test t;
 	struct drm_file *file;
 	I915_RND_STATE(prng);
@@ -1535,8 +1657,11 @@ static int igt_vm_isolation(void *arg)
 	GEM_BUG_ON(ctx_b->vm->total != vm_total);
 	vm_total -= I915_GTT_PAGE_SIZE;
 
+<<<<<<< HEAD
 	wakeref = intel_runtime_pm_get(&i915->runtime_pm);
 
+=======
+>>>>>>> linux-next/akpm-base
 	count = 0;
 	for_each_engine(engine, i915, id) {
 		IGT_TIMEOUT(end_time);
@@ -1551,7 +1676,11 @@ static int igt_vm_isolation(void *arg)
 
 			div64_u64_rem(i915_prandom_u64_state(&prng),
 				      vm_total, &offset);
+<<<<<<< HEAD
 			offset &= -sizeof(u32);
+=======
+			offset = round_down(offset, alignof_dword);
+>>>>>>> linux-next/akpm-base
 			offset += I915_GTT_PAGE_SIZE;
 
 			err = write_to_scratch(ctx_a, engine,
@@ -1560,7 +1689,11 @@ static int igt_vm_isolation(void *arg)
 				err = read_from_scratch(ctx_b, engine,
 							offset, &value);
 			if (err)
+<<<<<<< HEAD
 				goto out_rpm;
+=======
+				goto out_unlock;
+>>>>>>> linux-next/akpm-base
 
 			if (value) {
 				pr_err("%s: Read %08x from scratch (offset 0x%08x_%08x), after %lu reads!\n",
@@ -1569,7 +1702,11 @@ static int igt_vm_isolation(void *arg)
 				       lower_32_bits(offset),
 				       this);
 				err = -EINVAL;
+<<<<<<< HEAD
 				goto out_rpm;
+=======
+				goto out_unlock;
+>>>>>>> linux-next/akpm-base
 			}
 
 			this++;
@@ -1579,8 +1716,11 @@ static int igt_vm_isolation(void *arg)
 	pr_info("Checked %lu scratch offsets across %d engines\n",
 		count, RUNTIME_INFO(i915)->num_engines);
 
+<<<<<<< HEAD
 out_rpm:
 	intel_runtime_pm_put(&i915->runtime_pm, wakeref);
+=======
+>>>>>>> linux-next/akpm-base
 out_unlock:
 	if (igt_live_test_end(&t))
 		err = -EIO;
@@ -1736,7 +1876,11 @@ int i915_gem_context_mock_selftests(void)
 	return err;
 }
 
+<<<<<<< HEAD
 int i915_gem_context_live_selftests(struct drm_i915_private *dev_priv)
+=======
+int i915_gem_context_live_selftests(struct drm_i915_private *i915)
+>>>>>>> linux-next/akpm-base
 {
 	static const struct i915_subtest tests[] = {
 		SUBTEST(live_nop_switch),
@@ -1747,8 +1891,15 @@ int i915_gem_context_live_selftests(struct drm_i915_private *dev_priv)
 		SUBTEST(igt_vm_isolation),
 	};
 
+<<<<<<< HEAD
 	if (i915_terminally_wedged(dev_priv))
 		return 0;
 
 	return i915_subtests(tests, dev_priv);
+=======
+	if (intel_gt_is_wedged(&i915->gt))
+		return 0;
+
+	return i915_live_subtests(tests, i915);
+>>>>>>> linux-next/akpm-base
 }

@@ -22,11 +22,19 @@
  *
  */
 
+<<<<<<< HEAD
+=======
+#include <linux/sched/mm.h>
+>>>>>>> linux-next/akpm-base
 #include <drm/drm_gem.h>
 
 #include "display/intel_frontbuffer.h"
 
 #include "gt/intel_engine.h"
+<<<<<<< HEAD
+=======
+#include "gt/intel_gt.h"
+>>>>>>> linux-next/akpm-base
 
 #include "i915_drv.h"
 #include "i915_globals.h"
@@ -77,20 +85,29 @@ static void vma_print_allocator(struct i915_vma *vma, const char *reason)
 
 #endif
 
-static void obj_bump_mru(struct drm_i915_gem_object *obj)
+static inline struct i915_vma *active_to_vma(struct i915_active *ref)
 {
+<<<<<<< HEAD
 	struct drm_i915_private *i915 = to_i915(obj->base.dev);
 	unsigned long flags;
 
 	spin_lock_irqsave(&i915->mm.obj_lock, flags);
 	list_move_tail(&obj->mm.link, &i915->mm.shrink_list);
 	spin_unlock_irqrestore(&i915->mm.obj_lock, flags);
+=======
+	return container_of(ref, typeof(struct i915_vma), active);
+}
+>>>>>>> linux-next/akpm-base
 
-	obj->mm.dirty = true; /* be paranoid  */
+static int __i915_vma_active(struct i915_active *ref)
+{
+	i915_vma_get(active_to_vma(ref));
+	return 0;
 }
 
 static void __i915_vma_retire(struct i915_active *ref)
 {
+<<<<<<< HEAD
 	struct i915_vma *vma = container_of(ref, typeof(*vma), active);
 	struct drm_i915_gem_object *obj = vma->obj;
 
@@ -114,6 +131,9 @@ static void __i915_vma_retire(struct i915_active *ref)
 		obj_bump_mru(obj);
 
 	i915_gem_object_put(obj); /* and drop the active reference */
+=======
+	i915_vma_put(active_to_vma(ref));
+>>>>>>> linux-next/akpm-base
 }
 
 static struct i915_vma *
@@ -138,9 +158,23 @@ vma_create(struct drm_i915_gem_object *obj,
 	vma->size = obj->base.size;
 	vma->display_alignment = I915_GTT_MIN_ALIGNMENT;
 
+<<<<<<< HEAD
 	i915_active_init(vm->i915, &vma->active, __i915_vma_retire);
 	INIT_ACTIVE_REQUEST(&vma->last_fence);
 
+=======
+	i915_active_init(vm->i915, &vma->active,
+			 __i915_vma_active, __i915_vma_retire);
+	INIT_ACTIVE_REQUEST(&vma->last_fence);
+
+	/* Declare ourselves safe for use inside shrinkers */
+	if (IS_ENABLED(CONFIG_LOCKDEP)) {
+		fs_reclaim_acquire(GFP_KERNEL);
+		might_lock(&vma->active.mutex);
+		fs_reclaim_release(GFP_KERNEL);
+	}
+
+>>>>>>> linux-next/akpm-base
 	INIT_LIST_HEAD(&vma->closed_link);
 
 	if (view && view->type != I915_GGTT_VIEW_NORMAL) {
@@ -408,7 +442,7 @@ void i915_vma_flush_writes(struct i915_vma *vma)
 	if (!i915_vma_has_ggtt_write(vma))
 		return;
 
-	i915_gem_flush_ggtt_writes(vma->vm->i915);
+	intel_gt_flush_ggtt_writes(vma->vm->gt);
 
 	i915_vma_unset_ggtt_write(vma);
 }
@@ -921,6 +955,7 @@ int i915_vma_move_to_active(struct i915_vma *vma,
 			    unsigned int flags)
 {
 	struct drm_i915_gem_object *obj = vma->obj;
+	int err;
 
 	assert_vma_held(vma);
 	assert_object_held(obj);
@@ -934,6 +969,7 @@ int i915_vma_move_to_active(struct i915_vma *vma,
 	 * add the active reference first and queue for it to be dropped
 	 * *last*.
 	 */
+<<<<<<< HEAD
 	if (!vma->active.count && !obj->active_count++)
 		i915_gem_object_get(obj); /* once more for the active ref */
 
@@ -945,6 +981,11 @@ int i915_vma_move_to_active(struct i915_vma *vma,
 
 	GEM_BUG_ON(!i915_vma_is_active(vma));
 	GEM_BUG_ON(!obj->active_count);
+=======
+	err = i915_active_ref(&vma->active, rq->fence.context, rq);
+	if (unlikely(err))
+		return err;
+>>>>>>> linux-next/akpm-base
 
 	obj->write_domain = 0;
 	if (flags & EXEC_OBJECT_WRITE) {
@@ -956,11 +997,14 @@ int i915_vma_move_to_active(struct i915_vma *vma,
 		obj->read_domains = 0;
 	}
 	obj->read_domains |= I915_GEM_GPU_DOMAINS;
+	obj->mm.dirty = true;
 
 	if (flags & EXEC_OBJECT_NEEDS_FENCE)
 		__i915_active_request_set(&vma->last_fence, rq);
 
 	export_fence(vma, rq, flags);
+
+	GEM_BUG_ON(!i915_vma_is_active(vma));
 	return 0;
 }
 

@@ -441,9 +441,27 @@ icl_program_input_csc(struct intel_plane *plane,
 		 */
 		[DRM_COLOR_YCBCR_BT709] = {
 			0x7C98, 0x7800, 0x0,
+<<<<<<< HEAD
 			0x9EF8, 0x7800, 0xABF8,
 			0x0, 0x7800,  0x7ED8,
 		},
+=======
+			0x9EF8, 0x7800, 0xAC00,
+			0x0, 0x7800,  0x7ED8,
+		},
+		/*
+		 * BT.2020 full range YCbCr -> full range RGB
+		 * The matrix required is :
+		 * [1.000, 0.000, 1.474,
+		 *  1.000, -0.1645, -0.5713,
+		 *  1.000, 1.8814, 0.0000]
+		 */
+		[DRM_COLOR_YCBCR_BT2020] = {
+			0x7BC8, 0x7800, 0x0,
+			0x8928, 0x7800, 0xAA88,
+			0x0, 0x7800, 0x7F10,
+		},
+>>>>>>> linux-next/akpm-base
 	};
 
 	/* Matrix for Limited Range to Full Range Conversion */
@@ -451,6 +469,7 @@ icl_program_input_csc(struct intel_plane *plane,
 		/*
 		 * BT.601 Limted range YCbCr -> full range RGB
 		 * The matrix required is :
+<<<<<<< HEAD
 		 * [1.164384, 0.000, 1.596370,
 		 *  1.138393, -0.382500, -0.794598,
 		 *  1.138393, 1.971696, 0.0000]
@@ -459,10 +478,21 @@ icl_program_input_csc(struct intel_plane *plane,
 			0x7CC8, 0x7950, 0x0,
 			0x8CB8, 0x7918, 0x9C40,
 			0x0, 0x7918, 0x7FC8,
+=======
+		 * [1.164384, 0.000, 1.596027,
+		 *  1.164384, -0.39175, -0.812813,
+		 *  1.164384, 2.017232, 0.0000]
+		 */
+		[DRM_COLOR_YCBCR_BT601] = {
+			0x7CC8, 0x7950, 0x0,
+			0x8D00, 0x7950, 0x9C88,
+			0x0, 0x7950, 0x6810,
+>>>>>>> linux-next/akpm-base
 		},
 		/*
 		 * BT.709 Limited range YCbCr -> full range RGB
 		 * The matrix required is :
+<<<<<<< HEAD
 		 * [1.164, 0.000, 1.833671,
 		 *  1.138393, -0.213249, -0.532909,
 		 *  1.138393, 2.112402, 0.0000]
@@ -471,6 +501,28 @@ icl_program_input_csc(struct intel_plane *plane,
 			0x7EA8, 0x7950, 0x0,
 			0x8888, 0x7918, 0xADA8,
 			0x0, 0x7918,  0x6870,
+=======
+		 * [1.164384, 0.000, 1.792741,
+		 *  1.164384, -0.213249, -0.532909,
+		 *  1.164384, 2.112402, 0.0000]
+		 */
+		[DRM_COLOR_YCBCR_BT709] = {
+			0x7E58, 0x7950, 0x0,
+			0x8888, 0x7950, 0xADA8,
+			0x0, 0x7950,  0x6870,
+		},
+		/*
+		 * BT.2020 Limited range YCbCr -> full range RGB
+		 * The matrix required is :
+		 * [1.164, 0.000, 1.678,
+		 *  1.164, -0.1873, -0.6504,
+		 *  1.164, 2.1417, 0.0000]
+		 */
+		[DRM_COLOR_YCBCR_BT2020] = {
+			0x7D70, 0x7950, 0x0,
+			0x8A68, 0x7950, 0xAC00,
+			0x0, 0x7950, 0x6890,
+>>>>>>> linux-next/akpm-base
 		},
 	};
 	const u16 *csc;
@@ -492,8 +544,16 @@ icl_program_input_csc(struct intel_plane *plane,
 
 	I915_WRITE_FW(PLANE_INPUT_CSC_PREOFF(pipe, plane_id, 0),
 		      PREOFF_YUV_TO_RGB_HI);
+<<<<<<< HEAD
 	I915_WRITE_FW(PLANE_INPUT_CSC_PREOFF(pipe, plane_id, 1),
 		      PREOFF_YUV_TO_RGB_ME);
+=======
+	if (plane_state->base.color_range == DRM_COLOR_YCBCR_FULL_RANGE)
+		I915_WRITE_FW(PLANE_INPUT_CSC_PREOFF(pipe, plane_id, 1), 0);
+	else
+		I915_WRITE_FW(PLANE_INPUT_CSC_PREOFF(pipe, plane_id, 1),
+			      PREOFF_YUV_TO_RGB_ME);
+>>>>>>> linux-next/akpm-base
 	I915_WRITE_FW(PLANE_INPUT_CSC_PREOFF(pipe, plane_id, 2),
 		      PREOFF_YUV_TO_RGB_LO);
 	I915_WRITE_FW(PLANE_INPUT_CSC_POSTOFF(pipe, plane_id, 0), 0x0);
@@ -683,6 +743,19 @@ skl_plane_get_hw_state(struct intel_plane *plane,
 	return ret;
 }
 
+<<<<<<< HEAD
+=======
+static void i9xx_plane_linear_gamma(u16 gamma[8])
+{
+	/* The points are not evenly spaced. */
+	static const u8 in[8] = { 0, 1, 2, 4, 8, 16, 24, 32 };
+	int i;
+
+	for (i = 0; i < 8; i++)
+		gamma[i] = (in[i] << 8) / 32;
+}
+
+>>>>>>> linux-next/akpm-base
 static void
 chv_update_csc(const struct intel_plane_state *plane_state)
 {
@@ -858,6 +931,34 @@ static u32 vlv_sprite_ctl(const struct intel_crtc_state *crtc_state,
 	return sprctl;
 }
 
+<<<<<<< HEAD
+=======
+static void vlv_update_gamma(const struct intel_plane_state *plane_state)
+{
+	struct intel_plane *plane = to_intel_plane(plane_state->base.plane);
+	struct drm_i915_private *dev_priv = to_i915(plane->base.dev);
+	const struct drm_framebuffer *fb = plane_state->base.fb;
+	enum pipe pipe = plane->pipe;
+	enum plane_id plane_id = plane->id;
+	u16 gamma[8];
+	int i;
+
+	/* Seems RGB data bypasses the gamma always */
+	if (!fb->format->is_yuv)
+		return;
+
+	i9xx_plane_linear_gamma(gamma);
+
+	/* FIXME these register are single buffered :( */
+	/* The two end points are implicit (0.0 and 1.0) */
+	for (i = 1; i < 8 - 1; i++)
+		I915_WRITE_FW(SPGAMC(pipe, plane_id, i - 1),
+			      gamma[i] << 16 |
+			      gamma[i] << 8 |
+			      gamma[i]);
+}
+
+>>>>>>> linux-next/akpm-base
 static void
 vlv_update_plane(struct intel_plane *plane,
 		 const struct intel_crtc_state *crtc_state,
@@ -916,6 +1017,10 @@ vlv_update_plane(struct intel_plane *plane,
 		      intel_plane_ggtt_offset(plane_state) + sprsurf_offset);
 
 	vlv_update_clrc(plane_state);
+<<<<<<< HEAD
+=======
+	vlv_update_gamma(plane_state);
+>>>>>>> linux-next/akpm-base
 
 	spin_unlock_irqrestore(&dev_priv->uncore.lock, irqflags);
 }
@@ -1013,6 +1118,11 @@ static u32 ivb_sprite_ctl(const struct intel_crtc_state *crtc_state,
 		return 0;
 	}
 
+<<<<<<< HEAD
+=======
+	sprctl |= SPRITE_INT_GAMMA_DISABLE;
+
+>>>>>>> linux-next/akpm-base
 	if (plane_state->base.color_encoding == DRM_COLOR_YCBCR_BT709)
 		sprctl |= SPRITE_YUV_TO_RGB_CSC_FORMAT_BT709;
 
@@ -1033,6 +1143,48 @@ static u32 ivb_sprite_ctl(const struct intel_crtc_state *crtc_state,
 	return sprctl;
 }
 
+<<<<<<< HEAD
+=======
+static void ivb_sprite_linear_gamma(u16 gamma[18])
+{
+	int i;
+
+	for (i = 0; i < 17; i++)
+		gamma[i] = (i << 10) / 16;
+
+	gamma[i] = 3 << 10;
+	i++;
+}
+
+static void ivb_update_gamma(const struct intel_plane_state *plane_state)
+{
+	struct intel_plane *plane = to_intel_plane(plane_state->base.plane);
+	struct drm_i915_private *dev_priv = to_i915(plane->base.dev);
+	enum pipe pipe = plane->pipe;
+	u16 gamma[18];
+	int i;
+
+	ivb_sprite_linear_gamma(gamma);
+
+	/* FIXME these register are single buffered :( */
+	for (i = 0; i < 16; i++)
+		I915_WRITE_FW(SPRGAMC(pipe, i),
+			      gamma[i] << 20 |
+			      gamma[i] << 10 |
+			      gamma[i]);
+
+	I915_WRITE_FW(SPRGAMC16(pipe, 0), gamma[i]);
+	I915_WRITE_FW(SPRGAMC16(pipe, 1), gamma[i]);
+	I915_WRITE_FW(SPRGAMC16(pipe, 2), gamma[i]);
+	i++;
+
+	I915_WRITE_FW(SPRGAMC17(pipe, 0), gamma[i]);
+	I915_WRITE_FW(SPRGAMC17(pipe, 1), gamma[i]);
+	I915_WRITE_FW(SPRGAMC17(pipe, 2), gamma[i]);
+	i++;
+}
+
+>>>>>>> linux-next/akpm-base
 static void
 ivb_update_plane(struct intel_plane *plane,
 		 const struct intel_crtc_state *crtc_state,
@@ -1099,6 +1251,11 @@ ivb_update_plane(struct intel_plane *plane,
 	I915_WRITE_FW(SPRSURF(pipe),
 		      intel_plane_ggtt_offset(plane_state) + sprsurf_offset);
 
+<<<<<<< HEAD
+=======
+	ivb_update_gamma(plane_state);
+
+>>>>>>> linux-next/akpm-base
 	spin_unlock_irqrestore(&dev_priv->uncore.lock, irqflags);
 }
 
@@ -1224,6 +1381,69 @@ static u32 g4x_sprite_ctl(const struct intel_crtc_state *crtc_state,
 	return dvscntr;
 }
 
+<<<<<<< HEAD
+=======
+static void g4x_update_gamma(const struct intel_plane_state *plane_state)
+{
+	struct intel_plane *plane = to_intel_plane(plane_state->base.plane);
+	struct drm_i915_private *dev_priv = to_i915(plane->base.dev);
+	const struct drm_framebuffer *fb = plane_state->base.fb;
+	enum pipe pipe = plane->pipe;
+	u16 gamma[8];
+	int i;
+
+	/* Seems RGB data bypasses the gamma always */
+	if (!fb->format->is_yuv)
+		return;
+
+	i9xx_plane_linear_gamma(gamma);
+
+	/* FIXME these register are single buffered :( */
+	/* The two end points are implicit (0.0 and 1.0) */
+	for (i = 1; i < 8 - 1; i++)
+		I915_WRITE_FW(DVSGAMC_G4X(pipe, i - 1),
+			      gamma[i] << 16 |
+			      gamma[i] << 8 |
+			      gamma[i]);
+}
+
+static void ilk_sprite_linear_gamma(u16 gamma[17])
+{
+	int i;
+
+	for (i = 0; i < 17; i++)
+		gamma[i] = (i << 10) / 16;
+}
+
+static void ilk_update_gamma(const struct intel_plane_state *plane_state)
+{
+	struct intel_plane *plane = to_intel_plane(plane_state->base.plane);
+	struct drm_i915_private *dev_priv = to_i915(plane->base.dev);
+	const struct drm_framebuffer *fb = plane_state->base.fb;
+	enum pipe pipe = plane->pipe;
+	u16 gamma[17];
+	int i;
+
+	/* Seems RGB data bypasses the gamma always */
+	if (!fb->format->is_yuv)
+		return;
+
+	ilk_sprite_linear_gamma(gamma);
+
+	/* FIXME these register are single buffered :( */
+	for (i = 0; i < 16; i++)
+		I915_WRITE_FW(DVSGAMC_ILK(pipe, i),
+			      gamma[i] << 20 |
+			      gamma[i] << 10 |
+			      gamma[i]);
+
+	I915_WRITE_FW(DVSGAMCMAX_ILK(pipe, 0), gamma[i]);
+	I915_WRITE_FW(DVSGAMCMAX_ILK(pipe, 1), gamma[i]);
+	I915_WRITE_FW(DVSGAMCMAX_ILK(pipe, 2), gamma[i]);
+	i++;
+}
+
+>>>>>>> linux-next/akpm-base
 static void
 g4x_update_plane(struct intel_plane *plane,
 		 const struct intel_crtc_state *crtc_state,
@@ -1283,6 +1503,14 @@ g4x_update_plane(struct intel_plane *plane,
 	I915_WRITE_FW(DVSSURF(pipe),
 		      intel_plane_ggtt_offset(plane_state) + dvssurf_offset);
 
+<<<<<<< HEAD
+=======
+	if (IS_G4X(dev_priv))
+		g4x_update_gamma(plane_state);
+	else
+		ilk_update_gamma(plane_state);
+
+>>>>>>> linux-next/akpm-base
 	spin_unlock_irqrestore(&dev_priv->uncore.lock, irqflags);
 }
 
@@ -1852,6 +2080,7 @@ static const u32 skl_plane_formats[] = {
 	DRM_FORMAT_VYUY,
 };
 
+<<<<<<< HEAD
 static const u32 icl_plane_formats[] = {
 	DRM_FORMAT_C8,
 	DRM_FORMAT_RGB565,
@@ -1874,6 +2103,9 @@ static const u32 icl_plane_formats[] = {
 };
 
 static const u32 icl_hdr_plane_formats[] = {
+=======
+static const u32 skl_planar_formats[] = {
+>>>>>>> linux-next/akpm-base
 	DRM_FORMAT_C8,
 	DRM_FORMAT_RGB565,
 	DRM_FORMAT_XRGB8888,
@@ -1882,14 +2114,18 @@ static const u32 icl_hdr_plane_formats[] = {
 	DRM_FORMAT_ABGR8888,
 	DRM_FORMAT_XRGB2101010,
 	DRM_FORMAT_XBGR2101010,
+<<<<<<< HEAD
 	DRM_FORMAT_XRGB16161616F,
 	DRM_FORMAT_XBGR16161616F,
 	DRM_FORMAT_ARGB16161616F,
 	DRM_FORMAT_ABGR16161616F,
+=======
+>>>>>>> linux-next/akpm-base
 	DRM_FORMAT_YUYV,
 	DRM_FORMAT_YVYU,
 	DRM_FORMAT_UYVY,
 	DRM_FORMAT_VYUY,
+<<<<<<< HEAD
 	DRM_FORMAT_Y210,
 	DRM_FORMAT_Y212,
 	DRM_FORMAT_Y216,
@@ -1899,6 +2135,12 @@ static const u32 icl_hdr_plane_formats[] = {
 };
 
 static const u32 skl_planar_formats[] = {
+=======
+	DRM_FORMAT_NV12,
+};
+
+static const u32 glk_planar_formats[] = {
+>>>>>>> linux-next/akpm-base
 	DRM_FORMAT_C8,
 	DRM_FORMAT_RGB565,
 	DRM_FORMAT_XRGB8888,
@@ -1912,9 +2154,18 @@ static const u32 skl_planar_formats[] = {
 	DRM_FORMAT_UYVY,
 	DRM_FORMAT_VYUY,
 	DRM_FORMAT_NV12,
+<<<<<<< HEAD
 };
 
 static const u32 glk_planar_formats[] = {
+=======
+	DRM_FORMAT_P010,
+	DRM_FORMAT_P012,
+	DRM_FORMAT_P016,
+};
+
+static const u32 icl_sdr_y_plane_formats[] = {
+>>>>>>> linux-next/akpm-base
 	DRM_FORMAT_C8,
 	DRM_FORMAT_RGB565,
 	DRM_FORMAT_XRGB8888,
@@ -1927,6 +2178,7 @@ static const u32 glk_planar_formats[] = {
 	DRM_FORMAT_YVYU,
 	DRM_FORMAT_UYVY,
 	DRM_FORMAT_VYUY,
+<<<<<<< HEAD
 	DRM_FORMAT_NV12,
 	DRM_FORMAT_P010,
 	DRM_FORMAT_P012,
@@ -1934,6 +2186,17 @@ static const u32 glk_planar_formats[] = {
 };
 
 static const u32 icl_planar_formats[] = {
+=======
+	DRM_FORMAT_Y210,
+	DRM_FORMAT_Y212,
+	DRM_FORMAT_Y216,
+	DRM_FORMAT_XVYU2101010,
+	DRM_FORMAT_XVYU12_16161616,
+	DRM_FORMAT_XVYU16161616,
+};
+
+static const u32 icl_sdr_uv_plane_formats[] = {
+>>>>>>> linux-next/akpm-base
 	DRM_FORMAT_C8,
 	DRM_FORMAT_RGB565,
 	DRM_FORMAT_XRGB8888,
@@ -1958,7 +2221,11 @@ static const u32 icl_planar_formats[] = {
 	DRM_FORMAT_XVYU16161616,
 };
 
+<<<<<<< HEAD
 static const u32 icl_hdr_planar_formats[] = {
+=======
+static const u32 icl_hdr_plane_formats[] = {
+>>>>>>> linux-next/akpm-base
 	DRM_FORMAT_C8,
 	DRM_FORMAT_RGB565,
 	DRM_FORMAT_XRGB8888,
@@ -2201,9 +2468,12 @@ static bool skl_plane_has_fbc(struct drm_i915_private *dev_priv,
 static bool skl_plane_has_planar(struct drm_i915_private *dev_priv,
 				 enum pipe pipe, enum plane_id plane_id)
 {
+<<<<<<< HEAD
 	if (INTEL_GEN(dev_priv) >= 11)
 		return plane_id <= PLANE_SPRITE3;
 
+=======
+>>>>>>> linux-next/akpm-base
 	/* Display WA #0870: skl, bxt */
 	if (IS_SKYLAKE(dev_priv) || IS_BROXTON(dev_priv))
 		return false;
@@ -2217,6 +2487,51 @@ static bool skl_plane_has_planar(struct drm_i915_private *dev_priv,
 	return true;
 }
 
+<<<<<<< HEAD
+=======
+static const u32 *skl_get_plane_formats(struct drm_i915_private *dev_priv,
+					enum pipe pipe, enum plane_id plane_id,
+					int *num_formats)
+{
+	if (skl_plane_has_planar(dev_priv, pipe, plane_id)) {
+		*num_formats = ARRAY_SIZE(skl_planar_formats);
+		return skl_planar_formats;
+	} else {
+		*num_formats = ARRAY_SIZE(skl_plane_formats);
+		return skl_plane_formats;
+	}
+}
+
+static const u32 *glk_get_plane_formats(struct drm_i915_private *dev_priv,
+					enum pipe pipe, enum plane_id plane_id,
+					int *num_formats)
+{
+	if (skl_plane_has_planar(dev_priv, pipe, plane_id)) {
+		*num_formats = ARRAY_SIZE(glk_planar_formats);
+		return glk_planar_formats;
+	} else {
+		*num_formats = ARRAY_SIZE(skl_plane_formats);
+		return skl_plane_formats;
+	}
+}
+
+static const u32 *icl_get_plane_formats(struct drm_i915_private *dev_priv,
+					enum pipe pipe, enum plane_id plane_id,
+					int *num_formats)
+{
+	if (icl_is_hdr_plane(dev_priv, plane_id)) {
+		*num_formats = ARRAY_SIZE(icl_hdr_plane_formats);
+		return icl_hdr_plane_formats;
+	} else if (icl_is_nv12_y_plane(plane_id)) {
+		*num_formats = ARRAY_SIZE(icl_sdr_y_plane_formats);
+		return icl_sdr_y_plane_formats;
+	} else {
+		*num_formats = ARRAY_SIZE(icl_sdr_uv_plane_formats);
+		return icl_sdr_uv_plane_formats;
+	}
+}
+
+>>>>>>> linux-next/akpm-base
 static bool skl_plane_has_ccs(struct drm_i915_private *dev_priv,
 			      enum pipe pipe, enum plane_id plane_id)
 {
@@ -2270,6 +2585,7 @@ skl_universal_plane_create(struct drm_i915_private *dev_priv,
 	if (icl_is_nv12_y_plane(plane_id))
 		plane->update_slave = icl_update_slave;
 
+<<<<<<< HEAD
 	if (skl_plane_has_planar(dev_priv, pipe, plane_id)) {
 		if (icl_is_hdr_plane(dev_priv, plane_id)) {
 			formats = icl_hdr_planar_formats;
@@ -2294,6 +2610,17 @@ skl_universal_plane_create(struct drm_i915_private *dev_priv,
 		formats = skl_plane_formats;
 		num_formats = ARRAY_SIZE(skl_plane_formats);
 	}
+=======
+	if (INTEL_GEN(dev_priv) >= 11)
+		formats = icl_get_plane_formats(dev_priv, pipe,
+						plane_id, &num_formats);
+	else if (INTEL_GEN(dev_priv) >= 10 || IS_GEMINILAKE(dev_priv))
+		formats = glk_get_plane_formats(dev_priv, pipe,
+						plane_id, &num_formats);
+	else
+		formats = skl_get_plane_formats(dev_priv, pipe,
+						plane_id, &num_formats);
+>>>>>>> linux-next/akpm-base
 
 	plane->has_ccs = skl_plane_has_ccs(dev_priv, pipe, plane_id);
 	if (plane->has_ccs)

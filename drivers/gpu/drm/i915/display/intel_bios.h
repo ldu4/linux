@@ -42,6 +42,10 @@ enum intel_backlight_type {
 	INTEL_BACKLIGHT_DISPLAY_DDI,
 	INTEL_BACKLIGHT_DSI_DCS,
 	INTEL_BACKLIGHT_PANEL_DRIVER_INTERFACE,
+<<<<<<< HEAD
+=======
+	INTEL_BACKLIGHT_VESA_EDP_AUX_INTERFACE,
+>>>>>>> linux-next/akpm-base
 };
 
 struct edp_power_seq {
@@ -227,7 +231,11 @@ struct mipi_pps_data {
 } __packed;
 
 void intel_bios_init(struct drm_i915_private *dev_priv);
+<<<<<<< HEAD
 void intel_bios_cleanup(struct drm_i915_private *dev_priv);
+=======
+void intel_bios_driver_remove(struct drm_i915_private *dev_priv);
+>>>>>>> linux-next/akpm-base
 bool intel_bios_is_valid_vbt(const void *buf, size_t size);
 bool intel_bios_is_tv_present(struct drm_i915_private *dev_priv);
 bool intel_bios_is_lvds_present(struct drm_i915_private *dev_priv, u8 *i2c_pin);

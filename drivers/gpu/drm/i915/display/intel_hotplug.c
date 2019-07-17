@@ -112,6 +112,10 @@ enum hpd_pin intel_hpd_pin_default(struct drm_i915_private *dev_priv,
 
 #define HPD_STORM_DETECT_PERIOD		1000
 #define HPD_STORM_REENABLE_DELAY	(2 * 60 * 1000)
+<<<<<<< HEAD
+=======
+#define HPD_RETRY_DELAY			1000
+>>>>>>> linux-next/akpm-base
 
 /**
  * intel_hpd_irq_storm_detect - gather stats and detect HPD IRQ storm on a pin
@@ -266,8 +270,15 @@ static void intel_hpd_irq_storm_reenable_work(struct work_struct *work)
 	intel_runtime_pm_put(&dev_priv->runtime_pm, wakeref);
 }
 
+<<<<<<< HEAD
 bool intel_encoder_hotplug(struct intel_encoder *encoder,
 			   struct intel_connector *connector)
+=======
+enum intel_hotplug_state
+intel_encoder_hotplug(struct intel_encoder *encoder,
+		      struct intel_connector *connector,
+		      bool irq_received)
+>>>>>>> linux-next/akpm-base
 {
 	struct drm_device *dev = connector->base.dev;
 	enum drm_connector_status old_status;
@@ -279,7 +290,11 @@ bool intel_encoder_hotplug(struct intel_encoder *encoder,
 		drm_helper_probe_detect(&connector->base, NULL, false);
 
 	if (old_status == connector->base.status)
+<<<<<<< HEAD
 		return false;
+=======
+		return INTEL_HOTPLUG_UNCHANGED;
+>>>>>>> linux-next/akpm-base
 
 	DRM_DEBUG_KMS("[CONNECTOR:%d:%s] status updated from %s to %s\n",
 		      connector->base.base.id,
@@ -287,7 +302,11 @@ bool intel_encoder_hotplug(struct intel_encoder *encoder,
 		      drm_get_connector_status_name(old_status),
 		      drm_get_connector_status_name(connector->base.status));
 
+<<<<<<< HEAD
 	return true;
+=======
+	return INTEL_HOTPLUG_CHANGED;
+>>>>>>> linux-next/akpm-base
 }
 
 static bool intel_encoder_has_hpd_pulse(struct intel_encoder *encoder)
@@ -339,7 +358,11 @@ static void i915_digport_work_func(struct work_struct *work)
 		spin_lock_irq(&dev_priv->irq_lock);
 		dev_priv->hotplug.event_bits |= old_bits;
 		spin_unlock_irq(&dev_priv->irq_lock);
+<<<<<<< HEAD
 		schedule_work(&dev_priv->hotplug.hotplug_work);
+=======
+		queue_delayed_work(system_wq, &dev_priv->hotplug.hotplug_work, 0);
+>>>>>>> linux-next/akpm-base
 	}
 }
 
@@ -349,14 +372,25 @@ static void i915_digport_work_func(struct work_struct *work)
 static void i915_hotplug_work_func(struct work_struct *work)
 {
 	struct drm_i915_private *dev_priv =
+<<<<<<< HEAD
 		container_of(work, struct drm_i915_private, hotplug.hotplug_work);
+=======
+		container_of(work, struct drm_i915_private,
+			     hotplug.hotplug_work.work);
+>>>>>>> linux-next/akpm-base
 	struct drm_device *dev = &dev_priv->drm;
 	struct intel_connector *intel_connector;
 	struct intel_encoder *intel_encoder;
 	struct drm_connector *connector;
 	struct drm_connector_list_iter conn_iter;
+<<<<<<< HEAD
 	bool changed = false;
 	u32 hpd_event_bits;
+=======
+	u32 changed = 0, retry = 0;
+	u32 hpd_event_bits;
+	u32 hpd_retry_bits;
+>>>>>>> linux-next/akpm-base
 
 	mutex_lock(&dev->mode_config.mutex);
 	DRM_DEBUG_KMS("running encoder hotplug functions\n");
@@ -365,6 +399,11 @@ static void i915_hotplug_work_func(struct work_struct *work)
 
 	hpd_event_bits = dev_priv->hotplug.event_bits;
 	dev_priv->hotplug.event_bits = 0;
+<<<<<<< HEAD
+=======
+	hpd_retry_bits = dev_priv->hotplug.retry_bits;
+	dev_priv->hotplug.retry_bits = 0;
+>>>>>>> linux-next/akpm-base
 
 	/* Enable polling for connectors which had HPD IRQ storms */
 	intel_hpd_irq_storm_switch_to_polling(dev_priv);
@@ -373,16 +412,41 @@ static void i915_hotplug_work_func(struct work_struct *work)
 
 	drm_connector_list_iter_begin(dev, &conn_iter);
 	drm_for_each_connector_iter(connector, &conn_iter) {
+<<<<<<< HEAD
+=======
+		u32 hpd_bit;
+
+>>>>>>> linux-next/akpm-base
 		intel_connector = to_intel_connector(connector);
 		if (!intel_connector->encoder)
 			continue;
 		intel_encoder = intel_connector->encoder;
+<<<<<<< HEAD
 		if (hpd_event_bits & (1 << intel_encoder->hpd_pin)) {
 			DRM_DEBUG_KMS("Connector %s (pin %i) received hotplug event.\n",
 				      connector->name, intel_encoder->hpd_pin);
 
 			changed |= intel_encoder->hotplug(intel_encoder,
 							  intel_connector);
+=======
+		hpd_bit = BIT(intel_encoder->hpd_pin);
+		if ((hpd_event_bits | hpd_retry_bits) & hpd_bit) {
+			DRM_DEBUG_KMS("Connector %s (pin %i) received hotplug event.\n",
+				      connector->name, intel_encoder->hpd_pin);
+
+			switch (intel_encoder->hotplug(intel_encoder,
+						       intel_connector,
+						       hpd_event_bits & hpd_bit)) {
+			case INTEL_HOTPLUG_UNCHANGED:
+				break;
+			case INTEL_HOTPLUG_CHANGED:
+				changed |= hpd_bit;
+				break;
+			case INTEL_HOTPLUG_RETRY:
+				retry |= hpd_bit;
+				break;
+			}
+>>>>>>> linux-next/akpm-base
 		}
 	}
 	drm_connector_list_iter_end(&conn_iter);
@@ -390,6 +454,20 @@ static void i915_hotplug_work_func(struct work_struct *work)
 
 	if (changed)
 		drm_kms_helper_hotplug_event(dev);
+<<<<<<< HEAD
+=======
+
+	/* Remove shared HPD pins that have changed */
+	retry &= ~changed;
+	if (retry) {
+		spin_lock_irq(&dev_priv->irq_lock);
+		dev_priv->hotplug.retry_bits |= retry;
+		spin_unlock_irq(&dev_priv->irq_lock);
+
+		mod_delayed_work(system_wq, &dev_priv->hotplug.hotplug_work,
+				 msecs_to_jiffies(HPD_RETRY_DELAY));
+	}
+>>>>>>> linux-next/akpm-base
 }
 
 
@@ -516,7 +594,11 @@ void intel_hpd_irq_handler(struct drm_i915_private *dev_priv,
 	if (queue_dig)
 		queue_work(dev_priv->hotplug.dp_wq, &dev_priv->hotplug.dig_port_work);
 	if (queue_hp)
+<<<<<<< HEAD
 		schedule_work(&dev_priv->hotplug.hotplug_work);
+=======
+		queue_delayed_work(system_wq, &dev_priv->hotplug.hotplug_work, 0);
+>>>>>>> linux-next/akpm-base
 }
 
 /**
@@ -636,7 +718,12 @@ void intel_hpd_poll_init(struct drm_i915_private *dev_priv)
 
 void intel_hpd_init_work(struct drm_i915_private *dev_priv)
 {
+<<<<<<< HEAD
 	INIT_WORK(&dev_priv->hotplug.hotplug_work, i915_hotplug_work_func);
+=======
+	INIT_DELAYED_WORK(&dev_priv->hotplug.hotplug_work,
+			  i915_hotplug_work_func);
+>>>>>>> linux-next/akpm-base
 	INIT_WORK(&dev_priv->hotplug.dig_port_work, i915_digport_work_func);
 	INIT_WORK(&dev_priv->hotplug.poll_init_work, i915_hpd_poll_init_work);
 	INIT_DELAYED_WORK(&dev_priv->hotplug.reenable_work,
@@ -650,11 +737,19 @@ void intel_hpd_cancel_work(struct drm_i915_private *dev_priv)
 	dev_priv->hotplug.long_port_mask = 0;
 	dev_priv->hotplug.short_port_mask = 0;
 	dev_priv->hotplug.event_bits = 0;
+<<<<<<< HEAD
+=======
+	dev_priv->hotplug.retry_bits = 0;
+>>>>>>> linux-next/akpm-base
 
 	spin_unlock_irq(&dev_priv->irq_lock);
 
 	cancel_work_sync(&dev_priv->hotplug.dig_port_work);
+<<<<<<< HEAD
 	cancel_work_sync(&dev_priv->hotplug.hotplug_work);
+=======
+	cancel_delayed_work_sync(&dev_priv->hotplug.hotplug_work);
+>>>>>>> linux-next/akpm-base
 	cancel_work_sync(&dev_priv->hotplug.poll_init_work);
 	cancel_delayed_work_sync(&dev_priv->hotplug.reenable_work);
 }

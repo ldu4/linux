@@ -414,6 +414,14 @@ shmem_pwrite(struct drm_i915_gem_object *obj,
 	return 0;
 }
 
+<<<<<<< HEAD
+=======
+static void shmem_release(struct drm_i915_gem_object *obj)
+{
+	fput(obj->base.filp);
+}
+
+>>>>>>> linux-next/akpm-base
 const struct drm_i915_gem_object_ops i915_gem_shmem_ops = {
 	.flags = I915_GEM_OBJECT_HAS_STRUCT_PAGE |
 		 I915_GEM_OBJECT_IS_SHRINKABLE,
@@ -424,6 +432,11 @@ const struct drm_i915_gem_object_ops i915_gem_shmem_ops = {
 	.writeback = shmem_writeback,
 
 	.pwrite = shmem_pwrite,
+<<<<<<< HEAD
+=======
+
+	.release = shmem_release,
+>>>>>>> linux-next/akpm-base
 };
 
 static int create_shmem(struct drm_i915_private *i915,

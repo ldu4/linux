@@ -45,6 +45,10 @@
 #include "intel_lspcon.h"
 #include "intel_panel.h"
 #include "intel_psr.h"
+<<<<<<< HEAD
+=======
+#include "intel_tc.h"
+>>>>>>> linux-next/akpm-base
 #include "intel_vdsc.h"
 
 struct ddi_buf_trans {
@@ -846,8 +850,13 @@ cnl_get_buf_trans_edp(struct drm_i915_private *dev_priv, int *n_entries)
 }
 
 static const struct cnl_ddi_buf_trans *
+<<<<<<< HEAD
 icl_get_combo_buf_trans(struct drm_i915_private *dev_priv, enum port port,
 			int type, int rate, int *n_entries)
+=======
+icl_get_combo_buf_trans(struct drm_i915_private *dev_priv, int type, int rate,
+			int *n_entries)
+>>>>>>> linux-next/akpm-base
 {
 	if (type == INTEL_OUTPUT_HDMI) {
 		*n_entries = ARRAY_SIZE(icl_combo_phy_ddi_translations_hdmi);
@@ -867,12 +876,21 @@ icl_get_combo_buf_trans(struct drm_i915_private *dev_priv, enum port port,
 static int intel_ddi_hdmi_level(struct drm_i915_private *dev_priv, enum port port)
 {
 	int n_entries, level, default_entry;
+<<<<<<< HEAD
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, port);
+>>>>>>> linux-next/akpm-base
 
 	level = dev_priv->vbt.ddi_port_info[port].hdmi_level_shift;
 
 	if (INTEL_GEN(dev_priv) >= 11) {
+<<<<<<< HEAD
 		if (intel_port_is_combophy(dev_priv, port))
 			icl_get_combo_buf_trans(dev_priv, port, INTEL_OUTPUT_HDMI,
+=======
+		if (intel_phy_is_combo(dev_priv, phy))
+			icl_get_combo_buf_trans(dev_priv, INTEL_OUTPUT_HDMI,
+>>>>>>> linux-next/akpm-base
 						0, &n_entries);
 		else
 			n_entries = ARRAY_SIZE(icl_mg_phy_ddi_translations);
@@ -1486,9 +1504,16 @@ static void icl_ddi_clock_get(struct intel_encoder *encoder,
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	struct intel_dpll_hw_state *pll_state = &pipe_config->dpll_hw_state;
 	enum port port = encoder->port;
+<<<<<<< HEAD
 	int link_clock;
 
 	if (intel_port_is_combophy(dev_priv, port)) {
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, port);
+	int link_clock;
+
+	if (intel_phy_is_combo(dev_priv, phy)) {
+>>>>>>> linux-next/akpm-base
 		link_clock = cnl_calc_wrpll_link(dev_priv, pll_state);
 	} else {
 		enum intel_dpll_id pll_id = intel_get_shared_dpll_id(dev_priv,
@@ -2085,6 +2110,10 @@ static void intel_ddi_get_power_domains(struct intel_encoder *encoder,
 {
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	struct intel_digital_port *dig_port;
+<<<<<<< HEAD
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, encoder->port);
+>>>>>>> linux-next/akpm-base
 
 	/*
 	 * TODO: Add support for MST encoders. Atm, the following should never
@@ -2102,7 +2131,11 @@ static void intel_ddi_get_power_domains(struct intel_encoder *encoder,
 	 * ports.
 	 */
 	if (intel_crtc_has_dp_encoder(crtc_state) ||
+<<<<<<< HEAD
 	    intel_port_is_tc(dev_priv, encoder->port))
+=======
+	    intel_phy_is_tc(dev_priv, phy))
+>>>>>>> linux-next/akpm-base
 		intel_display_power_get(dev_priv,
 					intel_ddi_main_link_aux_domain(dig_port));
 
@@ -2227,11 +2260,20 @@ u8 intel_ddi_dp_voltage_max(struct intel_encoder *encoder)
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	struct intel_dp *intel_dp = enc_to_intel_dp(&encoder->base);
 	enum port port = encoder->port;
+<<<<<<< HEAD
 	int n_entries;
 
 	if (INTEL_GEN(dev_priv) >= 11) {
 		if (intel_port_is_combophy(dev_priv, port))
 			icl_get_combo_buf_trans(dev_priv, port, encoder->type,
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, port);
+	int n_entries;
+
+	if (INTEL_GEN(dev_priv) >= 11) {
+		if (intel_phy_is_combo(dev_priv, phy))
+			icl_get_combo_buf_trans(dev_priv, encoder->type,
+>>>>>>> linux-next/akpm-base
 						intel_dp->link_rate, &n_entries);
 		else
 			n_entries = ARRAY_SIZE(icl_mg_phy_ddi_translations);
@@ -2413,15 +2455,24 @@ static void cnl_ddi_vswing_sequence(struct intel_encoder *encoder,
 }
 
 static void icl_ddi_combo_vswing_program(struct drm_i915_private *dev_priv,
+<<<<<<< HEAD
 					u32 level, enum port port, int type,
+=======
+					u32 level, enum phy phy, int type,
+>>>>>>> linux-next/akpm-base
 					int rate)
 {
 	const struct cnl_ddi_buf_trans *ddi_translations = NULL;
 	u32 n_entries, val;
 	int ln;
 
+<<<<<<< HEAD
 	ddi_translations = icl_get_combo_buf_trans(dev_priv, port, type,
 						   rate, &n_entries);
+=======
+	ddi_translations = icl_get_combo_buf_trans(dev_priv, type, rate,
+						   &n_entries);
+>>>>>>> linux-next/akpm-base
 	if (!ddi_translations)
 		return;
 
@@ -2431,33 +2482,53 @@ static void icl_ddi_combo_vswing_program(struct drm_i915_private *dev_priv,
 	}
 
 	/* Set PORT_TX_DW5 */
+<<<<<<< HEAD
 	val = I915_READ(ICL_PORT_TX_DW5_LN0(port));
+=======
+	val = I915_READ(ICL_PORT_TX_DW5_LN0(phy));
+>>>>>>> linux-next/akpm-base
 	val &= ~(SCALING_MODE_SEL_MASK | RTERM_SELECT_MASK |
 		  TAP2_DISABLE | TAP3_DISABLE);
 	val |= SCALING_MODE_SEL(0x2);
 	val |= RTERM_SELECT(0x6);
 	val |= TAP3_DISABLE;
+<<<<<<< HEAD
 	I915_WRITE(ICL_PORT_TX_DW5_GRP(port), val);
 
 	/* Program PORT_TX_DW2 */
 	val = I915_READ(ICL_PORT_TX_DW2_LN0(port));
+=======
+	I915_WRITE(ICL_PORT_TX_DW5_GRP(phy), val);
+
+	/* Program PORT_TX_DW2 */
+	val = I915_READ(ICL_PORT_TX_DW2_LN0(phy));
+>>>>>>> linux-next/akpm-base
 	val &= ~(SWING_SEL_LOWER_MASK | SWING_SEL_UPPER_MASK |
 		 RCOMP_SCALAR_MASK);
 	val |= SWING_SEL_UPPER(ddi_translations[level].dw2_swing_sel);
 	val |= SWING_SEL_LOWER(ddi_translations[level].dw2_swing_sel);
 	/* Program Rcomp scalar for every table entry */
 	val |= RCOMP_SCALAR(0x98);
+<<<<<<< HEAD
 	I915_WRITE(ICL_PORT_TX_DW2_GRP(port), val);
+=======
+	I915_WRITE(ICL_PORT_TX_DW2_GRP(phy), val);
+>>>>>>> linux-next/akpm-base
 
 	/* Program PORT_TX_DW4 */
 	/* We cannot write to GRP. It would overwrite individual loadgen. */
 	for (ln = 0; ln <= 3; ln++) {
+<<<<<<< HEAD
 		val = I915_READ(ICL_PORT_TX_DW4_LN(ln, port));
+=======
+		val = I915_READ(ICL_PORT_TX_DW4_LN(ln, phy));
+>>>>>>> linux-next/akpm-base
 		val &= ~(POST_CURSOR_1_MASK | POST_CURSOR_2_MASK |
 			 CURSOR_COEFF_MASK);
 		val |= POST_CURSOR_1(ddi_translations[level].dw4_post_cursor_1);
 		val |= POST_CURSOR_2(ddi_translations[level].dw4_post_cursor_2);
 		val |= CURSOR_COEFF(ddi_translations[level].dw4_cursor_coeff);
+<<<<<<< HEAD
 		I915_WRITE(ICL_PORT_TX_DW4_LN(ln, port), val);
 	}
 
@@ -2466,6 +2537,16 @@ static void icl_ddi_combo_vswing_program(struct drm_i915_private *dev_priv,
 	val &= ~N_SCALAR_MASK;
 	val |= N_SCALAR(ddi_translations[level].dw7_n_scalar);
 	I915_WRITE(ICL_PORT_TX_DW7_GRP(port), val);
+=======
+		I915_WRITE(ICL_PORT_TX_DW4_LN(ln, phy), val);
+	}
+
+	/* Program PORT_TX_DW7 */
+	val = I915_READ(ICL_PORT_TX_DW7_LN0(phy));
+	val &= ~N_SCALAR_MASK;
+	val |= N_SCALAR(ddi_translations[level].dw7_n_scalar);
+	I915_WRITE(ICL_PORT_TX_DW7_GRP(phy), val);
+>>>>>>> linux-next/akpm-base
 }
 
 static void icl_combo_phy_ddi_vswing_sequence(struct intel_encoder *encoder,
@@ -2473,7 +2554,11 @@ static void icl_combo_phy_ddi_vswing_sequence(struct intel_encoder *encoder,
 					      enum intel_output_type type)
 {
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
+<<<<<<< HEAD
 	enum port port = encoder->port;
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, encoder->port);
+>>>>>>> linux-next/akpm-base
 	int width = 0;
 	int rate = 0;
 	u32 val;
@@ -2494,12 +2579,20 @@ static void icl_combo_phy_ddi_vswing_sequence(struct intel_encoder *encoder,
 	 * set PORT_PCS_DW1 cmnkeeper_enable to 1b,
 	 * else clear to 0b.
 	 */
+<<<<<<< HEAD
 	val = I915_READ(ICL_PORT_PCS_DW1_LN0(port));
+=======
+	val = I915_READ(ICL_PORT_PCS_DW1_LN0(phy));
+>>>>>>> linux-next/akpm-base
 	if (type == INTEL_OUTPUT_HDMI)
 		val &= ~COMMON_KEEPER_EN;
 	else
 		val |= COMMON_KEEPER_EN;
+<<<<<<< HEAD
 	I915_WRITE(ICL_PORT_PCS_DW1_GRP(port), val);
+=======
+	I915_WRITE(ICL_PORT_PCS_DW1_GRP(phy), val);
+>>>>>>> linux-next/akpm-base
 
 	/* 2. Program loadgen select */
 	/*
@@ -2509,13 +2602,18 @@ static void icl_combo_phy_ddi_vswing_sequence(struct intel_encoder *encoder,
 	 * > 6 GHz (LN0=0, LN1=0, LN2=0, LN3=0)
 	 */
 	for (ln = 0; ln <= 3; ln++) {
+<<<<<<< HEAD
 		val = I915_READ(ICL_PORT_TX_DW4_LN(ln, port));
+=======
+		val = I915_READ(ICL_PORT_TX_DW4_LN(ln, phy));
+>>>>>>> linux-next/akpm-base
 		val &= ~LOADGEN_SELECT;
 
 		if ((rate <= 600000 && width == 4 && ln >= 1) ||
 		    (rate <= 600000 && width < 4 && (ln == 1 || ln == 2))) {
 			val |= LOADGEN_SELECT;
 		}
+<<<<<<< HEAD
 		I915_WRITE(ICL_PORT_TX_DW4_LN(ln, port), val);
 	}
 
@@ -2536,6 +2634,28 @@ static void icl_combo_phy_ddi_vswing_sequence(struct intel_encoder *encoder,
 	val = I915_READ(ICL_PORT_TX_DW5_LN0(port));
 	val |= TX_TRAINING_EN;
 	I915_WRITE(ICL_PORT_TX_DW5_GRP(port), val);
+=======
+		I915_WRITE(ICL_PORT_TX_DW4_LN(ln, phy), val);
+	}
+
+	/* 3. Set PORT_CL_DW5 SUS Clock Config to 11b */
+	val = I915_READ(ICL_PORT_CL_DW5(phy));
+	val |= SUS_CLOCK_CONFIG;
+	I915_WRITE(ICL_PORT_CL_DW5(phy), val);
+
+	/* 4. Clear training enable to change swing values */
+	val = I915_READ(ICL_PORT_TX_DW5_LN0(phy));
+	val &= ~TX_TRAINING_EN;
+	I915_WRITE(ICL_PORT_TX_DW5_GRP(phy), val);
+
+	/* 5. Program swing and de-emphasis */
+	icl_ddi_combo_vswing_program(dev_priv, level, phy, type, rate);
+
+	/* 6. Set training enable to trigger update */
+	val = I915_READ(ICL_PORT_TX_DW5_LN0(phy));
+	val |= TX_TRAINING_EN;
+	I915_WRITE(ICL_PORT_TX_DW5_GRP(phy), val);
+>>>>>>> linux-next/akpm-base
 }
 
 static void icl_mg_phy_ddi_vswing_sequence(struct intel_encoder *encoder,
@@ -2663,9 +2783,15 @@ static void icl_ddi_vswing_sequence(struct intel_encoder *encoder,
 				    enum intel_output_type type)
 {
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
+<<<<<<< HEAD
 	enum port port = encoder->port;
 
 	if (intel_port_is_combophy(dev_priv, port))
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, encoder->port);
+
+	if (intel_phy_is_combo(dev_priv, phy))
+>>>>>>> linux-next/akpm-base
 		icl_combo_phy_ddi_vswing_sequence(encoder, level, type);
 	else
 		icl_mg_phy_ddi_vswing_sequence(encoder, link_clock, level);
@@ -2728,12 +2854,22 @@ u32 ddi_signal_levels(struct intel_dp *intel_dp)
 
 static inline
 u32 icl_dpclka_cfgcr0_clk_off(struct drm_i915_private *dev_priv,
+<<<<<<< HEAD
 			      enum port port)
 {
 	if (intel_port_is_combophy(dev_priv, port)) {
 		return ICL_DPCLKA_CFGCR0_DDI_CLK_OFF(port);
 	} else if (intel_port_is_tc(dev_priv, port)) {
 		enum tc_port tc_port = intel_port_to_tc(dev_priv, port);
+=======
+			      enum phy phy)
+{
+	if (intel_phy_is_combo(dev_priv, phy)) {
+		return ICL_DPCLKA_CFGCR0_DDI_CLK_OFF(phy);
+	} else if (intel_phy_is_tc(dev_priv, phy)) {
+		enum tc_port tc_port = intel_port_to_tc(dev_priv,
+							(enum port)phy);
+>>>>>>> linux-next/akpm-base
 
 		return ICL_DPCLKA_CFGCR0_TC_CLK_OFF(tc_port);
 	}
@@ -2746,11 +2882,16 @@ static void icl_map_plls_to_ports(struct intel_encoder *encoder,
 {
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	struct intel_shared_dpll *pll = crtc_state->shared_dpll;
+<<<<<<< HEAD
 	enum port port = encoder->port;
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, encoder->port);
+>>>>>>> linux-next/akpm-base
 	u32 val;
 
 	mutex_lock(&dev_priv->dpll_lock);
 
+<<<<<<< HEAD
 	val = I915_READ(DPCLKA_CFGCR0_ICL);
 	WARN_ON((val & icl_dpclka_cfgcr0_clk_off(dev_priv, port)) == 0);
 
@@ -2763,6 +2904,30 @@ static void icl_map_plls_to_ports(struct intel_encoder *encoder,
 
 	val &= ~icl_dpclka_cfgcr0_clk_off(dev_priv, port);
 	I915_WRITE(DPCLKA_CFGCR0_ICL, val);
+=======
+	val = I915_READ(ICL_DPCLKA_CFGCR0);
+	WARN_ON((val & icl_dpclka_cfgcr0_clk_off(dev_priv, phy)) == 0);
+
+	if (intel_phy_is_combo(dev_priv, phy)) {
+		/*
+		 * Even though this register references DDIs, note that we
+		 * want to pass the PHY rather than the port (DDI).  For
+		 * ICL, port=phy in all cases so it doesn't matter, but for
+		 * EHL the bspec notes the following:
+		 *
+		 *   "DDID clock tied to DDIA clock, so DPCLKA_CFGCR0 DDIA
+		 *   Clock Select chooses the PLL for both DDIA and DDID and
+		 *   drives port A in all cases."
+		 */
+		val &= ~ICL_DPCLKA_CFGCR0_DDI_CLK_SEL_MASK(phy);
+		val |= ICL_DPCLKA_CFGCR0_DDI_CLK_SEL(pll->info->id, phy);
+		I915_WRITE(ICL_DPCLKA_CFGCR0, val);
+		POSTING_READ(ICL_DPCLKA_CFGCR0);
+	}
+
+	val &= ~icl_dpclka_cfgcr0_clk_off(dev_priv, phy);
+	I915_WRITE(ICL_DPCLKA_CFGCR0, val);
+>>>>>>> linux-next/akpm-base
 
 	mutex_unlock(&dev_priv->dpll_lock);
 }
@@ -2770,14 +2935,24 @@ static void icl_map_plls_to_ports(struct intel_encoder *encoder,
 static void icl_unmap_plls_to_ports(struct intel_encoder *encoder)
 {
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
+<<<<<<< HEAD
 	enum port port = encoder->port;
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, encoder->port);
+>>>>>>> linux-next/akpm-base
 	u32 val;
 
 	mutex_lock(&dev_priv->dpll_lock);
 
+<<<<<<< HEAD
 	val = I915_READ(DPCLKA_CFGCR0_ICL);
 	val |= icl_dpclka_cfgcr0_clk_off(dev_priv, port);
 	I915_WRITE(DPCLKA_CFGCR0_ICL, val);
+=======
+	val = I915_READ(ICL_DPCLKA_CFGCR0);
+	val |= icl_dpclka_cfgcr0_clk_off(dev_priv, phy);
+	I915_WRITE(ICL_DPCLKA_CFGCR0, val);
+>>>>>>> linux-next/akpm-base
 
 	mutex_unlock(&dev_priv->dpll_lock);
 }
@@ -2835,11 +3010,21 @@ void icl_sanitize_encoder_pll_mapping(struct intel_encoder *encoder)
 		ddi_clk_needed = false;
 	}
 
+<<<<<<< HEAD
 	val = I915_READ(DPCLKA_CFGCR0_ICL);
 	for_each_port_masked(port, port_mask) {
 		bool ddi_clk_ungated = !(val &
 					 icl_dpclka_cfgcr0_clk_off(dev_priv,
 								   port));
+=======
+	val = I915_READ(ICL_DPCLKA_CFGCR0);
+	for_each_port_masked(port, port_mask) {
+		enum phy phy = intel_port_to_phy(dev_priv, port);
+
+		bool ddi_clk_ungated = !(val &
+					 icl_dpclka_cfgcr0_clk_off(dev_priv,
+								   phy));
+>>>>>>> linux-next/akpm-base
 
 		if (ddi_clk_needed == ddi_clk_ungated)
 			continue;
@@ -2851,10 +3036,17 @@ void icl_sanitize_encoder_pll_mapping(struct intel_encoder *encoder)
 		if (WARN_ON(ddi_clk_needed))
 			continue;
 
+<<<<<<< HEAD
 		DRM_NOTE("Port %c is disabled/in DSI mode with an ungated DDI clock, gate it\n",
 			 port_name(port));
 		val |= icl_dpclka_cfgcr0_clk_off(dev_priv, port);
 		I915_WRITE(DPCLKA_CFGCR0_ICL, val);
+=======
+		DRM_NOTE("PHY %c is disabled/in DSI mode with an ungated DDI clock, gate it\n",
+			 phy_name(port));
+		val |= icl_dpclka_cfgcr0_clk_off(dev_priv, phy);
+		I915_WRITE(ICL_DPCLKA_CFGCR0, val);
+>>>>>>> linux-next/akpm-base
 	}
 }
 
@@ -2863,6 +3055,10 @@ static void intel_ddi_clk_select(struct intel_encoder *encoder,
 {
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	enum port port = encoder->port;
+<<<<<<< HEAD
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, port);
+>>>>>>> linux-next/akpm-base
 	u32 val;
 	const struct intel_shared_dpll *pll = crtc_state->shared_dpll;
 
@@ -2872,7 +3068,11 @@ static void intel_ddi_clk_select(struct intel_encoder *encoder,
 	mutex_lock(&dev_priv->dpll_lock);
 
 	if (INTEL_GEN(dev_priv) >= 11) {
+<<<<<<< HEAD
 		if (!intel_port_is_combophy(dev_priv, port))
+=======
+		if (!intel_phy_is_combo(dev_priv, phy))
+>>>>>>> linux-next/akpm-base
 			I915_WRITE(DDI_CLK_SEL(port),
 				   icl_pll_to_ddi_clk_sel(encoder, crtc_state));
 	} else if (IS_CANNONLAKE(dev_priv)) {
@@ -2912,9 +3112,16 @@ static void intel_ddi_clk_disable(struct intel_encoder *encoder)
 {
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	enum port port = encoder->port;
+<<<<<<< HEAD
 
 	if (INTEL_GEN(dev_priv) >= 11) {
 		if (!intel_port_is_combophy(dev_priv, port))
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, port);
+
+	if (INTEL_GEN(dev_priv) >= 11) {
+		if (!intel_phy_is_combo(dev_priv, phy))
+>>>>>>> linux-next/akpm-base
 			I915_WRITE(DDI_CLK_SEL(port), DDI_CLK_SEL_NONE);
 	} else if (IS_CANNONLAKE(dev_priv)) {
 		I915_WRITE(DPCLKA_CFGCR0, I915_READ(DPCLKA_CFGCR0) |
@@ -2995,15 +3202,22 @@ static void icl_program_mg_dp_mode(struct intel_digital_port *intel_dig_port)
 {
 	struct drm_i915_private *dev_priv = to_i915(intel_dig_port->base.base.dev);
 	enum port port = intel_dig_port->base.port;
+<<<<<<< HEAD
 	enum tc_port tc_port = intel_port_to_tc(dev_priv, port);
 	u32 ln0, ln1, lane_info;
 
 	if (tc_port == PORT_TC_NONE || intel_dig_port->tc_type == TC_PORT_TBT)
+=======
+	u32 ln0, ln1, lane_mask;
+
+	if (intel_dig_port->tc_mode == TC_PORT_TBT_ALT)
+>>>>>>> linux-next/akpm-base
 		return;
 
 	ln0 = I915_READ(MG_DP_MODE(0, port));
 	ln1 = I915_READ(MG_DP_MODE(1, port));
 
+<<<<<<< HEAD
 	switch (intel_dig_port->tc_type) {
 	case TC_PORT_TYPEC:
 		ln0 &= ~(MG_DP_MODE_CFG_DP_X1_MODE | MG_DP_MODE_CFG_DP_X2_MODE);
@@ -3014,6 +3228,16 @@ static void icl_program_mg_dp_mode(struct intel_digital_port *intel_dig_port)
 			    DP_LANE_ASSIGNMENT_SHIFT(tc_port);
 
 		switch (lane_info) {
+=======
+	switch (intel_dig_port->tc_mode) {
+	case TC_PORT_DP_ALT:
+		ln0 &= ~(MG_DP_MODE_CFG_DP_X1_MODE | MG_DP_MODE_CFG_DP_X2_MODE);
+		ln1 &= ~(MG_DP_MODE_CFG_DP_X1_MODE | MG_DP_MODE_CFG_DP_X2_MODE);
+
+		lane_mask = intel_tc_port_get_lane_mask(intel_dig_port);
+
+		switch (lane_mask) {
+>>>>>>> linux-next/akpm-base
 		case 0x1:
 		case 0x4:
 			break;
@@ -3038,7 +3262,11 @@ static void icl_program_mg_dp_mode(struct intel_digital_port *intel_dig_port)
 			       MG_DP_MODE_CFG_DP_X2_MODE;
 			break;
 		default:
+<<<<<<< HEAD
 			MISSING_CASE(lane_info);
+=======
+			MISSING_CASE(lane_mask);
+>>>>>>> linux-next/akpm-base
 		}
 		break;
 
@@ -3048,7 +3276,11 @@ static void icl_program_mg_dp_mode(struct intel_digital_port *intel_dig_port)
 		break;
 
 	default:
+<<<<<<< HEAD
 		MISSING_CASE(intel_dig_port->tc_type);
+=======
+		MISSING_CASE(intel_dig_port->tc_mode);
+>>>>>>> linux-next/akpm-base
 		return;
 	}
 
@@ -3110,6 +3342,10 @@ static void intel_ddi_pre_enable_dp(struct intel_encoder *encoder,
 	struct intel_dp *intel_dp = enc_to_intel_dp(&encoder->base);
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	enum port port = encoder->port;
+<<<<<<< HEAD
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, port);
+>>>>>>> linux-next/akpm-base
 	struct intel_digital_port *dig_port = enc_to_dig_port(&encoder->base);
 	bool is_mst = intel_crtc_has_type(crtc_state, INTEL_OUTPUT_DP_MST);
 	int level = intel_ddi_dp_level(intel_dp);
@@ -3123,7 +3359,14 @@ static void intel_ddi_pre_enable_dp(struct intel_encoder *encoder,
 
 	intel_ddi_clk_select(encoder, crtc_state);
 
+<<<<<<< HEAD
 	intel_display_power_get(dev_priv, dig_port->ddi_io_power_domain);
+=======
+	if (!intel_phy_is_tc(dev_priv, phy) ||
+	    dig_port->tc_mode != TC_PORT_TBT_ALT)
+		intel_display_power_get(dev_priv,
+					dig_port->ddi_io_power_domain);
+>>>>>>> linux-next/akpm-base
 
 	icl_program_mg_dp_mode(dig_port);
 	icl_disable_phy_clock_gating(dig_port);
@@ -3138,11 +3381,19 @@ static void intel_ddi_pre_enable_dp(struct intel_encoder *encoder,
 	else
 		intel_prepare_dp_ddi_buffers(encoder, crtc_state);
 
+<<<<<<< HEAD
 	if (intel_port_is_combophy(dev_priv, port)) {
 		bool lane_reversal =
 			dig_port->saved_port_bits & DDI_BUF_PORT_REVERSAL;
 
 		intel_combo_phy_power_up_lanes(dev_priv, port, false,
+=======
+	if (intel_phy_is_combo(dev_priv, phy)) {
+		bool lane_reversal =
+			dig_port->saved_port_bits & DDI_BUF_PORT_REVERSAL;
+
+		intel_combo_phy_power_up_lanes(dev_priv, phy, false,
+>>>>>>> linux-next/akpm-base
 					       crtc_state->lane_count,
 					       lane_reversal);
 	}
@@ -3290,6 +3541,10 @@ static void intel_ddi_post_disable_dp(struct intel_encoder *encoder,
 	struct intel_dp *intel_dp = &dig_port->dp;
 	bool is_mst = intel_crtc_has_type(old_crtc_state,
 					  INTEL_OUTPUT_DP_MST);
+<<<<<<< HEAD
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, encoder->port);
+>>>>>>> linux-next/akpm-base
 
 	if (!is_mst) {
 		intel_ddi_disable_pipe_clock(old_crtc_state);
@@ -3305,8 +3560,15 @@ static void intel_ddi_post_disable_dp(struct intel_encoder *encoder,
 	intel_edp_panel_vdd_on(intel_dp);
 	intel_edp_panel_off(intel_dp);
 
+<<<<<<< HEAD
 	intel_display_power_put_unchecked(dev_priv,
 					  dig_port->ddi_io_power_domain);
+=======
+	if (!intel_phy_is_tc(dev_priv, phy) ||
+	    dig_port->tc_mode != TC_PORT_TBT_ALT)
+		intel_display_power_put_unchecked(dev_priv,
+						  dig_port->ddi_io_power_domain);
+>>>>>>> linux-next/akpm-base
 
 	intel_ddi_clk_disable(encoder);
 }
@@ -3591,6 +3853,7 @@ static void intel_ddi_update_pipe(struct intel_encoder *encoder,
 		intel_hdcp_disable(to_intel_connector(conn_state->connector));
 }
 
+<<<<<<< HEAD
 static void intel_ddi_set_fia_lane_count(struct intel_encoder *encoder,
 					 const struct intel_crtc_state *pipe_config,
 					 enum port port)
@@ -3618,6 +3881,30 @@ static void intel_ddi_set_fia_lane_count(struct intel_encoder *encoder,
 		MISSING_CASE(pipe_config->lane_count);
 	}
 	I915_WRITE(PORT_TX_DFLEXDPMLE1, val);
+=======
+static void
+intel_ddi_update_prepare(struct intel_atomic_state *state,
+			 struct intel_encoder *encoder,
+			 struct intel_crtc *crtc)
+{
+	struct intel_crtc_state *crtc_state =
+		crtc ? intel_atomic_get_new_crtc_state(state, crtc) : NULL;
+	int required_lanes = crtc_state ? crtc_state->lane_count : 1;
+
+	WARN_ON(crtc && crtc->active);
+
+	intel_tc_port_get_link(enc_to_dig_port(&encoder->base), required_lanes);
+	if (crtc_state && crtc_state->base.active)
+		intel_update_active_dpll(state, crtc, encoder);
+}
+
+static void
+intel_ddi_update_complete(struct intel_atomic_state *state,
+			  struct intel_encoder *encoder,
+			  struct intel_crtc *crtc)
+{
+	intel_tc_port_put_link(enc_to_dig_port(&encoder->base));
+>>>>>>> linux-next/akpm-base
 }
 
 static void
@@ -3627,6 +3914,7 @@ intel_ddi_pre_pll_enable(struct intel_encoder *encoder,
 {
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	struct intel_digital_port *dig_port = enc_to_dig_port(&encoder->base);
+<<<<<<< HEAD
 	enum port port = encoder->port;
 
 	if (intel_crtc_has_dp_encoder(crtc_state) ||
@@ -3647,6 +3935,27 @@ intel_ddi_pre_pll_enable(struct intel_encoder *encoder,
 		return;
 
 	intel_ddi_set_fia_lane_count(encoder, crtc_state, port);
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, encoder->port);
+	bool is_tc_port = intel_phy_is_tc(dev_priv, phy);
+
+	if (is_tc_port)
+		intel_tc_port_get_link(dig_port, crtc_state->lane_count);
+
+	if (intel_crtc_has_dp_encoder(crtc_state) || is_tc_port)
+		intel_display_power_get(dev_priv,
+					intel_ddi_main_link_aux_domain(dig_port));
+
+	if (is_tc_port && dig_port->tc_mode != TC_PORT_TBT_ALT)
+		/*
+		 * Program the lane count for static/dynamic connections on
+		 * Type-C ports.  Skip this step for TBT.
+		 */
+		intel_tc_port_set_fia_lane_count(dig_port, crtc_state->lane_count);
+	else if (IS_GEN9_LP(dev_priv))
+		bxt_ddi_phy_set_lane_optim_mask(encoder,
+						crtc_state->lane_lat_optim_mask);
+>>>>>>> linux-next/akpm-base
 }
 
 static void
@@ -3656,11 +3965,23 @@ intel_ddi_post_pll_disable(struct intel_encoder *encoder,
 {
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	struct intel_digital_port *dig_port = enc_to_dig_port(&encoder->base);
+<<<<<<< HEAD
 
 	if (intel_crtc_has_dp_encoder(crtc_state) ||
 	    intel_port_is_tc(dev_priv, encoder->port))
 		intel_display_power_put_unchecked(dev_priv,
 						  intel_ddi_main_link_aux_domain(dig_port));
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, encoder->port);
+	bool is_tc_port = intel_phy_is_tc(dev_priv, phy);
+
+	if (intel_crtc_has_dp_encoder(crtc_state) || is_tc_port)
+		intel_display_power_put_unchecked(dev_priv,
+						  intel_ddi_main_link_aux_domain(dig_port));
+
+	if (is_tc_port)
+		intel_tc_port_put_link(dig_port);
+>>>>>>> linux-next/akpm-base
 }
 
 static void intel_ddi_prepare_link_retrain(struct intel_dp *intel_dp)
@@ -3737,7 +4058,10 @@ void intel_ddi_get_config(struct intel_encoder *encoder,
 	struct drm_i915_private *dev_priv = to_i915(encoder->base.dev);
 	struct intel_crtc *intel_crtc = to_intel_crtc(pipe_config->base.crtc);
 	enum transcoder cpu_transcoder = pipe_config->cpu_transcoder;
+<<<<<<< HEAD
 	struct intel_digital_port *intel_dig_port;
+=======
+>>>>>>> linux-next/akpm-base
 	u32 temp, flags = 0;
 
 	/* XXX: DSI transcoder paranoia */
@@ -3776,7 +4100,10 @@ void intel_ddi_get_config(struct intel_encoder *encoder,
 	switch (temp & TRANS_DDI_MODE_SELECT_MASK) {
 	case TRANS_DDI_MODE_SELECT_HDMI:
 		pipe_config->has_hdmi_sink = true;
+<<<<<<< HEAD
 		intel_dig_port = enc_to_dig_port(&encoder->base);
+=======
+>>>>>>> linux-next/akpm-base
 
 		pipe_config->infoframes.enable |=
 			intel_hdmi_infoframes_enabled(encoder, pipe_config);
@@ -3914,6 +4241,7 @@ static int intel_ddi_compute_config(struct intel_encoder *encoder,
 	return 0;
 }
 
+<<<<<<< HEAD
 static void intel_ddi_encoder_suspend(struct intel_encoder *encoder)
 {
 	struct intel_digital_port *dig_port = enc_to_dig_port(&encoder->base);
@@ -3951,12 +4279,24 @@ static void intel_ddi_encoder_destroy(struct drm_encoder *encoder)
 	if (intel_port_is_tc(i915, dig_port->base.port))
 		icl_tc_phy_disconnect(i915, dig_port);
 
+=======
+static void intel_ddi_encoder_destroy(struct drm_encoder *encoder)
+{
+	struct intel_digital_port *dig_port = enc_to_dig_port(encoder);
+
+	intel_dp_encoder_flush_work(encoder);
+
+>>>>>>> linux-next/akpm-base
 	drm_encoder_cleanup(encoder);
 	kfree(dig_port);
 }
 
 static const struct drm_encoder_funcs intel_ddi_funcs = {
+<<<<<<< HEAD
 	.reset = intel_ddi_encoder_reset,
+=======
+	.reset = intel_dp_encoder_reset,
+>>>>>>> linux-next/akpm-base
 	.destroy = intel_ddi_encoder_destroy,
 };
 
@@ -4081,6 +4421,7 @@ static int intel_hdmi_reset_link(struct intel_encoder *encoder,
 	return modeset_pipe(&crtc->base, ctx);
 }
 
+<<<<<<< HEAD
 static bool intel_ddi_hotplug(struct intel_encoder *encoder,
 			      struct intel_connector *connector)
 {
@@ -4089,6 +4430,19 @@ static bool intel_ddi_hotplug(struct intel_encoder *encoder,
 	int ret;
 
 	changed = intel_encoder_hotplug(encoder, connector);
+=======
+static enum intel_hotplug_state
+intel_ddi_hotplug(struct intel_encoder *encoder,
+		  struct intel_connector *connector,
+		  bool irq_received)
+{
+	struct intel_digital_port *dig_port = enc_to_dig_port(&encoder->base);
+	struct drm_modeset_acquire_ctx ctx;
+	enum intel_hotplug_state state;
+	int ret;
+
+	state = intel_encoder_hotplug(encoder, connector, irq_received);
+>>>>>>> linux-next/akpm-base
 
 	drm_modeset_acquire_init(&ctx, 0);
 
@@ -4110,7 +4464,31 @@ static bool intel_ddi_hotplug(struct intel_encoder *encoder,
 	drm_modeset_acquire_fini(&ctx);
 	WARN(ret, "Acquiring modeset locks failed with %i\n", ret);
 
+<<<<<<< HEAD
 	return changed;
+=======
+	/*
+	 * Unpowered type-c dongles can take some time to boot and be
+	 * responsible, so here giving some time to those dongles to power up
+	 * and then retrying the probe.
+	 *
+	 * On many platforms the HDMI live state signal is known to be
+	 * unreliable, so we can't use it to detect if a sink is connected or
+	 * not. Instead we detect if it's connected based on whether we can
+	 * read the EDID or not. That in turn has a problem during disconnect,
+	 * since the HPD interrupt may be raised before the DDC lines get
+	 * disconnected (due to how the required length of DDC vs. HPD
+	 * connector pins are specified) and so we'll still be able to get a
+	 * valid EDID. To solve this schedule another detection cycle if this
+	 * time around we didn't detect any change in the sink's connection
+	 * status.
+	 */
+	if (state == INTEL_HOTPLUG_UNCHANGED && irq_received &&
+	    !dig_port->dp.is_mst)
+		state = INTEL_HOTPLUG_RETRY;
+
+	return state;
+>>>>>>> linux-next/akpm-base
 }
 
 static struct intel_connector *
@@ -4198,6 +4576,10 @@ void intel_ddi_init(struct drm_i915_private *dev_priv, enum port port)
 	struct drm_encoder *encoder;
 	bool init_hdmi, init_dp, init_lspcon = false;
 	enum pipe pipe;
+<<<<<<< HEAD
+=======
+	enum phy phy = intel_port_to_phy(dev_priv, port);
+>>>>>>> linux-next/akpm-base
 
 	init_hdmi = port_info->supports_dvi || port_info->supports_hdmi;
 	init_dp = port_info->supports_dp;
@@ -4242,7 +4624,11 @@ void intel_ddi_init(struct drm_i915_private *dev_priv, enum port port)
 	intel_encoder->update_pipe = intel_ddi_update_pipe;
 	intel_encoder->get_hw_state = intel_ddi_get_hw_state;
 	intel_encoder->get_config = intel_ddi_get_config;
+<<<<<<< HEAD
 	intel_encoder->suspend = intel_ddi_encoder_suspend;
+=======
+	intel_encoder->suspend = intel_dp_encoder_suspend;
+>>>>>>> linux-next/akpm-base
 	intel_encoder->get_power_domains = intel_ddi_get_power_domains;
 	intel_encoder->type = INTEL_OUTPUT_DDI;
 	intel_encoder->power_domain = intel_port_to_power_domain(port);
@@ -4261,9 +4647,21 @@ void intel_ddi_init(struct drm_i915_private *dev_priv, enum port port)
 	intel_dig_port->max_lanes = intel_ddi_max_lanes(intel_dig_port);
 	intel_dig_port->aux_ch = intel_bios_port_aux_ch(dev_priv, port);
 
+<<<<<<< HEAD
 	intel_dig_port->tc_legacy_port = intel_port_is_tc(dev_priv, port) &&
 					 !port_info->supports_typec_usb &&
 					 !port_info->supports_tbt;
+=======
+	if (intel_phy_is_tc(dev_priv, phy)) {
+		bool is_legacy = !port_info->supports_typec_usb &&
+				 !port_info->supports_tbt;
+
+		intel_tc_port_init(intel_dig_port, is_legacy);
+
+		intel_encoder->update_prepare = intel_ddi_update_prepare;
+		intel_encoder->update_complete = intel_ddi_update_complete;
+	}
+>>>>>>> linux-next/akpm-base
 
 	switch (port) {
 	case PORT_A:
@@ -4290,6 +4688,21 @@ void intel_ddi_init(struct drm_i915_private *dev_priv, enum port port)
 		intel_dig_port->ddi_io_power_domain =
 			POWER_DOMAIN_PORT_DDI_F_IO;
 		break;
+<<<<<<< HEAD
+=======
+	case PORT_G:
+		intel_dig_port->ddi_io_power_domain =
+			POWER_DOMAIN_PORT_DDI_G_IO;
+		break;
+	case PORT_H:
+		intel_dig_port->ddi_io_power_domain =
+			POWER_DOMAIN_PORT_DDI_H_IO;
+		break;
+	case PORT_I:
+		intel_dig_port->ddi_io_power_domain =
+			POWER_DOMAIN_PORT_DDI_I_IO;
+		break;
+>>>>>>> linux-next/akpm-base
 	default:
 		MISSING_CASE(port);
 	}
@@ -4324,9 +4737,12 @@ void intel_ddi_init(struct drm_i915_private *dev_priv, enum port port)
 
 	intel_infoframe_init(intel_dig_port);
 
+<<<<<<< HEAD
 	if (intel_port_is_tc(dev_priv, port))
 		intel_digital_port_connected(intel_encoder);
 
+=======
+>>>>>>> linux-next/akpm-base
 	return;
 
 err:

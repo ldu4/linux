@@ -129,7 +129,11 @@ int dev_pm_qos_remove_request(handle):
   and call the notification trees if the target was changed as a result of
   removing the request.
 
+<<<<<<< HEAD
 s32 dev_pm_qos_read_value(device):
+=======
+s32 dev_pm_qos_read_value(device, type):
+>>>>>>> linux-next/akpm-base
   Returns the aggregated value for a given device's constraints list.
 
 enum pm_qos_flags_status dev_pm_qos_flags(device, mask)
@@ -176,12 +180,23 @@ Notification mechanisms:
 
 The per-device PM QoS framework has a per-device notification tree.
 
+<<<<<<< HEAD
 int dev_pm_qos_add_notifier(device, notifier):
   Adds a notification callback function for the device.
   The callback is called when the aggregated value of the device constraints list
   is changed (for resume latency device PM QoS only).
 
 int dev_pm_qos_remove_notifier(device, notifier):
+=======
+int dev_pm_qos_add_notifier(device, notifier, type):
+  Adds a notification callback function for the device for a particular request
+  type.
+
+  The callback is called when the aggregated value of the device constraints list
+  is changed.
+
+int dev_pm_qos_remove_notifier(device, notifier, type):
+>>>>>>> linux-next/akpm-base
   Removes the notification callback function for the device.
 
 
