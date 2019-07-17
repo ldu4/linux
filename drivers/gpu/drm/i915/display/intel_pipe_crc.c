@@ -667,5 +667,9 @@ void intel_crtc_disable_pipe_crc(struct intel_crtc *intel_crtc)
 
 	I915_WRITE(PIPE_CRC_CTL(crtc->index), 0);
 	POSTING_READ(PIPE_CRC_CTL(crtc->index));
+<<<<<<< HEAD
 	synchronize_irq(dev_priv->drm.irq);
+=======
+	intel_synchronize_irq(dev_priv);
+>>>>>>> linux-next/akpm-base
 }

@@ -20,6 +20,10 @@ struct i915_wa {
 
 struct i915_wa_list {
 	const char	*name;
+<<<<<<< HEAD
+=======
+	const char	*engine_name;
+>>>>>>> linux-next/akpm-base
 	struct i915_wa	*list;
 	unsigned int	count;
 	unsigned int	wa_count;

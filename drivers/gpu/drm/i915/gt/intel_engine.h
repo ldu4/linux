@@ -14,7 +14,11 @@
 #include "i915_reg.h"
 #include "i915_request.h"
 #include "i915_selftest.h"
+<<<<<<< HEAD
 #include "i915_timeline.h"
+=======
+#include "gt/intel_timeline.h"
+>>>>>>> linux-next/akpm-base
 #include "intel_engine_types.h"
 #include "intel_gpu_commands.h"
 #include "intel_workarounds.h"
@@ -51,7 +55,11 @@ struct drm_printer;
 #define ENGINE_READ16(...)	__ENGINE_READ_OP(read16, __VA_ARGS__)
 #define ENGINE_READ(...)	__ENGINE_READ_OP(read, __VA_ARGS__)
 #define ENGINE_READ_FW(...)	__ENGINE_READ_OP(read_fw, __VA_ARGS__)
+<<<<<<< HEAD
 #define ENGINE_POSTING_READ(...) __ENGINE_READ_OP(posting_read, __VA_ARGS__)
+=======
+#define ENGINE_POSTING_READ(...) __ENGINE_READ_OP(posting_read_fw, __VA_ARGS__)
+>>>>>>> linux-next/akpm-base
 #define ENGINE_POSTING_READ16(...) __ENGINE_READ_OP(posting_read16, __VA_ARGS__)
 
 #define ENGINE_READ64(engine__, lower_reg__, upper_reg__) \
@@ -125,6 +133,7 @@ hangcheck_action_to_str(const enum intel_engine_hangcheck_action a)
 
 void intel_engines_set_scheduler_caps(struct drm_i915_private *i915);
 
+<<<<<<< HEAD
 static inline void
 execlists_set_active(struct intel_engine_execlists *execlists,
 		     unsigned int bit)
@@ -163,12 +172,29 @@ void execlists_user_begin(struct intel_engine_execlists *execlists,
 			  const struct execlist_port *port);
 void execlists_user_end(struct intel_engine_execlists *execlists);
 
+=======
+static inline unsigned int
+execlists_num_ports(const struct intel_engine_execlists * const execlists)
+{
+	return execlists->port_mask + 1;
+}
+
+static inline struct i915_request *
+execlists_active(const struct intel_engine_execlists *execlists)
+{
+	GEM_BUG_ON(execlists->active - execlists->inflight >
+		   execlists_num_ports(execlists));
+	return READ_ONCE(*execlists->active);
+}
+
+>>>>>>> linux-next/akpm-base
 void
 execlists_cancel_port_requests(struct intel_engine_execlists * const execlists);
 
 struct i915_request *
 execlists_unwind_incomplete_requests(struct intel_engine_execlists *execlists);
 
+<<<<<<< HEAD
 static inline unsigned int
 execlists_num_ports(const struct intel_engine_execlists * const execlists)
 {
@@ -190,6 +216,8 @@ execlists_port_complete(struct intel_engine_execlists * const execlists,
 	return port;
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 static inline u32
 intel_read_status_page(const struct intel_engine_cs *engine, int reg)
 {
@@ -245,7 +273,11 @@ intel_write_status_page(struct intel_engine_cs *engine, int reg, u32 value)
 
 struct intel_ring *
 intel_engine_create_ring(struct intel_engine_cs *engine,
+<<<<<<< HEAD
 			 struct i915_timeline *timeline,
+=======
+			 struct intel_timeline *timeline,
+>>>>>>> linux-next/akpm-base
 			 int size);
 int intel_ring_pin(struct intel_ring *ring);
 void intel_ring_reset(struct intel_ring *ring, u32 tail);
@@ -456,8 +488,13 @@ gen8_emit_ggtt_write(u32 *cs, u32 value, u32 gtt_offset, u32 flags)
 	return cs;
 }
 
+<<<<<<< HEAD
 static inline void intel_engine_reset(struct intel_engine_cs *engine,
 				      bool stalled)
+=======
+static inline void __intel_engine_reset(struct intel_engine_cs *engine,
+					bool stalled)
+>>>>>>> linux-next/akpm-base
 {
 	if (engine->reset.reset)
 		engine->reset.reset(engine, stalled);
@@ -465,9 +502,15 @@ static inline void intel_engine_reset(struct intel_engine_cs *engine,
 }
 
 bool intel_engine_is_idle(struct intel_engine_cs *engine);
+<<<<<<< HEAD
 bool intel_engines_are_idle(struct drm_i915_private *dev_priv);
 
 void intel_engines_reset_default_submission(struct drm_i915_private *i915);
+=======
+bool intel_engines_are_idle(struct intel_gt *gt);
+
+void intel_engines_reset_default_submission(struct intel_gt *gt);
+>>>>>>> linux-next/akpm-base
 unsigned int intel_engines_has_context_isolation(struct drm_i915_private *i915);
 
 bool intel_engine_can_store_dword(struct intel_engine_cs *engine);

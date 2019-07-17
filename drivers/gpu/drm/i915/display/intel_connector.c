@@ -118,7 +118,11 @@ int intel_connector_register(struct drm_connector *connector)
 	if (ret)
 		goto err;
 
+<<<<<<< HEAD
 	if (i915_inject_load_failure()) {
+=======
+	if (i915_inject_probe_failure()) {
+>>>>>>> linux-next/akpm-base
 		ret = -EFAULT;
 		goto err_backlight;
 	}

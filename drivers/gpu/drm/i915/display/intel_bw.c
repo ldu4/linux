@@ -65,7 +65,11 @@ static int icl_pcode_read_qgv_point_info(struct drm_i915_private *dev_priv,
 					 struct intel_qgv_point *sp,
 					 int point)
 {
+<<<<<<< HEAD
 	u32 val = 0, val2;
+=======
+	u32 val = 0, val2 = 0;
+>>>>>>> linux-next/akpm-base
 	int ret;
 
 	ret = sandybridge_pcode_read(dev_priv,
@@ -178,6 +182,11 @@ static int icl_get_bw_info(struct drm_i915_private *dev_priv)
 		clpchgroup = (sa->deburst * deinterleave / num_channels) << i;
 		bi->num_planes = (ipqdepth - clpchgroup) / clpchgroup + 1;
 
+<<<<<<< HEAD
+=======
+		bi->num_qgv_points = qi.num_points;
+
+>>>>>>> linux-next/akpm-base
 		for (j = 0; j < qi.num_points; j++) {
 			const struct intel_qgv_point *sp = &qi.points[j];
 			int ct, bw;
@@ -195,7 +204,11 @@ static int icl_get_bw_info(struct drm_i915_private *dev_priv)
 			bi->deratedbw[j] = min(maxdebw,
 					       bw * 9 / 10); /* 90% */
 
+<<<<<<< HEAD
 			DRM_DEBUG_KMS("BW%d / QGV %d: num_planes=%d deratedbw=%d\n",
+=======
+			DRM_DEBUG_KMS("BW%d / QGV %d: num_planes=%d deratedbw=%u\n",
+>>>>>>> linux-next/akpm-base
 				      i, j, bi->num_planes, bi->deratedbw[j]);
 		}
 
@@ -211,14 +224,27 @@ static unsigned int icl_max_bw(struct drm_i915_private *dev_priv,
 {
 	int i;
 
+<<<<<<< HEAD
 	/* Did we initialize the bw limits successfully? */
 	if (dev_priv->max_bw[0].num_planes == 0)
 		return UINT_MAX;
 
+=======
+>>>>>>> linux-next/akpm-base
 	for (i = 0; i < ARRAY_SIZE(dev_priv->max_bw); i++) {
 		const struct intel_bw_info *bi =
 			&dev_priv->max_bw[i];
 
+<<<<<<< HEAD
+=======
+		/*
+		 * Pcode will not expose all QGV points when
+		 * SAGV is forced to off/min/med/max.
+		 */
+		if (qgv_point >= bi->num_qgv_points)
+			return UINT_MAX;
+
+>>>>>>> linux-next/akpm-base
 		if (num_planes >= bi->num_planes)
 			return bi->deratedbw[qgv_point];
 	}

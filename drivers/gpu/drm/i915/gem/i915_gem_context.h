@@ -198,12 +198,15 @@ i915_gem_context_unlock_engines(struct i915_gem_context *ctx)
 }
 
 static inline struct intel_context *
+<<<<<<< HEAD
 i915_gem_context_lookup_engine(struct i915_gem_context *ctx, unsigned int idx)
 {
 	return i915_gem_context_engines(ctx)->engines[idx];
 }
 
 static inline struct intel_context *
+=======
+>>>>>>> linux-next/akpm-base
 i915_gem_context_get_engine(struct i915_gem_context *ctx, unsigned int idx)
 {
 	struct intel_context *ce = ERR_PTR(-EINVAL);

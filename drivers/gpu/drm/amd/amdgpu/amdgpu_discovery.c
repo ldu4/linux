@@ -123,7 +123,11 @@ static int hw_id_map[MAX_HWIP] = {
 	[UVD_HWIP]	= UVD_HWID,
 	[VCE_HWIP]	= VCE_HWID,
 	[DF_HWIP]	= DF_HWID,
+<<<<<<< HEAD
 	[DCE_HWIP]	= DCEAZ_HWID,
+=======
+	[DCE_HWIP]	= DMU_HWID,
+>>>>>>> linux-next/akpm-base
 	[OSSSYS_HWIP]	= OSSSYS_HWID,
 	[SMUIO_HWIP]	= SMUIO_HWID,
 	[PWR_HWIP]	= PWR_HWID,

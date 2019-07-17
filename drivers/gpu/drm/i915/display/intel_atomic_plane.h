@@ -8,7 +8,10 @@
 
 #include <linux/types.h>
 
+<<<<<<< HEAD
 struct drm_crtc_state;
+=======
+>>>>>>> linux-next/akpm-base
 struct drm_plane;
 struct drm_property;
 struct intel_atomic_state;
@@ -43,8 +46,14 @@ int intel_plane_atomic_check_with_state(const struct intel_crtc_state *old_crtc_
 					const struct intel_plane_state *old_plane_state,
 					struct intel_plane_state *intel_state);
 int intel_plane_atomic_calc_changes(const struct intel_crtc_state *old_crtc_state,
+<<<<<<< HEAD
 				    struct drm_crtc_state *crtc_state,
 				    const struct intel_plane_state *old_plane_state,
 				    struct drm_plane_state *plane_state);
+=======
+				    struct intel_crtc_state *crtc_state,
+				    const struct intel_plane_state *old_plane_state,
+				    struct intel_plane_state *plane_state);
+>>>>>>> linux-next/akpm-base
 
 #endif /* __INTEL_ATOMIC_PLANE_H__ */

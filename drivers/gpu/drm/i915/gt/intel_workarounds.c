@@ -6,6 +6,10 @@
 
 #include "i915_drv.h"
 #include "intel_context.h"
+<<<<<<< HEAD
+=======
+#include "intel_gt.h"
+>>>>>>> linux-next/akpm-base
 #include "intel_workarounds.h"
 
 /**
@@ -49,9 +53,16 @@
  * - Public functions to init or apply the given workaround type.
  */
 
+<<<<<<< HEAD
 static void wa_init_start(struct i915_wa_list *wal, const char *name)
 {
 	wal->name = name;
+=======
+static void wa_init_start(struct i915_wa_list *wal, const char *name, const char *engine_name)
+{
+	wal->name = name;
+	wal->engine_name = engine_name;
+>>>>>>> linux-next/akpm-base
 }
 
 #define WA_LIST_CHUNK (1 << 4)
@@ -73,8 +84,13 @@ static void wa_init_finish(struct i915_wa_list *wal)
 	if (!wal->count)
 		return;
 
+<<<<<<< HEAD
 	DRM_DEBUG_DRIVER("Initialized %u %s workarounds\n",
 			 wal->wa_count, wal->name);
+=======
+	DRM_DEBUG_DRIVER("Initialized %u %s workarounds on %s\n",
+			 wal->wa_count, wal->name, wal->engine_name);
+>>>>>>> linux-next/akpm-base
 }
 
 static void _wa_add(struct i915_wa_list *wal, const struct i915_wa *wa)
@@ -536,12 +552,15 @@ static void icl_ctx_workarounds_init(struct intel_engine_cs *engine,
 		 intel_uncore_read(engine->uncore, GEN8_L3CNTLREG) |
 		 GEN8_ERRDETBCTRL);
 
+<<<<<<< HEAD
 	/* WaDisableBankHangMode:icl */
 	wa_write(wal,
 		 GEN8_L3CNTLREG,
 		 intel_uncore_read(engine->uncore, GEN8_L3CNTLREG) |
 		 GEN8_ERRDETBCTRL);
 
+=======
+>>>>>>> linux-next/akpm-base
 	/* Wa_1604370585:icl (pre-prod)
 	 * Formerly known as WaPushConstantDereferenceHoldDisable
 	 */
@@ -596,7 +615,11 @@ __intel_engine_init_ctx_wa(struct intel_engine_cs *engine,
 	if (engine->class != RENDER_CLASS)
 		return;
 
+<<<<<<< HEAD
 	wa_init_start(wal, name);
+=======
+	wa_init_start(wal, name, engine->name);
+>>>>>>> linux-next/akpm-base
 
 	if (IS_GEN(i915, 11))
 		icl_ctx_workarounds_init(engine, wal);
@@ -926,7 +949,11 @@ void intel_gt_init_workarounds(struct drm_i915_private *i915)
 {
 	struct i915_wa_list *wal = &i915->gt_wa_list;
 
+<<<<<<< HEAD
 	wa_init_start(wal, "GT");
+=======
+	wa_init_start(wal, "GT", "global");
+>>>>>>> linux-next/akpm-base
 	gt_init_workarounds(i915, wal);
 	wa_init_finish(wal);
 }
@@ -990,9 +1017,15 @@ wa_list_apply(struct intel_uncore *uncore, const struct i915_wa_list *wal)
 	spin_unlock_irqrestore(&uncore->lock, flags);
 }
 
+<<<<<<< HEAD
 void intel_gt_apply_workarounds(struct drm_i915_private *i915)
 {
 	wa_list_apply(&i915->uncore, &i915->gt_wa_list);
+=======
+void intel_gt_apply_workarounds(struct intel_gt *gt)
+{
+	wa_list_apply(gt->uncore, &gt->i915->gt_wa_list);
+>>>>>>> linux-next/akpm-base
 }
 
 static bool wa_list_verify(struct intel_uncore *uncore,
@@ -1011,10 +1044,30 @@ static bool wa_list_verify(struct intel_uncore *uncore,
 	return ok;
 }
 
+<<<<<<< HEAD
 bool intel_gt_verify_workarounds(struct drm_i915_private *i915,
 				 const char *from)
 {
 	return wa_list_verify(&i915->uncore, &i915->gt_wa_list, from);
+=======
+bool intel_gt_verify_workarounds(struct intel_gt *gt, const char *from)
+{
+	return wa_list_verify(gt->uncore, &gt->i915->gt_wa_list, from);
+}
+
+static inline bool is_nonpriv_flags_valid(u32 flags)
+{
+	/* Check only valid flag bits are set */
+	if (flags & ~RING_FORCE_TO_NONPRIV_MASK_VALID)
+		return false;
+
+	/* NB: Only 3 out of 4 enum values are valid for access field */
+	if ((flags & RING_FORCE_TO_NONPRIV_ACCESS_MASK) ==
+	    RING_FORCE_TO_NONPRIV_ACCESS_INVALID)
+		return false;
+
+	return true;
+>>>>>>> linux-next/akpm-base
 }
 
 static void
@@ -1027,6 +1080,12 @@ whitelist_reg_ext(struct i915_wa_list *wal, i915_reg_t reg, u32 flags)
 	if (GEM_DEBUG_WARN_ON(wal->count >= RING_MAX_NONPRIV_SLOTS))
 		return;
 
+<<<<<<< HEAD
+=======
+	if (GEM_DEBUG_WARN_ON(!is_nonpriv_flags_valid(flags)))
+		return;
+
+>>>>>>> linux-next/akpm-base
 	wa.reg.reg |= flags;
 	_wa_add(wal, &wa);
 }
@@ -1034,7 +1093,11 @@ whitelist_reg_ext(struct i915_wa_list *wal, i915_reg_t reg, u32 flags)
 static void
 whitelist_reg(struct i915_wa_list *wal, i915_reg_t reg)
 {
+<<<<<<< HEAD
 	whitelist_reg_ext(wal, reg, RING_FORCE_TO_NONPRIV_RW);
+=======
+	whitelist_reg_ext(wal, reg, RING_FORCE_TO_NONPRIV_ACCESS_RW);
+>>>>>>> linux-next/akpm-base
 }
 
 static void gen9_whitelist_build(struct i915_wa_list *w)
@@ -1098,10 +1161,32 @@ static void glk_whitelist_build(struct intel_engine_cs *engine)
 
 static void cfl_whitelist_build(struct intel_engine_cs *engine)
 {
+<<<<<<< HEAD
 	if (engine->class != RENDER_CLASS)
 		return;
 
 	gen9_whitelist_build(&engine->whitelist);
+=======
+	struct i915_wa_list *w = &engine->whitelist;
+
+	if (engine->class != RENDER_CLASS)
+		return;
+
+	gen9_whitelist_build(w);
+
+	/*
+	 * WaAllowPMDepthAndInvocationCountAccessFromUMD:cfl,whl,cml,aml
+	 *
+	 * This covers 4 register which are next to one another :
+	 *   - PS_INVOCATION_COUNT
+	 *   - PS_INVOCATION_COUNT_UDW
+	 *   - PS_DEPTH_COUNT
+	 *   - PS_DEPTH_COUNT_UDW
+	 */
+	whitelist_reg_ext(w, PS_INVOCATION_COUNT,
+			  RING_FORCE_TO_NONPRIV_ACCESS_RD |
+			  RING_FORCE_TO_NONPRIV_RANGE_4);
+>>>>>>> linux-next/akpm-base
 }
 
 static void cnl_whitelist_build(struct intel_engine_cs *engine)
@@ -1129,11 +1214,28 @@ static void icl_whitelist_build(struct intel_engine_cs *engine)
 
 		/* WaEnableStateCacheRedirectToCS:icl */
 		whitelist_reg(w, GEN9_SLICE_COMMON_ECO_CHICKEN1);
+<<<<<<< HEAD
+=======
+
+		/*
+		 * WaAllowPMDepthAndInvocationCountAccessFromUMD:icl
+		 *
+		 * This covers 4 register which are next to one another :
+		 *   - PS_INVOCATION_COUNT
+		 *   - PS_INVOCATION_COUNT_UDW
+		 *   - PS_DEPTH_COUNT
+		 *   - PS_DEPTH_COUNT_UDW
+		 */
+		whitelist_reg_ext(w, PS_INVOCATION_COUNT,
+				  RING_FORCE_TO_NONPRIV_ACCESS_RD |
+				  RING_FORCE_TO_NONPRIV_RANGE_4);
+>>>>>>> linux-next/akpm-base
 		break;
 
 	case VIDEO_DECODE_CLASS:
 		/* hucStatusRegOffset */
 		whitelist_reg_ext(w, _MMIO(0x2000 + engine->mmio_base),
+<<<<<<< HEAD
 				  RING_FORCE_TO_NONPRIV_RD);
 		/* hucUKernelHdrInfoRegOffset */
 		whitelist_reg_ext(w, _MMIO(0x2014 + engine->mmio_base),
@@ -1141,6 +1243,15 @@ static void icl_whitelist_build(struct intel_engine_cs *engine)
 		/* hucStatus2RegOffset */
 		whitelist_reg_ext(w, _MMIO(0x23B0 + engine->mmio_base),
 				  RING_FORCE_TO_NONPRIV_RD);
+=======
+				  RING_FORCE_TO_NONPRIV_ACCESS_RD);
+		/* hucUKernelHdrInfoRegOffset */
+		whitelist_reg_ext(w, _MMIO(0x2014 + engine->mmio_base),
+				  RING_FORCE_TO_NONPRIV_ACCESS_RD);
+		/* hucStatus2RegOffset */
+		whitelist_reg_ext(w, _MMIO(0x23B0 + engine->mmio_base),
+				  RING_FORCE_TO_NONPRIV_ACCESS_RD);
+>>>>>>> linux-next/akpm-base
 		break;
 
 	default:
@@ -1153,7 +1264,11 @@ void intel_engine_init_whitelist(struct intel_engine_cs *engine)
 	struct drm_i915_private *i915 = engine->i915;
 	struct i915_wa_list *w = &engine->whitelist;
 
+<<<<<<< HEAD
 	wa_init_start(w, "whitelist");
+=======
+	wa_init_start(w, "whitelist", engine->name);
+>>>>>>> linux-next/akpm-base
 
 	if (IS_GEN(i915, 11))
 		icl_whitelist_build(engine);
@@ -1258,8 +1373,17 @@ rcs_engine_wa_init(struct intel_engine_cs *engine, struct i915_wa_list *wal)
 		if (IS_ICL_REVID(i915, ICL_REVID_A0, ICL_REVID_B0))
 			wa_write_or(wal,
 				    GEN7_SARCHKMD,
+<<<<<<< HEAD
 				    GEN7_DISABLE_DEMAND_PREFETCH |
 				    GEN7_DISABLE_SAMPLER_PREFETCH);
+=======
+				    GEN7_DISABLE_DEMAND_PREFETCH);
+
+		/* Wa_1606682166:icl */
+		wa_write_or(wal,
+			    GEN7_SARCHKMD,
+			    GEN7_DISABLE_SAMPLER_PREFETCH);
+>>>>>>> linux-next/akpm-base
 	}
 
 	if (IS_GEN_RANGE(i915, 9, 11)) {
@@ -1328,7 +1452,11 @@ engine_init_workarounds(struct intel_engine_cs *engine, struct i915_wa_list *wal
 	if (I915_SELFTEST_ONLY(INTEL_GEN(engine->i915) < 8))
 		return;
 
+<<<<<<< HEAD
 	if (engine->id == RCS0)
+=======
+	if (engine->class == RENDER_CLASS)
+>>>>>>> linux-next/akpm-base
 		rcs_engine_wa_init(engine, wal);
 	else
 		xcs_engine_wa_init(engine, wal);
@@ -1338,10 +1466,17 @@ void intel_engine_init_workarounds(struct intel_engine_cs *engine)
 {
 	struct i915_wa_list *wal = &engine->wa_list;
 
+<<<<<<< HEAD
 	if (GEM_WARN_ON(INTEL_GEN(engine->i915) < 8))
 		return;
 
 	wa_init_start(wal, engine->name);
+=======
+	if (INTEL_GEN(engine->i915) < 8)
+		return;
+
+	wa_init_start(wal, "engine", engine->name);
+>>>>>>> linux-next/akpm-base
 	engine_init_workarounds(engine, wal);
 	wa_init_finish(wal);
 }
@@ -1426,7 +1561,11 @@ static int engine_wa_list_verify(struct intel_context *ce,
 	if (!wal->count)
 		return 0;
 
+<<<<<<< HEAD
 	vma = create_scratch(&ce->engine->i915->ggtt.vm, wal->count);
+=======
+	vma = create_scratch(&ce->engine->gt->ggtt->vm, wal->count);
+>>>>>>> linux-next/akpm-base
 	if (IS_ERR(vma))
 		return PTR_ERR(vma);
 

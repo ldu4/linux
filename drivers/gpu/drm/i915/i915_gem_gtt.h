@@ -35,15 +35,22 @@
 #define __I915_GEM_GTT_H__
 
 #include <linux/io-mapping.h>
+#include <linux/kref.h>
 #include <linux/mm.h>
 #include <linux/pagevec.h>
+#include <linux/workqueue.h>
 
+<<<<<<< HEAD
+=======
+#include <drm/drm_mm.h>
+
+>>>>>>> linux-next/akpm-base
 #include "gt/intel_reset.h"
 #include "i915_gem_fence_reg.h"
 #include "i915_request.h"
 #include "i915_scatterlist.h"
 #include "i915_selftest.h"
-#include "i915_timeline.h"
+#include "gt/intel_timeline.h"
 
 #define I915_GTT_PAGE_SIZE_4K	BIT_ULL(12)
 #define I915_GTT_PAGE_SIZE_64K	BIT_ULL(16)
@@ -64,12 +71,10 @@
 struct drm_i915_file_private;
 struct drm_i915_gem_object;
 struct i915_vma;
+struct intel_gt;
 
 typedef u32 gen6_pte_t;
 typedef u64 gen8_pte_t;
-typedef u64 gen8_pde_t;
-typedef u64 gen8_ppgtt_pdpe_t;
-typedef u64 gen8_ppgtt_pml4e_t;
 
 #define ggtt_total_entries(ggtt) ((ggtt)->vm.total >> PAGE_SHIFT)
 
@@ -122,7 +127,6 @@ typedef u64 gen8_ppgtt_pml4e_t;
 #define GEN8_3LVL_PDPES			4
 #define GEN8_PDE_SHIFT			21
 #define GEN8_PDE_MASK			0x1ff
-#define GEN8_PTE_SHIFT			12
 #define GEN8_PTE_MASK			0x1ff
 #define GEN8_PTES			I915_PTES(sizeof(gen8_pte_t))
 
@@ -154,11 +158,6 @@ typedef u64 gen8_ppgtt_pml4e_t;
 #define GEN8_PPAT_UC			(0<<0)
 #define GEN8_PPAT_ELLC_OVERRIDE		(0<<2)
 #define GEN8_PPAT(i, x)			((u64)(x) << ((i) * 8))
-
-#define GEN8_PPAT_GET_CA(x) ((x) & 3)
-#define GEN8_PPAT_GET_TC(x) ((x) & (3 << 2))
-#define GEN8_PPAT_GET_AGE(x) ((x) & (3 << 4))
-#define CHV_PPAT_GET_SNOOP(x) ((x) & (1 << 6))
 
 #define GEN8_PDE_IPS_64K BIT(11)
 #define GEN8_PDE_PS_2M   BIT(7)
@@ -243,8 +242,10 @@ struct i915_page_dma {
 	};
 };
 
-#define px_base(px) (&(px)->base)
-#define px_dma(px) (px_base(px)->daddr)
+struct i915_page_scratch {
+	struct i915_page_dma base;
+	u64 encode;
+};
 
 struct i915_page_table {
 	struct i915_page_dma base;
@@ -252,11 +253,39 @@ struct i915_page_table {
 };
 
 struct i915_page_directory {
+<<<<<<< HEAD
 	struct i915_page_dma base;
 	atomic_t used;
 	spinlock_t lock;
 	void *entry[512];
 };
+=======
+	struct i915_page_table pt;
+	spinlock_t lock;
+	void *entry[512];
+};
+
+#define __px_choose_expr(x, type, expr, other) \
+	__builtin_choose_expr( \
+	__builtin_types_compatible_p(typeof(x), type) || \
+	__builtin_types_compatible_p(typeof(x), const type), \
+	({ type __x = (type)(x); expr; }), \
+	other)
+
+#define px_base(px) \
+	__px_choose_expr(px, struct i915_page_dma *, __x, \
+	__px_choose_expr(px, struct i915_page_scratch *, &__x->base, \
+	__px_choose_expr(px, struct i915_page_table *, &__x->base, \
+	__px_choose_expr(px, struct i915_page_directory *, &__x->pt.base, \
+	(void)0))))
+#define px_dma(px) (px_base(px)->daddr)
+
+#define px_pt(px) \
+	__px_choose_expr(px, struct i915_page_table *, __x, \
+	__px_choose_expr(px, struct i915_page_directory *, &__x->pt, \
+	(void)0))
+#define px_used(px) (&px_pt(px)->used)
+>>>>>>> linux-next/akpm-base
 
 struct i915_vma_ops {
 	/* Map an object into an address space with the given cache flags. */
@@ -280,8 +309,13 @@ struct pagestash {
 
 struct i915_address_space {
 	struct kref ref;
+<<<<<<< HEAD
+=======
+	struct rcu_work rcu;
+>>>>>>> linux-next/akpm-base
 
 	struct drm_mm mm;
+	struct intel_gt *gt;
 	struct drm_i915_private *i915;
 	struct device *dma;
 	/* Every address space belongs to a struct file - except for the global
@@ -302,12 +336,18 @@ struct i915_address_space {
 #define VM_CLASS_GGTT 0
 #define VM_CLASS_PPGTT 1
 
+<<<<<<< HEAD
 	u64 scratch_pte;
 	int scratch_order;
 	struct i915_page_dma scratch_page;
 	struct i915_page_table *scratch_pt;
 	struct i915_page_directory *scratch_pd;
 	struct i915_page_directory *scratch_pdp; /* GEN8+ & 48b PPGTT */
+=======
+	struct i915_page_scratch scratch[4];
+	unsigned int scratch_order;
+	unsigned int top;
+>>>>>>> linux-next/akpm-base
 
 	/**
 	 * List of vma currently bound.
@@ -386,7 +426,7 @@ struct i915_ggtt {
 
 	/** "Graphics Stolen Memory" holds the global PTEs */
 	void __iomem *gsm;
-	void (*invalidate)(struct drm_i915_private *dev_priv);
+	void (*invalidate)(struct i915_ggtt *ggtt);
 
 	bool do_idle_maps;
 
@@ -592,10 +632,16 @@ static inline u64 gen8_pte_count(u64 address, u64 length)
 static inline dma_addr_t
 i915_page_dir_dma_addr(const struct i915_ppgtt *ppgtt, const unsigned int n)
 {
+<<<<<<< HEAD
 	struct i915_page_directory *pd;
 
 	pd = i915_pdp_entry(ppgtt->pd, n);
 	return px_dma(pd);
+=======
+	struct i915_page_dma *pt = ppgtt->pd->entry[n];
+
+	return px_dma(pt ?: px_base(&ppgtt->vm.scratch[ppgtt->vm.top]));
+>>>>>>> linux-next/akpm-base
 }
 
 static inline struct i915_ggtt *
@@ -614,6 +660,7 @@ i915_vm_to_ppgtt(struct i915_address_space *vm)
 	return container_of(vm, struct i915_ppgtt, vm);
 }
 
+<<<<<<< HEAD
 #define INTEL_MAX_PPAT_ENTRIES 8
 #define INTEL_PPAT_PERFECT_MATCH (~0U)
 
@@ -645,15 +692,17 @@ const struct intel_ppat_entry *
 intel_ppat_get(struct drm_i915_private *i915, u8 value);
 void intel_ppat_put(const struct intel_ppat_entry *entry);
 
+=======
+>>>>>>> linux-next/akpm-base
 int i915_ggtt_probe_hw(struct drm_i915_private *dev_priv);
 int i915_ggtt_init_hw(struct drm_i915_private *dev_priv);
 int i915_ggtt_enable_hw(struct drm_i915_private *dev_priv);
-void i915_ggtt_enable_guc(struct drm_i915_private *i915);
-void i915_ggtt_disable_guc(struct drm_i915_private *i915);
-int i915_gem_init_ggtt(struct drm_i915_private *dev_priv);
-void i915_ggtt_cleanup_hw(struct drm_i915_private *dev_priv);
+void i915_ggtt_enable_guc(struct i915_ggtt *ggtt);
+void i915_ggtt_disable_guc(struct i915_ggtt *ggtt);
+int i915_init_ggtt(struct drm_i915_private *dev_priv);
+void i915_ggtt_driver_release(struct drm_i915_private *dev_priv);
 
-int i915_ppgtt_init_hw(struct drm_i915_private *dev_priv);
+int i915_ppgtt_init_hw(struct intel_gt *gt);
 
 struct i915_ppgtt *i915_ppgtt_create(struct drm_i915_private *dev_priv);
 

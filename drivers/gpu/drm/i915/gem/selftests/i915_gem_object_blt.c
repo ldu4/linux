@@ -3,6 +3,11 @@
  * Copyright © 2019 Intel Corporation
  */
 
+<<<<<<< HEAD
+=======
+#include "gt/intel_gt.h"
+
+>>>>>>> linux-next/akpm-base
 #include "i915_selftest.h"
 
 #include "selftests/igt_flush_test.h"
@@ -11,8 +16,13 @@
 
 static int igt_fill_blt(void *arg)
 {
+<<<<<<< HEAD
 	struct intel_context *ce = arg;
 	struct drm_i915_private *i915 = ce->gem_context->i915;
+=======
+	struct drm_i915_private *i915 = arg;
+	struct intel_context *ce = i915->engine[BCS0]->kernel_context;
+>>>>>>> linux-next/akpm-base
 	struct drm_i915_gem_object *obj;
 	struct rnd_state prng;
 	IGT_TIMEOUT(end);
@@ -83,11 +93,14 @@ err_unpin:
 err_put:
 	i915_gem_object_put(obj);
 err_flush:
+<<<<<<< HEAD
 	mutex_lock(&i915->drm.struct_mutex);
 	if (igt_flush_test(i915, I915_WAIT_LOCKED))
 		err = -EIO;
 	mutex_unlock(&i915->drm.struct_mutex);
 
+=======
+>>>>>>> linux-next/akpm-base
 	if (err == -ENOMEM)
 		err = 0;
 
@@ -100,11 +113,19 @@ int i915_gem_object_blt_live_selftests(struct drm_i915_private *i915)
 		SUBTEST(igt_fill_blt),
 	};
 
+<<<<<<< HEAD
 	if (i915_terminally_wedged(i915))
+=======
+	if (intel_gt_is_wedged(&i915->gt))
+>>>>>>> linux-next/akpm-base
 		return 0;
 
 	if (!HAS_ENGINE(i915, BCS0))
 		return 0;
 
+<<<<<<< HEAD
 	return i915_subtests(tests, i915->engine[BCS0]->kernel_context);
+=======
+	return i915_live_subtests(tests, i915);
+>>>>>>> linux-next/akpm-base
 }

@@ -1951,6 +1951,10 @@ static void siw_drop_listeners(struct iw_cm_id *id)
 int siw_create_listen(struct iw_cm_id *id, int backlog)
 {
 	struct net_device *dev = to_siw_dev(id->device)->netdev;
+<<<<<<< HEAD
+=======
+	const struct in_ifaddr *ifa;
+>>>>>>> linux-next/akpm-base
 	int rv = 0, listeners = 0;
 
 	siw_dbg(id->device, "id 0x%p: backlog %d\n", id, backlog);
@@ -1963,7 +1967,10 @@ int siw_create_listen(struct iw_cm_id *id, int backlog)
 	if (id->local_addr.ss_family == AF_INET) {
 		struct in_device *in_dev = in_dev_get(dev);
 		struct sockaddr_in s_laddr, *s_raddr;
+<<<<<<< HEAD
 		const struct in_ifaddr *ifa;
+=======
+>>>>>>> linux-next/akpm-base
 
 		memcpy(&s_laddr, &id->local_addr, sizeof(s_laddr));
 		s_raddr = (struct sockaddr_in *)&id->remote_addr;

@@ -18,7 +18,10 @@ komeda_plane_init_data_flow(struct drm_plane_state *st,
 			    struct komeda_data_flow_cfg *dflow)
 {
 	struct komeda_plane *kplane = to_kplane(st->plane);
+<<<<<<< HEAD
 	struct komeda_plane_state *kplane_st = to_kplane_st(st);
+=======
+>>>>>>> linux-next/akpm-base
 	struct drm_framebuffer *fb = st->fb;
 	const struct komeda_format_caps *caps = to_kfb(fb)->format_caps;
 	struct komeda_pipeline *pipe = kplane->layer->base.pipeline;
@@ -57,10 +60,14 @@ komeda_plane_init_data_flow(struct drm_plane_state *st,
 		return -EINVAL;
 	}
 
+<<<<<<< HEAD
 	dflow->en_img_enhancement = !!kplane_st->img_enhancement;
 	dflow->en_split = !!kplane_st->layer_split;
 
 	komeda_complete_data_flow_cfg(dflow, fb);
+=======
+	komeda_complete_data_flow_cfg(kplane->layer, dflow, fb);
+>>>>>>> linux-next/akpm-base
 
 	return 0;
 }
@@ -175,8 +182,11 @@ komeda_plane_atomic_duplicate_state(struct drm_plane *plane)
 
 	old = to_kplane_st(plane->state);
 
+<<<<<<< HEAD
 	new->img_enhancement = old->img_enhancement;
 
+=======
+>>>>>>> linux-next/akpm-base
 	return &new->base;
 }
 
@@ -188,6 +198,7 @@ komeda_plane_atomic_destroy_state(struct drm_plane *plane,
 	kfree(to_kplane_st(state));
 }
 
+<<<<<<< HEAD
 static int
 komeda_plane_atomic_get_property(struct drm_plane *plane,
 				 const struct drm_plane_state *state,
@@ -226,6 +237,8 @@ komeda_plane_atomic_set_property(struct drm_plane *plane,
 	return 0;
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 static bool
 komeda_plane_format_mod_supported(struct drm_plane *plane,
 				  u32 format, u64 modifier)
@@ -245,8 +258,11 @@ static const struct drm_plane_funcs komeda_plane_funcs = {
 	.reset			= komeda_plane_reset,
 	.atomic_duplicate_state	= komeda_plane_atomic_duplicate_state,
 	.atomic_destroy_state	= komeda_plane_atomic_destroy_state,
+<<<<<<< HEAD
 	.atomic_get_property	= komeda_plane_atomic_get_property,
 	.atomic_set_property	= komeda_plane_atomic_set_property,
+=======
+>>>>>>> linux-next/akpm-base
 	.format_mod_supported	= komeda_plane_format_mod_supported,
 };
 
@@ -375,10 +391,13 @@ static int komeda_plane_add(struct komeda_kms_dev *kms,
 	if (err)
 		goto cleanup;
 
+<<<<<<< HEAD
 	err = komeda_plane_create_layer_properties(kplane, layer);
 	if (err)
 		goto cleanup;
 
+=======
+>>>>>>> linux-next/akpm-base
 	err = drm_plane_create_color_properties(plane,
 			BIT(DRM_COLOR_YCBCR_BT601) |
 			BIT(DRM_COLOR_YCBCR_BT709) |

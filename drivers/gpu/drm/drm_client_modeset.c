@@ -180,7 +180,12 @@ again:
 
 create_mode:
 	mode = drm_mode_create_from_cmdline_mode(connector->dev, cmdline_mode);
+<<<<<<< HEAD
 	list_add(&mode->head, &connector->modes);
+=======
+	if (mode)
+		list_add(&mode->head, &connector->modes);
+>>>>>>> linux-next/akpm-base
 
 	return mode;
 }

@@ -175,6 +175,10 @@ struct overlay_registers {
 
 struct intel_overlay {
 	struct drm_i915_private *i915;
+<<<<<<< HEAD
+=======
+	struct intel_context *context;
+>>>>>>> linux-next/akpm-base
 	struct intel_crtc *crtc;
 	struct i915_vma *vma;
 	struct i915_vma *old_vma;
@@ -239,9 +243,13 @@ static int intel_overlay_do_wait_request(struct intel_overlay *overlay,
 
 static struct i915_request *alloc_request(struct intel_overlay *overlay)
 {
+<<<<<<< HEAD
 	struct intel_engine_cs *engine = overlay->i915->engine[RCS0];
 
 	return i915_request_create(engine->kernel_context);
+=======
+	return i915_request_create(overlay->context);
+>>>>>>> linux-next/akpm-base
 }
 
 /* overlay needs to be disable in OCMD reg */
@@ -1359,11 +1367,22 @@ void intel_overlay_setup(struct drm_i915_private *dev_priv)
 	if (!HAS_OVERLAY(dev_priv))
 		return;
 
+<<<<<<< HEAD
+=======
+	if (!HAS_ENGINE(dev_priv, RCS0))
+		return;
+
+>>>>>>> linux-next/akpm-base
 	overlay = kzalloc(sizeof(*overlay), GFP_KERNEL);
 	if (!overlay)
 		return;
 
 	overlay->i915 = dev_priv;
+<<<<<<< HEAD
+=======
+	overlay->context = dev_priv->engine[RCS0]->kernel_context;
+	GEM_BUG_ON(!overlay->context);
+>>>>>>> linux-next/akpm-base
 
 	overlay->color_key = 0x0101fe;
 	overlay->color_key_enabled = true;

@@ -57,7 +57,11 @@ Options can also be passed after the mode, using commas as separator.
 
        Sample usage: 720x480,rotate=180 - 720x480 mode, rotated by 180 degrees
 
+<<<<<<< HEAD
 Valid options are::
+=======
+Valid options are:
+>>>>>>> linux-next/akpm-base
 
   - margin_top, margin_bottom, margin_left, margin_right (integer):
     Number of pixels in the margins, typically to deal with overscan on TVs

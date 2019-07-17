@@ -23,7 +23,11 @@
  */
 
 #include "display/intel_frontbuffer.h"
+<<<<<<< HEAD
 
+=======
+#include "gt/intel_gt.h"
+>>>>>>> linux-next/akpm-base
 #include "i915_drv.h"
 #include "i915_gem_clflush.h"
 #include "i915_gem_context.h"
@@ -146,6 +150,22 @@ void i915_gem_close_object(struct drm_gem_object *gem, struct drm_file *file)
 	}
 }
 
+<<<<<<< HEAD
+=======
+static void __i915_gem_free_object_rcu(struct rcu_head *head)
+{
+	struct drm_i915_gem_object *obj =
+		container_of(head, typeof(*obj), rcu);
+	struct drm_i915_private *i915 = to_i915(obj->base.dev);
+
+	reservation_object_fini(&obj->base._resv);
+	i915_gem_object_free(obj);
+
+	GEM_BUG_ON(!atomic_read(&i915->mm.free_count));
+	atomic_dec(&i915->mm.free_count);
+}
+
+>>>>>>> linux-next/akpm-base
 static void __i915_gem_free_objects(struct drm_i915_private *i915,
 				    struct llist_node *freed)
 {
@@ -160,7 +180,10 @@ static void __i915_gem_free_objects(struct drm_i915_private *i915,
 
 		mutex_lock(&i915->drm.struct_mutex);
 
+<<<<<<< HEAD
 		GEM_BUG_ON(i915_gem_object_is_active(obj));
+=======
+>>>>>>> linux-next/akpm-base
 		list_for_each_entry_safe(vma, vn, &obj->vma.list, obj_link) {
 			GEM_BUG_ON(i915_vma_is_active(vma));
 			vma->flags &= ~I915_VMA_PIN_MASK;
@@ -169,6 +192,7 @@ static void __i915_gem_free_objects(struct drm_i915_private *i915,
 		GEM_BUG_ON(!list_empty(&obj->vma.list));
 		GEM_BUG_ON(!RB_EMPTY_ROOT(&obj->vma.tree));
 
+<<<<<<< HEAD
 		/*
 		 * This serializes freeing with the shrinker. Since the free
 		 * is delayed, first by RCU then by the workqueue, we want the
@@ -185,6 +209,8 @@ static void __i915_gem_free_objects(struct drm_i915_private *i915,
 			spin_unlock_irqrestore(&i915->mm.obj_lock, flags);
 		}
 
+=======
+>>>>>>> linux-next/akpm-base
 		mutex_unlock(&i915->drm.struct_mutex);
 
 		GEM_BUG_ON(atomic_read(&obj->bind_count));
@@ -192,16 +218,24 @@ static void __i915_gem_free_objects(struct drm_i915_private *i915,
 		GEM_BUG_ON(atomic_read(&obj->frontbuffer_bits));
 		GEM_BUG_ON(!list_empty(&obj->lut_list));
 
+<<<<<<< HEAD
 		if (obj->ops->release)
 			obj->ops->release(obj);
 
 		atomic_set(&obj->mm.pages_pin_count, 0);
 		__i915_gem_object_put_pages(obj, I915_MM_NORMAL);
 		GEM_BUG_ON(i915_gem_object_has_pages(obj));
+=======
+		atomic_set(&obj->mm.pages_pin_count, 0);
+		__i915_gem_object_put_pages(obj, I915_MM_NORMAL);
+		GEM_BUG_ON(i915_gem_object_has_pages(obj));
+		bitmap_free(obj->bit_17);
+>>>>>>> linux-next/akpm-base
 
 		if (obj->base.import_attach)
 			drm_prime_gem_destroy(&obj->base, NULL);
 
+<<<<<<< HEAD
 		drm_gem_object_release(&obj->base);
 
 		bitmap_free(obj->bit_17);
@@ -211,6 +245,15 @@ static void __i915_gem_free_objects(struct drm_i915_private *i915,
 		atomic_dec(&i915->mm.free_count);
 
 		cond_resched();
+=======
+		drm_gem_free_mmap_offset(&obj->base);
+
+		if (obj->ops->release)
+			obj->ops->release(obj);
+
+		/* But keep the pointer alive for RCU-protected lookups */
+		call_rcu(&obj->rcu, __i915_gem_free_object_rcu);
+>>>>>>> linux-next/akpm-base
 	}
 	intel_runtime_pm_put(&i915->runtime_pm, wakeref);
 }
@@ -261,6 +304,7 @@ static void __i915_gem_free_work(struct work_struct *work)
 	spin_unlock(&i915->mm.free_lock);
 }
 
+<<<<<<< HEAD
 static void __i915_gem_free_object_rcu(struct rcu_head *head)
 {
 	struct drm_i915_gem_object *obj =
@@ -273,6 +317,36 @@ static void __i915_gem_free_object_rcu(struct rcu_head *head)
 	 * objects to be freed via this path.
 	 */
 	destroy_rcu_head(&obj->rcu);
+=======
+void i915_gem_free_object(struct drm_gem_object *gem_obj)
+{
+	struct drm_i915_gem_object *obj = to_intel_bo(gem_obj);
+	struct drm_i915_private *i915 = to_i915(obj->base.dev);
+
+	/*
+	 * Before we free the object, make sure any pure RCU-only
+	 * read-side critical sections are complete, e.g.
+	 * i915_gem_busy_ioctl(). For the corresponding synchronized
+	 * lookup see i915_gem_object_lookup_rcu().
+	 */
+	atomic_inc(&i915->mm.free_count);
+
+	/*
+	 * This serializes freeing with the shrinker. Since the free
+	 * is delayed, first by RCU then by the workqueue, we want the
+	 * shrinker to be able to free pages of unreferenced objects,
+	 * or else we may oom whilst there are plenty of deferred
+	 * freed objects.
+	 */
+	if (i915_gem_object_has_pages(obj) &&
+	    i915_gem_object_is_shrinkable(obj)) {
+		unsigned long flags;
+
+		spin_lock_irqsave(&i915->mm.obj_lock, flags);
+		list_del_init(&obj->mm.link);
+		spin_unlock_irqrestore(&i915->mm.obj_lock, flags);
+	}
+>>>>>>> linux-next/akpm-base
 
 	/*
 	 * Since we require blocking on struct_mutex to unbind the freed
@@ -288,6 +362,7 @@ static void __i915_gem_free_object_rcu(struct rcu_head *head)
 		queue_work(i915->wq, &i915->mm.free_work);
 }
 
+<<<<<<< HEAD
 void i915_gem_free_object(struct drm_gem_object *gem_obj)
 {
 	struct drm_i915_gem_object *obj = to_intel_bo(gem_obj);
@@ -302,6 +377,8 @@ void i915_gem_free_object(struct drm_gem_object *gem_obj)
 	call_rcu(&obj->rcu, __i915_gem_free_object_rcu);
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 static inline enum fb_op_origin
 fb_write_origin(struct drm_i915_gem_object *obj, unsigned int domain)
 {
@@ -319,7 +396,10 @@ void
 i915_gem_object_flush_write_domain(struct drm_i915_gem_object *obj,
 				   unsigned int flush_domains)
 {
+<<<<<<< HEAD
 	struct drm_i915_private *dev_priv = to_i915(obj->base.dev);
+=======
+>>>>>>> linux-next/akpm-base
 	struct i915_vma *vma;
 
 	assert_object_held(obj);
@@ -329,7 +409,12 @@ i915_gem_object_flush_write_domain(struct drm_i915_gem_object *obj,
 
 	switch (obj->write_domain) {
 	case I915_GEM_DOMAIN_GTT:
+<<<<<<< HEAD
 		i915_gem_flush_ggtt_writes(dev_priv);
+=======
+		for_each_ggtt_vma(vma, obj)
+			intel_gt_flush_ggtt_writes(vma->vm->gt);
+>>>>>>> linux-next/akpm-base
 
 		intel_fb_obj_flush(obj,
 				   fb_write_origin(obj, I915_GEM_DOMAIN_GTT));
@@ -340,6 +425,10 @@ i915_gem_object_flush_write_domain(struct drm_i915_gem_object *obj,
 
 			i915_vma_unset_ggtt_write(vma);
 		}
+<<<<<<< HEAD
+=======
+
+>>>>>>> linux-next/akpm-base
 		break;
 
 	case I915_GEM_DOMAIN_WC:

@@ -523,12 +523,25 @@ int intel_hdcp_auth_downstream(struct intel_connector *connector)
 	 * authentication.
 	 */
 	num_downstream = DRM_HDCP_NUM_DOWNSTREAM(bstatus[0]);
+<<<<<<< HEAD
 	if (num_downstream == 0)
 		return -EINVAL;
 
 	ksv_fifo = kcalloc(DRM_HDCP_KSV_LEN, num_downstream, GFP_KERNEL);
 	if (!ksv_fifo)
 		return -ENOMEM;
+=======
+	if (num_downstream == 0) {
+		DRM_DEBUG_KMS("Repeater with zero downstream devices\n");
+		return -EINVAL;
+	}
+
+	ksv_fifo = kcalloc(DRM_HDCP_KSV_LEN, num_downstream, GFP_KERNEL);
+	if (!ksv_fifo) {
+		DRM_DEBUG_KMS("Out of mem: ksv_fifo\n");
+		return -ENOMEM;
+	}
+>>>>>>> linux-next/akpm-base
 
 	ret = shim->read_ksv_fifo(intel_dig_port, num_downstream, ksv_fifo);
 	if (ret)
@@ -1206,8 +1219,15 @@ static int hdcp2_authentication_key_exchange(struct intel_connector *connector)
 	if (ret < 0)
 		return ret;
 
+<<<<<<< HEAD
 	if (msgs.send_cert.rx_caps[0] != HDCP_2_2_RX_CAPS_VERSION_VAL)
 		return -EINVAL;
+=======
+	if (msgs.send_cert.rx_caps[0] != HDCP_2_2_RX_CAPS_VERSION_VAL) {
+		DRM_DEBUG_KMS("cert.rx_caps dont claim HDCP2.2\n");
+		return -EINVAL;
+	}
+>>>>>>> linux-next/akpm-base
 
 	hdcp->is_repeater = HDCP_2_2_RX_REPEATER(msgs.send_cert.rx_caps[2]);
 

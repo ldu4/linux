@@ -1644,7 +1644,11 @@ vlv_dsi_get_panel_orientation(struct intel_connector *connector)
 	return intel_dsi_get_panel_orientation(connector);
 }
 
+<<<<<<< HEAD
 static void intel_dsi_add_properties(struct intel_connector *connector)
+=======
+static void vlv_dsi_add_properties(struct intel_connector *connector)
+>>>>>>> linux-next/akpm-base
 {
 	struct drm_i915_private *dev_priv = to_i915(connector->base.dev);
 
@@ -1983,7 +1987,11 @@ void vlv_dsi_init(struct drm_i915_private *dev_priv)
 	intel_panel_init(&intel_connector->panel, fixed_mode, NULL);
 	intel_panel_setup_backlight(connector, INVALID_PIPE);
 
+<<<<<<< HEAD
 	intel_dsi_add_properties(intel_connector);
+=======
+	vlv_dsi_add_properties(intel_connector);
+>>>>>>> linux-next/akpm-base
 
 	return;
 

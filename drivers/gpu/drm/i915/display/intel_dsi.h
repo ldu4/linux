@@ -49,8 +49,16 @@ struct intel_dsi {
 
 	struct intel_connector *attached_connector;
 
+<<<<<<< HEAD
 	/* bit mask of ports being driven */
 	u16 ports;
+=======
+	/* bit mask of ports (vlv dsi) or phys (icl dsi) being driven */
+	union {
+		u16 ports;	/* VLV DSI */
+		u16 phys;	/* ICL DSI */
+	};
+>>>>>>> linux-next/akpm-base
 
 	/* if true, use HS mode, otherwise LP */
 	bool hs;
@@ -132,7 +140,14 @@ static inline struct intel_dsi_host *to_intel_dsi_host(struct mipi_dsi_host *h)
 	return container_of(h, struct intel_dsi_host, base);
 }
 
+<<<<<<< HEAD
 #define for_each_dsi_port(__port, __ports_mask) for_each_port_masked(__port, __ports_mask)
+=======
+#define for_each_dsi_port(__port, __ports_mask) \
+	for_each_port_masked(__port, __ports_mask)
+#define for_each_dsi_phy(__phy, __phys_mask) \
+	for_each_phy_masked(__phy, __phys_mask)
+>>>>>>> linux-next/akpm-base
 
 static inline struct intel_dsi *enc_to_intel_dsi(struct drm_encoder *encoder)
 {

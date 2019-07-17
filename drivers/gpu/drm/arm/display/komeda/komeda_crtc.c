@@ -590,6 +590,7 @@ static int komeda_crtc_add(struct komeda_kms_dev *kms,
 
 	crtc->port = kcrtc->master->of_output_port;
 
+<<<<<<< HEAD
 	err = komeda_crtc_create_clock_ratio_property(kcrtc);
 	if (err)
 		return err;
@@ -598,6 +599,8 @@ static int komeda_crtc_add(struct komeda_kms_dev *kms,
 	if (err)
 		return err;
 
+=======
+>>>>>>> linux-next/akpm-base
 	return err;
 }
 

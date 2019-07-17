@@ -310,10 +310,19 @@ enum vbt_gmbus_ddi {
 	DDC_BUS_DDI_F,
 	ICL_DDC_BUS_DDI_A = 0x1,
 	ICL_DDC_BUS_DDI_B,
+<<<<<<< HEAD
+=======
+	TGL_DDC_BUS_DDI_C,
+>>>>>>> linux-next/akpm-base
 	ICL_DDC_BUS_PORT_1 = 0x4,
 	ICL_DDC_BUS_PORT_2,
 	ICL_DDC_BUS_PORT_3,
 	ICL_DDC_BUS_PORT_4,
+<<<<<<< HEAD
+=======
+	TGL_DDC_BUS_PORT_5,
+	TGL_DDC_BUS_PORT_6,
+>>>>>>> linux-next/akpm-base
 	MCC_DDC_BUS_DDI_A = 0x1,
 	MCC_DDC_BUS_DDI_B,
 	MCC_DDC_BUS_DDI_C = 0x4,

@@ -13,6 +13,15 @@
 #include <linux/stackdepot.h>
 #include <linux/timer.h>
 
+<<<<<<< HEAD
+=======
+#if IS_ENABLED(CONFIG_DRM_I915_DEBUG)
+#define INTEL_WAKEREF_BUG_ON(expr) BUG_ON(expr)
+#else
+#define INTEL_WAKEREF_BUG_ON(expr) BUILD_BUG_ON_INVALID(expr)
+#endif
+
+>>>>>>> linux-next/akpm-base
 struct intel_runtime_pm;
 
 typedef depot_stack_handle_t intel_wakeref_t;
@@ -66,6 +75,24 @@ intel_wakeref_get(struct intel_runtime_pm *rpm,
 }
 
 /**
+<<<<<<< HEAD
+=======
+ * intel_wakeref_get_if_in_use: Acquire the wakeref
+ * @wf: the wakeref
+ *
+ * Acquire a hold on the wakeref, but only if the wakeref is already
+ * active.
+ *
+ * Returns: true if the wakeref was acquired, false otherwise.
+ */
+static inline bool
+intel_wakeref_get_if_active(struct intel_wakeref *wf)
+{
+	return atomic_inc_not_zero(&wf->count);
+}
+
+/**
+>>>>>>> linux-next/akpm-base
  * intel_wakeref_put: Release the wakeref
  * @i915: the drm_i915_private device
  * @wf: the wakeref
@@ -86,6 +113,10 @@ intel_wakeref_put(struct intel_runtime_pm *rpm,
 		  struct intel_wakeref *wf,
 		  int (*fn)(struct intel_wakeref *wf))
 {
+<<<<<<< HEAD
+=======
+	INTEL_WAKEREF_BUG_ON(atomic_read(&wf->count) <= 0);
+>>>>>>> linux-next/akpm-base
 	if (atomic_dec_and_mutex_lock(&wf->count, &wf->mutex))
 		return __intel_wakeref_put_last(rpm, wf, fn);
 
@@ -121,13 +152,21 @@ intel_wakeref_unlock(struct intel_wakeref *wf)
 }
 
 /**
+<<<<<<< HEAD
  * intel_wakeref_active: Query whether the wakeref is currently held
+=======
+ * intel_wakeref_is_active: Query whether the wakeref is currently held
+>>>>>>> linux-next/akpm-base
  * @wf: the wakeref
  *
  * Returns: true if the wakeref is currently held.
  */
 static inline bool
+<<<<<<< HEAD
 intel_wakeref_active(struct intel_wakeref *wf)
+=======
+intel_wakeref_is_active(const struct intel_wakeref *wf)
+>>>>>>> linux-next/akpm-base
 {
 	return READ_ONCE(wf->wakeref);
 }

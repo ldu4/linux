@@ -18,6 +18,7 @@ enum intel_display_power_domain {
 	POWER_DOMAIN_PIPE_A,
 	POWER_DOMAIN_PIPE_B,
 	POWER_DOMAIN_PIPE_C,
+<<<<<<< HEAD
 	POWER_DOMAIN_PIPE_A_PANEL_FITTER,
 	POWER_DOMAIN_PIPE_B_PANEL_FITTER,
 	POWER_DOMAIN_PIPE_C_PANEL_FITTER,
@@ -26,20 +27,59 @@ enum intel_display_power_domain {
 	POWER_DOMAIN_TRANSCODER_C,
 	POWER_DOMAIN_TRANSCODER_EDP,
 	POWER_DOMAIN_TRANSCODER_EDP_VDSC,
+=======
+	POWER_DOMAIN_PIPE_D,
+	POWER_DOMAIN_PIPE_A_PANEL_FITTER,
+	POWER_DOMAIN_PIPE_B_PANEL_FITTER,
+	POWER_DOMAIN_PIPE_C_PANEL_FITTER,
+	POWER_DOMAIN_PIPE_D_PANEL_FITTER,
+	POWER_DOMAIN_TRANSCODER_A,
+	POWER_DOMAIN_TRANSCODER_B,
+	POWER_DOMAIN_TRANSCODER_C,
+	POWER_DOMAIN_TRANSCODER_D,
+	POWER_DOMAIN_TRANSCODER_EDP,
+	/* VDSC/joining for TRANSCODER_EDP (ICL) or TRANSCODER_A (TGL) */
+	POWER_DOMAIN_TRANSCODER_VDSC_PW2,
+>>>>>>> linux-next/akpm-base
 	POWER_DOMAIN_TRANSCODER_DSI_A,
 	POWER_DOMAIN_TRANSCODER_DSI_C,
 	POWER_DOMAIN_PORT_DDI_A_LANES,
 	POWER_DOMAIN_PORT_DDI_B_LANES,
 	POWER_DOMAIN_PORT_DDI_C_LANES,
 	POWER_DOMAIN_PORT_DDI_D_LANES,
+<<<<<<< HEAD
 	POWER_DOMAIN_PORT_DDI_E_LANES,
 	POWER_DOMAIN_PORT_DDI_F_LANES,
+=======
+	POWER_DOMAIN_PORT_DDI_TC1_LANES = POWER_DOMAIN_PORT_DDI_D_LANES,
+	POWER_DOMAIN_PORT_DDI_E_LANES,
+	POWER_DOMAIN_PORT_DDI_TC2_LANES = POWER_DOMAIN_PORT_DDI_E_LANES,
+	POWER_DOMAIN_PORT_DDI_F_LANES,
+	POWER_DOMAIN_PORT_DDI_TC3_LANES = POWER_DOMAIN_PORT_DDI_F_LANES,
+	POWER_DOMAIN_PORT_DDI_TC4_LANES,
+	POWER_DOMAIN_PORT_DDI_TC5_LANES,
+	POWER_DOMAIN_PORT_DDI_TC6_LANES,
+>>>>>>> linux-next/akpm-base
 	POWER_DOMAIN_PORT_DDI_A_IO,
 	POWER_DOMAIN_PORT_DDI_B_IO,
 	POWER_DOMAIN_PORT_DDI_C_IO,
 	POWER_DOMAIN_PORT_DDI_D_IO,
+<<<<<<< HEAD
 	POWER_DOMAIN_PORT_DDI_E_IO,
 	POWER_DOMAIN_PORT_DDI_F_IO,
+=======
+	POWER_DOMAIN_PORT_DDI_TC1_IO = POWER_DOMAIN_PORT_DDI_D_IO,
+	POWER_DOMAIN_PORT_DDI_E_IO,
+	POWER_DOMAIN_PORT_DDI_TC2_IO = POWER_DOMAIN_PORT_DDI_E_IO,
+	POWER_DOMAIN_PORT_DDI_F_IO,
+	POWER_DOMAIN_PORT_DDI_TC3_IO = POWER_DOMAIN_PORT_DDI_F_IO,
+	POWER_DOMAIN_PORT_DDI_G_IO,
+	POWER_DOMAIN_PORT_DDI_TC4_IO = POWER_DOMAIN_PORT_DDI_G_IO,
+	POWER_DOMAIN_PORT_DDI_H_IO,
+	POWER_DOMAIN_PORT_DDI_TC5_IO = POWER_DOMAIN_PORT_DDI_H_IO,
+	POWER_DOMAIN_PORT_DDI_I_IO,
+	POWER_DOMAIN_PORT_DDI_TC6_IO = POWER_DOMAIN_PORT_DDI_I_IO,
+>>>>>>> linux-next/akpm-base
 	POWER_DOMAIN_PORT_DSI,
 	POWER_DOMAIN_PORT_CRT,
 	POWER_DOMAIN_PORT_OTHER,
@@ -49,16 +89,36 @@ enum intel_display_power_domain {
 	POWER_DOMAIN_AUX_B,
 	POWER_DOMAIN_AUX_C,
 	POWER_DOMAIN_AUX_D,
+<<<<<<< HEAD
 	POWER_DOMAIN_AUX_E,
 	POWER_DOMAIN_AUX_F,
+=======
+	POWER_DOMAIN_AUX_TC1 = POWER_DOMAIN_AUX_D,
+	POWER_DOMAIN_AUX_E,
+	POWER_DOMAIN_AUX_TC2 = POWER_DOMAIN_AUX_E,
+	POWER_DOMAIN_AUX_F,
+	POWER_DOMAIN_AUX_TC3 = POWER_DOMAIN_AUX_F,
+	POWER_DOMAIN_AUX_TC4,
+	POWER_DOMAIN_AUX_TC5,
+	POWER_DOMAIN_AUX_TC6,
+>>>>>>> linux-next/akpm-base
 	POWER_DOMAIN_AUX_IO_A,
 	POWER_DOMAIN_AUX_TBT1,
 	POWER_DOMAIN_AUX_TBT2,
 	POWER_DOMAIN_AUX_TBT3,
 	POWER_DOMAIN_AUX_TBT4,
+<<<<<<< HEAD
 	POWER_DOMAIN_GMBUS,
 	POWER_DOMAIN_MODESET,
 	POWER_DOMAIN_GT_IRQ,
+=======
+	POWER_DOMAIN_AUX_TBT5,
+	POWER_DOMAIN_AUX_TBT6,
+	POWER_DOMAIN_GMBUS,
+	POWER_DOMAIN_MODESET,
+	POWER_DOMAIN_GT_IRQ,
+	POWER_DOMAIN_DPLL_DC_OFF,
+>>>>>>> linux-next/akpm-base
 	POWER_DOMAIN_INIT,
 
 	POWER_DOMAIN_NUM,
@@ -213,7 +273,11 @@ void gen9_enable_dc5(struct drm_i915_private *dev_priv);
 int intel_power_domains_init(struct drm_i915_private *dev_priv);
 void intel_power_domains_cleanup(struct drm_i915_private *dev_priv);
 void intel_power_domains_init_hw(struct drm_i915_private *dev_priv, bool resume);
+<<<<<<< HEAD
 void intel_power_domains_fini_hw(struct drm_i915_private *dev_priv);
+=======
+void intel_power_domains_driver_remove(struct drm_i915_private *dev_priv);
+>>>>>>> linux-next/akpm-base
 void icl_display_core_init(struct drm_i915_private *dev_priv, bool resume);
 void icl_display_core_uninit(struct drm_i915_private *dev_priv);
 void intel_power_domains_enable(struct drm_i915_private *dev_priv);
@@ -227,7 +291,12 @@ void bxt_display_core_init(struct drm_i915_private *dev_priv, bool resume);
 void bxt_display_core_uninit(struct drm_i915_private *dev_priv);
 
 const char *
+<<<<<<< HEAD
 intel_display_power_domain_str(enum intel_display_power_domain domain);
+=======
+intel_display_power_domain_str(struct drm_i915_private *i915,
+			       enum intel_display_power_domain domain);
+>>>>>>> linux-next/akpm-base
 
 bool intel_display_power_is_enabled(struct drm_i915_private *dev_priv,
 				    enum intel_display_power_domain domain);
