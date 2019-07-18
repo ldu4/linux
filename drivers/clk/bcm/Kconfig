@@ -1,4 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0-only
+<<<<<<< HEAD
+=======
+
+>>>>>>> linux-next/akpm-base
 config CLK_BCM2835
 	bool "Broadcom BCM2835 clock support"
 	depends on ARCH_BCM2835 || ARCH_BRCMSTB || COMPILE_TEST
