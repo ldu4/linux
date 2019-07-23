@@ -29,87 +29,86 @@ struct follow_page_context {
 	unsigned int page_mask;
 };
 
-typedef int (*set_dirty_func_t)(struct page *page);
-
-static void __put_user_pages_dirty(struct page **pages,
-				   unsigned long npages,
-				   set_dirty_func_t sdf)
+/**
+ * __put_user_pages() - release an array of gup-pinned pages.
+ * @pages:  array of pages to be marked dirty and released.
+ * @npages: number of pages in the @pages array.
+ * @flags: additional hints, to be applied to each page:
+ *
+ *	PUP_FLAGS_CLEAN: no additional steps required. (Consider calling
+ *			 put_user_pages() directly, instead.)
+ *
+ *	PUP_FLAGS_DIRTY: Call set_page_dirty() on the page (if not already
+ *			 dirty).
+ *
+ *      PUP_FLAGS_LOCK: meaningless by itself, but included in order to show
+ *			the numeric relationship between the flags.
+ *
+ *      PUP_FLAGS_DIRTY_LOCK: Call set_page_dirty_lock() on the page (if not
+ *			      already dirty).
+ *
+ * For each page in the @pages array, release the page using put_user_page().
+ */
+void __put_user_pages(struct page **pages, unsigned long npages,
+		      enum pup_flags_t flags)
 {
 	unsigned long index;
+
+	/*
+	 * TODO: this can be optimized for huge pages: if a series of pages is
+	 * physically contiguous and part of the same compound page, then a
+	 * single operation to the head page should suffice.
+	 */
 
 	for (index = 0; index < npages; index++) {
 		struct page *page = compound_head(pages[index]);
 
-		/*
-		 * Checking PageDirty at this point may race with
-		 * clear_page_dirty_for_io(), but that's OK. Two key cases:
-		 *
-		 * 1) This code sees the page as already dirty, so it skips
-		 * the call to sdf(). That could happen because
-		 * clear_page_dirty_for_io() called page_mkclean(),
-		 * followed by set_page_dirty(). However, now the page is
-		 * going to get written back, which meets the original
-		 * intention of setting it dirty, so all is well:
-		 * clear_page_dirty_for_io() goes on to call
-		 * TestClearPageDirty(), and write the page back.
-		 *
-		 * 2) This code sees the page as clean, so it calls sdf().
-		 * The page stays dirty, despite being written back, so it
-		 * gets written back again in the next writeback cycle.
-		 * This is harmless.
-		 */
-		if (!PageDirty(page))
-			sdf(page);
+		switch (flags) {
+		case PUP_FLAGS_CLEAN:
+			break;
 
+		case PUP_FLAGS_DIRTY:
+			/*
+			 * Checking PageDirty at this point may race with
+			 * clear_page_dirty_for_io(), but that's OK. Two key
+			 * cases:
+			 *
+			 * 1) This code sees the page as already dirty, so it
+			 * skips the call to set_page_dirty(). That could happen
+			 * because clear_page_dirty_for_io() called
+			 * page_mkclean(), followed by set_page_dirty().
+			 * However, now the page is going to get written back,
+			 * which meets the original intention of setting it
+			 * dirty, so all is well: clear_page_dirty_for_io() goes
+			 * on to call TestClearPageDirty(), and write the page
+			 * back.
+			 *
+			 * 2) This code sees the page as clean, so it calls
+			 * set_page_dirty(). The page stays dirty, despite being
+			 * written back, so it gets written back again in the
+			 * next writeback cycle. This is harmless.
+			 */
+			if (!PageDirty(page))
+				set_page_dirty(page);
+			break;
+
+		case PUP_FLAGS_LOCK:
+			VM_WARN_ON_ONCE(flags == PUP_FLAGS_LOCK);
+			/*
+			 * Shouldn't happen, but treat it as _DIRTY_LOCK if
+			 * it does: fall through.
+			 */
+
+		case PUP_FLAGS_DIRTY_LOCK:
+			/* Same comments as for PUP_FLAGS_DIRTY apply here. */
+			if (!PageDirty(page))
+				set_page_dirty_lock(page);
+			break;
+		};
 		put_user_page(page);
 	}
 }
-
-/**
- * put_user_pages_dirty() - release and dirty an array of gup-pinned pages
- * @pages:  array of pages to be marked dirty and released.
- * @npages: number of pages in the @pages array.
- *
- * "gup-pinned page" refers to a page that has had one of the get_user_pages()
- * variants called on that page.
- *
- * For each page in the @pages array, make that page (or its head page, if a
- * compound page) dirty, if it was previously listed as clean. Then, release
- * the page using put_user_page().
- *
- * Please see the put_user_page() documentation for details.
- *
- * set_page_dirty(), which does not lock the page, is used here.
- * Therefore, it is the caller's responsibility to ensure that this is
- * safe. If not, then put_user_pages_dirty_lock() should be called instead.
- *
- */
-void put_user_pages_dirty(struct page **pages, unsigned long npages)
-{
-	__put_user_pages_dirty(pages, npages, set_page_dirty);
-}
-EXPORT_SYMBOL(put_user_pages_dirty);
-
-/**
- * put_user_pages_dirty_lock() - release and dirty an array of gup-pinned pages
- * @pages:  array of pages to be marked dirty and released.
- * @npages: number of pages in the @pages array.
- *
- * For each page in the @pages array, make that page (or its head page, if a
- * compound page) dirty, if it was previously listed as clean. Then, release
- * the page using put_user_page().
- *
- * Please see the put_user_page() documentation for details.
- *
- * This is just like put_user_pages_dirty(), except that it invokes
- * set_page_dirty_lock(), instead of set_page_dirty().
- *
- */
-void put_user_pages_dirty_lock(struct page **pages, unsigned long npages)
-{
-	__put_user_pages_dirty(pages, npages, set_page_dirty_lock);
-}
-EXPORT_SYMBOL(put_user_pages_dirty_lock);
+EXPORT_SYMBOL(__put_user_pages);
 
 /**
  * put_user_pages() - release an array of gup-pinned pages.
