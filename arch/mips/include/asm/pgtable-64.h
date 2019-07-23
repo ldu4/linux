@@ -273,6 +273,10 @@ static inline int pmd_present(pmd_t pmd)
 	return pmd_val(pmd) != (unsigned long) invalid_pte_table;
 }
 
+#ifdef _PAGE_HUGE
+#define pmd_leaf(pmd)	((pmd_val(pmd) & _PAGE_HUGE) != 0)
+#endif
+
 static inline void pmd_clear(pmd_t *pmdp)
 {
 	pmd_val(*pmdp) = ((unsigned long) invalid_pte_table);
@@ -296,6 +300,10 @@ static inline int pud_present(pud_t pud)
 {
 	return pud_val(pud) != (unsigned long) invalid_pmd_table;
 }
+
+#ifdef _PAGE_HUGE
+#define pud_leaf(pud)	((pud_val(pud) & _PAGE_HUGE) != 0)
+#endif
 
 static inline void pud_clear(pud_t *pudp)
 {
