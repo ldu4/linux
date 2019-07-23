@@ -2372,11 +2372,11 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
 			error = current->timer_slack_ns;
 		break;
 	case PR_SET_TIMERSLACK:
-		if (arg2 <= 0)
+		if (arg2)
+			current->timer_slack_ns = arg2;
+		else
 			current->timer_slack_ns =
 					current->default_timer_slack_ns;
-		else
-			current->timer_slack_ns = arg2;
 		break;
 	case PR_MCE_KILL:
 		if (arg4 | arg5)
