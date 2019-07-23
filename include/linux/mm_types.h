@@ -76,13 +76,35 @@ struct page {
 	 * avoid collision and false-positive PageTail().
 	 */
 	union {
-		struct {	/* Page cache and anonymous pages */
-			/**
-			 * @lru: Pageout list, eg. active_list protected by
-			 * pgdat->lru_lock.  Sometimes used as a generic list
-			 * by the page owner.
-			 */
-			struct list_head lru;
+		struct {	/* Page cache, anonymous, ZONE_DEVICE pages */
+			union {
+				/**
+				 * @lru: Pageout list, e.g., active_list
+				 * protected by pgdat->lru_lock. Sometimes
+				 * used as a generic list by the page owner.
+				 */
+				struct list_head lru;
+				/**
+				 * ZONE_DEVICE pages are never on the lru
+				 * list so they reuse the list space.
+				 * ZONE_DEVICE private pages are counted as
+				 * being mapped so the @mapping and @index
+				 * fields are used while the page is migrated
+				 * to device private memory.
+				 * ZONE_DEVICE MEMORY_DEVICE_FS_DAX pages also
+				 * use the @mapping and @index fields when pmem
+				 * backed DAX files are mapped.
+				 */
+				struct {
+					/**
+					 * @pgmap: Points to the hosting
+					 * device page map.
+					 */
+					struct dev_pagemap *pgmap;
+					/** @zone_device_data: opaque data. */
+					void *zone_device_data;
+				};
+			};
 			/* See page-flags.h for PAGE_MAPPING_FLAGS */
 			struct address_space *mapping;
 			pgoff_t index;		/* Our offset within mapping. */
@@ -154,12 +176,6 @@ struct page {
 #else
 			spinlock_t ptl;
 #endif
-		};
-		struct {	/* ZONE_DEVICE pages */
-			/** @pgmap: Points to the hosting device page map. */
-			struct dev_pagemap *pgmap;
-			void *zone_device_data;
-			unsigned long _zd_pad_1;	/* uses mapping */
 		};
 
 		/** @rcu_head: You can use this to free a page by RCU. */
