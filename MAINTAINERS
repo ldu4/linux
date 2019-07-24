@@ -517,14 +517,6 @@ W:	http://ez.analog.com/community/linux-device-drivers
 S:	Supported
 F:	drivers/video/backlight/adp8860_bl.c
 
-ADS1015 HARDWARE MONITOR DRIVER
-M:	Dirk Eibach <eibach@gdsys.de>
-L:	linux-hwmon@vger.kernel.org
-S:	Maintained
-F:	Documentation/hwmon/ads1015.rst
-F:	drivers/hwmon/ads1015.c
-F:	include/linux/platform_data/ads1015.h
-
 ADT746X FAN DRIVER
 M:	Colin Leroy <colin@colino.net>
 S:	Maintained
@@ -675,6 +667,13 @@ R:	Pengutronix Kernel Team <kernel@pengutronix.de>
 L:	linux-media@vger.kernel.org
 S:	Maintained
 F:	drivers/staging/media/allegro-dvt/
+
+ALLWINNER CPUFREQ DRIVER
+M:	Yangtao Li <tiny.windzz@gmail.com>
+L:	linux-pm@vger.kernel.org
+S:	Maintained
+F:	Documentation/devicetree/bindings/opp/sun50i-nvmem-cpufreq.txt
+F:	drivers/cpufreq/sun50i-cpufreq-nvmem.c
 
 ALLWINNER SECURITY SYSTEM
 M:	Corentin Labbe <clabbe.montjoie@gmail.com>
@@ -1194,7 +1193,7 @@ F:	include/uapi/linux/if_arcnet.h
 
 ARM ARCHITECTED TIMER DRIVER
 M:	Mark Rutland <mark.rutland@arm.com>
-M:	Marc Zyngier <marc.zyngier@arm.com>
+M:	Marc Zyngier <maz@kernel.org>
 L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
 S:	Maintained
 F:	arch/arm/include/asm/arch_timer.h
@@ -1471,6 +1470,7 @@ F:	arch/arm/mach-artpec
 F:	arch/arm/boot/dts/artpec6*
 F:	drivers/clk/axis
 F:	drivers/crypto/axis
+F:	drivers/mmc/host/usdhi6rol0.c
 F:	drivers/pinctrl/pinctrl-artpec*
 F:	Documentation/devicetree/bindings/pinctrl/axis,artpec6-pinctrl.txt
 
@@ -5095,6 +5095,12 @@ S:	Maintained
 F:	drivers/gpu/drm/panel/panel-feiyang-fy07024di26a30d.c
 F:	Documentation/devicetree/bindings/display/panel/feiyang,fy07024di26a30d.txt
 
+DRM DRIVER FOR GRAIN MEDIA GM12U320 PROJECTORS
+M:	Hans de Goede <hdegoede@redhat.com>
+T:	git git://anongit.freedesktop.org/drm/drm-misc
+S:	Maintained
+F:	drivers/gpu/drm/gm12u320/
+
 DRM DRIVER FOR ILITEK ILI9225 PANELS
 M:	David Lechner <david@lechnology.com>
 S:	Maintained
@@ -5181,6 +5187,12 @@ S:	Maintained
 F:	drivers/gpu/drm/qxl/
 F:	include/uapi/drm/qxl_drm.h
 
+DRM DRIVER FOR RAYDIUM RM67191 PANELS
+M:	Robert Chiras <robert.chiras@nxp.com>
+S:	Maintained
+F:	drivers/gpu/drm/panel/panel-raydium-rm67191.c
+F:	Documentation/devicetree/bindings/display/panel/raydium,rm67191.txt
+
 DRM DRIVER FOR RAGE 128 VIDEO CARDS
 S:	Orphan / Obsolete
 F:	drivers/gpu/drm/r128/
@@ -5188,6 +5200,7 @@ F:	include/uapi/drm/r128_drm.h
 
 DRM DRIVER FOR ROCKTECH JH057N00900 PANELS
 M:	Guido Günther <agx@sigxcpu.org>
+R:	Purism Kernel Team <kernel@puri.sm>
 S:	Maintained
 F:	drivers/gpu/drm/panel/panel-rocktech-jh057n00900.c
 F:	Documentation/devicetree/bindings/display/panel/rocktech,jh057n00900.txt
@@ -5236,7 +5249,7 @@ M:	Linus Walleij <linus.walleij@linaro.org>
 T:	git git://anongit.freedesktop.org/drm/drm-misc
 S:	Maintained
 F:	drivers/gpu/drm/panel/panel-tpo-tpg110.c
-F:	Documentation/devicetree/bindings/display/panel/tpo,tpg110.txt
+F:	Documentation/devicetree/bindings/display/panel/tpo,tpg110.yaml
 
 DRM DRIVER FOR USB DISPLAYLINK VIDEO ADAPTERS
 M:	Dave Airlie <airlied@redhat.com>
@@ -5324,6 +5337,7 @@ F:	Documentation/gpu/meson.rst
 T:	git git://anongit.freedesktop.org/drm/drm-misc
 
 DRM DRIVERS FOR ATMEL HLCDC
+M:	Sam Ravnborg <sam@ravnborg.org>
 M:	Boris Brezillon <bbrezillon@kernel.org>
 L:	dri-devel@lists.freedesktop.org
 S:	Supported
@@ -5333,7 +5347,10 @@ T:	git git://anongit.freedesktop.org/drm/drm-misc
 
 DRM DRIVERS FOR BRIDGE CHIPS
 M:	Andrzej Hajda <a.hajda@samsung.com>
+M:	Neil Armstrong <narmstrong@baylibre.com>
 R:	Laurent Pinchart <Laurent.pinchart@ideasonboard.com>
+R:	Jonas Karlman <jonas@kwiboo.se>
+R:	Jernej Skrabec <jernej.skrabec@siol.net>
 S:	Maintained
 T:	git git://anongit.freedesktop.org/drm/drm-misc
 F:	drivers/gpu/drm/bridge/
@@ -6718,6 +6735,13 @@ T:	git git://linuxtv.org/media_tree.git
 W:	https://linuxtv.org
 S:	Maintained
 F:	drivers/media/radio/radio-gemtek*
+
+GENERIC ARCHITECTURE TOPOLOGY
+M:	Sudeep Holla <sudeep.holla@arm.com>
+L:	linux-kernel@vger.kernel.org
+S:	Maintained
+F:	drivers/base/arch_topology.c
+F:	include/linux/arch_topology.h
 
 GENERIC GPIO I2C DRIVER
 M:	Wolfram Sang <wsa+renesas@sang-engineering.com>
@@ -8490,7 +8514,7 @@ S:	Obsolete
 F:	include/uapi/linux/ipx.h
 
 IRQ DOMAINS (IRQ NUMBER MAPPING LIBRARY)
-M:	Marc Zyngier <marc.zyngier@arm.com>
+M:	Marc Zyngier <maz@kernel.org>
 S:	Maintained
 T:	git git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git irq/core
 F:	Documentation/IRQ-domain.txt
@@ -8508,7 +8532,7 @@ F:	kernel/irq/
 IRQCHIP DRIVERS
 M:	Thomas Gleixner <tglx@linutronix.de>
 M:	Jason Cooper <jason@lakedaemon.net>
-M:	Marc Zyngier <marc.zyngier@arm.com>
+M:	Marc Zyngier <maz@kernel.org>
 L:	linux-kernel@vger.kernel.org
 S:	Maintained
 T:	git git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git irq/core
@@ -8828,10 +8852,10 @@ F:	arch/x86/include/asm/svm.h
 F:	arch/x86/kvm/svm.c
 
 KERNEL VIRTUAL MACHINE FOR ARM/ARM64 (KVM/arm, KVM/arm64)
-M:	Marc Zyngier <marc.zyngier@arm.com>
+M:	Marc Zyngier <maz@kernel.org>
 R:	James Morse <james.morse@arm.com>
-R:	Julien Thierry <julien.thierry@arm.com>
-R:	Suzuki K Pouloze <suzuki.poulose@arm.com>
+R:	Julien Thierry <julien.thierry.kdev@gmail.com>
+R:	Suzuki K Poulose <suzuki.poulose@arm.com>
 L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
 L:	kvmarm@lists.cs.columbia.edu
 T:	git git://git.kernel.org/pub/scm/linux/kernel/git/kvmarm/kvmarm.git
@@ -12622,6 +12646,12 @@ S:	Maintained
 F:	Documentation/input/devices/pxrc.rst
 F:	drivers/input/joystick/pxrc.c
 
+FLYSKY FSIA6B RC RECEIVER
+M:	Markus Koch <markus@notsyncing.net>
+L:	linux-input@vger.kernel.org
+S:	Maintained
+F:	drivers/input/joystick/fsia6b.c
+
 PHONET PROTOCOL
 M:	Remi Denis-Courmont <courmisch@gmail.com>
 S:	Supported
@@ -16078,7 +16108,7 @@ S:	Maintained
 F:	drivers/net/ethernet/ti/netcp*
 
 TI PCM3060 ASoC CODEC DRIVER
-M:	Kirill Marinushkin <kmarinushkin@birdec.tech>
+M:	Kirill Marinushkin <kmarinushkin@birdec.com>
 L:	alsa-devel@alsa-project.org (moderated for non-subscribers)
 S:	Maintained
 F:	Documentation/devicetree/bindings/sound/pcm3060.txt
@@ -17123,7 +17153,7 @@ F:	drivers/virtio/virtio_input.c
 F:	include/uapi/linux/virtio_input.h
 
 VIRTIO IOMMU DRIVER
-M:	Jean-Philippe Brucker <jean-philippe.brucker@arm.com>
+M:	Jean-Philippe Brucker <jean-philippe@linaro.org>
 L:	virtualization@lists.linux-foundation.org
 S:	Maintained
 F:	drivers/iommu/virtio-iommu.c
