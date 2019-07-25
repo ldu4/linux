@@ -137,12 +137,37 @@ int smu_get_dpm_freq_range(struct smu_context *smu, enum smu_clk_type clk_type,
 {
 	int ret = 0, clk_id = 0;
 	uint32_t param = 0;
+	uint32_t clock_limit;
 
 	if (!min && !max)
 		return -EINVAL;
 
-	if (!smu_clk_dpm_is_enabled(smu, clk_type))
+	if (!smu_clk_dpm_is_enabled(smu, clk_type)) {
+		switch (clk_type) {
+		case SMU_MCLK:
+		case SMU_UCLK:
+			clock_limit = smu->smu_table.boot_values.uclk;
+			break;
+		case SMU_GFXCLK:
+		case SMU_SCLK:
+			clock_limit = smu->smu_table.boot_values.gfxclk;
+			break;
+		case SMU_SOCCLK:
+			clock_limit = smu->smu_table.boot_values.socclk;
+			break;
+		default:
+			clock_limit = 0;
+			break;
+		}
+
+		/* clock in Mhz unit */
+		if (min)
+			*min = clock_limit / 100;
+		if (max)
+			*max = clock_limit / 100;
+
 		return 0;
+	}
 
 	mutex_lock(&smu->mutex);
 	clk_id = smu_clk_get_index(smu, clk_type);
@@ -237,7 +262,6 @@ bool smu_clk_dpm_is_enabled(struct smu_context *smu, enum smu_clk_type clk_type)
 	}
 
 	if(!smu_feature_is_enabled(smu, feature_id)) {
-		pr_warn("smu %d clk dpm feature %d is not enabled\n", clk_type, feature_id);
 		return false;
 	}
 
@@ -331,7 +355,7 @@ int smu_update_table(struct smu_context *smu, enum smu_table_id table_index, int
 	int ret = 0;
 	int table_id = smu_table_get_index(smu, table_index);
 
-	if (!table_data || table_id >= smu_table->table_count)
+	if (!table_data || table_id >= smu_table->table_count || table_id < 0)
 		return -EINVAL;
 
 	table = &smu_table->tables[table_index];
@@ -368,6 +392,17 @@ bool is_support_sw_smu(struct amdgpu_device *adev)
 		return true;
 	else
 		return false;
+}
+
+bool is_support_sw_smu_xgmi(struct amdgpu_device *adev)
+{
+	if (amdgpu_dpm != 1)
+		return false;
+
+	if (adev->asic_type == CHIP_VEGA20)
+		return true;
+
+	return false;
 }
 
 int smu_sys_get_pp_table(struct smu_context *smu, void **table)
@@ -451,10 +486,12 @@ int smu_feature_init_dpm(struct smu_context *smu)
 int smu_feature_is_enabled(struct smu_context *smu, enum smu_feature_mask mask)
 {
 	struct smu_feature *feature = &smu->smu_feature;
-	uint32_t feature_id;
+	int feature_id;
 	int ret = 0;
 
 	feature_id = smu_feature_get_index(smu, mask);
+	if (feature_id < 0)
+		return 0;
 
 	WARN_ON(feature_id > feature->feature_num);
 
@@ -469,10 +506,12 @@ int smu_feature_set_enabled(struct smu_context *smu, enum smu_feature_mask mask,
 			    bool enable)
 {
 	struct smu_feature *feature = &smu->smu_feature;
-	uint32_t feature_id;
+	int feature_id;
 	int ret = 0;
 
 	feature_id = smu_feature_get_index(smu, mask);
+	if (feature_id < 0)
+		return -EINVAL;
 
 	WARN_ON(feature_id > feature->feature_num);
 
@@ -495,10 +534,12 @@ failed:
 int smu_feature_is_supported(struct smu_context *smu, enum smu_feature_mask mask)
 {
 	struct smu_feature *feature = &smu->smu_feature;
-	uint32_t feature_id;
+	int feature_id;
 	int ret = 0;
 
 	feature_id = smu_feature_get_index(smu, mask);
+	if (feature_id < 0)
+		return 0;
 
 	WARN_ON(feature_id > feature->feature_num);
 
@@ -514,10 +555,12 @@ int smu_feature_set_supported(struct smu_context *smu,
 			      bool enable)
 {
 	struct smu_feature *feature = &smu->smu_feature;
-	uint32_t feature_id;
+	int feature_id;
 	int ret = 0;
 
 	feature_id = smu_feature_get_index(smu, mask);
+	if (feature_id < 0)
+		return -EINVAL;
 
 	WARN_ON(feature_id > feature->feature_num);
 
@@ -538,6 +581,7 @@ static int smu_set_funcs(struct amdgpu_device *adev)
 	switch (adev->asic_type) {
 	case CHIP_VEGA20:
 	case CHIP_NAVI10:
+	case CHIP_NAVI14:
 		if (adev->pm.pp_feature & PP_OVERDRIVE_MASK)
 			smu->od_enabled = true;
 		smu_v11_0_set_smu_funcs(smu);
@@ -1349,13 +1393,49 @@ static int smu_enable_umd_pstate(void *handle,
 	return 0;
 }
 
+static int smu_default_set_performance_level(struct smu_context *smu, enum amd_dpm_forced_level level)
+{
+	int ret = 0;
+	uint32_t sclk_mask, mclk_mask, soc_mask;
+
+	switch (level) {
+	case AMD_DPM_FORCED_LEVEL_HIGH:
+		ret = smu_force_dpm_limit_value(smu, true);
+		break;
+	case AMD_DPM_FORCED_LEVEL_LOW:
+		ret = smu_force_dpm_limit_value(smu, false);
+		break;
+	case AMD_DPM_FORCED_LEVEL_AUTO:
+	case AMD_DPM_FORCED_LEVEL_PROFILE_STANDARD:
+		ret = smu_unforce_dpm_levels(smu);
+		break;
+	case AMD_DPM_FORCED_LEVEL_PROFILE_MIN_SCLK:
+	case AMD_DPM_FORCED_LEVEL_PROFILE_MIN_MCLK:
+	case AMD_DPM_FORCED_LEVEL_PROFILE_PEAK:
+		ret = smu_get_profiling_clk_mask(smu, level,
+						 &sclk_mask,
+						 &mclk_mask,
+						 &soc_mask);
+		if (ret)
+			return ret;
+		smu_force_clk_levels(smu, SMU_SCLK, 1 << sclk_mask);
+		smu_force_clk_levels(smu, SMU_MCLK, 1 << mclk_mask);
+		smu_force_clk_levels(smu, SMU_SOCCLK, 1 << soc_mask);
+		break;
+	case AMD_DPM_FORCED_LEVEL_MANUAL:
+	case AMD_DPM_FORCED_LEVEL_PROFILE_EXIT:
+	default:
+		break;
+	}
+	return ret;
+}
+
 int smu_adjust_power_state_dynamic(struct smu_context *smu,
 				   enum amd_dpm_forced_level level,
 				   bool skip_display_settings)
 {
 	int ret = 0;
 	int index = 0;
-	uint32_t sclk_mask, mclk_mask, soc_mask;
 	long workload;
 	struct smu_dpm_context *smu_dpm_ctx = &(smu->smu_dpm);
 
@@ -1386,39 +1466,10 @@ int smu_adjust_power_state_dynamic(struct smu_context *smu,
 	}
 
 	if (smu_dpm_ctx->dpm_level != level) {
-		switch (level) {
-		case AMD_DPM_FORCED_LEVEL_HIGH:
-			ret = smu_force_dpm_limit_value(smu, true);
-			break;
-		case AMD_DPM_FORCED_LEVEL_LOW:
-			ret = smu_force_dpm_limit_value(smu, false);
-			break;
-
-		case AMD_DPM_FORCED_LEVEL_AUTO:
-		case AMD_DPM_FORCED_LEVEL_PROFILE_STANDARD:
-			ret = smu_unforce_dpm_levels(smu);
-			break;
-
-		case AMD_DPM_FORCED_LEVEL_PROFILE_MIN_SCLK:
-		case AMD_DPM_FORCED_LEVEL_PROFILE_MIN_MCLK:
-		case AMD_DPM_FORCED_LEVEL_PROFILE_PEAK:
-			ret = smu_get_profiling_clk_mask(smu, level,
-							 &sclk_mask,
-							 &mclk_mask,
-							 &soc_mask);
-			if (ret)
-				return ret;
-			smu_force_clk_levels(smu, SMU_SCLK, 1 << sclk_mask);
-			smu_force_clk_levels(smu, SMU_MCLK, 1 << mclk_mask);
-			smu_force_clk_levels(smu, SMU_SOCCLK, 1 << soc_mask);
-			break;
-
-		case AMD_DPM_FORCED_LEVEL_MANUAL:
-		case AMD_DPM_FORCED_LEVEL_PROFILE_EXIT:
-		default:
-			break;
+		ret = smu_asic_set_performance_level(smu, level);
+		if (ret) {
+			ret = smu_default_set_performance_level(smu, level);
 		}
-
 		if (!ret)
 			smu_dpm_ctx->dpm_level = level;
 	}
