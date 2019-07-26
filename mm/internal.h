@@ -190,11 +190,11 @@ struct compact_control {
 	unsigned long total_free_scanned;
 	unsigned short fast_search_fail;/* failures to use free list searches */
 	short search_order;		/* order to start a fast search at */
-	const gfp_t gfp_mask;		/* gfp mask of a direct compactor */
-	int order;			/* order a direct compactor needs */
-	int migratetype;		/* migratetype of direct compactor */
-	const unsigned int alloc_flags;	/* alloc flags of a direct compactor */
-	const int classzone_idx;	/* zone index of a direct compactor */
+	const gfp_t gfp_mask;		/* gfp mask of a compactor */
+	int order;			/* order a compactor needs */
+	int migratetype;		/* migratetype of a compactor */
+	const unsigned int alloc_flags;	/* alloc flags of a compactor */
+	int classzone_idx;		/* zone index of a compactor */
 	enum migrate_mode mode;		/* Async or sync migration mode */
 	bool ignore_skip_hint;		/* Scan blocks even if marked skip */
 	bool no_set_skip_hint;		/* Don't mark blocks for skipping */

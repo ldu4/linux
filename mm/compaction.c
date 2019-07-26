@@ -2427,6 +2427,7 @@ static void compact_node(int nid)
 			continue;
 
 		cc.zone = zone;
+		cc.classzone_idx = zoneid;
 
 		compact_zone(&cc, NULL);
 
@@ -2510,7 +2511,7 @@ static bool kcompactd_node_suitable(pg_data_t *pgdat)
 			continue;
 
 		if (compaction_suitable(zone, pgdat->kcompactd_max_order, 0,
-					classzone_idx) == COMPACT_CONTINUE)
+					zoneid) == COMPACT_CONTINUE)
 			return true;
 	}
 
@@ -2528,7 +2529,6 @@ static void kcompactd_do_work(pg_data_t *pgdat)
 	struct compact_control cc = {
 		.order = pgdat->kcompactd_max_order,
 		.search_order = pgdat->kcompactd_max_order,
-		.classzone_idx = pgdat->kcompactd_classzone_idx,
 		.mode = MIGRATE_SYNC_LIGHT,
 		.ignore_skip_hint = false,
 		.gfp_mask = GFP_KERNEL,
@@ -2537,7 +2537,7 @@ static void kcompactd_do_work(pg_data_t *pgdat)
 							cc.classzone_idx);
 	count_compact_event(KCOMPACTD_WAKE);
 
-	for (zoneid = 0; zoneid <= cc.classzone_idx; zoneid++) {
+	for (zoneid = 0; zoneid <= pgdat->kcompactd_classzone_idx; zoneid++) {
 		int status;
 
 		zone = &pgdat->node_zones[zoneid];
@@ -2547,14 +2547,12 @@ static void kcompactd_do_work(pg_data_t *pgdat)
 		if (compaction_deferred(zone, cc.order))
 			continue;
 
-		if (compaction_suitable(zone, cc.order, 0, zoneid) !=
-							COMPACT_CONTINUE)
-			continue;
-
 		if (kthread_should_stop())
 			return;
 
 		cc.zone = zone;
+		cc.classzone_idx = zoneid;
+
 		status = compact_zone(&cc, NULL);
 
 		if (status == COMPACT_SUCCESS) {
