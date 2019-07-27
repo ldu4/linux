@@ -566,6 +566,7 @@ bool dc_stream_get_scanoutpos(const struct dc_stream_state *stream,
 
 	return ret;
 }
+
 #if defined(CONFIG_DRM_AMD_DC_DCN2_0)
 bool dc_stream_dmdata_status_done(struct dc *dc, struct dc_stream_state *stream)
 {
@@ -597,6 +598,14 @@ bool dc_stream_set_dynamic_metadata(struct dc *dc,
 	struct hubp *hubp;
 	int i;
 
+	/* Dynamic metadata is only supported on HDMI or DP */
+	if (!dc_is_hdmi_signal(stream->signal) && !dc_is_dp_signal(stream->signal))
+		return false;
+
+	/* Check hardware support */
+	if (!dc->hwss.program_dmdata_engine)
+		return false;
+
 	for (i = 0; i < MAX_PIPES; i++) {
 		pipe_ctx = &dc->current_state->res_ctx.pipe_ctx[i];
 		if (pipe_ctx->stream == stream)
@@ -612,6 +621,7 @@ bool dc_stream_set_dynamic_metadata(struct dc *dc,
 
 	pipe_ctx->stream->dmdata_address = attr->address;
 
+<<<<<<< HEAD
 	if (pipe_ctx->stream_res.stream_enc &&
 			pipe_ctx->stream_res.stream_enc->funcs->set_dynamic_metadata != NULL) {
 		if (pipe_ctx->stream->dmdata_address.quad_part != 0) {
@@ -629,6 +639,9 @@ bool dc_stream_set_dynamic_metadata(struct dc *dc,
 					dc_is_dp_signal(pipe_ctx->stream->signal) ?
 							dmdata_dp : dmdata_hdmi);
 	}
+=======
+	dc->hwss.program_dmdata_engine(pipe_ctx);
+>>>>>>> linux-next/akpm-base
 
 	if (hubp->funcs->dmdata_set_attributes != NULL &&
 			pipe_ctx->stream->dmdata_address.quad_part != 0) {

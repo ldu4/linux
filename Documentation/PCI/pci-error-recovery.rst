@@ -421,7 +421,10 @@ That is, the recovery API only requires that:
    - drivers/net/ixgbe
    - drivers/net/cxgb3
    - drivers/net/s2io.c
+<<<<<<< HEAD
    - drivers/net/qlge
+=======
+>>>>>>> linux-next/akpm-base
 
 The End
 -------
