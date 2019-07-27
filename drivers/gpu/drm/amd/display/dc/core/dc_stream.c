@@ -621,27 +621,7 @@ bool dc_stream_set_dynamic_metadata(struct dc *dc,
 
 	pipe_ctx->stream->dmdata_address = attr->address;
 
-<<<<<<< HEAD
-	if (pipe_ctx->stream_res.stream_enc &&
-			pipe_ctx->stream_res.stream_enc->funcs->set_dynamic_metadata != NULL) {
-		if (pipe_ctx->stream->dmdata_address.quad_part != 0) {
-			/* if using dynamic meta, don't set up generic infopackets */
-			pipe_ctx->stream_res.encoder_info_frame.hdrsmd.valid = false;
-			pipe_ctx->stream_res.stream_enc->funcs->set_dynamic_metadata(
-					pipe_ctx->stream_res.stream_enc,
-					true, pipe_ctx->plane_res.hubp->inst,
-					dc_is_dp_signal(pipe_ctx->stream->signal) ?
-							dmdata_dp : dmdata_hdmi);
-		} else
-			pipe_ctx->stream_res.stream_enc->funcs->set_dynamic_metadata(
-					pipe_ctx->stream_res.stream_enc,
-					false, pipe_ctx->plane_res.hubp->inst,
-					dc_is_dp_signal(pipe_ctx->stream->signal) ?
-							dmdata_dp : dmdata_hdmi);
-	}
-=======
 	dc->hwss.program_dmdata_engine(pipe_ctx);
->>>>>>> linux-next/akpm-base
 
 	if (hubp->funcs->dmdata_set_attributes != NULL &&
 			pipe_ctx->stream->dmdata_address.quad_part != 0) {

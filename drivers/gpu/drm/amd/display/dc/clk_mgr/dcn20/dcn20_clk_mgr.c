@@ -309,10 +309,7 @@ void dcn2_init_clocks(struct clk_mgr *clk_mgr)
 	memset(&(clk_mgr->clks), 0, sizeof(struct dc_clocks));
 	// Assumption is that boot state always supports pstate
 	clk_mgr->clks.p_state_change_support = true;
-<<<<<<< HEAD
-=======
 	clk_mgr->clks.prev_p_state_change_support = true;
->>>>>>> linux-next/akpm-base
 }
 
 void dcn2_enable_pme_wa(struct clk_mgr *clk_mgr_base)

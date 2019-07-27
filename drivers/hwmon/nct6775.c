@@ -3855,11 +3855,7 @@ static int nct6775_probe(struct platform_device *pdev)
 		data->REG_FAN_TIME[1] = NCT6106_REG_FAN_STEP_UP_TIME;
 		data->REG_FAN_TIME[2] = NCT6106_REG_FAN_STEP_DOWN_TIME;
 		data->REG_TOLERANCE_H = NCT6106_REG_TOLERANCE_H;
-<<<<<<< HEAD
-		data->REG_PWM[0] = NCT6106_REG_PWM;
-=======
 		data->REG_PWM[0] = NCT6116_REG_PWM;
->>>>>>> linux-next/akpm-base
 		data->REG_PWM[1] = NCT6106_REG_FAN_START_OUTPUT;
 		data->REG_PWM[2] = NCT6106_REG_FAN_STOP_OUTPUT;
 		data->REG_PWM[5] = NCT6106_REG_WEIGHT_DUTY_STEP;
