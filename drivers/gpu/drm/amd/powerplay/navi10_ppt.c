@@ -691,12 +691,6 @@ static int navi10_print_clk_levels(struct smu_context *smu,
 			}
 		} else {
 			ret = smu_get_dpm_freq_by_index(smu, clk_type, 0, &freq_values[0]);
-<<<<<<< HEAD
-			if (ret)
-				return size;
-			ret = smu_get_dpm_freq_by_index(smu, clk_type, count - 1, &freq_values[2]);
-=======
->>>>>>> linux-next/akpm-base
 			if (ret)
 				return size;
 			ret = smu_get_dpm_freq_by_index(smu, clk_type, count - 1, &freq_values[2]);
@@ -713,21 +707,6 @@ static int navi10_print_clk_levels(struct smu_context *smu,
 				size += sprintf(buf + size, "%d: %uMhz %s\n", i, freq_values[i],
 						i == mark_index ? "*" : "");
 			}
-
-<<<<<<< HEAD
-			freq_values[1] = cur_value;
-			mark_index = cur_value == freq_values[0] ? 0 :
-				     cur_value == freq_values[2] ? 2 : 1;
-			if (mark_index != 1)
-				freq_values[1] = (freq_values[0] + freq_values[2]) / 2;
-
-			for (i = 0; i < 3; i++) {
-				size += sprintf(buf + size, "%d: %uMhz %s\n", i, freq_values[i],
-						i == mark_index ? "*" : "");
-			}
-
-=======
->>>>>>> linux-next/akpm-base
 		}
 		break;
 	default:
