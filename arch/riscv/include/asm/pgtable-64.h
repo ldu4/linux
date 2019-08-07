@@ -10,6 +10,10 @@
 #error Only Sv39 supported for now
 #endif
 
+#if !defined(CONFIG_RISCV_VM_SV39)
+#error Only Sv39 supported for now
+#endif
+
 #include <linux/const.h>
 
 #define PGDIR_SHIFT     30

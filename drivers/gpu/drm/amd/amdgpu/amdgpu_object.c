@@ -80,9 +80,6 @@ static void amdgpu_bo_destroy(struct ttm_buffer_object *tbo)
 	if (bo->pin_count > 0)
 		amdgpu_bo_subtract_pin_size(bo);
 
-	if (bo->kfd_bo)
-		amdgpu_amdkfd_unreserve_memory_limit(bo);
-
 	amdgpu_bo_kunmap(bo);
 
 	if (bo->gem_base.import_attach)
@@ -413,6 +410,40 @@ fail:
 	return false;
 }
 
+bool amdgpu_bo_support_uswc(u64 bo_flags)
+{
+
+#ifdef CONFIG_X86_32
+	/* XXX: Write-combined CPU mappings of GTT seem broken on 32-bit
+	 * See https://bugs.freedesktop.org/show_bug.cgi?id=84627
+	 */
+	return false;
+#elif defined(CONFIG_X86) && !defined(CONFIG_X86_PAT)
+	/* Don't try to enable write-combining when it can't work, or things
+	 * may be slow
+	 * See https://bugs.freedesktop.org/show_bug.cgi?id=88758
+	 */
+
+#ifndef CONFIG_COMPILE_TEST
+#warning Please enable CONFIG_MTRR and CONFIG_X86_PAT for better performance \
+	 thanks to write-combining
+#endif
+
+	if (bo_flags & AMDGPU_GEM_CREATE_CPU_GTT_USWC)
+		DRM_INFO_ONCE("Please enable CONFIG_MTRR and CONFIG_X86_PAT for "
+			      "better performance thanks to write-combining\n");
+	return false;
+#else
+	/* For architectures that don't support WC memory,
+	 * mask out the WC flag from the BO
+	 */
+	if (!drm_arch_can_wc_memory())
+		return false;
+
+	return true;
+#endif
+}
+
 static int amdgpu_bo_do_create(struct amdgpu_device *adev,
 			       struct amdgpu_bo_param *bp,
 			       struct amdgpu_bo **bo_ptr)
@@ -466,33 +497,8 @@ static int amdgpu_bo_do_create(struct amdgpu_device *adev,
 
 	bo->flags = bp->flags;
 
-#ifdef CONFIG_X86_32
-	/* XXX: Write-combined CPU mappings of GTT seem broken on 32-bit
-	 * See https://bugs.freedesktop.org/show_bug.cgi?id=84627
-	 */
-	bo->flags &= ~AMDGPU_GEM_CREATE_CPU_GTT_USWC;
-#elif defined(CONFIG_X86) && !defined(CONFIG_X86_PAT)
-	/* Don't try to enable write-combining when it can't work, or things
-	 * may be slow
-	 * See https://bugs.freedesktop.org/show_bug.cgi?id=88758
-	 */
-
-#ifndef CONFIG_COMPILE_TEST
-#warning Please enable CONFIG_MTRR and CONFIG_X86_PAT for better performance \
-	 thanks to write-combining
-#endif
-
-	if (bo->flags & AMDGPU_GEM_CREATE_CPU_GTT_USWC)
-		DRM_INFO_ONCE("Please enable CONFIG_MTRR and CONFIG_X86_PAT for "
-			      "better performance thanks to write-combining\n");
-	bo->flags &= ~AMDGPU_GEM_CREATE_CPU_GTT_USWC;
-#else
-	/* For architectures that don't support WC memory,
-	 * mask out the WC flag from the BO
-	 */
-	if (!drm_arch_can_wc_memory())
+	if (!amdgpu_bo_support_uswc(bo->flags))
 		bo->flags &= ~AMDGPU_GEM_CREATE_CPU_GTT_USWC;
-#endif
 
 	bo->tbo.bdev = &adev->mman.bdev;
 	if (bp->domain & (AMDGPU_GEM_DOMAIN_GWS | AMDGPU_GEM_DOMAIN_OA |
@@ -508,6 +514,8 @@ static int amdgpu_bo_do_create(struct amdgpu_device *adev,
 				 NULL, bp->resv, &amdgpu_bo_destroy);
 	if (unlikely(r != 0))
 		return r;
+
+	bo->gem_base.resv = bo->tbo.resv;
 
 	if (!amdgpu_gmc_vram_full_visible(&adev->gmc) &&
 	    bo->tbo.mem.mem_type == TTM_PL_VRAM &&
@@ -544,7 +552,7 @@ static int amdgpu_bo_do_create(struct amdgpu_device *adev,
 
 fail_unreserve:
 	if (!bp->resv)
-		ww_mutex_unlock(&bo->tbo.resv->lock);
+		reservation_object_unlock(bo->tbo.resv);
 	amdgpu_bo_unref(&bo);
 	return r;
 }
@@ -1087,7 +1095,7 @@ int amdgpu_bo_set_tiling_flags(struct amdgpu_bo *bo, u64 tiling_flags)
  */
 void amdgpu_bo_get_tiling_flags(struct amdgpu_bo *bo, u64 *tiling_flags)
 {
-	lockdep_assert_held(&bo->tbo.resv->lock.base);
+	reservation_object_assert_held(bo->tbo.resv);
 
 	if (tiling_flags)
 		*tiling_flags = bo->tiling_flags;
@@ -1212,6 +1220,42 @@ void amdgpu_bo_move_notify(struct ttm_buffer_object *bo,
 }
 
 /**
+ * amdgpu_bo_move_notify - notification about a BO being released
+ * @bo: pointer to a buffer object
+ *
+ * Wipes VRAM buffers whose contents should not be leaked before the
+ * memory is released.
+ */
+void amdgpu_bo_release_notify(struct ttm_buffer_object *bo)
+{
+	struct dma_fence *fence = NULL;
+	struct amdgpu_bo *abo;
+	int r;
+
+	if (!amdgpu_bo_is_amdgpu_bo(bo))
+		return;
+
+	abo = ttm_to_amdgpu_bo(bo);
+
+	if (abo->kfd_bo)
+		amdgpu_amdkfd_unreserve_memory_limit(abo);
+
+	if (bo->mem.mem_type != TTM_PL_VRAM || !bo->mem.mm_node ||
+	    !(abo->flags & AMDGPU_GEM_CREATE_VRAM_WIPE_ON_RELEASE))
+		return;
+
+	reservation_object_lock(bo->resv, NULL);
+
+	r = amdgpu_fill_buffer(abo, AMDGPU_POISON, bo->resv, &fence);
+	if (!WARN_ON(r)) {
+		amdgpu_bo_fence(abo, fence, false);
+		dma_fence_put(fence);
+	}
+
+	reservation_object_unlock(bo->resv);
+}
+
+/**
  * amdgpu_bo_fault_reserve_notify - notification about a memory fault
  * @bo: pointer to a buffer object
  *
@@ -1328,7 +1372,7 @@ int amdgpu_bo_sync_wait(struct amdgpu_bo *bo, void *owner, bool intr)
 u64 amdgpu_bo_gpu_offset(struct amdgpu_bo *bo)
 {
 	WARN_ON_ONCE(bo->tbo.mem.mem_type == TTM_PL_SYSTEM);
-	WARN_ON_ONCE(!ww_mutex_is_locked(&bo->tbo.resv->lock) &&
+	WARN_ON_ONCE(!reservation_object_is_locked(bo->tbo.resv) &&
 		     !bo->pin_count && bo->tbo.type != ttm_bo_type_kernel);
 	WARN_ON_ONCE(bo->tbo.mem.start == AMDGPU_BO_INVALID_OFFSET);
 	WARN_ON_ONCE(bo->tbo.mem.mem_type == TTM_PL_VRAM &&

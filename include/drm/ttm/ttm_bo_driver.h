@@ -390,6 +390,16 @@ struct ttm_bo_driver {
 	 * notify driver that a BO was deleted from LRU.
 	 */
 	void (*del_from_lru_notify)(struct ttm_buffer_object *bo);
+
+	/**
+	 * Notify the driver that we're about to release a BO
+	 *
+	 * @bo: BO that is about to be released
+	 *
+	 * Gives the driver a chance to do any cleanup, including
+	 * adding fences that may force a delayed delete
+	 */
+	void (*release_notify)(struct ttm_buffer_object *bo);
 };
 
 /**
@@ -745,10 +755,10 @@ static inline int ttm_bo_reserve_slowpath(struct ttm_buffer_object *bo,
 	WARN_ON(!kref_read(&bo->kref));
 
 	if (interruptible)
-		ret = ww_mutex_lock_slow_interruptible(&bo->resv->lock,
-						       ticket);
+		ret = reservation_object_lock_slow_interruptible(bo->resv,
+								 ticket);
 	else
-		ww_mutex_lock_slow(&bo->resv->lock, ticket);
+		reservation_object_lock_slow(bo->resv, ticket);
 
 	if (likely(ret == 0))
 		ttm_bo_del_sub_from_lru(bo);

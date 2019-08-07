@@ -159,7 +159,7 @@ do {                                                            \
 enum mlx5e_rq_group {
 	MLX5E_RQ_GROUP_REGULAR,
 	MLX5E_RQ_GROUP_XSK,
-	MLX5E_NUM_RQ_GROUPS /* Keep last. */
+#define MLX5E_NUM_RQ_GROUPS(g) (1 + MLX5E_RQ_GROUP_##g)
 };
 
 static inline u16 mlx5_min_rx_wqes(int wq_type, u32 wq_size)
@@ -180,14 +180,6 @@ static inline int mlx5e_get_max_num_channels(struct mlx5_core_dev *mdev)
 	return is_kdump_kernel() ?
 		MLX5E_MIN_NUM_CHANNELS :
 		min_t(int, mlx5_comp_vectors_count(mdev), MLX5E_MAX_NUM_CHANNELS);
-}
-
-/* Use this function to get max num channels after netdev was created */
-static inline int mlx5e_get_netdev_max_channels(struct net_device *netdev)
-{
-	return min_t(unsigned int,
-		     netdev->num_rx_queues / MLX5E_NUM_RQ_GROUPS,
-		     netdev->num_tx_queues);
 }
 
 struct mlx5e_tx_wqe {
@@ -359,6 +351,7 @@ enum {
 	MLX5E_SQ_STATE_IPSEC,
 	MLX5E_SQ_STATE_AM,
 	MLX5E_SQ_STATE_TLS,
+	MLX5E_SQ_STATE_VLAN_NEED_L2_INLINE,
 };
 
 struct mlx5e_sq_wqe_info {
@@ -483,8 +476,6 @@ struct mlx5e_xdp_mpwqe {
 	struct mlx5e_tx_wqe *wqe;
 	u8                   ds_count;
 	u8                   pkt_count;
-	u8                   max_ds_count;
-	u8                   complete;
 	u8                   inline_on;
 };
 
@@ -830,6 +821,7 @@ struct mlx5e_priv {
 	struct net_device         *netdev;
 	struct mlx5e_stats         stats;
 	struct mlx5e_channel_stats channel_stats[MLX5E_MAX_NUM_CHANNELS];
+	u16                        max_nch;
 	u8                         max_opened_tc;
 	struct hwtstamp_config     tstamp;
 	u16                        q_counter;
@@ -871,6 +863,7 @@ struct mlx5e_profile {
 		mlx5e_fp_handle_rx_cqe handle_rx_cqe_mpwqe;
 	} rx_handlers;
 	int	max_tc;
+	u8	rq_groups;
 };
 
 void mlx5e_build_ptys2ethtool_map(void);
@@ -1134,7 +1127,6 @@ void mlx5e_build_rq_params(struct mlx5_core_dev *mdev,
 			   struct mlx5e_params *params);
 void mlx5e_build_rss_params(struct mlx5e_rss_params *rss_params,
 			    u16 num_channels);
-u8 mlx5e_params_calculate_tx_min_inline(struct mlx5_core_dev *mdev);
 void mlx5e_rx_dim_work(struct work_struct *work);
 void mlx5e_tx_dim_work(struct work_struct *work);
 
