@@ -10,6 +10,10 @@
 #error Only Sv32 supported
 #endif
 
+#if !defined(CONFIG_RISCV_VM_SV32)
+#error Only Sv32 supported
+#endif
+
 #include <asm-generic/pgtable-nopmd.h>
 #include <linux/const.h>
 

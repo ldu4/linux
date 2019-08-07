@@ -660,16 +660,6 @@ config SENSORS_IT87
 	  This driver can also be built as a module. If so, the module
 	  will be called it87.
 
-config SENSORS_JZ4740
-	tristate "Ingenic JZ4740 SoC ADC driver"
-	depends on MACH_JZ4740 && MFD_JZ4740_ADC
-	help
-	  If you say yes here you get support for reading adc values from the ADCIN
-	  pin on Ingenic JZ4740 SoC based boards.
-
-	  This driver can also be built as a module. If so, the module will be
-	  called jz4740-hwmon.
-
 config SENSORS_JC42
 	tristate "JEDEC JC42.4 compliant memory module temperature sensors"
 	depends on I2C
@@ -1569,16 +1559,6 @@ config SENSORS_ADC128D818
 
 	  This driver can also be built as a module. If so, the module
 	  will be called adc128d818.
-
-config SENSORS_ADS1015
-	tristate "Texas Instruments ADS1015"
-	depends on I2C
-	help
-	  If you say yes here you get support for Texas Instruments
-	  ADS1015/ADS1115 12/16-bit 4-input ADC device.
-
-	  This driver can also be built as a module. If so, the module
-	  will be called ads1015.
 
 config SENSORS_ADS7828
 	tristate "Texas Instruments ADS7828 and compatibles"
