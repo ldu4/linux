@@ -1491,12 +1491,9 @@ static int flexcan_setup_stop_mode(struct platform_device *pdev)
 
 	device_set_wakeup_capable(&pdev->dev, true);
 
-<<<<<<< HEAD
-=======
 	if (of_property_read_bool(np, "wakeup-source"))
 		device_set_wakeup_enable(&pdev->dev, true);
 
->>>>>>> linux-next/akpm-base
 out_put_node:
 	of_node_put(gpr_np);
 	return ret;

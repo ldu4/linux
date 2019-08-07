@@ -315,12 +315,7 @@ int st21nfca_connectivity_event_received(struct nfc_hci_dev *hdev, u8 host,
 		    skb->data[0] != NFC_EVT_TRANSACTION_AID_TAG)
 			return -EPROTO;
 
-<<<<<<< HEAD
-		transaction = (struct nfc_evt_transaction *)devm_kzalloc(dev,
-						   skb->len - 2, GFP_KERNEL);
-=======
 		transaction = devm_kzalloc(dev, skb->len - 2, GFP_KERNEL);
->>>>>>> linux-next/akpm-base
 		if (!transaction)
 			return -ENOMEM;
 
