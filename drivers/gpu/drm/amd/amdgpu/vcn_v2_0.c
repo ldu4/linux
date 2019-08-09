@@ -1493,11 +1493,7 @@ void vcn_v2_0_dec_ring_insert_start(struct amdgpu_ring *ring)
 
 	amdgpu_ring_write(ring, PACKET0(adev->vcn.internal.data0, 0));
 	amdgpu_ring_write(ring, 0);
-<<<<<<< HEAD
-	amdgpu_ring_write(ring, PACKET0(mmUVD_GPCOM_VCPU_CMD_INTERNAL_OFFSET, 0));
-=======
 	amdgpu_ring_write(ring, PACKET0(adev->vcn.internal.cmd, 0));
->>>>>>> linux-next/akpm-base
 	amdgpu_ring_write(ring, VCN_DEC_KMD_CMD | (VCN_DEC_CMD_PACKET_START << 1));
 }
 
@@ -1510,13 +1506,9 @@ void vcn_v2_0_dec_ring_insert_start(struct amdgpu_ring *ring)
  */
 void vcn_v2_0_dec_ring_insert_end(struct amdgpu_ring *ring)
 {
-<<<<<<< HEAD
-	amdgpu_ring_write(ring, PACKET0(mmUVD_GPCOM_VCPU_CMD_INTERNAL_OFFSET, 0));
-=======
 	struct amdgpu_device *adev = ring->adev;
 
 	amdgpu_ring_write(ring, PACKET0(adev->vcn.internal.cmd, 0));
->>>>>>> linux-next/akpm-base
 	amdgpu_ring_write(ring, VCN_DEC_KMD_CMD | (VCN_DEC_CMD_PACKET_END << 1));
 }
 
@@ -1563,11 +1555,7 @@ void vcn_v2_0_dec_ring_emit_fence(struct amdgpu_ring *ring, u64 addr, u64 seq,
 	amdgpu_ring_write(ring, PACKET0(adev->vcn.internal.data1, 0));
 	amdgpu_ring_write(ring, upper_32_bits(addr) & 0xff);
 
-<<<<<<< HEAD
-	amdgpu_ring_write(ring, PACKET0(mmUVD_GPCOM_VCPU_CMD_INTERNAL_OFFSET, 0));
-=======
 	amdgpu_ring_write(ring, PACKET0(adev->vcn.internal.cmd, 0));
->>>>>>> linux-next/akpm-base
 	amdgpu_ring_write(ring, VCN_DEC_KMD_CMD | (VCN_DEC_CMD_FENCE << 1));
 
 	amdgpu_ring_write(ring, PACKET0(adev->vcn.internal.data0, 0));
@@ -2111,35 +2099,20 @@ static int vcn_v2_0_dec_ring_test_ring(struct amdgpu_ring *ring)
 	unsigned i;
 	int r;
 
-<<<<<<< HEAD
-	WREG32(adev->vcn.external.scratch9, 0xCAFEDEAD);
-	r = amdgpu_ring_alloc(ring, 4);
-	if (r)
-		return r;
-	amdgpu_ring_write(ring, PACKET0(mmUVD_GPCOM_VCPU_CMD_INTERNAL_OFFSET, 0));
-=======
 	WREG32(adev->vcn.inst[ring->me].external.scratch9, 0xCAFEDEAD);
 	r = amdgpu_ring_alloc(ring, 4);
 	if (r)
 		return r;
 	amdgpu_ring_write(ring, PACKET0(adev->vcn.internal.cmd, 0));
->>>>>>> linux-next/akpm-base
 	amdgpu_ring_write(ring, VCN_DEC_KMD_CMD | (VCN_DEC_CMD_PACKET_START << 1));
 	amdgpu_ring_write(ring, PACKET0(adev->vcn.internal.scratch9, 0));
 	amdgpu_ring_write(ring, 0xDEADBEEF);
 	amdgpu_ring_commit(ring);
 	for (i = 0; i < adev->usec_timeout; i++) {
-<<<<<<< HEAD
-		tmp = RREG32(adev->vcn.external.scratch9);
-		if (tmp == 0xDEADBEEF)
-			break;
-		DRM_UDELAY(1);
-=======
 		tmp = RREG32(adev->vcn.inst[ring->me].external.scratch9);
 		if (tmp == 0xDEADBEEF)
 			break;
 		udelay(1);
->>>>>>> linux-next/akpm-base
 	}
 
 	if (i >= adev->usec_timeout)

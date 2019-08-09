@@ -1292,8 +1292,6 @@ static int davinci_mcasp_hw_rule_slot_width(struct snd_pcm_hw_params *params,
 	return snd_mask_refine(fmt, &nfmt);
 }
 
-<<<<<<< HEAD
-=======
 static int davinci_mcasp_hw_rule_format_width(struct snd_pcm_hw_params *params,
 					      struct snd_pcm_hw_rule *rule)
 {
@@ -1316,7 +1314,6 @@ static int davinci_mcasp_hw_rule_format_width(struct snd_pcm_hw_params *params,
 	return snd_mask_refine(fmt, &nfmt);
 }
 
->>>>>>> linux-next/akpm-base
 static const unsigned int davinci_mcasp_dai_rates[] = {
 	8000, 11025, 16000, 22050, 32000, 44100, 48000, 64000,
 	88200, 96000, 176400, 192000,
@@ -1494,9 +1491,6 @@ static int davinci_mcasp_startup(struct snd_pcm_substream *substream,
 				   0, SNDRV_PCM_HW_PARAM_CHANNELS,
 				   &mcasp->chconstr[substream->stream]);
 
-<<<<<<< HEAD
-	if (mcasp->slot_width) {
-=======
 	if (mcasp->max_format_width) {
 		/*
 		 * Only allow formats which require same amount of bits on the
@@ -1511,7 +1505,6 @@ static int davinci_mcasp_startup(struct snd_pcm_substream *substream,
 			return ret;
 	}
 	else if (mcasp->slot_width) {
->>>>>>> linux-next/akpm-base
 		/* Only allow formats require <= slot_width bits on the bus */
 		ret = snd_pcm_hw_rule_add(substream->runtime, 0,
 					  SNDRV_PCM_HW_PARAM_FORMAT,

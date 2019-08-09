@@ -30,14 +30,11 @@
 #define AMDGPU_VCN_FIRMWARE_OFFSET	256
 #define AMDGPU_VCN_MAX_ENC_RINGS	3
 
-<<<<<<< HEAD
-=======
 #define AMDGPU_MAX_VCN_INSTANCES	2
 
 #define AMDGPU_VCN_HARVEST_VCN0 (1 << 0)
 #define AMDGPU_VCN_HARVEST_VCN1 (1 << 1)
 
->>>>>>> linux-next/akpm-base
 #define VCN_DEC_KMD_CMD 		0x80000000
 #define VCN_DEC_CMD_FENCE		0x00000000
 #define VCN_DEC_CMD_TRAP		0x00000001
