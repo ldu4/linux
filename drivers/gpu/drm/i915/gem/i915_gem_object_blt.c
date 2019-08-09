@@ -3,10 +3,9 @@
  * Copyright © 2019 Intel Corporation
  */
 
-#include "i915_gem_object_blt.h"
-
+#include "i915_drv.h"
 #include "i915_gem_clflush.h"
-#include "intel_drv.h"
+#include "i915_gem_object_blt.h"
 
 int intel_emit_vma_fill_blt(struct i915_request *rq,
 			    struct i915_vma *vma,
@@ -47,15 +46,11 @@ int i915_gem_object_fill_blt(struct drm_i915_gem_object *obj,
 			     struct intel_context *ce,
 			     u32 value)
 {
-	struct drm_i915_private *i915 = to_i915(obj->base.dev);
-	struct i915_gem_context *ctx = ce->gem_context;
-	struct i915_address_space *vm = ctx->vm ?: &i915->ggtt.vm;
 	struct i915_request *rq;
 	struct i915_vma *vma;
 	int err;
 
-	/* XXX: ce->vm please */
-	vma = i915_vma_instance(obj, vm, NULL);
+	vma = i915_vma_instance(obj, ce->vm, NULL);
 	if (IS_ERR(vma))
 		return PTR_ERR(vma);
 
