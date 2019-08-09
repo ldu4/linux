@@ -79,7 +79,7 @@ static inline void pte_free_slow(struct page *ptepage)
 
 static inline void pte_free(struct mm_struct *mm, struct page *ptepage)
 {
-	pgtable_page_dtor(ptepage);
+	pgtable_pte_page_dtor(ptepage);
 	__free_page(ptepage);
 }
 
