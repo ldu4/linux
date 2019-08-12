@@ -776,6 +776,14 @@ static bool devx_is_obj_create_cmd(const void *in, u16 *opcode)
 			return true;
 		return false;
 	}
+	case MLX5_CMD_OP_CREATE_PSV:
+	{
+		u8 num_psv = MLX5_GET(create_psv_in, in, num_psv);
+
+		if (num_psv == 1)
+			return true;
+		return false;
+	}
 	default:
 		return false;
 	}
@@ -922,6 +930,7 @@ static bool devx_is_general_cmd(void *in, struct mlx5_ib_dev *dev)
 	case MLX5_CMD_OP_QUERY_CONG_STATUS:
 	case MLX5_CMD_OP_QUERY_CONG_PARAMS:
 	case MLX5_CMD_OP_QUERY_CONG_STATISTICS:
+	case MLX5_CMD_OP_QUERY_LAG:
 		return true;
 	default:
 		return false;
@@ -1214,6 +1223,12 @@ static void devx_obj_build_destroy_cmd(void *in, void *out, void *din,
 		break;
 	case MLX5_CMD_OP_ALLOC_XRCD:
 		MLX5_SET(general_obj_in_cmd_hdr, din, opcode, MLX5_CMD_OP_DEALLOC_XRCD);
+		break;
+	case MLX5_CMD_OP_CREATE_PSV:
+		MLX5_SET(general_obj_in_cmd_hdr, din, opcode,
+			 MLX5_CMD_OP_DESTROY_PSV);
+		MLX5_SET(destroy_psv_in, din, psvn,
+			 MLX5_GET(create_psv_out, out, psv0_index));
 		break;
 	default:
 		/* The entry must match to one of the devx_is_obj_create_cmd */

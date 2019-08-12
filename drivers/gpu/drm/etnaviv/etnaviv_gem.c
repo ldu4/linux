@@ -3,10 +3,11 @@
  * Copyright (C) 2015-2018 Etnaviv Project
  */
 
-#include <linux/spinlock.h>
+#include <drm/drm_prime.h>
+#include <linux/dma-mapping.h>
 #include <linux/shmem_fs.h>
-#include <linux/sched/mm.h>
-#include <linux/sched/task.h>
+#include <linux/spinlock.h>
+#include <linux/vmalloc.h>
 
 #include "etnaviv_drv.h"
 #include "etnaviv_gem.h"
@@ -232,18 +233,6 @@ etnaviv_gem_get_vram_mapping(struct etnaviv_gem_object *obj,
 	}
 
 	return NULL;
-}
-
-void etnaviv_gem_mapping_reference(struct etnaviv_vram_mapping *mapping)
-{
-	struct etnaviv_gem_object *etnaviv_obj = mapping->object;
-
-	drm_gem_object_get(&etnaviv_obj->base);
-
-	mutex_lock(&etnaviv_obj->lock);
-	WARN_ON(mapping->use == 0);
-	mapping->use += 1;
-	mutex_unlock(&etnaviv_obj->lock);
 }
 
 void etnaviv_gem_mapping_unreference(struct etnaviv_vram_mapping *mapping)
@@ -565,8 +554,7 @@ void etnaviv_gem_obj_add(struct drm_device *dev, struct drm_gem_object *obj)
 }
 
 static int etnaviv_gem_new_impl(struct drm_device *dev, u32 size, u32 flags,
-	struct reservation_object *robj, const struct etnaviv_gem_ops *ops,
-	struct drm_gem_object **obj)
+	const struct etnaviv_gem_ops *ops, struct drm_gem_object **obj)
 {
 	struct etnaviv_gem_object *etnaviv_obj;
 	unsigned sz = sizeof(*etnaviv_obj);
@@ -594,8 +582,6 @@ static int etnaviv_gem_new_impl(struct drm_device *dev, u32 size, u32 flags,
 
 	etnaviv_obj->flags = flags;
 	etnaviv_obj->ops = ops;
-	if (robj)
-		etnaviv_obj->base.resv = robj;
 
 	mutex_init(&etnaviv_obj->lock);
 	INIT_LIST_HEAD(&etnaviv_obj->vram_list);
@@ -614,7 +600,7 @@ int etnaviv_gem_new_handle(struct drm_device *dev, struct drm_file *file,
 
 	size = PAGE_ALIGN(size);
 
-	ret = etnaviv_gem_new_impl(dev, size, flags, NULL,
+	ret = etnaviv_gem_new_impl(dev, size, flags,
 				   &etnaviv_gem_shmem_ops, &obj);
 	if (ret)
 		goto fail;
@@ -646,13 +632,12 @@ fail:
 }
 
 int etnaviv_gem_new_private(struct drm_device *dev, size_t size, u32 flags,
-	struct reservation_object *robj, const struct etnaviv_gem_ops *ops,
-	struct etnaviv_gem_object **res)
+	const struct etnaviv_gem_ops *ops, struct etnaviv_gem_object **res)
 {
 	struct drm_gem_object *obj;
 	int ret;
 
-	ret = etnaviv_gem_new_impl(dev, size, flags, robj, ops, &obj);
+	ret = etnaviv_gem_new_impl(dev, size, flags, ops, &obj);
 	if (ret)
 		return ret;
 
@@ -734,7 +719,7 @@ int etnaviv_gem_new_userptr(struct drm_device *dev, struct drm_file *file,
 	struct etnaviv_gem_object *etnaviv_obj;
 	int ret;
 
-	ret = etnaviv_gem_new_private(dev, size, ETNA_BO_CACHED, NULL,
+	ret = etnaviv_gem_new_private(dev, size, ETNA_BO_CACHED,
 				      &etnaviv_gem_userptr_ops, &etnaviv_obj);
 	if (ret)
 		return ret;

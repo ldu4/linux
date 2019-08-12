@@ -15,6 +15,7 @@
 #include <drm/drm_gem_framebuffer_helper.h>
 #include <drm/drm_irq.h>
 #include <drm/drm_vblank.h>
+#include <drm/drm_probe_helper.h>
 
 #include "komeda_dev.h"
 #include "komeda_framebuffer.h"
@@ -55,16 +56,13 @@ static irqreturn_t komeda_kms_irq_handler(int irq, void *data)
 }
 
 static struct drm_driver komeda_kms_driver = {
-	.driver_features = DRIVER_GEM | DRIVER_MODESET | DRIVER_ATOMIC |
-			   DRIVER_PRIME | DRIVER_HAVE_IRQ,
+	.driver_features = DRIVER_GEM | DRIVER_MODESET | DRIVER_ATOMIC,
 	.lastclose			= drm_fb_helper_lastclose,
 	.gem_free_object_unlocked	= drm_gem_cma_free_object,
 	.gem_vm_ops			= &drm_gem_cma_vm_ops,
 	.dumb_create			= komeda_gem_cma_dumb_create,
 	.prime_handle_to_fd		= drm_gem_prime_handle_to_fd,
 	.prime_fd_to_handle		= drm_gem_prime_fd_to_handle,
-	.gem_prime_export		= drm_gem_prime_export,
-	.gem_prime_import		= drm_gem_prime_import,
 	.gem_prime_get_sg_table		= drm_gem_cma_prime_get_sg_table,
 	.gem_prime_import_sg_table	= drm_gem_cma_prime_import_sg_table,
 	.gem_prime_vmap			= drm_gem_cma_prime_vmap,
@@ -315,6 +313,8 @@ struct komeda_kms_dev *komeda_kms_attach(struct komeda_dev *mdev)
 
 	drm->irq_enabled = true;
 
+	drm_kms_helper_poll_init(drm);
+
 	err = drm_dev_register(drm, 0);
 	if (err)
 		goto cleanup_mode_config;
@@ -322,6 +322,7 @@ struct komeda_kms_dev *komeda_kms_attach(struct komeda_dev *mdev)
 	return kms;
 
 cleanup_mode_config:
+	drm_kms_helper_poll_fini(drm);
 	drm->irq_enabled = false;
 	drm_mode_config_cleanup(drm);
 	komeda_kms_cleanup_private_objs(kms);
@@ -338,6 +339,7 @@ void komeda_kms_detach(struct komeda_kms_dev *kms)
 	drm->irq_enabled = false;
 	mdev->funcs->disable_irq(mdev);
 	drm_dev_unregister(drm);
+	drm_kms_helper_poll_fini(drm);
 	component_unbind_all(mdev->dev, drm);
 	komeda_kms_cleanup_private_objs(kms);
 	drm_mode_config_cleanup(drm);
