@@ -23,6 +23,7 @@
  */
 
 #include <linux/slab.h>
+#include <linux/mm.h>
 
 #include "dm_services.h"
 
@@ -180,13 +181,25 @@ static bool create_links(
 		link = link_create(&link_init_params);
 
 		if (link) {
-			if (dc->config.edp_not_connected &&
-					link->connector_signal == SIGNAL_TYPE_EDP) {
-				link_destroy(&link);
-			} else {
+			bool should_destory_link = false;
+
+			if (link->connector_signal == SIGNAL_TYPE_EDP) {
+				if (dc->config.edp_not_connected)
+					should_destory_link = true;
+				else if (dc->debug.remove_disconnect_edp) {
+					enum dc_connection_type type;
+					dc_link_detect_sink(link, &type);
+					if (type == dc_connection_none)
+						should_destory_link = true;
+				}
+			}
+
+			if (!should_destory_link) {
 				dc->links[dc->link_count] = link;
 				link->dc = dc;
 				++dc->link_count;
+			} else {
+				link_destroy(&link);
 			}
 		}
 	}
@@ -1064,7 +1077,7 @@ static enum dc_status dc_commit_state_no_check(struct dc *dc, struct dc_state *c
 	if (result != DC_OK)
 		return result;
 
-	if (context->stream_count > 1) {
+	if (context->stream_count > 1 && !dc->debug.disable_timing_sync) {
 		enable_timing_multisync(dc, context);
 		program_timing_sync(dc, context);
 	}
@@ -1171,8 +1184,8 @@ bool dc_post_update_surfaces_to_stream(struct dc *dc)
 
 struct dc_state *dc_create_state(struct dc *dc)
 {
-	struct dc_state *context = kzalloc(sizeof(struct dc_state),
-					   GFP_KERNEL);
+	struct dc_state *context = kvzalloc(sizeof(struct dc_state),
+					    GFP_KERNEL);
 
 	if (!context)
 		return NULL;
@@ -1192,11 +1205,11 @@ struct dc_state *dc_create_state(struct dc *dc)
 struct dc_state *dc_copy_state(struct dc_state *src_ctx)
 {
 	int i, j;
-	struct dc_state *new_ctx = kmemdup(src_ctx,
-			sizeof(struct dc_state), GFP_KERNEL);
+	struct dc_state *new_ctx = kvmalloc(sizeof(struct dc_state), GFP_KERNEL);
 
 	if (!new_ctx)
 		return NULL;
+	memcpy(new_ctx, src_ctx, sizeof(struct dc_state));
 
 	for (i = 0; i < MAX_PIPES; i++) {
 			struct pipe_ctx *cur_pipe = &new_ctx->res_ctx.pipe_ctx[i];
@@ -1230,12 +1243,61 @@ static void dc_state_free(struct kref *kref)
 {
 	struct dc_state *context = container_of(kref, struct dc_state, refcount);
 	dc_resource_state_destruct(context);
-	kfree(context);
+	kvfree(context);
 }
 
 void dc_release_state(struct dc_state *context)
 {
 	kref_put(&context->refcount, dc_state_free);
+}
+
+bool dc_set_generic_gpio_for_stereo(bool enable,
+		struct gpio_service *gpio_service)
+{
+	enum gpio_result gpio_result = GPIO_RESULT_NON_SPECIFIC_ERROR;
+	struct gpio_pin_info pin_info;
+	struct gpio *generic;
+	struct gpio_generic_mux_config *config = kzalloc(sizeof(struct gpio_generic_mux_config),
+			   GFP_KERNEL);
+
+	if (!config)
+		return false;
+	pin_info = dal_gpio_get_generic_pin_info(gpio_service, GPIO_ID_GENERIC, 0);
+
+	if (pin_info.mask == 0xFFFFFFFF || pin_info.offset == 0xFFFFFFFF) {
+		kfree(config);
+		return false;
+	} else {
+		generic = dal_gpio_service_create_generic_mux(
+			gpio_service,
+			pin_info.offset,
+			pin_info.mask);
+	}
+
+	if (!generic) {
+		kfree(config);
+		return false;
+	}
+
+	gpio_result = dal_gpio_open(generic, GPIO_MODE_OUTPUT);
+
+	config->enable_output_from_mux = enable;
+	config->mux_select = GPIO_SIGNAL_SOURCE_PASS_THROUGH_STEREO_SYNC;
+
+	if (gpio_result == GPIO_RESULT_OK)
+		gpio_result = dal_mux_setup_config(generic, config);
+
+	if (gpio_result == GPIO_RESULT_OK) {
+		dal_gpio_close(generic);
+		dal_gpio_destroy_generic_mux(&generic);
+		kfree(config);
+		return true;
+	} else {
+		dal_gpio_close(generic);
+		dal_gpio_destroy_generic_mux(&generic);
+		kfree(config);
+		return false;
+	}
 }
 
 static bool is_surface_in_context(
@@ -1304,8 +1366,8 @@ static enum surface_update_type get_plane_info_update_type(const struct dc_surfa
 	}
 
 	if (u->plane_info->dcc.enable != u->surface->dcc.enable
-			|| u->plane_info->dcc.grph.independent_64b_blks != u->surface->dcc.grph.independent_64b_blks
-			|| u->plane_info->dcc.grph.meta_pitch != u->surface->dcc.grph.meta_pitch) {
+			|| u->plane_info->dcc.independent_64b_blks != u->surface->dcc.independent_64b_blks
+			|| u->plane_info->dcc.meta_pitch != u->surface->dcc.meta_pitch) {
 		update_flags->bits.dcc_change = 1;
 		elevate_update_type(&update_type, UPDATE_TYPE_MED);
 	}
@@ -1319,9 +1381,9 @@ static enum surface_update_type get_plane_info_update_type(const struct dc_surfa
 		elevate_update_type(&update_type, UPDATE_TYPE_FULL);
 	}
 
-	if (u->plane_info->plane_size.grph.surface_pitch != u->surface->plane_size.grph.surface_pitch
-			|| u->plane_info->plane_size.video.luma_pitch != u->surface->plane_size.video.luma_pitch
-			|| u->plane_info->plane_size.video.chroma_pitch != u->surface->plane_size.video.chroma_pitch) {
+	if (u->plane_info->plane_size.surface_pitch != u->surface->plane_size.surface_pitch
+			|| u->plane_info->plane_size.surface_pitch != u->surface->plane_size.surface_pitch
+			|| u->plane_info->plane_size.chroma_pitch != u->surface->plane_size.chroma_pitch) {
 		update_flags->bits.plane_size_change = 1;
 		elevate_update_type(&update_type, UPDATE_TYPE_MED);
 	}
@@ -2385,4 +2447,15 @@ void get_clock_requirements_for_state(struct dc_state *state, struct AsicStateEx
 	info->dcfClockDeepSleep			= (unsigned int)state->bw_ctx.bw.dcn.clk.dcfclk_deep_sleep_khz;
 	info->fClock					= (unsigned int)state->bw_ctx.bw.dcn.clk.fclk_khz;
 	info->phyClock					= (unsigned int)state->bw_ctx.bw.dcn.clk.phyclk_khz;
+}
+enum dc_status dc_set_clock(struct dc *dc, enum dc_clock_type clock_type, uint32_t clk_khz, uint32_t stepping)
+{
+	if (dc->hwss.set_clock)
+		return dc->hwss.set_clock(dc, clock_type, clk_khz, stepping);
+	return DC_ERROR_UNEXPECTED;
+}
+void dc_get_clock(struct dc *dc, enum dc_clock_type clock_type, struct dc_clock_config *clock_cfg)
+{
+	if (dc->hwss.get_clock)
+		dc->hwss.get_clock(dc, clock_type, clock_cfg);
 }

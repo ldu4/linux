@@ -579,7 +579,6 @@ static int pagefault_mr(struct mlx5_ib_dev *dev, struct mlx5_ib_mr *mr,
 			u32 flags)
 {
 	int npages = 0, current_seq, page_shift, ret, np;
-	bool implicit = false;
 	struct ib_umem_odp *odp_mr = to_ib_umem_odp(mr->umem);
 	bool downgrade = flags & MLX5_PF_FLAGS_DOWNGRADE;
 	bool prefetch = flags & MLX5_PF_FLAGS_PREFETCH;
@@ -594,7 +593,6 @@ static int pagefault_mr(struct mlx5_ib_dev *dev, struct mlx5_ib_mr *mr,
 		if (IS_ERR(odp))
 			return PTR_ERR(odp);
 		mr = odp->private;
-		implicit = true;
 	} else {
 		odp = odp_mr;
 	}
@@ -682,19 +680,15 @@ next_mr:
 
 out:
 	if (ret == -EAGAIN) {
-		if (implicit || !odp->dying) {
-			unsigned long timeout =
-				msecs_to_jiffies(MMU_NOTIFIER_TIMEOUT);
+		unsigned long timeout = msecs_to_jiffies(MMU_NOTIFIER_TIMEOUT);
 
-			if (!wait_for_completion_timeout(
-					&odp->notifier_completion,
-					timeout)) {
-				mlx5_ib_warn(dev, "timeout waiting for mmu notifier. seq %d against %d. notifiers_count=%d\n",
-					     current_seq, odp->notifiers_seq, odp->notifiers_count);
-			}
-		} else {
-			/* The MR is being killed, kill the QP as well. */
-			ret = -EFAULT;
+		if (!wait_for_completion_timeout(&odp->notifier_completion,
+						 timeout)) {
+			mlx5_ib_warn(
+				dev,
+				"timeout waiting for mmu notifier. seq %d against %d. notifiers_count=%d\n",
+				current_seq, odp->notifiers_seq,
+				odp->notifiers_count);
 		}
 	}
 
@@ -1015,9 +1009,6 @@ static int mlx5_ib_mr_initiator_pfault_handler(
 	u32 transport_caps;
 	struct mlx5_base_av *av;
 	unsigned ds, opcode;
-#if defined(DEBUG)
-	u32 ctrl_wqe_index, ctrl_qpn;
-#endif
 	u32 qpn = qp->trans_qp.base.mqp.qpn;
 
 	ds = be32_to_cpu(ctrl->qpn_ds) & MLX5_WQE_CTRL_DS_MASK;
@@ -1032,27 +1023,6 @@ static int mlx5_ib_mr_initiator_pfault_handler(
 			    wqe_index, qpn);
 		return -EFAULT;
 	}
-
-#if defined(DEBUG)
-	ctrl_wqe_index = (be32_to_cpu(ctrl->opmod_idx_opcode) &
-			MLX5_WQE_CTRL_WQE_INDEX_MASK) >>
-			MLX5_WQE_CTRL_WQE_INDEX_SHIFT;
-	if (wqe_index != ctrl_wqe_index) {
-		mlx5_ib_err(dev, "Got WQE with invalid wqe_index. wqe_index=0x%x, qpn=0x%x ctrl->wqe_index=0x%x\n",
-			    wqe_index, qpn,
-			    ctrl_wqe_index);
-		return -EFAULT;
-	}
-
-	ctrl_qpn = (be32_to_cpu(ctrl->qpn_ds) & MLX5_WQE_CTRL_QPN_MASK) >>
-		MLX5_WQE_CTRL_QPN_SHIFT;
-	if (qpn != ctrl_qpn) {
-		mlx5_ib_err(dev, "Got WQE with incorrect QP number. wqe_index=0x%x, qpn=0x%x ctrl->qpn=0x%x\n",
-			    wqe_index, qpn,
-			    ctrl_qpn);
-		return -EFAULT;
-	}
-#endif /* DEBUG */
 
 	*wqe_end = *wqe + ds * MLX5_WQE_DS_UNITS;
 	*wqe += sizeof(*ctrl);
