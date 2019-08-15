@@ -6,7 +6,7 @@
 #ifndef __ETNAVIV_GEM_H__
 #define __ETNAVIV_GEM_H__
 
-#include <linux/reservation.h>
+#include <linux/dma-resv.h>
 #include "etnaviv_cmdbuf.h"
 #include "etnaviv_drv.h"
 
@@ -112,15 +112,13 @@ void etnaviv_submit_put(struct etnaviv_gem_submit * submit);
 int etnaviv_gem_wait_bo(struct etnaviv_gpu *gpu, struct drm_gem_object *obj,
 	struct timespec *timeout);
 int etnaviv_gem_new_private(struct drm_device *dev, size_t size, u32 flags,
-	struct reservation_object *robj, const struct etnaviv_gem_ops *ops,
-	struct etnaviv_gem_object **res);
+	const struct etnaviv_gem_ops *ops, struct etnaviv_gem_object **res);
 void etnaviv_gem_obj_add(struct drm_device *dev, struct drm_gem_object *obj);
 struct page **etnaviv_gem_get_pages(struct etnaviv_gem_object *obj);
 void etnaviv_gem_put_pages(struct etnaviv_gem_object *obj);
 
 struct etnaviv_vram_mapping *etnaviv_gem_mapping_get(
 	struct drm_gem_object *obj, struct etnaviv_gpu *gpu);
-void etnaviv_gem_mapping_reference(struct etnaviv_vram_mapping *mapping);
 void etnaviv_gem_mapping_unreference(struct etnaviv_vram_mapping *mapping);
 
 #endif /* __ETNAVIV_GEM_H__ */
