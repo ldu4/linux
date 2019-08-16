@@ -12,6 +12,7 @@
  */
 
 #include <linux/dmi.h>
+#include <linux/gpio/consumer.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
@@ -324,9 +325,8 @@ static const struct snd_soc_ops cht_be_ssp2_ops = {
 };
 
 static struct snd_soc_aux_dev cht_max98090_headset_dev = {
-	.name = "Headset Chip",
+	.dlc = COMP_AUX("i2c-104C227E:00"),
 	.init = cht_max98090_headset_init,
-	.codec_name = "i2c-104C227E:00",
 };
 
 SND_SOC_DAILINK_DEF(dummy,

@@ -27,6 +27,41 @@
 
 static struct dentry *nsim_dev_ddir;
 
+#define NSIM_DEV_DUMMY_REGION_SIZE (1024 * 32)
+
+static ssize_t nsim_dev_take_snapshot_write(struct file *file,
+					    const char __user *data,
+					    size_t count, loff_t *ppos)
+{
+	struct nsim_dev *nsim_dev = file->private_data;
+	void *dummy_data;
+	int err;
+	u32 id;
+
+	dummy_data = kmalloc(NSIM_DEV_DUMMY_REGION_SIZE, GFP_KERNEL);
+	if (!dummy_data)
+		return -ENOMEM;
+
+	get_random_bytes(dummy_data, NSIM_DEV_DUMMY_REGION_SIZE);
+
+	id = devlink_region_shapshot_id_get(priv_to_devlink(nsim_dev));
+	err = devlink_region_snapshot_create(nsim_dev->dummy_region,
+					     dummy_data, id, kfree);
+	if (err) {
+		pr_err("Failed to create region snapshot\n");
+		kfree(dummy_data);
+		return err;
+	}
+
+	return count;
+}
+
+static const struct file_operations nsim_dev_take_snapshot_fops = {
+	.open = simple_open,
+	.write = nsim_dev_take_snapshot_write,
+	.llseek = generic_file_llseek,
+};
+
 static int nsim_dev_debugfs_init(struct nsim_dev *nsim_dev)
 {
 	char dev_ddir_name[16];
@@ -40,6 +75,12 @@ static int nsim_dev_debugfs_init(struct nsim_dev *nsim_dev)
 		return PTR_ERR_OR_ZERO(nsim_dev->ports_ddir) ?: -EINVAL;
 	debugfs_create_bool("fw_update_status", 0600, nsim_dev->ddir,
 			    &nsim_dev->fw_update_status);
+	debugfs_create_u32("max_macs", 0600, nsim_dev->ddir,
+			   &nsim_dev->max_macs);
+	debugfs_create_bool("test1", 0600, nsim_dev->ddir,
+			    &nsim_dev->test1);
+	debugfs_create_file("take_snapshot", 0200, nsim_dev->ddir, nsim_dev,
+			    &nsim_dev_take_snapshot_fops);
 	return 0;
 }
 
@@ -73,46 +114,47 @@ static void nsim_dev_port_debugfs_exit(struct nsim_dev_port *nsim_dev_port)
 	debugfs_remove_recursive(nsim_dev_port->ddir);
 }
 
+static struct net *nsim_devlink_net(struct devlink *devlink)
+{
+	return &init_net;
+}
+
 static u64 nsim_dev_ipv4_fib_resource_occ_get(void *priv)
 {
-	struct nsim_dev *nsim_dev = priv;
+	struct net *net = priv;
 
-	return nsim_fib_get_val(nsim_dev->fib_data,
-				NSIM_RESOURCE_IPV4_FIB, false);
+	return nsim_fib_get_val(net, NSIM_RESOURCE_IPV4_FIB, false);
 }
 
 static u64 nsim_dev_ipv4_fib_rules_res_occ_get(void *priv)
 {
-	struct nsim_dev *nsim_dev = priv;
+	struct net *net = priv;
 
-	return nsim_fib_get_val(nsim_dev->fib_data,
-				NSIM_RESOURCE_IPV4_FIB_RULES, false);
+	return nsim_fib_get_val(net, NSIM_RESOURCE_IPV4_FIB_RULES, false);
 }
 
 static u64 nsim_dev_ipv6_fib_resource_occ_get(void *priv)
 {
-	struct nsim_dev *nsim_dev = priv;
+	struct net *net = priv;
 
-	return nsim_fib_get_val(nsim_dev->fib_data,
-				NSIM_RESOURCE_IPV6_FIB, false);
+	return nsim_fib_get_val(net, NSIM_RESOURCE_IPV6_FIB, false);
 }
 
 static u64 nsim_dev_ipv6_fib_rules_res_occ_get(void *priv)
 {
-	struct nsim_dev *nsim_dev = priv;
+	struct net *net = priv;
 
-	return nsim_fib_get_val(nsim_dev->fib_data,
-				NSIM_RESOURCE_IPV6_FIB_RULES, false);
+	return nsim_fib_get_val(net, NSIM_RESOURCE_IPV6_FIB_RULES, false);
 }
 
 static int nsim_dev_resources_register(struct devlink *devlink)
 {
-	struct nsim_dev *nsim_dev = devlink_priv(devlink);
 	struct devlink_resource_size_params params = {
 		.size_max = (u64)-1,
 		.size_granularity = 1,
 		.unit = DEVLINK_RESOURCE_UNIT_ENTRY
 	};
+	struct net *net = nsim_devlink_net(devlink);
 	int err;
 	u64 n;
 
@@ -126,8 +168,7 @@ static int nsim_dev_resources_register(struct devlink *devlink)
 		goto out;
 	}
 
-	n = nsim_fib_get_val(nsim_dev->fib_data,
-			     NSIM_RESOURCE_IPV4_FIB, true);
+	n = nsim_fib_get_val(net, NSIM_RESOURCE_IPV4_FIB, true);
 	err = devlink_resource_register(devlink, "fib", n,
 					NSIM_RESOURCE_IPV4_FIB,
 					NSIM_RESOURCE_IPV4, &params);
@@ -136,8 +177,7 @@ static int nsim_dev_resources_register(struct devlink *devlink)
 		return err;
 	}
 
-	n = nsim_fib_get_val(nsim_dev->fib_data,
-			     NSIM_RESOURCE_IPV4_FIB_RULES, true);
+	n = nsim_fib_get_val(net, NSIM_RESOURCE_IPV4_FIB_RULES, true);
 	err = devlink_resource_register(devlink, "fib-rules", n,
 					NSIM_RESOURCE_IPV4_FIB_RULES,
 					NSIM_RESOURCE_IPV4, &params);
@@ -156,8 +196,7 @@ static int nsim_dev_resources_register(struct devlink *devlink)
 		goto out;
 	}
 
-	n = nsim_fib_get_val(nsim_dev->fib_data,
-			     NSIM_RESOURCE_IPV6_FIB, true);
+	n = nsim_fib_get_val(net, NSIM_RESOURCE_IPV6_FIB, true);
 	err = devlink_resource_register(devlink, "fib", n,
 					NSIM_RESOURCE_IPV6_FIB,
 					NSIM_RESOURCE_IPV6, &params);
@@ -166,8 +205,7 @@ static int nsim_dev_resources_register(struct devlink *devlink)
 		return err;
 	}
 
-	n = nsim_fib_get_val(nsim_dev->fib_data,
-			     NSIM_RESOURCE_IPV6_FIB_RULES, true);
+	n = nsim_fib_get_val(net, NSIM_RESOURCE_IPV6_FIB_RULES, true);
 	err = devlink_resource_register(devlink, "fib-rules", n,
 					NSIM_RESOURCE_IPV6_FIB_RULES,
 					NSIM_RESOURCE_IPV6, &params);
@@ -179,31 +217,96 @@ static int nsim_dev_resources_register(struct devlink *devlink)
 	devlink_resource_occ_get_register(devlink,
 					  NSIM_RESOURCE_IPV4_FIB,
 					  nsim_dev_ipv4_fib_resource_occ_get,
-					  nsim_dev);
+					  net);
 	devlink_resource_occ_get_register(devlink,
 					  NSIM_RESOURCE_IPV4_FIB_RULES,
 					  nsim_dev_ipv4_fib_rules_res_occ_get,
-					  nsim_dev);
+					  net);
 	devlink_resource_occ_get_register(devlink,
 					  NSIM_RESOURCE_IPV6_FIB,
 					  nsim_dev_ipv6_fib_resource_occ_get,
-					  nsim_dev);
+					  net);
 	devlink_resource_occ_get_register(devlink,
 					  NSIM_RESOURCE_IPV6_FIB_RULES,
 					  nsim_dev_ipv6_fib_rules_res_occ_get,
-					  nsim_dev);
+					  net);
 out:
 	return err;
+}
+
+enum nsim_devlink_param_id {
+	NSIM_DEVLINK_PARAM_ID_BASE = DEVLINK_PARAM_GENERIC_ID_MAX,
+	NSIM_DEVLINK_PARAM_ID_TEST1,
+};
+
+static const struct devlink_param nsim_devlink_params[] = {
+	DEVLINK_PARAM_GENERIC(MAX_MACS,
+			      BIT(DEVLINK_PARAM_CMODE_DRIVERINIT),
+			      NULL, NULL, NULL),
+	DEVLINK_PARAM_DRIVER(NSIM_DEVLINK_PARAM_ID_TEST1,
+			     "test1", DEVLINK_PARAM_TYPE_BOOL,
+			     BIT(DEVLINK_PARAM_CMODE_DRIVERINIT),
+			     NULL, NULL, NULL),
+};
+
+static void nsim_devlink_set_params_init_values(struct nsim_dev *nsim_dev,
+						struct devlink *devlink)
+{
+	union devlink_param_value value;
+
+	value.vu32 = nsim_dev->max_macs;
+	devlink_param_driverinit_value_set(devlink,
+					   DEVLINK_PARAM_GENERIC_ID_MAX_MACS,
+					   value);
+	value.vbool = nsim_dev->test1;
+	devlink_param_driverinit_value_set(devlink,
+					   NSIM_DEVLINK_PARAM_ID_TEST1,
+					   value);
+}
+
+static void nsim_devlink_param_load_driverinit_values(struct devlink *devlink)
+{
+	struct nsim_dev *nsim_dev = devlink_priv(devlink);
+	union devlink_param_value saved_value;
+	int err;
+
+	err = devlink_param_driverinit_value_get(devlink,
+						 DEVLINK_PARAM_GENERIC_ID_MAX_MACS,
+						 &saved_value);
+	if (!err)
+		nsim_dev->max_macs = saved_value.vu32;
+	err = devlink_param_driverinit_value_get(devlink,
+						 NSIM_DEVLINK_PARAM_ID_TEST1,
+						 &saved_value);
+	if (!err)
+		nsim_dev->test1 = saved_value.vbool;
+}
+
+#define NSIM_DEV_DUMMY_REGION_SNAPSHOT_MAX 16
+
+static int nsim_dev_dummy_region_init(struct nsim_dev *nsim_dev,
+				      struct devlink *devlink)
+{
+	nsim_dev->dummy_region =
+		devlink_region_create(devlink, "dummy",
+				      NSIM_DEV_DUMMY_REGION_SNAPSHOT_MAX,
+				      NSIM_DEV_DUMMY_REGION_SIZE);
+	return PTR_ERR_OR_ZERO(nsim_dev->dummy_region);
+}
+
+static void nsim_dev_dummy_region_exit(struct nsim_dev *nsim_dev)
+{
+	devlink_region_destroy(nsim_dev->dummy_region);
 }
 
 static int nsim_dev_reload(struct devlink *devlink,
 			   struct netlink_ext_ack *extack)
 {
-	struct nsim_dev *nsim_dev = devlink_priv(devlink);
 	enum nsim_resource_id res_ids[] = {
 		NSIM_RESOURCE_IPV4_FIB, NSIM_RESOURCE_IPV4_FIB_RULES,
 		NSIM_RESOURCE_IPV6_FIB, NSIM_RESOURCE_IPV6_FIB_RULES
 	};
+	struct net *net = nsim_devlink_net(devlink);
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(res_ids); ++i) {
@@ -212,12 +315,12 @@ static int nsim_dev_reload(struct devlink *devlink,
 
 		err = devlink_resource_size_get(devlink, res_ids[i], &val);
 		if (!err) {
-			err = nsim_fib_set_max(nsim_dev->fib_data,
-					       res_ids[i], val, extack);
+			err = nsim_fib_set_max(net, res_ids[i], val, extack);
 			if (err)
 				return err;
 		}
 	}
+	nsim_devlink_param_load_driverinit_values(devlink);
 
 	return 0;
 }
@@ -267,6 +370,9 @@ static const struct devlink_ops nsim_dev_devlink_ops = {
 	.flash_update = nsim_dev_flash_update,
 };
 
+#define NSIM_DEV_MAX_MACS_DEFAULT 32
+#define NSIM_DEV_TEST1_DEFAULT true
+
 static struct nsim_dev *
 nsim_dev_create(struct nsim_bus_dev *nsim_bus_dev, unsigned int port_count)
 {
@@ -284,39 +390,49 @@ nsim_dev_create(struct nsim_bus_dev *nsim_bus_dev, unsigned int port_count)
 	INIT_LIST_HEAD(&nsim_dev->port_list);
 	mutex_init(&nsim_dev->port_list_lock);
 	nsim_dev->fw_update_status = true;
-
-	nsim_dev->fib_data = nsim_fib_create();
-	if (IS_ERR(nsim_dev->fib_data)) {
-		err = PTR_ERR(nsim_dev->fib_data);
-		goto err_devlink_free;
-	}
+	nsim_dev->max_macs = NSIM_DEV_MAX_MACS_DEFAULT;
+	nsim_dev->test1 = NSIM_DEV_TEST1_DEFAULT;
 
 	err = nsim_dev_resources_register(devlink);
 	if (err)
-		goto err_fib_destroy;
+		goto err_devlink_free;
 
 	err = devlink_register(devlink, &nsim_bus_dev->dev);
 	if (err)
 		goto err_resources_unregister;
 
-	err = nsim_dev_debugfs_init(nsim_dev);
+	err = devlink_params_register(devlink, nsim_devlink_params,
+				      ARRAY_SIZE(nsim_devlink_params));
 	if (err)
 		goto err_dl_unregister;
+	nsim_devlink_set_params_init_values(nsim_dev, devlink);
+
+	err = nsim_dev_dummy_region_init(nsim_dev, devlink);
+	if (err)
+		goto err_params_unregister;
+
+	err = nsim_dev_debugfs_init(nsim_dev);
+	if (err)
+		goto err_dummy_region_exit;
 
 	err = nsim_bpf_dev_init(nsim_dev);
 	if (err)
 		goto err_debugfs_exit;
 
+	devlink_params_publish(devlink);
 	return nsim_dev;
 
 err_debugfs_exit:
 	nsim_dev_debugfs_exit(nsim_dev);
+err_dummy_region_exit:
+	nsim_dev_dummy_region_exit(nsim_dev);
+err_params_unregister:
+	devlink_params_unregister(devlink, nsim_devlink_params,
+				  ARRAY_SIZE(nsim_devlink_params));
 err_dl_unregister:
 	devlink_unregister(devlink);
 err_resources_unregister:
 	devlink_resources_unregister(devlink, NULL);
-err_fib_destroy:
-	nsim_fib_destroy(nsim_dev->fib_data);
 err_devlink_free:
 	devlink_free(devlink);
 	return ERR_PTR(err);
@@ -328,9 +444,11 @@ static void nsim_dev_destroy(struct nsim_dev *nsim_dev)
 
 	nsim_bpf_dev_exit(nsim_dev);
 	nsim_dev_debugfs_exit(nsim_dev);
+	nsim_dev_dummy_region_exit(nsim_dev);
+	devlink_params_unregister(devlink, nsim_devlink_params,
+				  ARRAY_SIZE(nsim_devlink_params));
 	devlink_unregister(devlink);
 	devlink_resources_unregister(devlink, NULL);
-	nsim_fib_destroy(nsim_dev->fib_data);
 	mutex_destroy(&nsim_dev->port_list_lock);
 	devlink_free(devlink);
 }

@@ -667,29 +667,7 @@ void dce110_enable_stream(struct pipe_ctx *pipe_ctx)
 	link->link_enc->funcs->connect_dig_be_to_fe(link->link_enc,
 						    pipe_ctx->stream_res.stream_enc->id, true);
 
-	/* update AVI info frame (HDMI, DP)*/
-	/* TODO: FPGA may change to hwss.update_info_frame */
-
-#if defined(CONFIG_DRM_AMD_DC_DCN2_0)
-	if (pipe_ctx->stream_res.stream_enc->funcs->set_dynamic_metadata != NULL &&
-			pipe_ctx->plane_res.hubp != NULL) {
-		if (pipe_ctx->stream->dmdata_address.quad_part != 0) {
-			/* if using dynamic meta, don't set up generic infopackets */
-			pipe_ctx->stream_res.encoder_info_frame.hdrsmd.valid = false;
-			pipe_ctx->stream_res.stream_enc->funcs->set_dynamic_metadata(
-					pipe_ctx->stream_res.stream_enc,
-					true, pipe_ctx->plane_res.hubp->inst,
-					dc_is_dp_signal(pipe_ctx->stream->signal) ?
-							dmdata_dp : dmdata_hdmi);
-		} else
-			pipe_ctx->stream_res.stream_enc->funcs->set_dynamic_metadata(
-					pipe_ctx->stream_res.stream_enc,
-					false, pipe_ctx->plane_res.hubp->inst,
-					dc_is_dp_signal(pipe_ctx->stream->signal) ?
-							dmdata_dp : dmdata_hdmi);
-	}
-#endif
-	dce110_update_info_frame(pipe_ctx);
+	link->dc->hwss.update_info_frame(pipe_ctx);
 
 	/* enable early control to avoid corruption on DP monitor*/
 	active_total_with_borders =
@@ -753,7 +731,7 @@ static enum bp_result link_transmitter_control(
  * @brief
  * eDP only.
  */
-void hwss_edp_wait_for_hpd_ready(
+void dce110_edp_wait_for_hpd_ready(
 		struct dc_link *link,
 		bool power_up)
 {
@@ -821,7 +799,7 @@ void hwss_edp_wait_for_hpd_ready(
 	}
 }
 
-void hwss_edp_power_control(
+void dce110_edp_power_control(
 		struct dc_link *link,
 		bool power_up)
 {
@@ -903,7 +881,7 @@ void hwss_edp_power_control(
  * @brief
  * eDP only. Control the backlight of the eDP panel
  */
-void hwss_edp_backlight_control(
+void dce110_edp_backlight_control(
 		struct dc_link *link,
 		bool enable)
 {
@@ -1062,9 +1040,12 @@ void dce110_disable_stream(struct pipe_ctx *pipe_ctx, int option)
 	struct dc_link *link = stream->link;
 	struct dc *dc = pipe_ctx->stream->ctx->dc;
 
-	if (dc_is_hdmi_tmds_signal(pipe_ctx->stream->signal))
+	if (dc_is_hdmi_tmds_signal(pipe_ctx->stream->signal)) {
 		pipe_ctx->stream_res.stream_enc->funcs->stop_hdmi_info_packets(
 			pipe_ctx->stream_res.stream_enc);
+		pipe_ctx->stream_res.stream_enc->funcs->hdmi_reset_stream_attribute(
+			pipe_ctx->stream_res.stream_enc);
+	}
 
 	if (dc_is_dp_signal(pipe_ctx->stream->signal))
 		pipe_ctx->stream_res.stream_enc->funcs->stop_dp_info_packets(
@@ -1174,27 +1155,27 @@ static void build_audio_output(
 			stream->timing.flags.INTERLACE;
 
 	audio_output->crtc_info.refresh_rate =
-		(stream->timing.pix_clk_100hz*10000)/
+		(stream->timing.pix_clk_100hz*100)/
 		(stream->timing.h_total*stream->timing.v_total);
 
 	audio_output->crtc_info.color_depth =
 		stream->timing.display_color_depth;
 
-	audio_output->crtc_info.requested_pixel_clock =
-			pipe_ctx->stream_res.pix_clk_params.requested_pix_clk_100hz / 10;
+	audio_output->crtc_info.requested_pixel_clock_100Hz =
+			pipe_ctx->stream_res.pix_clk_params.requested_pix_clk_100hz;
 
-	audio_output->crtc_info.calculated_pixel_clock =
-			pipe_ctx->stream_res.pix_clk_params.requested_pix_clk_100hz / 10;
+	audio_output->crtc_info.calculated_pixel_clock_100Hz =
+			pipe_ctx->stream_res.pix_clk_params.requested_pix_clk_100hz;
 
 /*for HDMI, audio ACR is with deep color ratio factor*/
 	if (dc_is_hdmi_signal(pipe_ctx->stream->signal) &&
-		audio_output->crtc_info.requested_pixel_clock ==
-				(stream->timing.pix_clk_100hz / 10)) {
+		audio_output->crtc_info.requested_pixel_clock_100Hz ==
+				(stream->timing.pix_clk_100hz)) {
 		if (pipe_ctx->stream_res.pix_clk_params.pixel_encoding == PIXEL_ENCODING_YCBCR420) {
-			audio_output->crtc_info.requested_pixel_clock =
-					audio_output->crtc_info.requested_pixel_clock/2;
-			audio_output->crtc_info.calculated_pixel_clock =
-					pipe_ctx->stream_res.pix_clk_params.requested_pix_clk_100hz/20;
+			audio_output->crtc_info.requested_pixel_clock_100Hz =
+					audio_output->crtc_info.requested_pixel_clock_100Hz/2;
+			audio_output->crtc_info.calculated_pixel_clock_100Hz =
+					pipe_ctx->stream_res.pix_clk_params.requested_pix_clk_100hz/2;
 
 		}
 	}
@@ -2777,9 +2758,9 @@ static const struct hw_sequencer_funcs dce110_funcs = {
 	.setup_stereo = NULL,
 	.set_avmute = dce110_set_avmute,
 	.wait_for_mpcc_disconnect = dce110_wait_for_mpcc_disconnect,
-	.edp_backlight_control = hwss_edp_backlight_control,
-	.edp_power_control = hwss_edp_power_control,
-	.edp_wait_for_hpd_ready = hwss_edp_wait_for_hpd_ready,
+	.edp_backlight_control = dce110_edp_backlight_control,
+	.edp_power_control = dce110_edp_power_control,
+	.edp_wait_for_hpd_ready = dce110_edp_wait_for_hpd_ready,
 	.set_cursor_position = dce110_set_cursor_position,
 	.set_cursor_attribute = dce110_set_cursor_attribute
 };
