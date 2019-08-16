@@ -3,9 +3,15 @@
  * Copyright (C) 2015 Etnaviv Project
  */
 
+#include <drm/drm_file.h>
 #include <linux/dma-fence-array.h>
-#include <linux/reservation.h>
+#include <linux/file.h>
+#include <linux/pm_runtime.h>
+#include <linux/dma-resv.h>
 #include <linux/sync_file.h>
+#include <linux/uaccess.h>
+#include <linux/vmalloc.h>
+
 #include "etnaviv_cmdbuf.h"
 #include "etnaviv_drv.h"
 #include "etnaviv_gpu.h"
@@ -165,10 +171,10 @@ static int submit_fence_sync(struct etnaviv_gem_submit *submit)
 
 	for (i = 0; i < submit->nr_bos; i++) {
 		struct etnaviv_gem_submit_bo *bo = &submit->bos[i];
-		struct reservation_object *robj = bo->obj->base.resv;
+		struct dma_resv *robj = bo->obj->base.resv;
 
 		if (!(bo->flags & ETNA_SUBMIT_BO_WRITE)) {
-			ret = reservation_object_reserve_shared(robj, 1);
+			ret = dma_resv_reserve_shared(robj, 1);
 			if (ret)
 				return ret;
 		}
@@ -177,13 +183,13 @@ static int submit_fence_sync(struct etnaviv_gem_submit *submit)
 			continue;
 
 		if (bo->flags & ETNA_SUBMIT_BO_WRITE) {
-			ret = reservation_object_get_fences_rcu(robj, &bo->excl,
+			ret = dma_resv_get_fences_rcu(robj, &bo->excl,
 								&bo->nr_shared,
 								&bo->shared);
 			if (ret)
 				return ret;
 		} else {
-			bo->excl = reservation_object_get_excl_rcu(robj);
+			bo->excl = dma_resv_get_excl_rcu(robj);
 		}
 
 	}
@@ -199,10 +205,10 @@ static void submit_attach_object_fences(struct etnaviv_gem_submit *submit)
 		struct drm_gem_object *obj = &submit->bos[i].obj->base;
 
 		if (submit->bos[i].flags & ETNA_SUBMIT_BO_WRITE)
-			reservation_object_add_excl_fence(obj->resv,
+			dma_resv_add_excl_fence(obj->resv,
 							  submit->out_fence);
 		else
-			reservation_object_add_shared_fence(obj->resv,
+			dma_resv_add_shared_fence(obj->resv,
 							    submit->out_fence);
 
 		submit_unlock_object(submit, i);
