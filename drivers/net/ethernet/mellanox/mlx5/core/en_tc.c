@@ -2067,14 +2067,6 @@ static int parse_cls_flower(struct mlx5e_priv *priv,
 
 	inner_match_level = MLX5_MATCH_NONE;
 	outer_match_level = MLX5_MATCH_NONE;
-<<<<<<< HEAD
-
-	err = __parse_cls_flower(priv, spec, f, filter_dev, &inner_match_level,
-				 &outer_match_level);
-	non_tunnel_match_level = (inner_match_level == MLX5_MATCH_NONE) ?
-				 outer_match_level : inner_match_level;
-=======
->>>>>>> linux-next/akpm-base
 
 	err = __parse_cls_flower(priv, spec, f, filter_dev, &inner_match_level,
 				 &outer_match_level);
@@ -2096,11 +2088,7 @@ static int parse_cls_flower(struct mlx5e_priv *priv,
 		}
 	}
 
-<<<<<<< HEAD
-	if (flow->flags & MLX5E_TC_FLOW_ESWITCH) {
-=======
 	if (is_eswitch_flow) {
->>>>>>> linux-next/akpm-base
 		flow->esw_attr->inner_match_level = inner_match_level;
 		flow->esw_attr->outer_match_level = outer_match_level;
 	} else {

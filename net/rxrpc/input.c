@@ -1028,11 +1028,7 @@ static void rxrpc_input_call_packet(struct rxrpc_call *call,
 	switch (sp->hdr.type) {
 	case RXRPC_PACKET_TYPE_DATA:
 		rxrpc_input_data(call, skb);
-<<<<<<< HEAD
-		break;
-=======
 		goto no_free;
->>>>>>> linux-next/akpm-base
 
 	case RXRPC_PACKET_TYPE_ACK:
 		rxrpc_input_ack(call, skb);
@@ -1122,11 +1118,7 @@ static void rxrpc_post_packet_to_local(struct rxrpc_local *local,
 		skb_queue_tail(&local->event_queue, skb);
 		rxrpc_queue_local(local);
 	} else {
-<<<<<<< HEAD
-		rxrpc_free_skb(skb, rxrpc_skb_rx_freed);
-=======
 		rxrpc_free_skb(skb, rxrpc_skb_freed);
->>>>>>> linux-next/akpm-base
 	}
 }
 
@@ -1141,11 +1133,7 @@ static void rxrpc_reject_packet(struct rxrpc_local *local, struct sk_buff *skb)
 		skb_queue_tail(&local->reject_queue, skb);
 		rxrpc_queue_local(local);
 	} else {
-<<<<<<< HEAD
-		rxrpc_free_skb(skb, rxrpc_skb_rx_freed);
-=======
 		rxrpc_free_skb(skb, rxrpc_skb_freed);
->>>>>>> linux-next/akpm-base
 	}
 }
 
@@ -1393,16 +1381,11 @@ int rxrpc_input_packet(struct sock *udp_sk, struct sk_buff *skb)
 		mutex_unlock(&call->user_mutex);
 	}
 
-<<<<<<< HEAD
-	rxrpc_input_call_packet(call, skb);
-	goto discard;
-=======
 	/* Process a call packet; this either discards or passes on the ref
 	 * elsewhere.
 	 */
 	rxrpc_input_call_packet(call, skb);
 	goto out;
->>>>>>> linux-next/akpm-base
 
 discard:
 	rxrpc_free_skb(skb, rxrpc_skb_freed);

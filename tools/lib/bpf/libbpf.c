@@ -2293,8 +2293,6 @@ bpf_program_reloc_btf_ext(struct bpf_program *prog, struct bpf_object *obj,
 		prog->line_info_rec_size = btf_ext__line_info_rec_size(obj->btf_ext);
 	}
 
-<<<<<<< HEAD
-=======
 	return 0;
 }
 
@@ -3103,7 +3101,6 @@ static int bpf_core_reloc_offset(struct bpf_program *prog,
 		return -EINVAL;
 	}
 
->>>>>>> linux-next/akpm-base
 	return 0;
 }
 
