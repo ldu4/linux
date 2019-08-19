@@ -173,12 +173,9 @@ struct resource_pool *dc_create_resource_pool(struct dc  *dc,
 		break;
 	}
 	if (res_pool != NULL) {
-		struct dc_firmware_info fw_info = { { 0 } };
-
-		if (dc->ctx->dc_bios->funcs->get_firmware_info(dc->ctx->dc_bios,
-				&fw_info) == BP_RESULT_OK) {
+		if (dc->ctx->dc_bios->fw_info_valid) {
 			res_pool->ref_clocks.xtalin_clock_inKhz =
-				fw_info.pll_info.crystal_frequency;
+				dc->ctx->dc_bios->fw_info.pll_info.crystal_frequency;
 			/* initialize with firmware data first, no all
 			 * ASIC have DCCG SW component. FPGA or
 			 * simulation need initialization of
@@ -940,7 +937,14 @@ static void calculate_inits_and_adj_vp(struct pipe_ctx *pipe_ctx)
 	data->inits.v_c_bot = dc_fixpt_add(data->inits.v_c, data->ratios.vert_c);
 
 }
+static bool are_rect_integer_multiples(struct rect src, struct rect dest)
+{
+	if (dest.width  >= src.width  && dest.width  % src.width  == 0 &&
+		dest.height >= src.height && dest.height % src.height == 0)
+		return true;
 
+	return false;
+}
 bool resource_build_scaling_params(struct pipe_ctx *pipe_ctx)
 {
 	const struct dc_plane_state *plane_state = pipe_ctx->plane_state;
@@ -983,6 +987,15 @@ bool resource_build_scaling_params(struct pipe_ctx *pipe_ctx)
 	if (pipe_ctx->plane_res.dpp != NULL)
 		res = pipe_ctx->plane_res.dpp->funcs->dpp_get_optimal_number_of_taps(
 				pipe_ctx->plane_res.dpp, &pipe_ctx->plane_res.scl_data, &plane_state->scaling_quality);
+
+	if (res &&
+	    plane_state->scaling_quality.integer_scaling &&
+	    are_rect_integer_multiples(pipe_ctx->plane_res.scl_data.viewport,
+				       pipe_ctx->plane_res.scl_data.recout)) {
+		pipe_ctx->plane_res.scl_data.taps.v_taps = 1;
+		pipe_ctx->plane_res.scl_data.taps.h_taps = 1;
+	}
+
 	if (!res) {
 		/* Try 24 bpp linebuffer */
 		pipe_ctx->plane_res.scl_data.lb_params.depth = LB_PIXEL_DEPTH_24BPP;
@@ -1880,7 +1893,7 @@ static int acquire_resource_from_hw_enabled_state(
 		struct dc_stream_state *stream)
 {
 	struct dc_link *link = stream->link;
-	unsigned int inst;
+	unsigned int inst, tg_inst;
 
 	/* Check for enabled DIG to identify enabled display */
 	if (!link->link_enc->funcs->is_dig_enabled(link->link_enc))
@@ -1892,28 +1905,37 @@ static int acquire_resource_from_hw_enabled_state(
 	 * current implementation always map 1-to-1, so this code makes
 	 * the same assumption and doesn't check OTG source.
 	 */
-	inst = link->link_enc->funcs->get_dig_frontend(link->link_enc) - 1;
+	inst = link->link_enc->funcs->get_dig_frontend(link->link_enc);
 
 	/* Instance should be within the range of the pool */
 	if (inst >= pool->pipe_count)
 		return -1;
 
-	if (!res_ctx->pipe_ctx[inst].stream) {
-		struct pipe_ctx *pipe_ctx = &res_ctx->pipe_ctx[inst];
+	if (inst >= pool->stream_enc_count)
+		return -1;
 
-		pipe_ctx->stream_res.tg = pool->timing_generators[inst];
-		pipe_ctx->plane_res.mi = pool->mis[inst];
-		pipe_ctx->plane_res.hubp = pool->hubps[inst];
-		pipe_ctx->plane_res.ipp = pool->ipps[inst];
-		pipe_ctx->plane_res.xfm = pool->transforms[inst];
-		pipe_ctx->plane_res.dpp = pool->dpps[inst];
-		pipe_ctx->stream_res.opp = pool->opps[inst];
-		if (pool->dpps[inst])
-			pipe_ctx->plane_res.mpcc_inst = pool->dpps[inst]->inst;
-		pipe_ctx->pipe_idx = inst;
+	tg_inst = pool->stream_enc[inst]->funcs->dig_source_otg(pool->stream_enc[inst]);
+
+	if (tg_inst >= pool->timing_generator_count)
+		return false;
+
+	if (!res_ctx->pipe_ctx[tg_inst].stream) {
+		struct pipe_ctx *pipe_ctx = &res_ctx->pipe_ctx[tg_inst];
+
+		pipe_ctx->stream_res.tg = pool->timing_generators[tg_inst];
+		pipe_ctx->plane_res.mi = pool->mis[tg_inst];
+		pipe_ctx->plane_res.hubp = pool->hubps[tg_inst];
+		pipe_ctx->plane_res.ipp = pool->ipps[tg_inst];
+		pipe_ctx->plane_res.xfm = pool->transforms[tg_inst];
+		pipe_ctx->plane_res.dpp = pool->dpps[tg_inst];
+		pipe_ctx->stream_res.opp = pool->opps[tg_inst];
+
+		if (pool->dpps[tg_inst])
+			pipe_ctx->plane_res.mpcc_inst = pool->dpps[tg_inst]->inst;
+		pipe_ctx->pipe_idx = tg_inst;
 
 		pipe_ctx->stream = stream;
-		return inst;
+		return tg_inst;
 	}
 
 	return -1;
