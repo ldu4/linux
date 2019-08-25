@@ -52,7 +52,7 @@ struct bpf_prog;
 #define NETDEV_HASHENTRIES (1 << NETDEV_HASHBITS)
 
 struct net {
-	refcount_t		passive;	/* To decided when the network
+	refcount_t		passive;	/* To decide when the network
 						 * namespace should be freed.
 						 */
 	refcount_t		count;		/* To decided when the network
@@ -169,6 +169,9 @@ struct net {
 #endif
 #ifdef CONFIG_XDP_SOCKETS
 	struct netns_xdp	xdp;
+#endif
+#if IS_ENABLED(CONFIG_CRYPTO_USER)
+	struct sock		*crypto_nlsk;
 #endif
 	struct sock		*diag_nlsk;
 	atomic_t		fnhe_genid;
