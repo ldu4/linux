@@ -19,16 +19,7 @@
 #include <drm/drm_gem_cma_helper.h>
 #include <drm/drm_of.h>
 #include <drm/drm_probe_helper.h>
-<<<<<<< HEAD
-#include <linux/component.h>
-#include <linux/iommu.h>
-#include <linux/of_address.h>
-#include <linux/of_platform.h>
-#include <linux/pm_runtime.h>
-#include <linux/dma-mapping.h>
-=======
 #include <drm/drm_vblank.h>
->>>>>>> linux-next/akpm-base
 
 #include "mtk_drm_crtc.h"
 #include "mtk_drm_ddp.h"
@@ -375,10 +366,6 @@ static struct drm_driver mtk_drm_driver = {
 
 	.prime_handle_to_fd = drm_gem_prime_handle_to_fd,
 	.prime_fd_to_handle = drm_gem_prime_fd_to_handle,
-<<<<<<< HEAD
-	.gem_prime_export = drm_gem_prime_export,
-=======
->>>>>>> linux-next/akpm-base
 	.gem_prime_import = mtk_drm_gem_prime_import,
 	.gem_prime_get_sg_table = mtk_gem_prime_get_sg_table,
 	.gem_prime_import_sg_table = mtk_gem_prime_import_sg_table,

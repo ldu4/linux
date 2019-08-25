@@ -1136,8 +1136,6 @@ static int soc15_common_early_init(void *handle)
 
 			adev->pg_flags = AMD_PG_SUPPORT_SDMA | AMD_PG_SUPPORT_VCN;
 		}
-<<<<<<< HEAD
-=======
 		break;
 	case CHIP_ARCTURUS:
 		adev->asic_funcs = &vega20_asic_funcs;
@@ -1185,7 +1183,6 @@ static int soc15_common_early_init(void *handle)
 			adev->pg_flags |= AMD_PG_SUPPORT_GFX_PG |
 				AMD_PG_SUPPORT_CP |
 				AMD_PG_SUPPORT_RLC_SMU_HS;
->>>>>>> linux-next/akpm-base
 		break;
 	default:
 		/* FIXME: not supported yet */
