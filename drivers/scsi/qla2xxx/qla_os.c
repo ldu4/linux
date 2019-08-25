@@ -4812,11 +4812,7 @@ struct scsi_qla_host *qla2x00_create_host(struct scsi_host_template *sht,
 		dma_free_coherent(&ha->pdev->dev, vha->gnl.size,
 		    vha->gnl.l, vha->gnl.ldma);
 		vha->gnl.l = NULL;
-<<<<<<< HEAD
-		scsi_remove_host(vha->host);
-=======
 		scsi_host_put(vha->host);
->>>>>>> linux-next/akpm-base
 		return NULL;
 	}
 	INIT_DELAYED_WORK(&vha->scan.scan_work, qla_scan_work_fn);
