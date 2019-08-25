@@ -269,6 +269,8 @@ patternProperties:
     description: Emerging Display Technologies
   "^eeti,.*":
     description: eGalax_eMPIA Technology Inc
+  "^einfochips,.*":
+    description: Einfochips
   "^elan,.*":
     description: Elan Microelectronic Corp.
   "^elgin,.*":
@@ -503,6 +505,8 @@ patternProperties:
     description: Lantiq Semiconductor
   "^lattice,.*":
     description: Lattice Semiconductor
+  "^leez,.*":
+    description: Leez
   "^lego,.*":
     description: LEGO Systems A/S
   "^lemaker,.*":
@@ -511,6 +515,8 @@ patternProperties:
     description: Lenovo Group Ltd.
   "^lg,.*":
     description: LG Corporation
+  "^lgphilips,.*":
+    description: LG Display
   "^libretech,.*":
     description: Shenzhen Libre Technology Co., Ltd
   "^licheepi,.*":
@@ -529,6 +535,8 @@ patternProperties:
     description: Linear Technology Corporation
   "^logicpd,.*":
     description: Logic PD, Inc.
+  "^longcheer,.*":
+    description: Longcheer Technology (Shanghai) Co., Ltd.
   "^lsi,.*":
     description: LSI Corp. (LSI Logic)
   "^lwn,.*":
@@ -549,6 +557,8 @@ patternProperties:
     description: mCube
   "^meas,.*":
     description: Measurement Specialties
+  "^mecer,.*":
+    description: Mustek Limited
   "^mediatek,.*":
     description: MediaTek Inc.
   "^megachips,.*":
@@ -813,6 +823,8 @@ patternProperties:
     description: Semtech Corporation
   "^sensirion,.*":
     description: Sensirion AG
+  "^sensortek,.*":
+    description: Sensortek Technology Corporation
   "^sff,.*":
     description: Small Form Factor Committee
   "^sgd,.*":
@@ -933,6 +945,9 @@ patternProperties:
     description: Tecon Microprocessor Technologies, LLC.
   "^topeet,.*":
     description: Topeet
+  "^toppoly,.*":
+    description: TPO (deprecated, use tpo)
+    deprecated: true
   "^toradex,.*":
     description: Toradex AG
   "^toshiba,.*":
