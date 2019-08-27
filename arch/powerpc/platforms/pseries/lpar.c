@@ -56,6 +56,15 @@ EXPORT_SYMBOL(plpar_hcall);
 EXPORT_SYMBOL(plpar_hcall9);
 EXPORT_SYMBOL(plpar_hcall_norets);
 
+/*
+ * H_BLOCK_REMOVE supported block size for this page size in segment who's base
+ * page size is that page size.
+ *
+ * The first index is the segment base page size, the second one is the actual
+ * page size.
+ */
+static int hblkr_size[MMU_PAGE_COUNT][MMU_PAGE_COUNT];
+
 #ifdef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
 static u8 dtl_mask = DTL_LOG_PREEMPT;
 #else
@@ -1309,6 +1318,135 @@ static void do_block_remove(unsigned long number, struct ppc64_tlb_batch *batch,
 
 	if (pix)
 		(void)call_block_remove(pix, param, true);
+}
+
+/*
+ * TLB Block Invalidate Characteristics These characteristics define the size of
+ * the block the hcall H_BLOCK_REMOVE is able to process for each couple segment
+ * base page size, actual page size.
+ *
+ * The ibm,get-system-parameter properties is returning a buffer with the
+ * following layout:
+ *
+ * [ 2 bytes size of the RTAS buffer (without these 2 bytes) ]
+ * -----------------
+ * TLB Block Invalidate Specifiers:
+ * [ 1 byte LOG base 2 of the TLB invalidate block size being specified ]
+ * [ 1 byte Number of page sizes (N) that are supported for the specified
+ *          TLB invalidate block size ]
+ * [ 1 byte Encoded segment base page size and actual page size
+ *          MSB=0 means 4k segment base page size and actual page size
+ *          MSB=1 the penc value in mmu_psize_def ]
+ * ...
+ * -----------------
+ * Next TLB Block Invalidate Specifiers...
+ * -----------------
+ * [ 0 ]
+ */
+static inline void __init set_hblk_bloc_size(int bpsize, int psize,
+					     unsigned int block_size)
+{
+	if (block_size > hblkr_size[bpsize][psize])
+		hblkr_size[bpsize][psize] = block_size;
+}
+
+/*
+ * Decode the Encoded segment base page size and actual page size.
+ * PAPR specifies with bit 0 as MSB:
+ *   - bit 0 is the L bit
+ *   - bits 2-7 are the penc value
+ * If the L bit is 0, this means 4K segment base page size and actual page size
+ * otherwise the penc value should be readed.
+ */
+#define HBLKR_L_BIT_MASK	0x80
+#define HBLKR_PENC_MASK		0x3f
+static inline void __init check_lp_set_hblk(unsigned int lp,
+					    unsigned int block_size)
+{
+	unsigned int bpsize, psize;
+
+
+	/* First, check the L bit, if not set, this means 4K */
+	if ((lp & HBLKR_L_BIT_MASK) == 0) {
+		set_hblk_bloc_size(MMU_PAGE_4K, MMU_PAGE_4K, block_size);
+		return;
+	}
+
+	lp &= HBLKR_PENC_MASK;
+	for (bpsize = 0; bpsize < MMU_PAGE_COUNT; bpsize++) {
+		struct mmu_psize_def *def =  &mmu_psize_defs[bpsize];
+
+		for (psize = 0; psize < MMU_PAGE_COUNT; psize++) {
+			if (def->penc[psize] == lp) {
+				set_hblk_bloc_size(bpsize, psize, block_size);
+				return;
+			}
+		}
+	}
+}
+
+#define SPLPAR_TLB_BIC_TOKEN		50
+#define SPLPAR_TLB_BIC_MAXLENGTH	(MMU_PAGE_COUNT*2 + 10)
+void __init pseries_lpar_read_hblkr_characteristics(void)
+{
+	int call_status;
+	unsigned char local_buffer[SPLPAR_TLB_BIC_MAXLENGTH];
+	int len, idx, bpsize;
+
+	if (!firmware_has_feature(FW_FEATURE_BLOCK_REMOVE)) {
+		pr_info("H_BLOCK_REMOVE is not supported");
+		return;
+	}
+
+	memset(local_buffer, 0, SPLPAR_TLB_BIC_MAXLENGTH);
+
+	spin_lock(&rtas_data_buf_lock);
+	memset(rtas_data_buf, 0, RTAS_DATA_BUF_SIZE);
+	call_status = rtas_call(rtas_token("ibm,get-system-parameter"), 3, 1,
+				NULL,
+				SPLPAR_TLB_BIC_TOKEN,
+				__pa(rtas_data_buf),
+				RTAS_DATA_BUF_SIZE);
+	memcpy(local_buffer, rtas_data_buf, SPLPAR_TLB_BIC_MAXLENGTH);
+	local_buffer[SPLPAR_TLB_BIC_MAXLENGTH - 1] = '\0';
+	spin_unlock(&rtas_data_buf_lock);
+
+	if (call_status != 0) {
+		pr_warn("%s %s Error calling get-system-parameter (0x%x)\n",
+			__FILE__, __func__, call_status);
+		return;
+	}
+
+	/*
+	 * The first two (2) bytes of the data in the buffer are the length of
+	 * the returned data, not counting these first two (2) bytes.
+	 */
+	len = local_buffer[0] * 256 + local_buffer[1] + 2;
+	if (len >= SPLPAR_TLB_BIC_MAXLENGTH) {
+		pr_warn("%s too large returned buffer %d", __func__, len);
+		return;
+	}
+
+	idx = 2;
+	while (idx < len) {
+		unsigned int block_size = local_buffer[idx++];
+		unsigned int npsize;
+
+		if (!block_size)
+			break;
+
+		block_size = 1 << block_size;
+
+		for (npsize = local_buffer[idx++];  npsize > 0; npsize--)
+			check_lp_set_hblk((unsigned int) local_buffer[idx++],
+					  block_size);
+	}
+
+	for (bpsize = 0; bpsize < MMU_PAGE_COUNT; bpsize++)
+		for (idx = 0; idx < MMU_PAGE_COUNT; idx++)
+			if (hblkr_size[bpsize][idx])
+				pr_info("H_BLOCK_REMOVE supports base psize:%d psize:%d block size:%d",
+					bpsize, idx, hblkr_size[bpsize][idx]);
 }
 
 /*

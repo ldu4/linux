@@ -117,4 +117,5 @@ extern void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
 				     unsigned long end);
 extern void flush_tlb_pmd_range(struct mm_struct *mm, pmd_t *pmd,
 				unsigned long addr);
+extern void pseries_lpar_read_hblkr_characteristics(void);
 #endif /*  _ASM_POWERPC_BOOK3S_64_TLBFLUSH_HASH_H */
