@@ -65,6 +65,13 @@ EXPORT_SYMBOL(plpar_hcall_norets);
  */
 static int hblkr_size[MMU_PAGE_COUNT][MMU_PAGE_COUNT];
 
+/*
+ * Due to the involved complexity, and that the current hypervisor is only
+ * returning this value or 0, we are limiting the support of the H_BLOCK_REMOVE
+ * buffer size to 8 size block.
+ */
+#define HBLKR_SUPPORTED_BLOCK_SIZE 8
+
 #ifdef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
 static u8 dtl_mask = DTL_LOG_PREEMPT;
 #else
@@ -993,6 +1000,15 @@ static void pSeries_lpar_hpte_invalidate(unsigned long slot, unsigned long vpn,
 #define HBLKR_CTRL_ERRNOTFOUND	0x8800000000000000UL
 #define HBLKR_CTRL_ERRBUSY	0xa000000000000000UL
 
+/*
+ * Returned true if we are supporting this block size for the specified segment
+ * base page size and actual page size.
+ */
+static inline bool is_supported_hlbkr(int bpsize, int psize)
+{
+	return (hblkr_size[bpsize][psize] == HBLKR_SUPPORTED_BLOCK_SIZE);
+}
+
 /**
  * H_BLOCK_REMOVE caller.
  * @idx should point to the latest @param entry set with a PTEX.
@@ -1152,7 +1168,11 @@ static inline void __pSeries_lpar_hugepage_invalidate(unsigned long *slot,
 	if (lock_tlbie)
 		spin_lock_irqsave(&pSeries_lpar_tlbie_lock, flags);
 
-	if (firmware_has_feature(FW_FEATURE_BLOCK_REMOVE))
+	/*
+	 * Assuming THP size is 16M, and we only support 8 bytes size buffer
+	 * for the momment.
+	 */
+	if (is_supported_hlbkr(psize, MMU_PAGE_16M))
 		hugepage_block_invalidate(slot, vpn, count, psize, ssize);
 	else
 		hugepage_bulk_invalidate(slot, vpn, count, psize, ssize);
@@ -1437,6 +1457,14 @@ void __init pseries_lpar_read_hblkr_characteristics(void)
 
 		block_size = 1 << block_size;
 
+		/*
+		 * If the block size is not supported by the kernel, report it,
+		 * but continue reading the values, and the following blocks.
+		 */
+		if (block_size != HBLKR_SUPPORTED_BLOCK_SIZE)
+			pr_warn("Unsupported H_BLOCK_REMOVE block size : %d\n",
+				block_size);
+
 		for (npsize = local_buffer[idx++];  npsize > 0; npsize--)
 			check_lp_set_hblk((unsigned int) local_buffer[idx++],
 					  block_size);
@@ -1468,7 +1496,10 @@ static void pSeries_lpar_flush_hash_range(unsigned long number, int local)
 	if (lock_tlbie)
 		spin_lock_irqsave(&pSeries_lpar_tlbie_lock, flags);
 
-	if (firmware_has_feature(FW_FEATURE_BLOCK_REMOVE)) {
+	/*
+	 * Currently, we only support 8 bytes size buffer in do_block_remove().
+	 */
+	if (is_supported_hlbkr(batch->psize, batch->psize)) {
 		do_block_remove(number, batch, param);
 		goto out;
 	}
