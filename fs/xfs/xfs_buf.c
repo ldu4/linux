@@ -2096,7 +2096,7 @@ xfs_verify_magic(
 	int			idx;
 
 	idx = xfs_sb_version_hascrc(&mp->m_sb);
-	if (unlikely(WARN_ON(!bp->b_ops || !bp->b_ops->magic[idx])))
+	if (WARN_ON(!bp->b_ops || !bp->b_ops->magic[idx]))
 		return false;
 	return dmagic == bp->b_ops->magic[idx];
 }
@@ -2114,7 +2114,7 @@ xfs_verify_magic16(
 	int			idx;
 
 	idx = xfs_sb_version_hascrc(&mp->m_sb);
-	if (unlikely(WARN_ON(!bp->b_ops || !bp->b_ops->magic16[idx])))
+	if (WARN_ON(!bp->b_ops || !bp->b_ops->magic16[idx]))
 		return false;
 	return dmagic == bp->b_ops->magic16[idx];
 }
