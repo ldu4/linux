@@ -46,7 +46,7 @@ struct diag_ops __bootdata_preserved(diag_dma_ops) = {
 	.diag0c = _diag0c_dma,
 	.diag308_reset = _diag308_reset_dma
 };
-static struct diag210 _diag210_tmp_dma __section(".dma.data");
+static struct diag210 _diag210_tmp_dma __section(.dma.data);
 struct diag210 *__bootdata_preserved(__diag210_tmp_dma) = &_diag210_tmp_dma;
 void _swsusp_reset_dma(void);
 unsigned long __bootdata_preserved(__swsusp_reset_dma) = __pa(_swsusp_reset_dma);
@@ -112,6 +112,11 @@ static void handle_relocs(unsigned long offset)
 	}
 }
 
+static void clear_bss_section(void)
+{
+	memset((void *)vmlinux.default_lma + vmlinux.image_size, 0, vmlinux.bss_size);
+}
+
 void startup_kernel(void)
 {
 	unsigned long random_lma;
@@ -151,6 +156,7 @@ void startup_kernel(void)
 	} else if (__kaslr_offset)
 		memcpy((void *)vmlinux.default_lma, img, vmlinux.image_size);
 
+	clear_bss_section();
 	copy_bootdata();
 	if (IS_ENABLED(CONFIG_RELOCATABLE))
 		handle_relocs(__kaslr_offset);

@@ -41,12 +41,22 @@
 #include <linux/dma-mapping.h>
 #include <asm/byteorder.h>
 #include <linux/moduleparam.h>
+#include <linux/watch_queue.h>
 
 #include "usb.h"
+
+#ifdef CONFIG_PM
+#define MAYBE_CAP_SUSPEND	USBDEVFS_CAP_SUSPEND
+#else
+#define MAYBE_CAP_SUSPEND	0
+#endif
 
 #define USB_MAXBUS			64
 #define USB_DEVICE_MAX			(USB_MAXBUS * 128)
 #define USB_SG_SIZE			16384 /* split-size for large txs */
+
+/* Mutual exclusion for ps->list in resume vs. release and remove */
+static DEFINE_MUTEX(usbfs_mutex);
 
 struct usb_dev_state {
 	struct list_head list;      /* state list */
@@ -57,14 +67,17 @@ struct usb_dev_state {
 	struct list_head async_completed;
 	struct list_head memory_list;
 	wait_queue_head_t wait;     /* wake up if a request completed */
+	wait_queue_head_t wait_for_resume;   /* wake up upon runtime resume */
 	unsigned int discsignr;
 	struct pid *disc_pid;
 	const struct cred *cred;
 	sigval_t disccontext;
 	unsigned long ifclaimed;
 	u32 disabled_bulk_eps;
-	bool privileges_dropped;
 	unsigned long interface_allowed_mask;
+	int not_yet_resumed;
+	bool suspend_allowed;
+	bool privileges_dropped;
 };
 
 struct usb_memory {
@@ -694,9 +707,7 @@ static void driver_disconnect(struct usb_interface *intf)
 	destroy_async_on_interface(ps, ifnum);
 }
 
-/* The following routines are merely placeholders.  There is no way
- * to inform a user task about suspend or resumes.
- */
+/* We don't care about suspend/resume of claimed interfaces */
 static int driver_suspend(struct usb_interface *intf, pm_message_t msg)
 {
 	return 0;
@@ -707,12 +718,32 @@ static int driver_resume(struct usb_interface *intf)
 	return 0;
 }
 
+/* The following routines apply to the entire device, not interfaces */
+void usbfs_notify_suspend(struct usb_device *udev)
+{
+	/* We don't need to handle this */
+}
+
+void usbfs_notify_resume(struct usb_device *udev)
+{
+	struct usb_dev_state *ps;
+
+	/* Protect against simultaneous remove or release */
+	mutex_lock(&usbfs_mutex);
+	list_for_each_entry(ps, &udev->filelist, list) {
+		WRITE_ONCE(ps->not_yet_resumed, 0);
+		wake_up_all(&ps->wait_for_resume);
+	}
+	mutex_unlock(&usbfs_mutex);
+}
+
 struct usb_driver usbfs_driver = {
 	.name =		"usbfs",
 	.probe =	driver_probe,
 	.disconnect =	driver_disconnect,
 	.suspend =	driver_suspend,
 	.resume =	driver_resume,
+	.supports_autosuspend = 1,
 };
 
 static int claimintf(struct usb_dev_state *ps, unsigned int ifnum)
@@ -942,17 +973,11 @@ error:
 	return ret;
 }
 
-static int match_devt(struct device *dev, const void *data)
-{
-	return dev->devt == (dev_t)(unsigned long)(void *)data;
-}
-
 static struct usb_device *usbdev_lookup_by_devt(dev_t devt)
 {
 	struct device *dev;
 
-	dev = bus_find_device(&usb_bus_type, NULL,
-			      (void *) (unsigned long) devt, match_devt);
+	dev = bus_find_device_by_devt(&usb_bus_type, devt);
 	if (!dev)
 		return NULL;
 	return to_usb_device(dev);
@@ -997,9 +1022,12 @@ static int usbdev_open(struct inode *inode, struct file *file)
 	INIT_LIST_HEAD(&ps->async_completed);
 	INIT_LIST_HEAD(&ps->memory_list);
 	init_waitqueue_head(&ps->wait);
+	init_waitqueue_head(&ps->wait_for_resume);
 	ps->disc_pid = get_pid(task_pid(current));
 	ps->cred = get_current_cred();
 	smp_wmb();
+
+	/* Can't race with resume; the device is already active */
 	list_add_tail(&ps->list, &dev->filelist);
 	file->private_data = ps;
 	usb_unlock_device(dev);
@@ -1025,7 +1053,10 @@ static int usbdev_release(struct inode *inode, struct file *file)
 	usb_lock_device(dev);
 	usb_hub_release_all_ports(dev, ps);
 
+	/* Protect against simultaneous resume */
+	mutex_lock(&usbfs_mutex);
 	list_del_init(&ps->list);
+	mutex_unlock(&usbfs_mutex);
 
 	for (ifnum = 0; ps->ifclaimed && ifnum < 8*sizeof(ps->ifclaimed);
 			ifnum++) {
@@ -1033,7 +1064,8 @@ static int usbdev_release(struct inode *inode, struct file *file)
 			releaseintf(ps, ifnum);
 	}
 	destroy_all_async(ps);
-	usb_autosuspend_device(dev);
+	if (!ps->suspend_allowed)
+		usb_autosuspend_device(dev);
 	usb_unlock_device(dev);
 	usb_put_dev(dev);
 	put_pid(ps->disc_pid);
@@ -1627,7 +1659,8 @@ static int proc_do_submiturb(struct usb_dev_state *ps, struct usbdevfs_urb *uurb
 	if (as->usbm)
 		num_sgs = 0;
 
-	u += sizeof(struct async) + sizeof(struct urb) + uurb->buffer_length +
+	u += sizeof(struct async) + sizeof(struct urb) +
+	     (as->usbm ? 0 : uurb->buffer_length) +
 	     num_sgs * sizeof(struct scatterlist);
 	ret = usbfs_increase_memory_usage(u);
 	if (ret)
@@ -2279,7 +2312,8 @@ static int proc_get_capabilities(struct usb_dev_state *ps, void __user *arg)
 
 	caps = USBDEVFS_CAP_ZERO_PACKET | USBDEVFS_CAP_NO_PACKET_SIZE_LIM |
 			USBDEVFS_CAP_REAP_AFTER_DISCONNECT | USBDEVFS_CAP_MMAP |
-			USBDEVFS_CAP_DROP_PRIVILEGES | USBDEVFS_CAP_CONNINFO_EX;
+			USBDEVFS_CAP_DROP_PRIVILEGES |
+			USBDEVFS_CAP_CONNINFO_EX | MAYBE_CAP_SUSPEND;
 	if (!ps->dev->bus->no_stop_on_short)
 		caps |= USBDEVFS_CAP_BULK_CONTINUATION;
 	if (ps->dev->bus->sg_tablesize)
@@ -2380,6 +2414,47 @@ static int proc_drop_privileges(struct usb_dev_state *ps, void __user *arg)
 	ps->privileges_dropped = true;
 
 	return 0;
+}
+
+static int proc_forbid_suspend(struct usb_dev_state *ps)
+{
+	int ret = 0;
+
+	if (ps->suspend_allowed) {
+		ret = usb_autoresume_device(ps->dev);
+		if (ret == 0)
+			ps->suspend_allowed = false;
+		else if (ret != -ENODEV)
+			ret = -EIO;
+	}
+	return ret;
+}
+
+static int proc_allow_suspend(struct usb_dev_state *ps)
+{
+	if (!connected(ps))
+		return -ENODEV;
+
+	WRITE_ONCE(ps->not_yet_resumed, 1);
+	if (!ps->suspend_allowed) {
+		usb_autosuspend_device(ps->dev);
+		ps->suspend_allowed = true;
+	}
+	return 0;
+}
+
+static int proc_wait_for_resume(struct usb_dev_state *ps)
+{
+	int ret;
+
+	usb_unlock_device(ps->dev);
+	ret = wait_event_interruptible(ps->wait_for_resume,
+			READ_ONCE(ps->not_yet_resumed) == 0);
+	usb_lock_device(ps->dev);
+
+	if (ret != 0)
+		return -EINTR;
+	return proc_forbid_suspend(ps);
 }
 
 /*
@@ -2576,6 +2651,15 @@ static long usbdev_do_ioctl(struct file *file, unsigned int cmd,
 	case USBDEVFS_GET_SPEED:
 		ret = ps->dev->speed;
 		break;
+	case USBDEVFS_FORBID_SUSPEND:
+		ret = proc_forbid_suspend(ps);
+		break;
+	case USBDEVFS_ALLOW_SUSPEND:
+		ret = proc_allow_suspend(ps);
+		break;
+	case USBDEVFS_WAIT_FOR_RESUME:
+		ret = proc_wait_for_resume(ps);
+		break;
 	}
 
 	/* Handle variable-length commands */
@@ -2649,24 +2733,84 @@ static void usbdev_remove(struct usb_device *udev)
 {
 	struct usb_dev_state *ps;
 
+	/* Protect against simultaneous resume */
+	mutex_lock(&usbfs_mutex);
 	while (!list_empty(&udev->filelist)) {
 		ps = list_entry(udev->filelist.next, struct usb_dev_state, list);
 		destroy_all_async(ps);
 		wake_up_all(&ps->wait);
+		WRITE_ONCE(ps->not_yet_resumed, 0);
+		wake_up_all(&ps->wait_for_resume);
 		list_del_init(&ps->list);
 		if (ps->discsignr)
 			kill_pid_usb_asyncio(ps->discsignr, EPIPE, ps->disccontext,
 					     ps->disc_pid, ps->cred);
 	}
+	mutex_unlock(&usbfs_mutex);
 }
+
+#ifdef CONFIG_USB_NOTIFICATIONS
+static noinline void post_usb_notification(const char *devname,
+					   enum usb_notification_type subtype,
+					   u32 error)
+{
+	unsigned int gran = WATCH_LENGTH_GRANULARITY;
+	unsigned int name_len, n_len;
+	u64 id = 0; /* Might want to put a dev# here. */
+
+	struct {
+		struct usb_notification n;
+		char more_name[USB_NOTIFICATION_MAX_NAME_LEN -
+			       (sizeof(struct usb_notification) -
+				offsetof(struct usb_notification, name))];
+	} n;
+
+	name_len = strlen(devname);
+	name_len = min_t(size_t, name_len, USB_NOTIFICATION_MAX_NAME_LEN);
+	n_len = round_up(offsetof(struct usb_notification, name) + name_len,
+			 gran) / gran;
+
+	memset(&n, 0, sizeof(n));
+	memcpy(n.n.name, devname, n_len);
+
+	n.n.watch.type		= WATCH_TYPE_USB_NOTIFY;
+	n.n.watch.subtype	= subtype;
+	n.n.watch.info		= n_len;
+	n.n.error		= error;
+	n.n.name_len		= name_len;
+
+	post_device_notification(&n.n.watch, id);
+}
+
+void post_usb_device_notification(const struct usb_device *udev,
+				  enum usb_notification_type subtype, u32 error)
+{
+	post_usb_notification(dev_name(&udev->dev), subtype, error);
+}
+
+void post_usb_bus_notification(const struct usb_bus *ubus,
+			       enum usb_notification_type subtype, u32 error)
+{
+	post_usb_notification(ubus->bus_name, subtype, error);
+}
+#endif
 
 static int usbdev_notify(struct notifier_block *self,
 			       unsigned long action, void *dev)
 {
 	switch (action) {
 	case USB_DEVICE_ADD:
+		post_usb_device_notification(dev, NOTIFY_USB_DEVICE_ADD, 0);
 		break;
 	case USB_DEVICE_REMOVE:
+		post_usb_device_notification(dev, NOTIFY_USB_DEVICE_REMOVE, 0);
+		usbdev_remove(dev);
+		break;
+	case USB_BUS_ADD:
+		post_usb_bus_notification(dev, NOTIFY_USB_BUS_ADD, 0);
+		break;
+	case USB_BUS_REMOVE:
+		post_usb_bus_notification(dev, NOTIFY_USB_BUS_REMOVE, 0);
 		usbdev_remove(dev);
 		break;
 	}
