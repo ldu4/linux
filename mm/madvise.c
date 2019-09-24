@@ -604,14 +604,8 @@ static void madvise_pageout_page_range(struct mmu_gather *tlb,
 			     struct vm_area_struct *vma,
 			     unsigned long addr, unsigned long end)
 {
-	struct mm_walk pageout_walk = {
-		.pmd_entry = madvise_pageout_pte_range,
-		.mm = vma->vm_mm,
-		.private = tlb,
-	};
-
 	tlb_start_vma(tlb, vma);
-	walk_page_range(addr, end, &pageout_walk);
+	walk_page_range(vma->vm_mm, addr, end, &cold_walk_ops, NULL);
 	tlb_end_vma(tlb, vma);
 }
 
