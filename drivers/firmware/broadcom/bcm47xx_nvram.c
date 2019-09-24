@@ -149,7 +149,11 @@ static int nvram_init(void)
 		nvram_len = header.len;
 		if (nvram_len >= NVRAM_SPACE) {
 			pr_err("nvram on flash (%zu bytes) is bigger than the reserved space in memory, will just copy the first %i bytes\n",
+<<<<<<< HEAD
 				nvram_len, NVRAM_SPACE);
+=======
+				header.len, NVRAM_SPACE);
+>>>>>>> linux-next/akpm-base
 			nvram_len = NVRAM_SPACE - 1;
 		}
 

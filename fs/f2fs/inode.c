@@ -46,13 +46,19 @@ void f2fs_set_inode_flags(struct inode *inode)
 		new_fl |= S_DIRSYNC;
 	if (file_is_encrypt(inode))
 		new_fl |= S_ENCRYPTED;
+	if (flags & F2FS_CASEFOLD_FL)
+		new_fl |= S_CASEFOLD;
 	if (file_is_verity(inode))
 		new_fl |= S_VERITY;
 	if (flags & F2FS_CASEFOLD_FL)
 		new_fl |= S_CASEFOLD;
 	inode_set_flags(inode, new_fl,
 			S_SYNC|S_APPEND|S_IMMUTABLE|S_NOATIME|S_DIRSYNC|
+<<<<<<< HEAD
 			S_ENCRYPTED|S_VERITY|S_CASEFOLD);
+=======
+			S_ENCRYPTED|S_CASEFOLD|S_VERITY);
+>>>>>>> linux-next/akpm-base
 }
 
 static void __get_inode_rdev(struct inode *inode, struct f2fs_inode *ri)

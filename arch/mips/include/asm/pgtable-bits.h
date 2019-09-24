@@ -52,9 +52,13 @@ enum pgtable_bits {
 	_PAGE_WRITE_SHIFT,
 	_PAGE_ACCESSED_SHIFT,
 	_PAGE_MODIFIED_SHIFT,
+<<<<<<< HEAD
 #if defined(CONFIG_ARCH_HAS_PTE_SPECIAL)
 	_PAGE_SPECIAL_SHIFT,
 #endif
+=======
+	_PAGE_SPECIAL_SHIFT,
+>>>>>>> linux-next/akpm-base
 };
 
 /*
@@ -81,9 +85,13 @@ enum pgtable_bits {
 	_PAGE_WRITE_SHIFT,
 	_PAGE_ACCESSED_SHIFT,
 	_PAGE_MODIFIED_SHIFT,
+<<<<<<< HEAD
 #if defined(CONFIG_ARCH_HAS_PTE_SPECIAL)
 	_PAGE_SPECIAL_SHIFT,
 #endif
+=======
+	_PAGE_SPECIAL_SHIFT,
+>>>>>>> linux-next/akpm-base
 };
 
 #elif defined(CONFIG_CPU_R3K_TLB)
@@ -96,9 +104,13 @@ enum pgtable_bits {
 	_PAGE_WRITE_SHIFT,
 	_PAGE_ACCESSED_SHIFT,
 	_PAGE_MODIFIED_SHIFT,
+<<<<<<< HEAD
 #if defined(CONFIG_ARCH_HAS_PTE_SPECIAL)
 	_PAGE_SPECIAL_SHIFT,
 #endif
+=======
+	_PAGE_SPECIAL_SHIFT,
+>>>>>>> linux-next/akpm-base
 
 	/* Used by TLB hardware (placed in EntryLo) */
 	_PAGE_GLOBAL_SHIFT = 8,
@@ -122,9 +134,13 @@ enum pgtable_bits {
 #if defined(CONFIG_MIPS_HUGE_TLB_SUPPORT)
 	_PAGE_HUGE_SHIFT,
 #endif
+<<<<<<< HEAD
 #if defined(CONFIG_ARCH_HAS_PTE_SPECIAL)
 	_PAGE_SPECIAL_SHIFT,
 #endif
+=======
+	_PAGE_SPECIAL_SHIFT,
+>>>>>>> linux-next/akpm-base
 
 	/* Used by TLB hardware (placed in EntryLo*) */
 #if defined(CONFIG_CPU_HAS_RIXI)
@@ -147,11 +163,15 @@ enum pgtable_bits {
 #if defined(CONFIG_MIPS_HUGE_TLB_SUPPORT)
 # define _PAGE_HUGE		(1 << _PAGE_HUGE_SHIFT)
 #endif
+<<<<<<< HEAD
 #if defined(CONFIG_ARCH_HAS_PTE_SPECIAL)
 # define _PAGE_SPECIAL		(1 << _PAGE_SPECIAL_SHIFT)
 #else
 # define _PAGE_SPECIAL		0
 #endif
+=======
+#define _PAGE_SPECIAL		(1 << _PAGE_SPECIAL_SHIFT)
+>>>>>>> linux-next/akpm-base
 
 /* Used by TLB hardware (placed in EntryLo*) */
 #if defined(CONFIG_XPA)

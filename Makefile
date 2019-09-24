@@ -1032,6 +1032,8 @@ export MODORDER := $(extmod-prefix)modules.order
 ifeq ($(KBUILD_EXTMOD),)
 core-y		+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/ block/
 
+core-$(CONFIG_KUNIT) += kunit/
+
 vmlinux-dirs	:= $(patsubst %/,%,$(filter %/, $(init-y) $(init-m) \
 		     $(core-y) $(core-m) $(drivers-y) $(drivers-m) \
 		     $(net-y) $(net-m) $(libs-y) $(libs-m) $(virt-y)))
@@ -1087,7 +1089,7 @@ ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(SRCARCH)/Makefile.postlink)
 
 # Final link of vmlinux with optional arch pass after final link
 cmd_link-vmlinux =                                                 \
-	$(CONFIG_SHELL) $< $(LD) $(KBUILD_LDFLAGS) $(LDFLAGS_vmlinux) ;    \
+	$(BASH) $< $(LD) $(KBUILD_LDFLAGS) $(LDFLAGS_vmlinux) ;    \
 	$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
 
 vmlinux: scripts/link-vmlinux.sh autoksyms_recursive $(vmlinux-deps) FORCE
@@ -1403,7 +1405,7 @@ clean: rm-files := $(CLEAN_FILES)
 PHONY += archclean vmlinuxclean
 
 vmlinuxclean:
-	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/link-vmlinux.sh clean
+	$(Q)$(BASH) $(srctree)/scripts/link-vmlinux.sh clean
 	$(Q)$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) clean)
 
 clean: archclean vmlinuxclean
@@ -1776,9 +1778,15 @@ tools/%: FORCE
 # To build individual files in subdirectories, you can do like this:
 #
 #   make foo/bar/baz.s
+<<<<<<< HEAD
 #
 # The supported suffixes for single-target are listed in 'single-targets'
 #
+=======
+#
+# The supported suffixes for single-target are listed in 'single-targets'
+#
+>>>>>>> linux-next/akpm-base
 # To build only under specific subdirectories, you can do like this:
 #
 #   make foo/bar/baz/

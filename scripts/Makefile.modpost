@@ -95,8 +95,11 @@ __modpost:
 ifneq ($(KBUILD_MODPOST_NOFINAL),1)
 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modfinal
 endif
+<<<<<<< HEAD
 
 nsdeps: __modpost
+=======
+>>>>>>> linux-next/akpm-base
 
 endif
 

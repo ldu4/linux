@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # SPDX-License-Identifier: GPL-2.0
 #
 # link vmlinux
@@ -60,6 +60,7 @@ modpost_link()
 # ${2}, ${3}, ... - optional extra .o files
 vmlinux_link()
 {
+	info LD ${1}
 	local lds="${objtree}/${KBUILD_LDS}"
 	local output=${1}
 	local objects
@@ -296,7 +297,11 @@ if [ -n "${CONFIG_KALLSYMS}" ]; then
 	fi
 fi
 
+<<<<<<< HEAD
 vmlinux_link vmlinux "${kallsymso}" ${btf_vmlinux_bin_o}
+=======
+vmlinux_link vmlinux "${kallsymso}" "${btf_vmlinux_bin_o}"
+>>>>>>> linux-next/akpm-base
 
 if [ -n "${CONFIG_BUILDTIME_EXTABLE_SORT}" ]; then
 	info SORTEX vmlinux

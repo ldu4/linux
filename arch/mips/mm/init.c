@@ -288,6 +288,7 @@ static int maar_res_walk(unsigned long start_pfn, unsigned long nr_pages,
 	cfg->lower = ALIGN(PFN_PHYS(start_pfn), maar_align);
 	cfg->upper = ALIGN_DOWN(PFN_PHYS(start_pfn + nr_pages), maar_align) - 1;
 	cfg->attrs = MIPS_MAAR_S;
+<<<<<<< HEAD
 
 	/* Ensure we don't overflow the cfg array */
 	if (!WARN_ON(wi->num_cfg >= ARRAY_SIZE(wi->cfg)))
@@ -305,6 +306,25 @@ unsigned __weak platform_maar_init(unsigned num_pairs)
 	wi.num_cfg = 0;
 	walk_system_ram_range(0, max_pfn, &wi, maar_res_walk);
 
+=======
+
+	/* Ensure we don't overflow the cfg array */
+	if (!WARN_ON(wi->num_cfg >= ARRAY_SIZE(wi->cfg)))
+		wi->num_cfg++;
+
+	return 0;
+}
+
+
+unsigned __weak platform_maar_init(unsigned num_pairs)
+{
+	unsigned int num_configured;
+	struct maar_walk_info wi;
+
+	wi.num_cfg = 0;
+	walk_system_ram_range(0, max_pfn, &wi, maar_res_walk);
+
+>>>>>>> linux-next/akpm-base
 	num_configured = maar_config(wi.cfg, wi.num_cfg, num_pairs);
 	if (num_configured < wi.num_cfg)
 		pr_warn("Not enough MAAR pairs (%u) for all memory regions (%u)\n",

@@ -252,7 +252,7 @@ static __poll_t hidraw_poll(struct file *file, poll_table *wait)
 
 	poll_wait(file, &list->hidraw->wait, wait);
 	if (list->head != list->tail)
-		return EPOLLIN | EPOLLRDNORM;
+		return EPOLLIN | EPOLLRDNORM | EPOLLOUT;
 	if (!list->hidraw->exist)
 		return EPOLLERR | EPOLLHUP;
 	return 0;
@@ -370,7 +370,7 @@ static long hidraw_ioctl(struct file *file, unsigned int cmd,
 
 	mutex_lock(&minors_lock);
 	dev = hidraw_table[minor];
-	if (!dev) {
+	if (!dev || !dev->exist) {
 		ret = -ENODEV;
 		goto out;
 	}
@@ -468,9 +468,7 @@ static const struct file_operations hidraw_ops = {
 	.release =      hidraw_release,
 	.unlocked_ioctl = hidraw_ioctl,
 	.fasync =	hidraw_fasync,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl   = hidraw_ioctl,
-#endif
+	.compat_ioctl   = compat_ptr_ioctl,
 	.llseek =	noop_llseek,
 };
 

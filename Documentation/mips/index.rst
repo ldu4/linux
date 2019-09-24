@@ -7,10 +7,14 @@ MIPS-specific Documentation
 .. toctree::
    :maxdepth: 2
    :numbered:
+<<<<<<< HEAD
 
    ingenic-tcu
+=======
+>>>>>>> linux-next/akpm-base
 
    au1xxx_ide
+   ingenic-tcu
 
 .. only::  subproject and html
 

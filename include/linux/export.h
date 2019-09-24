@@ -18,8 +18,11 @@ extern struct module __this_module;
 #define THIS_MODULE ((struct module *)0)
 #endif
 
+<<<<<<< HEAD
 #define NS_SEPARATOR "."
 
+=======
+>>>>>>> linux-next/akpm-base
 #ifdef CONFIG_MODVERSIONS
 /* Mark the CRC weak since genksyms apparently decides not to
  * generate a checksums for some symbols */
@@ -97,12 +100,21 @@ struct kernel_symbol {
 
 #ifdef __GENKSYMS__
 
+<<<<<<< HEAD
 #define ___EXPORT_SYMBOL(sym,sec)	__GENKSYMS_EXPORT_SYMBOL(sym)
 #define ___EXPORT_SYMBOL_NS(sym,sec,ns)	__GENKSYMS_EXPORT_SYMBOL(sym)
 
 #else
 
 #define ___export_symbol_common(sym, sec)				\
+=======
+#define ___EXPORT_SYMBOL(sym, sec)	__GENKSYMS_EXPORT_SYMBOL(sym)
+
+#else
+
+/* For every exported symbol, place a struct in the __ksymtab section */
+#define ___EXPORT_SYMBOL(sym, sec)					\
+>>>>>>> linux-next/akpm-base
 	extern typeof(sym) sym;						\
 	__CRC_SYMBOL(sym, sec);						\
 	static const char __kstrtab_##sym[]				\
@@ -169,6 +181,7 @@ struct kernel_symbol {
 
 #else
 
+<<<<<<< HEAD
 #define __EXPORT_SYMBOL_NS(sym,sec,ns)	___EXPORT_SYMBOL_NS(sym,sec,ns)
 #define __EXPORT_SYMBOL(sym,sec)	___EXPORT_SYMBOL(sym,sec)
 
@@ -185,7 +198,15 @@ struct kernel_symbol {
 #define EXPORT_SYMBOL_GPL_FUTURE(sym)	__EXPORT_SYMBOL(sym, "_gpl_future")
 #define EXPORT_SYMBOL_NS(sym, ns)	__EXPORT_SYMBOL_NS(sym, "", ns)
 #define EXPORT_SYMBOL_NS_GPL(sym, ns)	__EXPORT_SYMBOL_NS(sym, "_gpl", ns)
+=======
+#define __EXPORT_SYMBOL(sym, sec)	___EXPORT_SYMBOL(sym, sec)
 
+#endif /* CONFIG_MODULES */
+>>>>>>> linux-next/akpm-base
+
+#define EXPORT_SYMBOL(sym)		__EXPORT_SYMBOL(sym, "")
+#define EXPORT_SYMBOL_GPL(sym)		__EXPORT_SYMBOL(sym, "_gpl")
+#define EXPORT_SYMBOL_GPL_FUTURE(sym)	__EXPORT_SYMBOL(sym, "_gpl_future")
 #ifdef CONFIG_UNUSED_SYMBOLS
 #define EXPORT_UNUSED_SYMBOL(sym)	__EXPORT_SYMBOL(sym, "_unused")
 #define EXPORT_UNUSED_SYMBOL_GPL(sym)	__EXPORT_SYMBOL(sym, "_unused_gpl")
