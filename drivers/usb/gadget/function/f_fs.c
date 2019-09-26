@@ -1352,14 +1352,6 @@ static long ffs_epfile_ioctl(struct file *file, unsigned code,
 	return ret;
 }
 
-#ifdef CONFIG_COMPAT
-static long ffs_epfile_compat_ioctl(struct file *file, unsigned code,
-		unsigned long value)
-{
-	return ffs_epfile_ioctl(file, code, value);
-}
-#endif
-
 static const struct file_operations ffs_epfile_operations = {
 	.llseek =	no_llseek,
 
@@ -1368,9 +1360,7 @@ static const struct file_operations ffs_epfile_operations = {
 	.read_iter =	ffs_epfile_read_iter,
 	.release =	ffs_epfile_release,
 	.unlocked_ioctl =	ffs_epfile_ioctl,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl = ffs_epfile_compat_ioctl,
-#endif
+	.compat_ioctl = compat_ptr_ioctl,
 };
 
 
@@ -1599,6 +1589,7 @@ static int ffs_fs_get_tree(struct fs_context *fc)
 static void ffs_fs_free_fc(struct fs_context *fc)
 {
 	struct ffs_sb_fill_data *ctx = fc->fs_private;
+<<<<<<< HEAD
 
 	if (ctx) {
 		if (ctx->ffs_data) {
@@ -1606,6 +1597,15 @@ static void ffs_fs_free_fc(struct fs_context *fc)
 			ffs_data_put(ctx->ffs_data);
 		}
 
+=======
+
+	if (ctx) {
+		if (ctx->ffs_data) {
+			ffs_release_dev(ctx->ffs_data);
+			ffs_data_put(ctx->ffs_data);
+		}
+
+>>>>>>> linux-next/akpm-base
 		kfree(ctx);
 	}
 }
