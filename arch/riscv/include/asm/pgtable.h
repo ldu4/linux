@@ -436,24 +436,10 @@ extern void *dtb_early_va;
 extern void setup_bootmem(void);
 extern void paging_init(void);
 
-<<<<<<< HEAD
-#define VMALLOC_SIZE     (KERN_VIRT_SIZE >> 1)
-#define VMALLOC_END      (PAGE_OFFSET - 1)
-#define VMALLOC_START    (PAGE_OFFSET - VMALLOC_SIZE)
-
-#define FIXADDR_TOP      VMALLOC_START
-#ifdef CONFIG_64BIT
-#define FIXADDR_SIZE     PMD_SIZE
-#else
-#define FIXADDR_SIZE     PGDIR_SIZE
-#endif
-#define FIXADDR_START    (FIXADDR_TOP - FIXADDR_SIZE)
-=======
 static inline void pgtable_cache_init(void)
 {
 	/* No page table caches to initialize */
 }
->>>>>>> linux-next/akpm-base
 
 /*
  * Task size is 0x4000000000 for RV64 or 0x9fc00000 for RV32.

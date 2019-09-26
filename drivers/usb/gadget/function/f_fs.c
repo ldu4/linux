@@ -1589,7 +1589,6 @@ static int ffs_fs_get_tree(struct fs_context *fc)
 static void ffs_fs_free_fc(struct fs_context *fc)
 {
 	struct ffs_sb_fill_data *ctx = fc->fs_private;
-<<<<<<< HEAD
 
 	if (ctx) {
 		if (ctx->ffs_data) {
@@ -1597,15 +1596,6 @@ static void ffs_fs_free_fc(struct fs_context *fc)
 			ffs_data_put(ctx->ffs_data);
 		}
 
-=======
-
-	if (ctx) {
-		if (ctx->ffs_data) {
-			ffs_release_dev(ctx->ffs_data);
-			ffs_data_put(ctx->ffs_data);
-		}
-
->>>>>>> linux-next/akpm-base
 		kfree(ctx);
 	}
 }
