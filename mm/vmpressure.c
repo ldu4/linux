@@ -362,7 +362,7 @@ int vmpressure_register_event(struct mem_cgroup *memcg,
 	struct vmpressure *vmpr = memcg_to_vmpressure(memcg);
 	struct vmpressure_event *ev;
 	enum vmpressure_modes mode = VMPRESSURE_NO_PASSTHROUGH;
-	enum vmpressure_levels level = -1;
+	enum vmpressure_levels level;
 	char *spec, *spec_orig;
 	char *token;
 	int ret = 0;
@@ -376,7 +376,7 @@ int vmpressure_register_event(struct mem_cgroup *memcg,
 	/* Find required level */
 	token = strsep(&spec, ",");
 	level = match_string(vmpressure_str_levels, VMPRESSURE_NUM_LEVELS, token);
-	if (level < 0) {
+	if ((int)level < 0) {
 		ret = level;
 		goto out;
 	}
@@ -385,7 +385,7 @@ int vmpressure_register_event(struct mem_cgroup *memcg,
 	token = strsep(&spec, ",");
 	if (token) {
 		mode = match_string(vmpressure_str_modes, VMPRESSURE_NUM_MODES, token);
-		if (mode < 0) {
+		if ((int)mode < 0) {
 			ret = mode;
 			goto out;
 		}
