@@ -4,6 +4,7 @@
 
 #include <linux/bug.h>
 #include <linux/kernel.h>
+#include <linux/math.h>
 
 static inline unsigned long iommu_device_max_index(unsigned long size,
 						   unsigned long offset,
