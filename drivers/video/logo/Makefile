@@ -18,11 +18,8 @@ obj-$(CONFIG_SPU_BASE)			+= logo_spe_clut224.o
 
 # How to generate logo's
 
-<<<<<<< HEAD
 pnmtologo := scripts/pnmtologo
-=======
 hostprogs-y := pnmtologo
->>>>>>> linux-next/akpm-base
 
 # Create commands like "pnmtologo -t mono -n logo_mac_mono -o ..."
 quiet_cmd_logo = LOGO    $@
