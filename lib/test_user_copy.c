@@ -93,11 +93,19 @@ static int test_copy_struct_from_user(char *kmem, char __user *umem,
 	size_t ksize, usize;
 
 	umem_src = kmalloc(size, GFP_KERNEL);
+<<<<<<< HEAD
 	if ((ret |= test(umem_src == NULL, "kmalloc failed")))
 		goto out_free;
 
 	expected = kmalloc(size, GFP_KERNEL);
 	if ((ret |= test(expected == NULL, "kmalloc failed")))
+=======
+	if (ret |= test(umem_src == NULL, "kmalloc failed"))
+		goto out_free;
+
+	expected = kmalloc(size, GFP_KERNEL);
+	if (ret |= test(expected == NULL, "kmalloc failed"))
+>>>>>>> linux-next/akpm-base
 		goto out_free;
 
 	/* Fill umem with a fixed byte pattern. */
