@@ -7524,17 +7524,10 @@ intel_link_compute_m_n(u16 bits_per_pixel, int nlanes,
 		       bool constant_n, bool fec_enable)
 {
 	u32 data_clock = bits_per_pixel * pixel_clock;
-<<<<<<< HEAD
 
 	if (fec_enable)
 		data_clock = intel_dp_mode_to_fec_clock(data_clock);
 
-=======
-
-	if (fec_enable)
-		data_clock = intel_dp_mode_to_fec_clock(data_clock);
-
->>>>>>> linux-next/akpm-base
 	m_n->tu = 64;
 	compute_m_n(data_clock,
 		    link_clock * nlanes * 8,
