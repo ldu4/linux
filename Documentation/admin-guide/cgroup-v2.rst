@@ -1120,9 +1120,9 @@ PAGE_SIZE multiple when read back.
 
 	Best-effort memory protection.  If the memory usage of a
 	cgroup is within its effective low boundary, the cgroup's
-	memory won't be reclaimed unless memory can be reclaimed
-	from unprotected cgroups.  Above the effective low boundary (or
-	effective min boundary if it is higher), pages are reclaimed
+	memory won't be reclaimed unless there is no reclaimable memory =
+	available in unprotected cgroups.  Above the effective low boundary
+	(or effective min boundary if it is higher), pages are reclaimed
 	proportionally to the overage, reducing reclaim pressure for
 	smaller overages.
 
