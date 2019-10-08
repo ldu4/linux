@@ -912,6 +912,7 @@ static void vmbus_shutdown(struct device *child_device)
 		drv->shutdown(dev);
 }
 
+#ifdef CONFIG_PM_SLEEP
 /*
  * vmbus_suspend - Suspend a vmbus device
  */
@@ -949,6 +950,7 @@ static int vmbus_resume(struct device *child_device)
 
 	return drv->resume(dev);
 }
+#endif /* CONFIG_PM_SLEEP */
 
 /*
  * vmbus_device_release - Final callback release of the vmbus child device
@@ -957,6 +959,8 @@ static void vmbus_device_release(struct device *device)
 {
 	struct hv_device *hv_dev = device_to_hv_device(device);
 	struct vmbus_channel *channel = hv_dev->channel;
+
+	hv_debug_rm_dev_dir(hv_dev);
 
 	mutex_lock(&vmbus_connection.channel_mutex);
 	hv_process_channel_removal(channel);
@@ -1070,6 +1074,7 @@ msg_handled:
 	vmbus_signal_eom(msg, message_type);
 }
 
+#ifdef CONFIG_PM_SLEEP
 /*
  * Fake RESCIND_CHANNEL messages to clean up hv_sock channels by force for
  * hibernation, because hv_sock connections can not persist across hibernation.
@@ -1105,6 +1110,7 @@ static void vmbus_force_channel_rescinded(struct vmbus_channel *channel)
 		      vmbus_connection.work_queue,
 		      &ctx->work);
 }
+#endif /* CONFIG_PM_SLEEP */
 
 /*
  * Direct callback for channels using other deferred processing
@@ -1269,7 +1275,7 @@ static void hv_kmsg_dump(struct kmsg_dumper *dumper,
 	 * Write dump contents to the page. No need to synchronize; panic should
 	 * be single-threaded.
 	 */
-	kmsg_dump_get_buffer(dumper, true, hv_panic_page, PAGE_SIZE,
+	kmsg_dump_get_buffer(dumper, true, hv_panic_page, HV_HYP_PAGE_SIZE,
 			     &bytes_written);
 	if (bytes_written)
 		hyperv_report_panic_msg(panic_pa, bytes_written);
@@ -1373,7 +1379,7 @@ static int vmbus_bus_init(void)
 		 */
 		hv_get_crash_ctl(hyperv_crash_ctl);
 		if (hyperv_crash_ctl & HV_CRASH_CTL_CRASH_NOTIFY_MSG) {
-			hv_panic_page = (void *)get_zeroed_page(GFP_KERNEL);
+			hv_panic_page = (void *)hv_alloc_hyperv_zeroed_page();
 			if (hv_panic_page) {
 				ret = kmsg_dump_register(&hv_kmsg_dumper);
 				if (ret)
@@ -1402,7 +1408,7 @@ err_alloc:
 	hv_remove_vmbus_irq();
 
 	bus_unregister(&hv_bus);
-	free_page((unsigned long)hv_panic_page);
+	hv_free_hyperv_page((unsigned long)hv_panic_page);
 	unregister_sysctl_table(hv_ctl_table_hdr);
 	hv_ctl_table_hdr = NULL;
 	return ret;
@@ -1810,6 +1816,7 @@ int vmbus_device_register(struct hv_device *child_device_obj)
 		pr_err("Unable to register primary channeln");
 		goto err_kset_unregister;
 	}
+	hv_debug_add_dev_dir(child_device_obj);
 
 	return 0;
 
@@ -2125,6 +2132,7 @@ acpi_walk_err:
 	return ret_val;
 }
 
+#ifdef CONFIG_PM_SLEEP
 static int vmbus_bus_suspend(struct device *dev)
 {
 	struct vmbus_channel *channel, *sc;
@@ -2247,6 +2255,7 @@ static int vmbus_bus_resume(struct device *dev)
 
 	return 0;
 }
+#endif /* CONFIG_PM_SLEEP */
 
 static const struct acpi_device_id vmbus_acpi_device_ids[] = {
 	{"VMBUS", 0},
@@ -2369,6 +2378,7 @@ static int __init hv_acpi_init(void)
 		ret = -ETIMEDOUT;
 		goto cleanup;
 	}
+	hv_debug_init();
 
 	ret = vmbus_bus_init();
 	if (ret)
@@ -2405,6 +2415,8 @@ static void __exit vmbus_exit(void)
 
 		tasklet_kill(&hv_cpu->msg_dpc);
 	}
+	hv_debug_rm_all_dir();
+
 	vmbus_free_channels();
 
 	if (ms_hyperv.misc_features & HV_FEATURE_GUEST_CRASH_MSR_AVAILABLE) {

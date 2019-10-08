@@ -45,7 +45,7 @@ config USB_AT91
 
 config USB_LPC32XX
 	tristate "LPC32XX USB Peripheral Controller"
-	depends on ARCH_LPC32XX
+	depends on ARCH_LPC32XX || COMPILE_TEST
 	depends on I2C
 	select USB_ISP1301
 	help
@@ -123,7 +123,7 @@ config USB_GR_UDC
        tristate "Aeroflex Gaisler GRUSBDC USB Peripheral Controller Driver"
        depends on HAS_DMA
        help
-          Select this to support Aeroflex Gaisler GRUSBDC cores from the GRLIB
+	  Select this to support Aeroflex Gaisler GRUSBDC cores from the GRLIB
 	  VHDL IP core library.
 
 config USB_OMAP

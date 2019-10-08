@@ -606,7 +606,7 @@ struct mlx5_ib_mr {
 	struct mlx5_ib_dev     *dev;
 	u32 out[MLX5_ST_SZ_DW(create_mkey_out)];
 	struct mlx5_core_sig_ctx    *sig;
-	int			live;
+	unsigned int		live;
 	void			*descs_alloc;
 	int			access_flags; /* Needed for rereg MR */
 
@@ -639,7 +639,6 @@ struct mlx5_ib_mw {
 struct mlx5_ib_devx_mr {
 	struct mlx5_core_mkey	mmkey;
 	int			ndescs;
-	struct rcu_head		rcu;
 };
 
 struct mlx5_ib_umr_context {
@@ -958,7 +957,10 @@ struct mlx5_ib_dev {
 	/* serialize update of capability mask
 	 */
 	struct mutex			cap_mask_mutex;
-	bool				ib_active;
+	u8				ib_active:1;
+	u8				fill_delay:1;
+	u8				is_rep:1;
+	u8				lag_active:1;
 	struct umr_common		umrc;
 	/* sync used page count stats
 	 */
@@ -967,7 +969,6 @@ struct mlx5_ib_dev {
 	struct timer_list		delay_timer;
 	/* Prevents soft lock on massive reg MRs */
 	struct mutex			slow_path_mutex;
-	int				fill_delay;
 	struct ib_odp_caps	odp_caps;
 	u64			odp_max_size;
 	struct mlx5_ib_pf_eq	odp_pf_eq;
@@ -988,8 +989,6 @@ struct mlx5_ib_dev {
 	struct mlx5_sq_bfreg	fp_bfreg;
 	struct mlx5_ib_delay_drop	delay_drop;
 	const struct mlx5_ib_profile	*profile;
-	bool			is_rep;
-	int				lag_active;
 
 	struct mlx5_ib_lb_state		lb;
 	u8			umr_fence;
