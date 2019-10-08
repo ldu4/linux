@@ -2315,10 +2315,10 @@ static int ocfs2_inode_lock_update(struct inode *inode,
 
 	spin_lock(&oi->ip_lock);
 	if (oi->ip_flags & OCFS2_INODE_DELETED) {
+		spin_unlock(&oi->ip_lock);
 		mlog(0, "Orphaned inode %llu was deleted while we "
 		     "were waiting on a lock. ip_flags = 0x%x\n",
 		     (unsigned long long)oi->ip_blkno, oi->ip_flags);
-		spin_unlock(&oi->ip_lock);
 		status = -ENOENT;
 		goto bail;
 	}
