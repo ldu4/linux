@@ -121,11 +121,9 @@ int tcp_twsk_unique(struct sock *sk, struct sock *sktw, void *twp)
 #if IS_ENABLED(CONFIG_IPV6)
 		if (tw->tw_family == AF_INET6) {
 			if (ipv6_addr_loopback(&tw->tw_v6_daddr) ||
-			    (ipv6_addr_v4mapped(&tw->tw_v6_daddr) &&
-			     (tw->tw_v6_daddr.s6_addr[12] == 127)) ||
+			    ipv6_addr_v4mapped_loopback(&tw->tw_v6_daddr) ||
 			    ipv6_addr_loopback(&tw->tw_v6_rcv_saddr) ||
-			    (ipv6_addr_v4mapped(&tw->tw_v6_rcv_saddr) &&
-			     (tw->tw_v6_rcv_saddr.s6_addr[12] == 127)))
+			    ipv6_addr_v4mapped_loopback(&tw->tw_v6_rcv_saddr))
 				loopback = true;
 		} else
 #endif
@@ -1644,7 +1642,7 @@ int tcp_v4_early_demux(struct sk_buff *skb)
 
 bool tcp_add_backlog(struct sock *sk, struct sk_buff *skb)
 {
-	u32 limit = sk->sk_rcvbuf + sk->sk_sndbuf;
+	u32 limit = READ_ONCE(sk->sk_rcvbuf) + READ_ONCE(sk->sk_sndbuf);
 	struct skb_shared_info *shinfo;
 	const struct tcphdr *th;
 	struct tcphdr *thtail;

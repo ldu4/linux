@@ -299,6 +299,16 @@
 				pins = "PH0", "PH1";
 				function = "uart0";
 			};
+
+			uart1_pins: uart1-pins {
+				pins = "PG6", "PG7";
+				function = "uart1";
+			};
+
+			uart1_rts_cts_pins: uart1-rts-cts-pins {
+				pins = "PG8", "PG9";
+				function = "uart1";
+			};
 		};
 
 		gic: interrupt-controller@3021000 {
@@ -547,6 +557,7 @@
 			resets = <&ccu RST_BUS_OHCI3>,
 				 <&ccu RST_BUS_EHCI3>;
 			phys = <&usb2phy 3>;
+			phy-names = "usb";
 			status = "disabled";
 		};
 
@@ -558,6 +569,7 @@
 				 <&ccu CLK_USB_OHCI3>;
 			resets = <&ccu RST_BUS_OHCI3>;
 			phys = <&usb2phy 3>;
+			phy-names = "usb";
 			status = "disabled";
 		};
 

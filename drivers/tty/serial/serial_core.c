@@ -1964,8 +1964,10 @@ uart_get_console(struct uart_port *ports, int nr, struct console *co)
  *	   console=<name>,io|mmio|mmio16|mmio32|mmio32be|mmio32native,<addr>,<options>
  *
  *	The optional form
+ *
  *	   earlycon=<name>,0x<addr>,<options>
  *	   console=<name>,0x<addr>,<options>
+ *
  *	is also accepted; the returned @iotype will be UPIO_MEM.
  *
  *	Returns 0 on success or -EINVAL on failure
@@ -2830,7 +2832,8 @@ int uart_add_one_port(struct uart_driver *drv, struct uart_port *uport)
 		lockdep_set_class(&uport->lock, &port_lock_key);
 	}
 	if (uport->cons && uport->dev)
-		of_console_check(uport->dev->of_node, uport->cons->name, uport->line);
+		of_console_check(uport->dev->of_node, uport->cons->name,
+				 uport->cons->index);
 
 	uart_configure_port(drv, state, uport);
 

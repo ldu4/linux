@@ -103,6 +103,9 @@ static void audio_vchi_callback(void *param,
 
 	status = vchi_msg_dequeue(instance->vchi_handle,
 				  &m, sizeof(m), &msg_len, VCHI_FLAGS_NONE);
+	if (status)
+		return;
+
 	if (m.type == VC_AUDIO_MSG_TYPE_RESULT) {
 		instance->result = m.result.success;
 		complete(&instance->msg_avail_comp);
@@ -289,6 +292,7 @@ int bcm2835_audio_stop(struct bcm2835_alsa_stream *alsa_stream)
 					 VC_AUDIO_MSG_TYPE_STOP, false);
 }
 
+/* FIXME: this doesn't seem working as expected for "draining" */
 int bcm2835_audio_drain(struct bcm2835_alsa_stream *alsa_stream)
 {
 	struct vc_audio_msg m = {
