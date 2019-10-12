@@ -176,11 +176,7 @@ void i915_gem_resume(struct drm_i915_private *i915)
 
 	intel_uncore_forcewake_get(&i915->uncore, FORCEWAKE_ALL);
 
-<<<<<<< HEAD
-	if (i915_gem_init_hw(i915))
-=======
 	if (intel_gt_init_hw(&i915->gt))
->>>>>>> linux-next/akpm-base
 		goto err_wedged;
 
 	/*

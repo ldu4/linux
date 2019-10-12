@@ -1624,10 +1624,7 @@ static void execlists_dequeue(struct intel_engine_cs *engine)
 				submit = true;
 				last = rq;
 			}
-<<<<<<< HEAD
-=======
 			i915_request_put(rq);
->>>>>>> linux-next/akpm-base
 
 			/*
 			 * Hmm, we have a bunch of virtual engine requests,
@@ -2725,19 +2722,11 @@ static struct i915_request *active_request(struct i915_request *rq)
 	const struct intel_context * const ce = rq->hw_context;
 	struct i915_request *active = NULL;
 	struct list_head *list;
-<<<<<<< HEAD
-
-	if (!i915_request_is_active(rq)) /* unwound, but incomplete! */
-		return rq;
-
-	list = &rq->timeline->requests;
-=======
 
 	if (!i915_request_is_active(rq)) /* unwound, but incomplete! */
 		return rq;
 
 	list = &i915_request_active_timeline(rq)->requests;
->>>>>>> linux-next/akpm-base
 	list_for_each_entry_from_reverse(rq, list, link) {
 		if (i915_request_completed(rq))
 			break;
@@ -2919,10 +2908,7 @@ static void execlists_cancel_requests(struct intel_engine_cs *engine)
 		int i;
 
 		priolist_for_each_request_consume(rq, rn, p, i) {
-<<<<<<< HEAD
-=======
 			mark_eio(rq);
->>>>>>> linux-next/akpm-base
 			__i915_request_submit(rq);
 		}
 

@@ -196,30 +196,6 @@ static void free_capture_list(struct i915_request *request)
 }
 
 static void remove_from_engine(struct i915_request *rq)
-<<<<<<< HEAD
-{
-	struct intel_engine_cs *engine, *locked;
-
-	/*
-	 * Virtual engines complicate acquiring the engine timeline lock,
-	 * as their rq->engine pointer is not stable until under that
-	 * engine lock. The simple ploy we use is to take the lock then
-	 * check that the rq still belongs to the newly locked engine.
-	 */
-	locked = READ_ONCE(rq->engine);
-	spin_lock(&locked->active.lock);
-	while (unlikely(locked != (engine = READ_ONCE(rq->engine)))) {
-		spin_unlock(&locked->active.lock);
-		spin_lock(&engine->active.lock);
-		locked = engine;
-	}
-	list_del(&rq->sched.link);
-	spin_unlock(&locked->active.lock);
-}
-
-static bool i915_request_retire(struct i915_request *rq)
-=======
->>>>>>> linux-next/akpm-base
 {
 	struct intel_engine_cs *engine, *locked;
 
@@ -427,19 +403,11 @@ bool __i915_request_submit(struct i915_request *request)
 
 	engine->emit_fini_breadcrumb(request,
 				     request->ring->vaddr + request->postfix);
-<<<<<<< HEAD
 
 	trace_i915_request_execute(request);
 	engine->serial++;
 	result = true;
 
-=======
-
-	trace_i915_request_execute(request);
-	engine->serial++;
-	result = true;
-
->>>>>>> linux-next/akpm-base
 xfer:	/* We may be recursing from the signal callback of another i915 fence */
 	spin_lock_nested(&request->lock, SINGLE_DEPTH_NESTING);
 
