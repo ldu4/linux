@@ -33,6 +33,7 @@
 #include <linux/limits.h>
 #include <linux/perf_event.h>
 #include <linux/ring_buffer.h>
+#include <linux/version.h>
 #include <sys/epoll.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
@@ -248,6 +249,7 @@ struct bpf_object {
 
 	bool loaded;
 	bool has_pseudo_calls;
+	bool relaxed_core_relocs;
 
 	/*
 	 * Information when doing elf related work. Only valid if fd
@@ -255,7 +257,7 @@ struct bpf_object {
 	 */
 	struct {
 		int fd;
-		void *obj_buf;
+		const void *obj_buf;
 		size_t obj_buf_sz;
 		Elf *elf;
 		GElf_Ehdr ehdr;
@@ -491,9 +493,21 @@ bpf_object__init_prog_names(struct bpf_object *obj)
 	return 0;
 }
 
+static __u32 get_kernel_version(void)
+{
+	__u32 major, minor, patch;
+	struct utsname info;
+
+	uname(&info);
+	if (sscanf(info.release, "%u.%u.%u", &major, &minor, &patch) != 3)
+		return 0;
+	return KERNEL_VERSION(major, minor, patch);
+}
+
 static struct bpf_object *bpf_object__new(const char *path,
-					  void *obj_buf,
-					  size_t obj_buf_sz)
+					  const void *obj_buf,
+					  size_t obj_buf_sz,
+					  const char *obj_name)
 {
 	struct bpf_object *obj;
 	char *end;
@@ -505,11 +519,17 @@ static struct bpf_object *bpf_object__new(const char *path,
 	}
 
 	strcpy(obj->path, path);
-	/* Using basename() GNU version which doesn't modify arg. */
-	strncpy(obj->name, basename((void *)path), sizeof(obj->name) - 1);
-	end = strchr(obj->name, '.');
-	if (end)
-		*end = 0;
+	if (obj_name) {
+		strncpy(obj->name, obj_name, sizeof(obj->name) - 1);
+		obj->name[sizeof(obj->name) - 1] = 0;
+	} else {
+		/* Using basename() GNU version which doesn't modify arg. */
+		strncpy(obj->name, basename((void *)path),
+			sizeof(obj->name) - 1);
+		end = strchr(obj->name, '.');
+		if (end)
+			*end = 0;
+	}
 
 	obj->efile.fd = -1;
 	/*
@@ -526,6 +546,7 @@ static struct bpf_object *bpf_object__new(const char *path,
 	obj->efile.rodata_shndx = -1;
 	obj->efile.bss_shndx = -1;
 
+	obj->kern_version = get_kernel_version();
 	obj->loaded = false;
 
 	INIT_LIST_HEAD(&obj->list);
@@ -569,7 +590,7 @@ static int bpf_object__elf_init(struct bpf_object *obj)
 		 * obj_buf should have been validated by
 		 * bpf_object__open_buffer().
 		 */
-		obj->efile.elf = elf_memory(obj->efile.obj_buf,
+		obj->efile.elf = elf_memory((char *)obj->efile.obj_buf,
 					    obj->efile.obj_buf_sz);
 	} else {
 		obj->efile.fd = open(obj->path, O_RDONLY);
@@ -633,21 +654,6 @@ bpf_object__init_license(struct bpf_object *obj, void *data, size_t size)
 {
 	memcpy(obj->license, data, min(size, sizeof(obj->license) - 1));
 	pr_debug("license of %s is %s\n", obj->path, obj->license);
-	return 0;
-}
-
-static int
-bpf_object__init_kversion(struct bpf_object *obj, void *data, size_t size)
-{
-	__u32 kver;
-
-	if (size != sizeof(kver)) {
-		pr_warning("invalid kver section in %s\n", obj->path);
-		return -LIBBPF_ERRNO__FORMAT;
-	}
-	memcpy(&kver, data, sizeof(kver));
-	obj->kern_version = kver;
-	pr_debug("kernel version of %s is %x\n", obj->path, obj->kern_version);
 	return 0;
 }
 
@@ -1317,9 +1323,9 @@ static int bpf_object__init_user_btf_maps(struct bpf_object *obj, bool strict)
 	return 0;
 }
 
-static int bpf_object__init_maps(struct bpf_object *obj, int flags)
+static int bpf_object__init_maps(struct bpf_object *obj, bool relaxed_maps)
 {
-	bool strict = !(flags & MAPS_RELAX_COMPAT);
+	bool strict = !relaxed_maps;
 	int err;
 
 	err = bpf_object__init_user_maps(obj, strict);
@@ -1516,7 +1522,7 @@ static int bpf_object__sanitize_and_load_btf(struct bpf_object *obj)
 	return 0;
 }
 
-static int bpf_object__elf_collect(struct bpf_object *obj, int flags)
+static int bpf_object__elf_collect(struct bpf_object *obj, bool relaxed_maps)
 {
 	Elf *elf = obj->efile.elf;
 	GElf_Ehdr *ep = &obj->efile.ehdr;
@@ -1568,11 +1574,7 @@ static int bpf_object__elf_collect(struct bpf_object *obj, int flags)
 			if (err)
 				return err;
 		} else if (strcmp(name, "version") == 0) {
-			err = bpf_object__init_kversion(obj,
-							data->d_buf,
-							data->d_size);
-			if (err)
-				return err;
+			/* skip, we don't need it anymore */
 		} else if (strcmp(name, "maps") == 0) {
 			obj->efile.maps_shndx = idx;
 		} else if (strcmp(name, MAPS_ELF_SEC) == 0) {
@@ -1651,7 +1653,7 @@ static int bpf_object__elf_collect(struct bpf_object *obj, int flags)
 	}
 	err = bpf_object__init_btf(obj, btf_data, btf_ext_data);
 	if (!err)
-		err = bpf_object__init_maps(obj, flags);
+		err = bpf_object__init_maps(obj, relaxed_maps);
 	if (!err)
 		err = bpf_object__sanitize_and_load_btf(obj);
 	if (!err)
@@ -2325,7 +2327,7 @@ static bool str_is_empty(const char *s)
 }
 
 /*
- * Turn bpf_offset_reloc into a low- and high-level spec representation,
+ * Turn bpf_field_reloc into a low- and high-level spec representation,
  * validating correctness along the way, as well as calculating resulting
  * field offset (in bytes), specified by accessor string. Low-level spec
  * captures every single level of nestedness, including traversing anonymous
@@ -2770,26 +2772,54 @@ static int bpf_core_spec_match(struct bpf_core_spec *local_spec,
 
 /*
  * Patch relocatable BPF instruction.
- * Expected insn->imm value is provided for validation, as well as the new
- * relocated value.
+ *
+ * Patched value is determined by relocation kind and target specification.
+ * For field existence relocation target spec will be NULL if field is not
+ * found.
+ * Expected insn->imm value is determined using relocation kind and local
+ * spec, and is checked before patching instruction. If actual insn->imm value
+ * is wrong, bail out with error.
  *
  * Currently three kinds of BPF instructions are supported:
  * 1. rX = <imm> (assignment with immediate operand);
  * 2. rX += <imm> (arithmetic operations with immediate operand);
- * 3. *(rX) = <imm> (indirect memory assignment with immediate operand).
- *
- * If actual insn->imm value is wrong, bail out.
  */
-static int bpf_core_reloc_insn(struct bpf_program *prog, int insn_off,
-			       __u32 orig_off, __u32 new_off)
+static int bpf_core_reloc_insn(struct bpf_program *prog,
+			       const struct bpf_field_reloc *relo,
+			       const struct bpf_core_spec *local_spec,
+			       const struct bpf_core_spec *targ_spec)
 {
+	__u32 orig_val, new_val;
 	struct bpf_insn *insn;
 	int insn_idx;
 	__u8 class;
 
-	if (insn_off % sizeof(struct bpf_insn))
+	if (relo->insn_off % sizeof(struct bpf_insn))
 		return -EINVAL;
-	insn_idx = insn_off / sizeof(struct bpf_insn);
+	insn_idx = relo->insn_off / sizeof(struct bpf_insn);
+
+	switch (relo->kind) {
+	case BPF_FIELD_BYTE_OFFSET:
+		orig_val = local_spec->offset;
+		if (targ_spec) {
+			new_val = targ_spec->offset;
+		} else {
+			pr_warning("prog '%s': patching insn #%d w/ failed reloc, imm %d -> %d\n",
+				   bpf_program__title(prog, false), insn_idx,
+				   orig_val, -1);
+			new_val = (__u32)-1;
+		}
+		break;
+	case BPF_FIELD_EXISTS:
+		orig_val = 1; /* can't generate EXISTS relo w/o local field */
+		new_val = targ_spec ? 1 : 0;
+		break;
+	default:
+		pr_warning("prog '%s': unknown relo %d at insn #%d'\n",
+			   bpf_program__title(prog, false),
+			   relo->kind, insn_idx);
+		return -EINVAL;
+	}
 
 	insn = &prog->insns[insn_idx];
 	class = BPF_CLASS(insn->code);
@@ -2797,12 +2827,12 @@ static int bpf_core_reloc_insn(struct bpf_program *prog, int insn_off,
 	if (class == BPF_ALU || class == BPF_ALU64) {
 		if (BPF_SRC(insn->code) != BPF_K)
 			return -EINVAL;
-		if (insn->imm != orig_off)
+		if (insn->imm != orig_val)
 			return -EINVAL;
-		insn->imm = new_off;
+		insn->imm = new_val;
 		pr_debug("prog '%s': patched insn #%d (ALU/ALU64) imm %d -> %d\n",
 			 bpf_program__title(prog, false),
-			 insn_idx, orig_off, new_off);
+			 insn_idx, orig_val, new_val);
 	} else {
 		pr_warning("prog '%s': trying to relocate unrecognized insn #%d, code:%x, src:%x, dst:%x, off:%x, imm:%x\n",
 			   bpf_program__title(prog, false),
@@ -2810,6 +2840,7 @@ static int bpf_core_reloc_insn(struct bpf_program *prog, int insn_off,
 			   insn->off, insn->imm);
 		return -EINVAL;
 	}
+
 	return 0;
 }
 
@@ -2976,7 +3007,7 @@ static void *u32_as_hash_key(__u32 x)
  *    types should be compatible (see bpf_core_fields_are_compat for details).
  * 3. It is supported and expected that there might be multiple flavors
  *    matching the spec. As long as all the specs resolve to the same set of
- *    offsets across all candidates, there is not error. If there is any
+ *    offsets across all candidates, there is no error. If there is any
  *    ambiguity, CO-RE relocation will fail. This is necessary to accomodate
  *    imprefection of BTF deduplication, which can cause slight duplication of
  *    the same BTF type, if some directly or indirectly referenced (by
@@ -2991,12 +3022,12 @@ static void *u32_as_hash_key(__u32 x)
  *    CPU-wise compared to prebuilding a map from all local type names to
  *    a list of candidate type names. It's also sped up by caching resolved
  *    list of matching candidates per each local "root" type ID, that has at
- *    least one bpf_offset_reloc associated with it. This list is shared
+ *    least one bpf_field_reloc associated with it. This list is shared
  *    between multiple relocations for the same type ID and is updated as some
  *    of the candidates are pruned due to structural incompatibility.
  */
-static int bpf_core_reloc_offset(struct bpf_program *prog,
-				 const struct bpf_offset_reloc *relo,
+static int bpf_core_reloc_field(struct bpf_program *prog,
+				 const struct bpf_field_reloc *relo,
 				 int relo_idx,
 				 const struct btf *local_btf,
 				 const struct btf *targ_btf,
@@ -3086,15 +3117,26 @@ static int bpf_core_reloc_offset(struct bpf_program *prog,
 		cand_ids->data[j++] = cand_spec.spec[0].type_id;
 	}
 
-	cand_ids->len = j;
-	if (cand_ids->len == 0) {
+	/*
+	 * For BPF_FIELD_EXISTS relo or when relaxed CO-RE reloc mode is
+	 * requested, it's expected that we might not find any candidates.
+	 * In this case, if field wasn't found in any candidate, the list of
+	 * candidates shouldn't change at all, we'll just handle relocating
+	 * appropriately, depending on relo's kind.
+	 */
+	if (j > 0)
+		cand_ids->len = j;
+
+	if (j == 0 && !prog->obj->relaxed_core_relocs &&
+	    relo->kind != BPF_FIELD_EXISTS) {
 		pr_warning("prog '%s': relo #%d: no matching targets found for [%d] %s + %s\n",
 			   prog_name, relo_idx, local_id, local_name, spec_str);
 		return -ESRCH;
 	}
 
-	err = bpf_core_reloc_insn(prog, relo->insn_off,
-				  local_spec.offset, targ_spec.offset);
+	/* bpf_core_reloc_insn should know how to handle missing targ_spec */
+	err = bpf_core_reloc_insn(prog, relo, &local_spec,
+				  j ? &targ_spec : NULL);
 	if (err) {
 		pr_warning("prog '%s': relo #%d: failed to patch insn at offset %d: %d\n",
 			   prog_name, relo_idx, relo->insn_off, err);
@@ -3105,10 +3147,10 @@ static int bpf_core_reloc_offset(struct bpf_program *prog,
 }
 
 static int
-bpf_core_reloc_offsets(struct bpf_object *obj, const char *targ_btf_path)
+bpf_core_reloc_fields(struct bpf_object *obj, const char *targ_btf_path)
 {
 	const struct btf_ext_info_sec *sec;
-	const struct bpf_offset_reloc *rec;
+	const struct bpf_field_reloc *rec;
 	const struct btf_ext_info *seg;
 	struct hashmap_entry *entry;
 	struct hashmap *cand_cache = NULL;
@@ -3133,7 +3175,7 @@ bpf_core_reloc_offsets(struct bpf_object *obj, const char *targ_btf_path)
 		goto out;
 	}
 
-	seg = &obj->btf_ext->offset_reloc_info;
+	seg = &obj->btf_ext->field_reloc_info;
 	for_each_btf_ext_sec(seg, sec) {
 		sec_name = btf__name_by_offset(obj->btf, sec->sec_name_off);
 		if (str_is_empty(sec_name)) {
@@ -3152,8 +3194,8 @@ bpf_core_reloc_offsets(struct bpf_object *obj, const char *targ_btf_path)
 			 sec_name, sec->num_info);
 
 		for_each_btf_ext_rec(seg, sec, i, rec) {
-			err = bpf_core_reloc_offset(prog, rec, i, obj->btf,
-						    targ_btf, cand_cache);
+			err = bpf_core_reloc_field(prog, rec, i, obj->btf,
+						   targ_btf, cand_cache);
 			if (err) {
 				pr_warning("prog '%s': relo #%d: failed to relocate: %d\n",
 					   sec_name, i, err);
@@ -3178,8 +3220,8 @@ bpf_object__relocate_core(struct bpf_object *obj, const char *targ_btf_path)
 {
 	int err = 0;
 
-	if (obj->btf_ext->offset_reloc_info.len)
-		err = bpf_core_reloc_offsets(obj, targ_btf_path);
+	if (obj->btf_ext->field_reloc_info.len)
+		err = bpf_core_reloc_fields(obj, targ_btf_path);
 
 	return err;
 }
@@ -3551,73 +3593,49 @@ bpf_object__load_progs(struct bpf_object *obj, int log_level)
 	return 0;
 }
 
-static bool bpf_prog_type__needs_kver(enum bpf_prog_type type)
-{
-	switch (type) {
-	case BPF_PROG_TYPE_SOCKET_FILTER:
-	case BPF_PROG_TYPE_SCHED_CLS:
-	case BPF_PROG_TYPE_SCHED_ACT:
-	case BPF_PROG_TYPE_XDP:
-	case BPF_PROG_TYPE_CGROUP_SKB:
-	case BPF_PROG_TYPE_CGROUP_SOCK:
-	case BPF_PROG_TYPE_LWT_IN:
-	case BPF_PROG_TYPE_LWT_OUT:
-	case BPF_PROG_TYPE_LWT_XMIT:
-	case BPF_PROG_TYPE_LWT_SEG6LOCAL:
-	case BPF_PROG_TYPE_SOCK_OPS:
-	case BPF_PROG_TYPE_SK_SKB:
-	case BPF_PROG_TYPE_CGROUP_DEVICE:
-	case BPF_PROG_TYPE_SK_MSG:
-	case BPF_PROG_TYPE_CGROUP_SOCK_ADDR:
-	case BPF_PROG_TYPE_LIRC_MODE2:
-	case BPF_PROG_TYPE_SK_REUSEPORT:
-	case BPF_PROG_TYPE_FLOW_DISSECTOR:
-	case BPF_PROG_TYPE_UNSPEC:
-	case BPF_PROG_TYPE_TRACEPOINT:
-	case BPF_PROG_TYPE_RAW_TRACEPOINT:
-	case BPF_PROG_TYPE_RAW_TRACEPOINT_WRITABLE:
-	case BPF_PROG_TYPE_PERF_EVENT:
-	case BPF_PROG_TYPE_CGROUP_SYSCTL:
-	case BPF_PROG_TYPE_CGROUP_SOCKOPT:
-		return false;
-	case BPF_PROG_TYPE_KPROBE:
-	default:
-		return true;
-	}
-}
-
-static int bpf_object__validate(struct bpf_object *obj, bool needs_kver)
-{
-	if (needs_kver && obj->kern_version == 0) {
-		pr_warning("%s doesn't provide kernel version\n",
-			   obj->path);
-		return -LIBBPF_ERRNO__KVERSION;
-	}
-	return 0;
-}
-
 static struct bpf_object *
-__bpf_object__open(const char *path, void *obj_buf, size_t obj_buf_sz,
-		   bool needs_kver, int flags)
+__bpf_object__open(const char *path, const void *obj_buf, size_t obj_buf_sz,
+		   struct bpf_object_open_opts *opts)
 {
 	struct bpf_object *obj;
+	const char *obj_name;
+	char tmp_name[64];
+	bool relaxed_maps;
 	int err;
 
 	if (elf_version(EV_CURRENT) == EV_NONE) {
-		pr_warning("failed to init libelf for %s\n", path);
+		pr_warning("failed to init libelf for %s\n",
+			   path ? : "(mem buf)");
 		return ERR_PTR(-LIBBPF_ERRNO__LIBELF);
 	}
 
-	obj = bpf_object__new(path, obj_buf, obj_buf_sz);
+	if (!OPTS_VALID(opts, bpf_object_open_opts))
+		return ERR_PTR(-EINVAL);
+
+	obj_name = OPTS_GET(opts, object_name, path);
+	if (obj_buf) {
+		if (!obj_name) {
+			snprintf(tmp_name, sizeof(tmp_name), "%lx-%lx",
+				 (unsigned long)obj_buf,
+				 (unsigned long)obj_buf_sz);
+			obj_name = tmp_name;
+		}
+		path = obj_name;
+		pr_debug("loading object '%s' from buffer\n", obj_name);
+	}
+
+	obj = bpf_object__new(path, obj_buf, obj_buf_sz, obj_name);
 	if (IS_ERR(obj))
 		return obj;
+
+	obj->relaxed_core_relocs = OPTS_GET(opts, relaxed_core_relocs, false);
+	relaxed_maps = OPTS_GET(opts, relaxed_maps, false);
 
 	CHECK_ERR(bpf_object__elf_init(obj), err, out);
 	CHECK_ERR(bpf_object__check_endianness(obj), err, out);
 	CHECK_ERR(bpf_object__probe_caps(obj), err, out);
-	CHECK_ERR(bpf_object__elf_collect(obj, flags), err, out);
+	CHECK_ERR(bpf_object__elf_collect(obj, relaxed_maps), err, out);
 	CHECK_ERR(bpf_object__collect_reloc(obj), err, out);
-	CHECK_ERR(bpf_object__validate(obj, needs_kver), err, out);
 
 	bpf_object__elf_finish(obj);
 	return obj;
@@ -3626,18 +3644,19 @@ out:
 	return ERR_PTR(err);
 }
 
-struct bpf_object *__bpf_object__open_xattr(struct bpf_object_open_attr *attr,
-					    int flags)
+static struct bpf_object *
+__bpf_object__open_xattr(struct bpf_object_open_attr *attr, int flags)
 {
+	LIBBPF_OPTS(bpf_object_open_opts, opts,
+		.relaxed_maps = flags & MAPS_RELAX_COMPAT,
+	);
+
 	/* param validation */
 	if (!attr->file)
 		return NULL;
 
 	pr_debug("loading %s\n", attr->file);
-
-	return __bpf_object__open(attr->file, NULL, 0,
-				  bpf_prog_type__needs_kver(attr->prog_type),
-				  flags);
+	return __bpf_object__open(attr->file, NULL, 0, &opts);
 }
 
 struct bpf_object *bpf_object__open_xattr(struct bpf_object_open_attr *attr)
@@ -3655,25 +3674,42 @@ struct bpf_object *bpf_object__open(const char *path)
 	return bpf_object__open_xattr(&attr);
 }
 
-struct bpf_object *bpf_object__open_buffer(void *obj_buf,
-					   size_t obj_buf_sz,
-					   const char *name)
+struct bpf_object *
+bpf_object__open_file(const char *path, struct bpf_object_open_opts *opts)
 {
-	char tmp_name[64];
+	if (!path)
+		return ERR_PTR(-EINVAL);
 
-	/* param validation */
-	if (!obj_buf || obj_buf_sz <= 0)
+	pr_debug("loading %s\n", path);
+
+	return __bpf_object__open(path, NULL, 0, opts);
+}
+
+struct bpf_object *
+bpf_object__open_mem(const void *obj_buf, size_t obj_buf_sz,
+		     struct bpf_object_open_opts *opts)
+{
+	if (!obj_buf || obj_buf_sz == 0)
+		return ERR_PTR(-EINVAL);
+
+	return __bpf_object__open(NULL, obj_buf, obj_buf_sz, opts);
+}
+
+struct bpf_object *
+bpf_object__open_buffer(const void *obj_buf, size_t obj_buf_sz,
+			const char *name)
+{
+	LIBBPF_OPTS(bpf_object_open_opts, opts,
+		.object_name = name,
+		/* wrong default, but backwards-compatible */
+		.relaxed_maps = true,
+	);
+
+	/* returning NULL is wrong, but backwards-compatible */
+	if (!obj_buf || obj_buf_sz == 0)
 		return NULL;
 
-	if (!name) {
-		snprintf(tmp_name, sizeof(tmp_name), "%lx-%lx",
-			 (unsigned long)obj_buf,
-			 (unsigned long)obj_buf_sz);
-		name = tmp_name;
-	}
-	pr_debug("loading object '%s' from buffer\n", name);
-
-	return __bpf_object__open(name, obj_buf, obj_buf_sz, true, true);
+	return bpf_object__open_mem(obj_buf, obj_buf_sz, &opts);
 }
 
 int bpf_object__unload(struct bpf_object *obj)
@@ -4236,7 +4272,7 @@ bpf_object__next(struct bpf_object *prev)
 
 const char *bpf_object__name(const struct bpf_object *obj)
 {
-	return obj ? obj->path : ERR_PTR(-EINVAL);
+	return obj ? obj->name : ERR_PTR(-EINVAL);
 }
 
 unsigned int bpf_object__kversion(const struct bpf_object *obj)

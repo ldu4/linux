@@ -5552,13 +5552,12 @@ static int inet6_fill_ifla6_attrs(struct sk_buff *skb, struct inet6_dev *idev,
 	nla = nla_reserve(skb, IFLA_INET6_TOKEN, sizeof(struct in6_addr));
 	if (!nla)
 		goto nla_put_failure;
-
-	if (nla_put_u8(skb, IFLA_INET6_ADDR_GEN_MODE, idev->cnf.addr_gen_mode))
-		goto nla_put_failure;
-
 	read_lock_bh(&idev->lock);
 	memcpy(nla_data(nla), idev->token.s6_addr, nla_len(nla));
 	read_unlock_bh(&idev->lock);
+
+	if (nla_put_u8(skb, IFLA_INET6_ADDR_GEN_MODE, idev->cnf.addr_gen_mode))
+		goto nla_put_failure;
 
 	return 0;
 
@@ -6996,7 +6995,7 @@ static struct rtnl_af_ops inet6_ops __read_mostly = {
 
 int __init addrconf_init(void)
 {
-	struct inet6_dev *idev;
+	struct inet6_dev *idev, *bdev;
 	int i, err;
 
 	err = ipv6_addr_label_init();
@@ -7036,9 +7035,13 @@ int __init addrconf_init(void)
 	 */
 	rtnl_lock();
 	idev = ipv6_add_dev(init_net.loopback_dev);
+	bdev = ipv6_add_dev(blackhole_netdev);
 	rtnl_unlock();
 	if (IS_ERR(idev)) {
 		err = PTR_ERR(idev);
+		goto errlo;
+	} else if (IS_ERR(bdev)) {
+		err = PTR_ERR(bdev);
 		goto errlo;
 	}
 
@@ -7124,6 +7127,7 @@ void addrconf_cleanup(void)
 		addrconf_ifdown(dev, 1);
 	}
 	addrconf_ifdown(init_net.loopback_dev, 2);
+	addrconf_ifdown(blackhole_netdev, 2);
 
 	/*
 	 *	Check hash table.
