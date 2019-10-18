@@ -8265,10 +8265,8 @@ static int nl80211_start_sched_scan(struct sk_buff *skb,
 	/* leave request id zero for legacy request
 	 * or if driver does not support multi-scheduled scan
 	 */
-	if (want_multi && rdev->wiphy.max_sched_scan_reqs > 1) {
-		while (!sched_scan_req->reqid)
-			sched_scan_req->reqid = cfg80211_assign_cookie(rdev);
-	}
+	if (want_multi && rdev->wiphy.max_sched_scan_reqs > 1)
+		sched_scan_req->reqid = cfg80211_assign_cookie(rdev);
 
 	err = rdev_sched_scan_start(rdev, dev, sched_scan_req);
 	if (err)
@@ -13682,7 +13680,7 @@ static int nl80211_get_ftm_responder_stats(struct sk_buff *skb,
 	hdr = nl80211hdr_put(msg, info->snd_portid, info->snd_seq, 0,
 			     NL80211_CMD_GET_FTM_RESPONDER_STATS);
 	if (!hdr)
-		return -ENOBUFS;
+		goto nla_put_failure;
 
 	if (nla_put_u32(msg, NL80211_ATTR_IFINDEX, dev->ifindex))
 		goto nla_put_failure;

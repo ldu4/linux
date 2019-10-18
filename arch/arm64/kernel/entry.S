@@ -269,8 +269,10 @@ alternative_else_nop_endif
 alternative_if ARM64_HAS_IRQ_PRIO_MASKING
 	ldr	x20, [sp, #S_PMR_SAVE]
 	msr_s	SYS_ICC_PMR_EL1, x20
-	/* Ensure priority change is seen by redistributor */
-	dsb	sy
+	mrs_s	x21, SYS_ICC_CTLR_EL1
+	tbz	x21, #6, .L__skip_pmr_sync\@	// Check for ICC_CTLR_EL1.PMHE
+	dsb	sy				// Ensure priority change is seen by redistributor
+.L__skip_pmr_sync\@:
 alternative_else_nop_endif
 
 	ldp	x21, x22, [sp, #S_PC]		// load ELR, SPSR
@@ -604,7 +606,7 @@ el1_da:
 	 */
 	mrs	x3, far_el1
 	inherit_daif	pstate=x23, tmp=x2
-	clear_address_tag x0, x3
+	untagged_addr	x0, x3
 	mov	x2, sp				// struct pt_regs
 	bl	do_mem_abort
 
@@ -680,7 +682,7 @@ alternative_if ARM64_HAS_IRQ_PRIO_MASKING
 	orr	x24, x24, x0
 alternative_else_nop_endif
 	cbnz	x24, 1f				// preempt count != 0 || NMI return path
-	bl	preempt_schedule_irq		// irq en/disable is done inside
+	bl	arm64_preempt_schedule_irq	// irq en/disable is done inside
 1:
 #endif
 
@@ -808,7 +810,7 @@ el0_da:
 	mrs	x26, far_el1
 	ct_user_exit_irqoff
 	enable_daif
-	clear_address_tag x0, x26
+	untagged_addr	x0, x26
 	mov	x1, x25
 	mov	x2, sp
 	bl	do_mem_abort
