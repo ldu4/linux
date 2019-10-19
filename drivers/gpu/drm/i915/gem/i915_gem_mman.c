@@ -355,18 +355,6 @@ err:
 		 * already did the job.
 		 */
 		return VM_FAULT_NOPAGE;
-<<<<<<< HEAD
-	case -ENOMEM:
-		return VM_FAULT_OOM;
-	case -ENOSPC:
-	case -EFAULT:
-	case -ENODEV: /* bad object, how did you get here! */
-		return VM_FAULT_SIGBUS;
-	default:
-		WARN_ONCE(ret, "unhandled error in %s: %i\n", __func__, ret);
-		return VM_FAULT_SIGBUS;
-=======
->>>>>>> linux-next/akpm-base
 	}
 }
 

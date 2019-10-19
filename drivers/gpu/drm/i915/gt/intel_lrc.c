@@ -252,13 +252,6 @@ static void mark_eio(struct i915_request *rq)
 	i915_request_mark_complete(rq);
 }
 
-static void mark_eio(struct i915_request *rq)
-{
-	if (!i915_request_signaled(rq))
-		dma_fence_set_error(&rq->fence, -EIO);
-	i915_request_mark_complete(rq);
-}
-
 static inline u32 intel_hws_preempt_address(struct intel_engine_cs *engine)
 {
 	return (i915_ggtt_offset(engine->status_page.vma) +
@@ -4103,7 +4096,6 @@ static void virtual_submit_request(struct i915_request *rq)
 		__i915_request_submit(old);
 		i915_request_put(old);
 	}
-<<<<<<< HEAD
 
 	if (i915_request_completed(rq)) {
 		__i915_request_submit(rq);
@@ -4117,21 +4109,6 @@ static void virtual_submit_request(struct i915_request *rq)
 		GEM_BUG_ON(!list_empty(virtual_queue(ve)));
 		list_move_tail(&rq->sched.link, virtual_queue(ve));
 
-=======
-
-	if (i915_request_completed(rq)) {
-		__i915_request_submit(rq);
-
-		ve->base.execlists.queue_priority_hint = INT_MIN;
-		ve->request = NULL;
-	} else {
-		ve->base.execlists.queue_priority_hint = rq_prio(rq);
-		ve->request = i915_request_get(rq);
-
-		GEM_BUG_ON(!list_empty(virtual_queue(ve)));
-		list_move_tail(&rq->sched.link, virtual_queue(ve));
-
->>>>>>> linux-next/akpm-base
 		tasklet_schedule(&ve->base.execlists.tasklet);
 	}
 
