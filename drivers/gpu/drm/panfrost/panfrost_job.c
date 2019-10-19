@@ -386,6 +386,7 @@ static void panfrost_job_timedout(struct drm_sched_job *sched_job)
 
 	for (i = 0; i < NUM_JOB_SLOTS; i++) {
 		struct drm_gpu_scheduler *sched = &pfdev->js->queue[i].sched;
+<<<<<<< HEAD
 
 		drm_sched_stop(sched, sched_job);
 		if (js != i)
@@ -393,6 +394,15 @@ static void panfrost_job_timedout(struct drm_sched_job *sched_job)
 			cancel_delayed_work_sync(&sched->work_tdr);
 	}
 
+=======
+
+		drm_sched_stop(sched, sched_job);
+		if (js != i)
+			/* Ensure any timeouts on other slots have finished */
+			cancel_delayed_work_sync(&sched->work_tdr);
+	}
+
+>>>>>>> linux-next/akpm-base
 	drm_sched_increase_karma(sched_job);
 
 	spin_lock_irqsave(&pfdev->js->job_lock, flags);
@@ -403,8 +413,6 @@ static void panfrost_job_timedout(struct drm_sched_job *sched_job)
 		}
 	}
 	spin_unlock_irqrestore(&pfdev->js->job_lock, flags);
-
-	/* panfrost_core_dump(pfdev); */
 
 	panfrost_devfreq_record_transition(pfdev, js);
 	panfrost_device_reset(pfdev);
