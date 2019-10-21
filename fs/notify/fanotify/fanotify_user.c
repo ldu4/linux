@@ -249,7 +249,7 @@ static int copy_fid_to_user(struct fanotify_event *event, char __user *buf)
 	/* Pad with 0's */
 	buf += fh_len;
 	len -= fh_len;
-	WARN_ON_ONCE(len < 0 || len >= FANOTIFY_EVENT_ALIGN);
+	WARN_ON_ONCE(len >= FANOTIFY_EVENT_ALIGN);
 	if (len > 0 && clear_user(buf, len))
 		return -EFAULT;
 
@@ -523,7 +523,7 @@ static const struct file_operations fanotify_fops = {
 	.fasync		= NULL,
 	.release	= fanotify_release,
 	.unlocked_ioctl	= fanotify_ioctl,
-	.compat_ioctl	= fanotify_ioctl,
+	.compat_ioctl	= compat_ptr_ioctl,
 	.llseek		= noop_llseek,
 };
 
