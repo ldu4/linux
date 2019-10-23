@@ -276,10 +276,12 @@ static void flush_bg_queue(struct fuse_conn *fc)
 void fuse_request_end(struct fuse_conn *fc, struct fuse_req *req)
 {
 	struct fuse_iqueue *fiq = &fc->iq;
-	bool async = req->args->end;
+	bool async;
 
 	if (test_and_set_bit(FR_FINISHED, &req->flags))
 		goto put_request;
+
+	async = req->args->end;
 	/*
 	 * test_and_set_bit() implies smp_mb() between bit
 	 * changing and below intr_entry check. Pairs with
@@ -2260,7 +2262,7 @@ const struct file_operations fuse_dev_operations = {
 	.release	= fuse_dev_release,
 	.fasync		= fuse_dev_fasync,
 	.unlocked_ioctl = fuse_dev_ioctl,
-	.compat_ioctl   = fuse_dev_ioctl,
+	.compat_ioctl   = compat_ptr_ioctl,
 };
 EXPORT_SYMBOL_GPL(fuse_dev_operations);
 

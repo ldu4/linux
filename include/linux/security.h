@@ -57,6 +57,8 @@ struct mm_struct;
 struct fs_context;
 struct fs_parameter;
 enum fs_value_type;
+struct watch;
+struct watch_notification;
 
 /* Default (no) options for the capable function */
 #define CAP_OPT_NONE 0x0
@@ -1271,6 +1273,35 @@ static inline int security_locked_down(enum lockdown_reason what)
 }
 #endif	/* CONFIG_SECURITY */
 
+#if defined(CONFIG_SECURITY) && defined(CONFIG_KEY_NOTIFICATIONS)
+int security_watch_key(struct key *key);
+#else
+static inline int security_watch_key(struct key *key)
+{
+	return 0;
+}
+#endif
+#if defined(CONFIG_SECURITY) && defined(CONFIG_DEVICE_NOTIFICATIONS)
+int security_watch_devices(void);
+#else
+static inline int security_watch_devices(void)
+{
+	return 0;
+}
+#endif
+#if defined(CONFIG_SECURITY) && defined(CONFIG_WATCH_QUEUE)
+int security_post_notification(const struct cred *w_cred,
+			       const struct cred *cred,
+			       struct watch_notification *n);
+#else
+static inline int security_post_notification(const struct cred *w_cred,
+					     const struct cred *cred,
+					     struct watch_notification *n)
+{
+	return 0;
+}
+#endif
+
 #ifdef CONFIG_SECURITY_NETWORK
 
 int security_unix_stream_connect(struct sock *sock, struct sock *other, struct sock *newsk);
@@ -1894,5 +1925,42 @@ static inline void security_bpf_prog_free(struct bpf_prog_aux *aux)
 #endif /* CONFIG_SECURITY */
 #endif /* CONFIG_BPF_SYSCALL */
 
-#endif /* ! __LINUX_SECURITY_H */
+#ifdef CONFIG_PERF_EVENTS
+struct perf_event_attr;
+struct perf_event;
 
+#ifdef CONFIG_SECURITY
+extern int security_perf_event_open(struct perf_event_attr *attr, int type);
+extern int security_perf_event_alloc(struct perf_event *event);
+extern void security_perf_event_free(struct perf_event *event);
+extern int security_perf_event_read(struct perf_event *event);
+extern int security_perf_event_write(struct perf_event *event);
+#else
+static inline int security_perf_event_open(struct perf_event_attr *attr,
+					   int type)
+{
+	return 0;
+}
+
+static inline int security_perf_event_alloc(struct perf_event *event)
+{
+	return 0;
+}
+
+static inline void security_perf_event_free(struct perf_event *event)
+{
+}
+
+static inline int security_perf_event_read(struct perf_event *event)
+{
+	return 0;
+}
+
+static inline int security_perf_event_write(struct perf_event *event)
+{
+	return 0;
+}
+#endif /* CONFIG_SECURITY */
+#endif /* CONFIG_PERF_EVENTS */
+
+#endif /* ! __LINUX_SECURITY_H */
