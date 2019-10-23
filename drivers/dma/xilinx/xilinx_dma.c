@@ -68,6 +68,9 @@
 #define XILINX_DMA_DMACR_CIRC_EN		BIT(1)
 #define XILINX_DMA_DMACR_RUNSTOP		BIT(0)
 #define XILINX_DMA_DMACR_FSYNCSRC_MASK		GENMASK(6, 5)
+#define XILINX_DMA_DMACR_DELAY_MASK		GENMASK(31, 24)
+#define XILINX_DMA_DMACR_FRAME_COUNT_MASK	GENMASK(23, 16)
+#define XILINX_DMA_DMACR_MASTER_MASK		GENMASK(11, 8)
 
 #define XILINX_DMA_REG_DMASR			0x0004
 #define XILINX_DMA_DMASR_EOL_LATE_ERR		BIT(15)
@@ -1354,7 +1357,8 @@ static void xilinx_dma_start_transfer(struct xilinx_dma_chan *chan)
 					   node);
 		hw = &segment->hw;
 
-		xilinx_write(chan, XILINX_DMA_REG_SRCDSTADDR, hw->buf_addr);
+		xilinx_write(chan, XILINX_DMA_REG_SRCDSTADDR,
+			     xilinx_prep_dma_addr_t(hw->buf_addr));
 
 		/* Start the transfer */
 		dma_ctrl_write(chan, XILINX_DMA_REG_BTT,
@@ -2117,8 +2121,10 @@ int xilinx_vdma_channel_set_config(struct dma_chan *dchan,
 	chan->config.gen_lock = cfg->gen_lock;
 	chan->config.master = cfg->master;
 
+	dmacr &= ~XILINX_DMA_DMACR_GENLOCK_EN;
 	if (cfg->gen_lock && chan->genlock) {
 		dmacr |= XILINX_DMA_DMACR_GENLOCK_EN;
+		dmacr &= ~XILINX_DMA_DMACR_MASTER_MASK;
 		dmacr |= cfg->master << XILINX_DMA_DMACR_MASTER_SHIFT;
 	}
 
@@ -2134,11 +2140,13 @@ int xilinx_vdma_channel_set_config(struct dma_chan *dchan,
 	chan->config.delay = cfg->delay;
 
 	if (cfg->coalesc <= XILINX_DMA_DMACR_FRAME_COUNT_MAX) {
+		dmacr &= ~XILINX_DMA_DMACR_FRAME_COUNT_MASK;
 		dmacr |= cfg->coalesc << XILINX_DMA_DMACR_FRAME_COUNT_SHIFT;
 		chan->config.coalesc = cfg->coalesc;
 	}
 
 	if (cfg->delay <= XILINX_DMA_DMACR_DELAY_MAX) {
+		dmacr &= ~XILINX_DMA_DMACR_DELAY_MASK;
 		dmacr |= cfg->delay << XILINX_DMA_DMACR_DELAY_SHIFT;
 		chan->config.delay = cfg->delay;
 	}
@@ -2186,7 +2194,9 @@ static int axidma_clk_init(struct platform_device *pdev, struct clk **axi_clk,
 	*axi_clk = devm_clk_get(&pdev->dev, "s_axi_lite_aclk");
 	if (IS_ERR(*axi_clk)) {
 		err = PTR_ERR(*axi_clk);
-		dev_err(&pdev->dev, "failed to get axi_aclk (%d)\n", err);
+		if (err != -EPROBE_DEFER)
+			dev_err(&pdev->dev, "failed to get axi_aclk (%d)\n",
+				err);
 		return err;
 	}
 
@@ -2251,14 +2261,18 @@ static int axicdma_clk_init(struct platform_device *pdev, struct clk **axi_clk,
 	*axi_clk = devm_clk_get(&pdev->dev, "s_axi_lite_aclk");
 	if (IS_ERR(*axi_clk)) {
 		err = PTR_ERR(*axi_clk);
-		dev_err(&pdev->dev, "failed to get axi_clk (%d)\n", err);
+		if (err != -EPROBE_DEFER)
+			dev_err(&pdev->dev, "failed to get axi_clk (%d)\n",
+				err);
 		return err;
 	}
 
 	*dev_clk = devm_clk_get(&pdev->dev, "m_axi_aclk");
 	if (IS_ERR(*dev_clk)) {
 		err = PTR_ERR(*dev_clk);
-		dev_err(&pdev->dev, "failed to get dev_clk (%d)\n", err);
+		if (err != -EPROBE_DEFER)
+			dev_err(&pdev->dev, "failed to get dev_clk (%d)\n",
+				err);
 		return err;
 	}
 
@@ -2291,7 +2305,9 @@ static int axivdma_clk_init(struct platform_device *pdev, struct clk **axi_clk,
 	*axi_clk = devm_clk_get(&pdev->dev, "s_axi_lite_aclk");
 	if (IS_ERR(*axi_clk)) {
 		err = PTR_ERR(*axi_clk);
-		dev_err(&pdev->dev, "failed to get axi_aclk (%d)\n", err);
+		if (err != -EPROBE_DEFER)
+			dev_err(&pdev->dev, "failed to get axi_aclk (%d)\n",
+				err);
 		return err;
 	}
 
@@ -2313,7 +2329,8 @@ static int axivdma_clk_init(struct platform_device *pdev, struct clk **axi_clk,
 
 	err = clk_prepare_enable(*axi_clk);
 	if (err) {
-		dev_err(&pdev->dev, "failed to enable axi_clk (%d)\n", err);
+		dev_err(&pdev->dev, "failed to enable axi_clk (%d)\n",
+			err);
 		return err;
 	}
 
@@ -2604,7 +2621,6 @@ static int xilinx_dma_probe(struct platform_device *pdev)
 	struct device_node *node = pdev->dev.of_node;
 	struct xilinx_dma_device *xdev;
 	struct device_node *child, *np = pdev->dev.of_node;
-	struct resource *io;
 	u32 num_frames, addr_width, len_width;
 	int i, err;
 
@@ -2630,8 +2646,7 @@ static int xilinx_dma_probe(struct platform_device *pdev)
 		return err;
 
 	/* Request and map I/O memory */
-	io = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	xdev->regs = devm_ioremap_resource(&pdev->dev, io);
+	xdev->regs = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(xdev->regs))
 		return PTR_ERR(xdev->regs);
 

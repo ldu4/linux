@@ -69,11 +69,9 @@ available subsections can be seen below.
    fpga/index
    acpi/index
    backlight/lp855x-driver.rst
-   bt8xxgpio
    connector
    console
    dcdbas
-   dell_rbu
    edid
    eisa
    ipmb
