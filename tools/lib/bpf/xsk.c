@@ -163,6 +163,7 @@ int xsk_umem__create_v0_0_4(struct xsk_umem **umem_ptr, void *umem_area,
 	umem->umem_area = umem_area;
 	xsk_set_umem_config(&umem->config, usr_config);
 
+	memset(&mr, 0, sizeof(mr));
 	mr.addr = (uintptr_t)umem_area;
 	mr.len = size;
 	mr.chunk_size = umem->config.frame_size;
@@ -310,7 +311,7 @@ static int xsk_load_xdp_prog(struct xsk_socket *xsk)
 				   "LGPL-2.1 or BSD-2-Clause", 0, log_buf,
 				   log_buf_size);
 	if (prog_fd < 0) {
-		pr_warning("BPF log buffer:\n%s", log_buf);
+		pr_warn("BPF log buffer:\n%s", log_buf);
 		return prog_fd;
 	}
 
@@ -498,7 +499,7 @@ int xsk_socket__create(struct xsk_socket **xsk_ptr, const char *ifname,
 		return -EFAULT;
 
 	if (umem->refcount) {
-		pr_warning("Error: shared umems not supported by libbpf.\n");
+		pr_warn("Error: shared umems not supported by libbpf.\n");
 		return -EBUSY;
 	}
 
