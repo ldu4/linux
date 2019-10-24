@@ -1215,6 +1215,12 @@ struct task_struct {
 
 	/* KCOV descriptor wired with this task or NULL: */
 	struct kcov			*kcov;
+
+	/* KCOV common handle for remote coverage collection: */
+	u64				kcov_handle;
+
+	/* KCOV sequence number, see kernel/kcov.c for details: */
+	int				kcov_sequence;
 #endif
 
 #ifdef CONFIG_MEMCG
