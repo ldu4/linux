@@ -2246,15 +2246,11 @@ again:
 
 	ClearPageChecked(page);
 	set_page_dirty(page);
-<<<<<<< HEAD
-	btrfs_delalloc_release_extents(BTRFS_I(inode), PAGE_SIZE);
-=======
 out_reserved:
 	btrfs_delalloc_release_extents(BTRFS_I(inode), PAGE_SIZE);
 	if (ret)
 		btrfs_delalloc_release_space(inode, data_reserved, page_start,
 					     PAGE_SIZE, true);
->>>>>>> linux-next/akpm-base
 out:
 	unlock_extent_cached(&BTRFS_I(inode)->io_tree, page_start, page_end,
 			     &cached_state);
