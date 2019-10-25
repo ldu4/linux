@@ -433,15 +433,9 @@ void amdgpu_vce_free_handles(struct amdgpu_device *adev, struct drm_file *filp)
  *
  * Open up a stream for HW test
  */
-<<<<<<< HEAD
-int amdgpu_vce_get_create_msg(struct amdgpu_ring *ring, uint32_t handle,
-			      struct amdgpu_bo *bo,
-			      struct dma_fence **fence)
-=======
 static int amdgpu_vce_get_create_msg(struct amdgpu_ring *ring, uint32_t handle,
 				     struct amdgpu_bo *bo,
 				     struct dma_fence **fence)
->>>>>>> linux-next/akpm-base
 {
 	const unsigned ib_size_dw = 1024;
 	struct amdgpu_job *job;
