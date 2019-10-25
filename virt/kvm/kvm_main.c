@@ -2360,20 +2360,23 @@ out:
 	kvm_arch_vcpu_unblocking(vcpu);
 	block_ns = ktime_to_ns(cur) - ktime_to_ns(start);
 
-	if (!vcpu_valid_wakeup(vcpu))
-		shrink_halt_poll_ns(vcpu);
-	else if (halt_poll_ns) {
-		if (block_ns <= vcpu->halt_poll_ns)
-			;
-		/* we had a long block, shrink polling */
-		else if (vcpu->halt_poll_ns && block_ns > halt_poll_ns)
+	if (!kvm_arch_no_poll(vcpu)) {
+		if (!vcpu_valid_wakeup(vcpu)) {
 			shrink_halt_poll_ns(vcpu);
-		/* we had a short halt and our poll time is too small */
-		else if (vcpu->halt_poll_ns < halt_poll_ns &&
-			block_ns < halt_poll_ns)
-			grow_halt_poll_ns(vcpu);
-	} else
-		vcpu->halt_poll_ns = 0;
+		} else if (halt_poll_ns) {
+			if (block_ns <= vcpu->halt_poll_ns)
+				;
+			/* we had a long block, shrink polling */
+			else if (vcpu->halt_poll_ns && block_ns > halt_poll_ns)
+				shrink_halt_poll_ns(vcpu);
+			/* we had a short halt and our poll time is too small */
+			else if (vcpu->halt_poll_ns < halt_poll_ns &&
+				block_ns < halt_poll_ns)
+				grow_halt_poll_ns(vcpu);
+		} else {
+			vcpu->halt_poll_ns = 0;
+		}
+	}
 
 	trace_kvm_vcpu_wakeup(block_ns, waited, vcpu_valid_wakeup(vcpu));
 	kvm_arch_vcpu_block_finish(vcpu);
@@ -3046,14 +3049,14 @@ struct kvm_device *kvm_device_from_filp(struct file *filp)
 	return filp->private_data;
 }
 
-static struct kvm_device_ops *kvm_device_ops_table[KVM_DEV_TYPE_MAX] = {
+static const struct kvm_device_ops *kvm_device_ops_table[KVM_DEV_TYPE_MAX] = {
 #ifdef CONFIG_KVM_MPIC
 	[KVM_DEV_TYPE_FSL_MPIC_20]	= &kvm_mpic_ops,
 	[KVM_DEV_TYPE_FSL_MPIC_42]	= &kvm_mpic_ops,
 #endif
 };
 
-int kvm_register_device_ops(struct kvm_device_ops *ops, u32 type)
+int kvm_register_device_ops(const struct kvm_device_ops *ops, u32 type)
 {
 	if (type >= ARRAY_SIZE(kvm_device_ops_table))
 		return -ENOSPC;
@@ -3074,7 +3077,7 @@ void kvm_unregister_device_ops(u32 type)
 static int kvm_ioctl_create_device(struct kvm *kvm,
 				   struct kvm_create_device *cd)
 {
-	struct kvm_device_ops *ops = NULL;
+	const struct kvm_device_ops *ops = NULL;
 	struct kvm_device *dev;
 	bool test = cd->flags & KVM_CREATE_DEVICE_TEST;
 	int type;

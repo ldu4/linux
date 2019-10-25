@@ -1489,7 +1489,7 @@ static inline void sock_release_ownership(struct sock *sk)
 		sk->sk_lock.owned = 0;
 
 		/* The sk_lock has mutex_unlock() semantics: */
-		mutex_release(&sk->sk_lock.dep_map, 1, _RET_IP_);
+		mutex_release(&sk->sk_lock.dep_map, _RET_IP_);
 	}
 }
 
@@ -2523,7 +2523,7 @@ static inline bool sk_listener(const struct sock *sk)
 	return (1 << sk->sk_state) & (TCPF_LISTEN | TCPF_NEW_SYN_RECV);
 }
 
-void sock_enable_timestamp(struct sock *sk, int flag);
+void sock_enable_timestamp(struct sock *sk, enum sock_flags flag);
 int sock_recv_errqueue(struct sock *sk, struct msghdr *msg, int len, int level,
 		       int type);
 
