@@ -1256,6 +1256,9 @@ static void page_remove_file_rmap(struct page *page, bool compound)
 			__dec_node_page_state(page, NR_SHMEM_PMDMAPPED);
 		else
 			__dec_node_page_state(page, NR_FILE_PMDMAPPED);
+
+		/* The last PMD map is gone */
+		ClearPageDoubleMap(compound_head(page));
 	} else {
 		if (!atomic_add_negative(-1, &page->_mapcount))
 			goto out;
