@@ -10004,7 +10004,7 @@ static void bnxt_timer(struct timer_list *t)
 
 	if (bp->link_info.phy_retry) {
 		if (time_after(jiffies, bp->link_info.phy_retry_expires)) {
-			bp->link_info.phy_retry = 0;
+			bp->link_info.phy_retry = false;
 			netdev_warn(bp->dev, "failed to update phy settings after maximum retries.\n");
 		} else {
 			set_bit(BNXT_UPDATE_PHY_SP_EVENT, &bp->sp_event);
@@ -10382,7 +10382,8 @@ static void bnxt_cleanup_pci(struct bnxt *bp)
 {
 	bnxt_unmap_bars(bp, bp->pdev);
 	pci_release_regions(bp->pdev);
-	pci_disable_device(bp->pdev);
+	if (pci_is_enabled(bp->pdev))
+		pci_disable_device(bp->pdev);
 }
 
 static void bnxt_init_dflt_coal(struct bnxt *bp)
@@ -10669,14 +10670,11 @@ static void bnxt_fw_reset_task(struct work_struct *work)
 		bp->fw_reset_state = BNXT_FW_RESET_STATE_RESET_FW;
 	}
 	/* fall through */
-	case BNXT_FW_RESET_STATE_RESET_FW: {
-		u32 wait_dsecs = bp->fw_health->post_reset_wait_dsecs;
-
+	case BNXT_FW_RESET_STATE_RESET_FW:
 		bnxt_reset_all(bp);
 		bp->fw_reset_state = BNXT_FW_RESET_STATE_ENABLE_DEV;
-		bnxt_queue_fw_reset_work(bp, wait_dsecs * HZ / 10);
+		bnxt_queue_fw_reset_work(bp, bp->fw_reset_min_dsecs * HZ / 10);
 		return;
-	}
 	case BNXT_FW_RESET_STATE_ENABLE_DEV:
 		if (test_bit(BNXT_STATE_FW_FATAL_COND, &bp->state) &&
 		    bp->fw_health) {
