@@ -1219,6 +1219,7 @@ const struct file_operations cifs_file_ops = {
 	.open = cifs_open,
 	.release = cifs_close,
 	.lock = cifs_lock,
+	.flock = cifs_flock,
 	.fsync = cifs_fsync,
 	.flush = cifs_flush,
 	.mmap  = cifs_file_mmap,
@@ -1238,6 +1239,7 @@ const struct file_operations cifs_file_strict_ops = {
 	.open = cifs_open,
 	.release = cifs_close,
 	.lock = cifs_lock,
+	.flock = cifs_flock,
 	.fsync = cifs_strict_fsync,
 	.flush = cifs_flush,
 	.mmap = cifs_file_strict_mmap,
@@ -1257,6 +1259,7 @@ const struct file_operations cifs_file_direct_ops = {
 	.open = cifs_open,
 	.release = cifs_close,
 	.lock = cifs_lock,
+	.flock = cifs_flock,
 	.fsync = cifs_fsync,
 	.flush = cifs_flush,
 	.mmap = cifs_file_mmap,
@@ -1543,7 +1546,7 @@ init_cifs(void)
 	/*
 	 * Consider in future setting limit!=0 maybe to min(num_of_cores - 1, 3)
 	 * so that we don't launch too many worker threads but
-	 * Documentation/workqueue.txt recommends setting it to 0
+	 * Documentation/core-api/workqueue.rst recommends setting it to 0
 	 */
 
 	/* WQ_UNBOUND allows decrypt tasks to run on any CPU */
