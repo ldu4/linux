@@ -405,8 +405,12 @@ void icc_set_tag(struct icc_path *path, u32 tag)
 	if (!path)
 		return;
 
+	mutex_lock(&icc_lock);
+
 	for (i = 0; i < path->num_nodes; i++)
 		path->reqs[i].tag = tag;
+
+	mutex_unlock(&icc_lock);
 }
 EXPORT_SYMBOL_GPL(icc_set_tag);
 
@@ -801,12 +805,7 @@ static int __init icc_init(void)
 	return 0;
 }
 
-static void __exit icc_exit(void)
-{
-	debugfs_remove_recursive(icc_debugfs_dir);
-}
-module_init(icc_init);
-module_exit(icc_exit);
+device_initcall(icc_init);
 
 MODULE_AUTHOR("Georgi Djakov <georgi.djakov@linaro.org>");
 MODULE_DESCRIPTION("Interconnect Driver Core");

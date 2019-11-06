@@ -295,6 +295,7 @@ config VIRT_TO_BUS
 config MMU_NOTIFIER
 	bool
 	select SRCU
+	select INTERVAL_TREE
 
 config KSM
 	bool "Enable KSM for page merging"
@@ -685,7 +686,6 @@ config DEV_PAGEMAP_OPS
 config HMM_MIRROR
 	bool
 	depends on MMU
-	depends on MMU_NOTIFIER
 
 config DEVICE_PRIVATE
 	bool "Unaddressable device memory (GPU memory, ...)"

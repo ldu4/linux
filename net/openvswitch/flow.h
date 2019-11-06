@@ -36,7 +36,7 @@ enum sw_flow_mac_proto {
  * matching for small options.
  */
 #define TUN_METADATA_OFFSET(opt_len) \
-	(FIELD_SIZEOF(struct sw_flow_key, tun_opts) - opt_len)
+	(sizeof_member(struct sw_flow_key, tun_opts) - opt_len)
 #define TUN_METADATA_OPTS(flow_key, opt_len) \
 	((void *)((flow_key)->tun_opts + TUN_METADATA_OFFSET(opt_len)))
 
@@ -51,7 +51,7 @@ struct vlan_head {
 
 #define OVS_SW_FLOW_KEY_METADATA_SIZE			\
 	(offsetof(struct sw_flow_key, recirc_id) +	\
-	FIELD_SIZEOF(struct sw_flow_key, recirc_id))
+	sizeof_member(struct sw_flow_key, recirc_id))
 
 struct ovs_key_nsh {
 	struct ovs_nsh_key_base base;
@@ -166,7 +166,6 @@ struct sw_flow_key_range {
 struct sw_flow_mask {
 	int ref_count;
 	struct rcu_head rcu;
-	struct list_head list;
 	struct sw_flow_key_range range;
 	struct sw_flow_key key;
 };

@@ -161,7 +161,7 @@ static inline void dump_entry_trace(struct dma_debug_entry *entry)
 {
 #ifdef CONFIG_STACKTRACE
 	if (entry) {
-		pr_warning("Mapped at:\n");
+		pr_warn("Mapped at:\n");
 		stack_trace_print(entry->stack_entries, entry->stack_len, 0);
 	}
 #endif
@@ -420,6 +420,7 @@ void debug_dma_dump_mappings(struct device *dev)
 		}
 
 		spin_unlock_irqrestore(&bucket->lock, flags);
+		cond_resched();
 	}
 }
 
