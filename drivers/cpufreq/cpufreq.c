@@ -120,7 +120,7 @@ static inline u64 get_cpu_idle_time_jiffy(unsigned int cpu, u64 *wall)
 	cur_wall_time = jiffies64_to_nsecs(get_jiffies_64());
 
 	busy_time = kcpustat_cpu(cpu).cpustat[CPUTIME_USER];
-	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM];
+	busy_time += kcpustat_field(&kcpustat_cpu(cpu), CPUTIME_SYSTEM, cpu);
 	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_IRQ];
 	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_SOFTIRQ];
 	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_STEAL];
@@ -2385,7 +2385,10 @@ int cpufreq_set_policy(struct cpufreq_policy *policy,
 	new_policy->min = freq_qos_read_value(&policy->constraints, FREQ_QOS_MIN);
 	new_policy->max = freq_qos_read_value(&policy->constraints, FREQ_QOS_MAX);
 
-	/* verify the cpu speed can be set within this limit */
+	/*
+	 * Verify that the CPU speed can be set within these limits and make sure
+	 * that min <= max.
+	 */
 	ret = cpufreq_driver->verify(new_policy);
 	if (ret)
 		return ret;

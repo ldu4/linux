@@ -1727,6 +1727,13 @@ int vfs_mkobj(struct dentry *, umode_t,
 
 extern long vfs_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 
+#ifdef CONFIG_COMPAT
+extern long compat_ptr_ioctl(struct file *file, unsigned int cmd,
+					unsigned long arg);
+#else
+#define compat_ptr_ioctl NULL
+#endif
+
 /*
  * VFS file helper functions.
  */
@@ -2547,7 +2554,7 @@ extern int finish_no_open(struct file *file, struct dentry *dentry);
 
 /* fs/ioctl.c */
 
-extern int ioctl_preallocate(struct file *filp, void __user *argp);
+extern int ioctl_preallocate(struct file *filp, int mode, void __user *argp);
 
 /* fs/dcache.c */
 extern void __init vfs_caches_init_early(void);
