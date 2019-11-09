@@ -1132,8 +1132,6 @@ static noinline void check_move_tiny(struct xarray *xa)
 	XA_BUG_ON(xa, !xa_empty(xa));
 }
 
-<<<<<<< HEAD
-=======
 static noinline void check_move_max(struct xarray *xa)
 {
 	XA_STATE(xas, xa, 0);
@@ -1151,7 +1149,6 @@ static noinline void check_move_max(struct xarray *xa)
 	XA_BUG_ON(xa, !xa_empty(xa));
 }
 
->>>>>>> linux-next/akpm-base
 static noinline void check_move_small(struct xarray *xa, unsigned long idx)
 {
 	XA_STATE(xas, xa, 0);
@@ -1260,10 +1257,7 @@ static noinline void check_move(struct xarray *xa)
 	xa_destroy(xa);
 
 	check_move_tiny(xa);
-<<<<<<< HEAD
-=======
 	check_move_max(xa);
->>>>>>> linux-next/akpm-base
 
 	for (i = 0; i < 16; i++)
 		check_move_small(xa, 1UL << i);

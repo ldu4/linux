@@ -165,11 +165,8 @@ static const unsigned long exynos5x_clk_regs[] __initconst = {
 	GATE_BUS_CPU,
 	GATE_SCLK_CPU,
 	CLKOUT_CMU_CPU,
-<<<<<<< HEAD
-=======
 	APLL_CON0,
 	KPLL_CON0,
->>>>>>> linux-next/akpm-base
 	CPLL_CON0,
 	DPLL_CON0,
 	EPLL_CON0,
@@ -1261,12 +1258,8 @@ static struct exynos5_subcmu_reg_dump exynos5x_gsc_suspend_regs[] = {
 };
 
 static const struct samsung_gate_clock exynos5x_g3d_gate_clks[] __initconst = {
-<<<<<<< HEAD
-	GATE(CLK_G3D, "g3d", "mout_user_aclk_g3d", GATE_IP_G3D, 9, 0, 0),
-=======
 	GATE(CLK_G3D, "g3d", "mout_user_aclk_g3d", GATE_IP_G3D, 9,
 	     CLK_SET_RATE_PARENT, 0),
->>>>>>> linux-next/akpm-base
 };
 
 static struct exynos5_subcmu_reg_dump exynos5x_g3d_suspend_regs[] = {

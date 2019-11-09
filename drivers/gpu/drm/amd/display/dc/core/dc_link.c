@@ -3022,10 +3022,6 @@ void core_link_enable_stream(
 					CONTROLLER_DP_TEST_PATTERN_VIDEOMODE,
 					COLOR_DEPTH_UNDEFINED);
 
-<<<<<<< HEAD
-#ifdef CONFIG_DRM_AMD_DC_DSC_SUPPORT
-=======
->>>>>>> linux-next/akpm-base
 		if (pipe_ctx->stream->timing.flags.DSC) {
 			if (dc_is_dp_signal(pipe_ctx->stream->signal) ||
 					dc_is_virtual_signal(pipe_ctx->stream->signal))
