@@ -267,24 +267,14 @@ void sd_zbc_complete(struct scsi_cmnd *cmd, unsigned int good_bytes,
 	int result = cmd->result;
 	struct request *rq = cmd->request;
 
-<<<<<<< HEAD
-	if (req_op(rq) == REQ_OP_ZONE_RESET &&
-=======
 	if (op_is_zone_mgmt(req_op(rq)) &&
->>>>>>> linux-next/akpm-base
 	    result &&
 	    sshdr->sense_key == ILLEGAL_REQUEST &&
 	    sshdr->asc == 0x24) {
 		/*
-<<<<<<< HEAD
-		 * INVALID FIELD IN CDB error: reset of a conventional
-		 * zone was attempted. Nothing to worry about, so be
-		 * quiet about the error.
-=======
 		 * INVALID FIELD IN CDB error: a zone management command was
 		 * attempted on a conventional zone. Nothing to worry about,
 		 * so be quiet about the error.
->>>>>>> linux-next/akpm-base
 		 */
 		rq->rq_flags |= RQF_QUIET;
 	}
