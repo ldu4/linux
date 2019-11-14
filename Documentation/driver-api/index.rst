@@ -26,6 +26,7 @@ available subsections can be seen below.
    device_link
    component
    message-based
+   infiniband
    sound
    frame-buffer
    regulator
@@ -69,11 +70,9 @@ available subsections can be seen below.
    fpga/index
    acpi/index
    backlight/lp855x-driver.rst
-   bt8xxgpio
    connector
    console
    dcdbas
-   dell_rbu
    edid
    eisa
    ipmb
@@ -93,7 +92,6 @@ available subsections can be seen below.
    pwm
    rfkill
    serial/index
-   sgi-ioc4
    sm501
    smsc_ece1099
    switchtec
