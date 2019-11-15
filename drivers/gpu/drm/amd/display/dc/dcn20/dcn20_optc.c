@@ -167,7 +167,6 @@ void optc2_set_gsl_source_select(
 	}
 }
 
-#ifdef CONFIG_DRM_AMD_DC_DSC_SUPPORT
 /* DSC encoder frame start controls: x = h position, line_num = # of lines from vstartup */
 void optc2_set_dsc_encoder_frame_start(struct timing_generator *optc,
 					int x_position,
@@ -201,7 +200,6 @@ void optc2_set_dsc_config(struct timing_generator *optc,
 	REG_UPDATE(OPTC_WIDTH_CONTROL,
 		OPTC_DSC_SLICE_WIDTH, dsc_slice_width);
 }
-#endif
 
 /**
  * PTI i think is already done somewhere else for 2ka
@@ -286,6 +284,10 @@ void optc2_get_optc_source(struct timing_generator *optc,
 	if (num_of_input_segments == 1)
 		*num_of_src_opp = 2;
 	else
+		*num_of_src_opp = 1;
+
+	/* Work around VBIOS not updating OPTC_NUM_OF_INPUT_SEGMENT */
+	if (*src_opp_id_1 == 0xf)
 		*num_of_src_opp = 1;
 }
 
@@ -444,9 +446,7 @@ static struct timing_generator_funcs dcn20_tg_funcs = {
 		.setup_global_swap_lock = NULL,
 		.get_crc = optc1_get_crc,
 		.configure_crc = optc1_configure_crc,
-#ifdef CONFIG_DRM_AMD_DC_DSC_SUPPORT
 		.set_dsc_config = optc2_set_dsc_config,
-#endif
 		.set_dwb_source = optc2_set_dwb_source,
 		.set_odm_bypass = optc2_set_odm_bypass,
 		.set_odm_combine = optc2_set_odm_combine,
@@ -456,7 +456,7 @@ static struct timing_generator_funcs dcn20_tg_funcs = {
 		.set_vtg_params = optc1_set_vtg_params,
 		.program_manual_trigger = optc2_program_manual_trigger,
 		.setup_manual_trigger = optc2_setup_manual_trigger,
-		.is_matching_timing = optc1_is_matching_timing
+		.get_hw_timing = optc1_get_hw_timing,
 };
 
 void dcn20_timing_generator_init(struct optc *optc1)

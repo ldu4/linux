@@ -125,4 +125,13 @@ source "drivers/staging/exfat/Kconfig"
 
 source "drivers/staging/qlge/Kconfig"
 
+<<<<<<< HEAD
+=======
+source "drivers/staging/vboxsf/Kconfig"
+
+source "drivers/staging/hp/Kconfig"
+
+source "drivers/staging/wfx/Kconfig"
+
+>>>>>>> linux-next/akpm-base
 endif # STAGING
