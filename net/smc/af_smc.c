@@ -174,6 +174,7 @@ static int smc_release(struct socket *sock)
 	if (!sk)
 		goto out;
 
+	sock_hold(sk); /* sock_put below */
 	smc = smc_sk(sk);
 
 	/* cleanup for a dangling non-blocking connect */
@@ -196,6 +197,7 @@ static int smc_release(struct socket *sock)
 	sock->sk = NULL;
 	release_sock(sk);
 
+	sock_put(sk); /* sock_hold above */
 	sock_put(sk); /* final sock_put */
 out:
 	return rc;
@@ -796,6 +798,7 @@ static void smc_connect_work(struct work_struct *work)
 			smc->sk.sk_err = EPIPE;
 		else if (signal_pending(current))
 			smc->sk.sk_err = -sock_intr_errno(timeo);
+		sock_put(&smc->sk); /* passive closing */
 		goto out;
 	}
 
@@ -977,12 +980,14 @@ void smc_close_non_accepted(struct sock *sk)
 {
 	struct smc_sock *smc = smc_sk(sk);
 
+	sock_hold(sk); /* sock_put below */
 	lock_sock(sk);
 	if (!sk->sk_lingertime)
 		/* wait for peer closing */
 		sk->sk_lingertime = SMC_MAX_STREAM_WAIT_TIMEOUT;
 	__smc_release(smc);
 	release_sock(sk);
+	sock_put(sk); /* sock_hold above */
 	sock_put(sk); /* final sock_put */
 }
 
