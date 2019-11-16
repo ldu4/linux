@@ -297,11 +297,7 @@ static int i915_driver_modeset_probe(struct drm_i915_private *i915)
 	if (ret)
 		goto cleanup_vga_client;
 
-<<<<<<< HEAD
-	intel_power_domains_init_hw(dev_priv, false);
-=======
 	intel_power_domains_init_hw(i915, false);
->>>>>>> linux-next/akpm-base
 
 	intel_csr_ucode_init(i915);
 
