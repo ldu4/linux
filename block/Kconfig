@@ -32,6 +32,9 @@ config BLK_RQ_ALLOC_TIME
 config BLK_SCSI_REQUEST
 	bool
 
+config BLK_CGROUP_RWSTAT
+	bool
+
 config BLK_DEV_BSG
 	bool "Block layer SG support v4"
 	default y
@@ -86,6 +89,7 @@ config BLK_DEV_ZONED
 config BLK_DEV_THROTTLING
 	bool "Block layer bio throttling support"
 	depends on BLK_CGROUP=y
+	select BLK_CGROUP_RWSTAT
 	---help---
 	Block layer bio throttling support. It can be used to limit
 	the IO rate to a device. IO rate policies are per cgroup and
@@ -176,6 +180,15 @@ config BLK_SED_OPAL
 	Builds Logic for interfacing with Opal enabled controllers.
 	Enabling this option enables users to setup/unlock/lock
 	Locking ranges for SED devices using the Opal protocol.
+
+config BLK_NOTIFICATIONS
+	bool "Block layer event notifications"
+	depends on DEVICE_NOTIFICATIONS
+	help
+	  This option provides support for getting block layer event
+	  notifications.  This makes use of the /dev/watch_queue misc device to
+	  handle the notification buffer and provides the device_notify() system
+	  call to enable/disable watches.
 
 menu "Partition Types"
 
