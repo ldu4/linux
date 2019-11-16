@@ -853,6 +853,7 @@ struct multi_recv_comp {
 struct nvsc_rsc {
 	const struct ndis_pkt_8021q_info *vlan;
 	const struct ndis_tcp_ip_checksum_info *csum_info;
+	const u32 *hash_info;
 	u8 is_last; /* last RNDIS msg in a vmtransfer_page */
 	u32 cnt; /* #fragments in an RSC packet */
 	u32 pktlen; /* Full packet length */
@@ -952,6 +953,9 @@ struct net_device_context {
 	u32 vf_alloc;
 	/* Serial number of the VF to team with */
 	u32 vf_serial;
+
+	/* Used to temporarily save the config info across hibernation */
+	struct netvsc_device_info *saved_netvsc_dev_info;
 };
 
 /* Per channel data */
