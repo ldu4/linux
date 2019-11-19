@@ -104,29 +104,9 @@ config COMPILE_TEST
 	  here. If you are a user/distributor, say N here to exclude useless
 	  drivers to be distributed.
 
-config HEADER_TEST
-	bool "Compile test headers that should be standalone compilable"
-	help
-	  Compile test headers listed in header-test-y target to ensure they are
-	  self-contained, i.e. compilable as standalone units.
-
-	  If you are a developer or tester and want to ensure the requested
-	  headers are self-contained, say Y here. Otherwise, choose N.
-
-config KERNEL_HEADER_TEST
-	bool "Compile test kernel headers"
-	depends on HEADER_TEST
-	help
-	  Headers in include/ are used to build external moduls.
-	  Compile test them to ensure they are self-contained, i.e.
-	  compilable as standalone units.
-
-	  If you are a developer or tester and want to ensure the headers
-	  in include/ are self-contained, say Y here. Otherwise, choose N.
-
 config UAPI_HEADER_TEST
 	bool "Compile test UAPI headers"
-	depends on HEADER_TEST && HEADERS_INSTALL && CC_CAN_LINK
+	depends on HEADERS_INSTALL && CC_CAN_LINK
 	help
 	  Compile test headers exported to user-space to ensure they are
 	  self-contained, i.e. compilable as standalone units.
@@ -784,6 +764,10 @@ config ARCH_SUPPORTS_NUMA_BALANCING
 # and the refill costs are offset by the savings of sending fewer IPIs.
 config ARCH_WANT_BATCHED_UNMAP_TLB_FLUSH
 	bool
+
+config CC_HAS_INT128
+	def_bool y
+	depends on !$(cc-option,-D__SIZEOF_INT128__=0)
 
 #
 # For architectures that know their GCC __int128 support is sound
@@ -1548,6 +1532,7 @@ config AIO
 config IO_URING
 	bool "Enable IO uring support" if EXPERT
 	select ANON_INODES
+	select IO_WQ
 	default y
 	help
 	  This option enables support for the io_uring interface, enabling

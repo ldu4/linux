@@ -45,6 +45,14 @@ void *hv_alloc_hyperv_page(void)
 }
 EXPORT_SYMBOL_GPL(hv_alloc_hyperv_page);
 
+void *hv_alloc_hyperv_zeroed_page(void)
+{
+        BUILD_BUG_ON(PAGE_SIZE != HV_HYP_PAGE_SIZE);
+
+        return (void *)__get_free_page(GFP_KERNEL | __GFP_ZERO);
+}
+EXPORT_SYMBOL_GPL(hv_alloc_hyperv_zeroed_page);
+
 void hv_free_hyperv_page(unsigned long addr)
 {
 	free_page(addr);
@@ -310,6 +318,12 @@ void __init hyperv_init(void)
 	hypercall_msr.enable = 1;
 	hypercall_msr.guest_physical_address = vmalloc_to_pfn(hv_hypercall_pg);
 	wrmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
+
+	/*
+	 * Ignore any errors in setting up stimer clockevents
+	 * as we can run with the LAPIC timer as a fallback.
+	 */
+	(void)hv_stimer_alloc();
 
 	hv_apic_init();
 

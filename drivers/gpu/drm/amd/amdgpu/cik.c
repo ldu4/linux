@@ -966,6 +966,25 @@ static bool cik_read_bios_from_rom(struct amdgpu_device *adev,
 
 static const struct amdgpu_allowed_register_entry cik_allowed_read_registers[] = {
 	{mmGRBM_STATUS},
+	{mmGRBM_STATUS2},
+	{mmGRBM_STATUS_SE0},
+	{mmGRBM_STATUS_SE1},
+	{mmGRBM_STATUS_SE2},
+	{mmGRBM_STATUS_SE3},
+	{mmSRBM_STATUS},
+	{mmSRBM_STATUS2},
+	{mmSDMA0_STATUS_REG + SDMA0_REGISTER_OFFSET},
+	{mmSDMA0_STATUS_REG + SDMA1_REGISTER_OFFSET},
+	{mmCP_STAT},
+	{mmCP_STALLED_STAT1},
+	{mmCP_STALLED_STAT2},
+	{mmCP_STALLED_STAT3},
+	{mmCP_CPF_BUSY_STAT},
+	{mmCP_CPF_STALLED_STAT1},
+	{mmCP_CPF_STATUS},
+	{mmCP_CPC_BUSY_STAT},
+	{mmCP_CPC_STALLED_STAT1},
+	{mmCP_CPC_STATUS},
 	{mmGB_ADDR_CONFIG},
 	{mmMC_ARB_RAMCFG},
 	{mmGB_TILE_MODE0},
@@ -1270,15 +1289,15 @@ static int cik_gpu_pci_config_reset(struct amdgpu_device *adev)
 }
 
 /**
- * cik_asic_reset - soft reset GPU
+ * cik_asic_pci_config_reset - soft reset GPU
  *
  * @adev: amdgpu_device pointer
  *
- * Look up which blocks are hung and attempt
- * to reset them.
+ * Use PCI Config method to reset the GPU.
+ *
  * Returns 0 for success.
  */
-static int cik_asic_reset(struct amdgpu_device *adev)
+static int cik_asic_pci_config_reset(struct amdgpu_device *adev)
 {
 	int r;
 
@@ -1294,7 +1313,45 @@ static int cik_asic_reset(struct amdgpu_device *adev)
 static enum amd_reset_method
 cik_asic_reset_method(struct amdgpu_device *adev)
 {
-	return AMD_RESET_METHOD_LEGACY;
+	bool baco_reset;
+
+	switch (adev->asic_type) {
+	case CHIP_BONAIRE:
+	case CHIP_HAWAII:
+		/* disable baco reset until it works */
+		/* smu7_asic_get_baco_capability(adev, &baco_reset); */
+		baco_reset = false;
+		break;
+	default:
+		baco_reset = false;
+		break;
+	}
+
+	if (baco_reset)
+		return AMD_RESET_METHOD_BACO;
+	else
+		return AMD_RESET_METHOD_LEGACY;
+}
+
+/**
+ * cik_asic_reset - soft reset GPU
+ *
+ * @adev: amdgpu_device pointer
+ *
+ * Look up which blocks are hung and attempt
+ * to reset them.
+ * Returns 0 for success.
+ */
+static int cik_asic_reset(struct amdgpu_device *adev)
+{
+	int r;
+
+	if (cik_asic_reset_method(adev) == AMD_RESET_METHOD_BACO)
+		r = smu7_asic_baco_reset(adev);
+	else
+		r = cik_asic_pci_config_reset(adev);
+
+	return r;
 }
 
 static u32 cik_get_config_memsize(struct amdgpu_device *adev)
@@ -1498,13 +1555,19 @@ static void cik_pcie_gen3_enable(struct amdgpu_device *adev)
 
 				/* linkctl2 */
 				pci_read_config_word(root, bridge_pos + PCI_EXP_LNKCTL2, &tmp16);
-				tmp16 &= ~((1 << 4) | (7 << 9));
-				tmp16 |= (bridge_cfg2 & ((1 << 4) | (7 << 9)));
+				tmp16 &= ~(PCI_EXP_LNKCTL2_ENTER_COMP |
+					   PCI_EXP_LNKCTL2_TX_MARGIN);
+				tmp16 |= (bridge_cfg2 &
+					  (PCI_EXP_LNKCTL2_ENTER_COMP |
+					   PCI_EXP_LNKCTL2_TX_MARGIN));
 				pci_write_config_word(root, bridge_pos + PCI_EXP_LNKCTL2, tmp16);
 
 				pci_read_config_word(adev->pdev, gpu_pos + PCI_EXP_LNKCTL2, &tmp16);
-				tmp16 &= ~((1 << 4) | (7 << 9));
-				tmp16 |= (gpu_cfg2 & ((1 << 4) | (7 << 9)));
+				tmp16 &= ~(PCI_EXP_LNKCTL2_ENTER_COMP |
+					   PCI_EXP_LNKCTL2_TX_MARGIN);
+				tmp16 |= (gpu_cfg2 &
+					  (PCI_EXP_LNKCTL2_ENTER_COMP |
+					   PCI_EXP_LNKCTL2_TX_MARGIN));
 				pci_write_config_word(adev->pdev, gpu_pos + PCI_EXP_LNKCTL2, tmp16);
 
 				tmp = RREG32_PCIE(ixPCIE_LC_CNTL4);
@@ -1521,13 +1584,13 @@ static void cik_pcie_gen3_enable(struct amdgpu_device *adev)
 	WREG32_PCIE(ixPCIE_LC_SPEED_CNTL, speed_cntl);
 
 	pci_read_config_word(adev->pdev, gpu_pos + PCI_EXP_LNKCTL2, &tmp16);
-	tmp16 &= ~0xf;
+	tmp16 &= ~PCI_EXP_LNKCTL2_TLS;
 	if (adev->pm.pcie_gen_mask & CAIL_PCIE_LINK_SPEED_SUPPORT_GEN3)
-		tmp16 |= 3; /* gen3 */
+		tmp16 |= PCI_EXP_LNKCTL2_TLS_8_0GT; /* gen3 */
 	else if (adev->pm.pcie_gen_mask & CAIL_PCIE_LINK_SPEED_SUPPORT_GEN2)
-		tmp16 |= 2; /* gen2 */
+		tmp16 |= PCI_EXP_LNKCTL2_TLS_5_0GT; /* gen2 */
 	else
-		tmp16 |= 1; /* gen1 */
+		tmp16 |= PCI_EXP_LNKCTL2_TLS_2_5GT; /* gen1 */
 	pci_write_config_word(adev->pdev, gpu_pos + PCI_EXP_LNKCTL2, tmp16);
 
 	speed_cntl = RREG32_PCIE(ixPCIE_LC_SPEED_CNTL);
