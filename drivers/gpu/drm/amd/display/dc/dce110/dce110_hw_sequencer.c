@@ -944,7 +944,6 @@ void dce110_enable_audio_stream(struct pipe_ctx *pipe_ctx)
 {
 	/* notify audio driver for audio modes of monitor */
 	struct dc *core_dc;
-	struct pp_smu_funcs *pp_smu = NULL;
 	struct clk_mgr *clk_mgr;
 	unsigned int i, num_audio = 1;
 
@@ -956,9 +955,6 @@ void dce110_enable_audio_stream(struct pipe_ctx *pipe_ctx)
 
 	if (pipe_ctx->stream_res.audio && pipe_ctx->stream_res.audio->enabled == true)
 		return;
-
-	if (core_dc->res_pool->pp_smu)
-		pp_smu = core_dc->res_pool->pp_smu;
 
 	if (pipe_ctx->stream_res.audio) {
 		for (i = 0; i < MAX_PIPES; i++) {
@@ -984,7 +980,6 @@ void dce110_enable_audio_stream(struct pipe_ctx *pipe_ctx)
 void dce110_disable_audio_stream(struct pipe_ctx *pipe_ctx)
 {
 	struct dc *dc;
-	struct pp_smu_funcs *pp_smu = NULL;
 	struct clk_mgr *clk_mgr;
 
 	if (!pipe_ctx || !pipe_ctx->stream)
@@ -1000,9 +995,6 @@ void dce110_disable_audio_stream(struct pipe_ctx *pipe_ctx)
 			pipe_ctx->stream_res.stream_enc, true);
 	if (pipe_ctx->stream_res.audio) {
 		pipe_ctx->stream_res.audio->enabled = false;
-
-		if (dc->res_pool->pp_smu)
-			pp_smu = dc->res_pool->pp_smu;
 
 		if (dc_is_dp_signal(pipe_ctx->stream->signal))
 			pipe_ctx->stream_res.stream_enc->funcs->dp_audio_disable(
@@ -1169,8 +1161,9 @@ static void build_audio_output(
 		}
 	}
 
-	if (pipe_ctx->stream->signal == SIGNAL_TYPE_DISPLAY_PORT ||
-			pipe_ctx->stream->signal == SIGNAL_TYPE_DISPLAY_PORT_MST) {
+	if (state->clk_mgr &&
+		(pipe_ctx->stream->signal == SIGNAL_TYPE_DISPLAY_PORT ||
+			pipe_ctx->stream->signal == SIGNAL_TYPE_DISPLAY_PORT_MST)) {
 		audio_output->pll_info.dp_dto_source_clock_in_khz =
 				state->clk_mgr->funcs->get_dp_ref_clk_frequency(
 						state->clk_mgr);
@@ -1230,7 +1223,7 @@ static void program_scaler(const struct dc *dc,
 {
 	struct tg_color color = {0};
 
-#if defined(CONFIG_DRM_AMD_DC_DCN1_0)
+#if defined(CONFIG_DRM_AMD_DC_DCN)
 	/* TOFPGA */
 	if (pipe_ctx->plane_res.xfm->funcs->transform_set_pixel_storage_depth == NULL)
 		return;
@@ -1329,9 +1322,7 @@ static enum dc_status apply_single_controller_ctx_to_hw(
 	struct dc_stream_state *stream = pipe_ctx->stream;
 	struct drr_params params = {0};
 	unsigned int event_triggers = 0;
-#if defined(CONFIG_DRM_AMD_DC_DCN2_0)
 	struct pipe_ctx *odm_pipe = pipe_ctx->next_odm_pipe;
-#endif
 
 	if (dc->hwss.disable_stream_gating) {
 		dc->hwss.disable_stream_gating(dc, pipe_ctx);
@@ -1397,7 +1388,6 @@ static enum dc_status apply_single_controller_ctx_to_hw(
 		pipe_ctx->stream_res.opp,
 		&stream->bit_depth_params,
 		&stream->clamping);
-#if defined(CONFIG_DRM_AMD_DC_DCN2_0)
 	while (odm_pipe) {
 		odm_pipe->stream_res.opp->funcs->opp_set_dyn_expansion(
 				odm_pipe->stream_res.opp,
@@ -1411,14 +1401,13 @@ static enum dc_status apply_single_controller_ctx_to_hw(
 				&stream->clamping);
 		odm_pipe = odm_pipe->next_odm_pipe;
 	}
-#endif
 
 	if (!stream->dpms_off)
 		core_link_enable_stream(context, pipe_ctx);
 
 	pipe_ctx->plane_res.scl_data.lb_params.alpha_en = pipe_ctx->bottom_pipe != 0;
 
-	pipe_ctx->stream->link->psr_enabled = false;
+	pipe_ctx->stream->link->psr_feature_enabled = false;
 
 	return DC_OK;
 }
@@ -1428,8 +1417,6 @@ static enum dc_status apply_single_controller_ctx_to_hw(
 static void power_down_encoders(struct dc *dc)
 {
 	int i;
-	enum connector_id connector_id;
-	enum signal_type signal = SIGNAL_TYPE_NONE;
 
 	/* do not know BIOS back-front mapping, simply blank all. It will not
 	 * hurt for non-DP
@@ -1440,15 +1427,15 @@ static void power_down_encoders(struct dc *dc)
 	}
 
 	for (i = 0; i < dc->link_count; i++) {
-		connector_id = dal_graphics_object_id_get_connector_id(dc->links[i]->link_id);
-		if ((connector_id == CONNECTOR_ID_DISPLAY_PORT) ||
-			(connector_id == CONNECTOR_ID_EDP)) {
+		enum signal_type signal = dc->links[i]->connector_signal;
 
+		if ((signal == SIGNAL_TYPE_EDP) ||
+			(signal == SIGNAL_TYPE_DISPLAY_PORT))
 			if (!dc->links[i]->wa_flags.dp_keep_receiver_powered)
 				dp_receiver_power_ctrl(dc->links[i], false);
-			if (connector_id == CONNECTOR_ID_EDP)
-				signal = SIGNAL_TYPE_EDP;
-		}
+
+		if (signal != SIGNAL_TYPE_EDP)
+			signal = SIGNAL_TYPE_NONE;
 
 		dc->links[i]->link_enc->funcs->disable_output(
 				dc->links[i]->link_enc, signal);
@@ -1525,18 +1512,6 @@ static struct dc_stream_state *get_edp_stream(struct dc_state *context)
 	for (i = 0; i < context->stream_count; i++) {
 		if (context->streams[i]->signal == SIGNAL_TYPE_EDP)
 			return context->streams[i];
-	}
-	return NULL;
-}
-
-static struct dc_link *get_edp_link(struct dc *dc)
-{
-	int i;
-
-	// report any eDP links, even unconnected DDI's
-	for (i = 0; i < dc->link_count; i++) {
-		if (dc->links[i]->connector_signal == SIGNAL_TYPE_EDP)
-			return dc->links[i];
 	}
 	return NULL;
 }
@@ -1834,7 +1809,7 @@ static bool should_enable_fbc(struct dc *dc,
 		return false;
 
 	/* PSR should not be enabled */
-	if (pipe_ctx->stream->link->psr_enabled)
+	if (pipe_ctx->stream->link->psr_feature_enabled)
 		return false;
 
 	/* Nothing to compress */
@@ -2464,16 +2439,12 @@ static void dce110_program_front_end_for_pipe(
 		struct dc *dc, struct pipe_ctx *pipe_ctx)
 {
 	struct mem_input *mi = pipe_ctx->plane_res.mi;
-	struct pipe_ctx *old_pipe = NULL;
 	struct dc_plane_state *plane_state = pipe_ctx->plane_state;
 	struct xfm_grph_csc_adjustment adjust;
 	struct out_csc_color_matrix tbl_entry;
 	unsigned int i;
 	DC_LOGGER_INIT();
 	memset(&tbl_entry, 0, sizeof(tbl_entry));
-
-	if (dc->current_state)
-		old_pipe = &dc->current_state->res_ctx.pipe_ctx[pipe_ctx->pipe_idx];
 
 	memset(&adjust, 0, sizeof(adjust));
 	adjust.gamut_adjust_type = GRAPHICS_GAMUT_ADJUST_TYPE_BYPASS;

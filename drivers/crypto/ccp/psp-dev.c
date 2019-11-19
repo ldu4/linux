@@ -21,6 +21,8 @@
 #include <linux/ccp.h>
 #include <linux/firmware.h>
 
+#include <asm/smp.h>
+
 #include "sp-dev.h"
 #include "psp-dev.h"
 
@@ -235,6 +237,13 @@ static int __sev_platform_init_locked(int *error)
 		return rc;
 
 	psp->sev_state = SEV_STATE_INIT;
+
+	/* Prepare for first SEV guest launch after INIT */
+	wbinvd_on_all_cpus();
+	rc = __sev_do_cmd_locked(SEV_CMD_DF_FLUSH, NULL, error);
+	if (rc)
+		return rc;
+
 	dev_dbg(psp->dev, "SEV firmware initialized\n");
 
 	return rc;
@@ -929,8 +938,22 @@ static int sev_misc_init(struct psp_device *psp)
 
 static int psp_check_sev_support(struct psp_device *psp)
 {
-	/* Check if device supports SEV feature */
-	if (!(ioread32(psp->io_regs + psp->vdata->feature_reg) & 1)) {
+	unsigned int val = ioread32(psp->io_regs + psp->vdata->feature_reg);
+
+	/*
+	 * Check for a access to the registers.  If this read returns
+	 * 0xffffffff, it's likely that the system is running a broken
+	 * BIOS which disallows access to the device. Stop here and
+	 * fail the PSP initialization (but not the load, as the CCP
+	 * could get properly initialized).
+	 */
+	if (val == 0xffffffff) {
+		dev_notice(psp->dev, "psp: unable to access the device: you might be running a broken BIOS.\n");
+		return -ENODEV;
+	}
+
+	if (!(val & 1)) {
+		/* Device does not support the SEV feature */
 		dev_dbg(psp->dev, "psp does not support SEV\n");
 		return -ENODEV;
 	}
@@ -1064,6 +1087,18 @@ void psp_pci_init(void)
 
 	/* Initialize the platform */
 	rc = sev_platform_init(&error);
+	if (rc && (error == SEV_RET_SECURE_DATA_INVALID)) {
+		/*
+		 * INIT command returned an integrity check failure
+		 * status code, meaning that firmware load and
+		 * validation of SEV related persistent data has
+		 * failed and persistent state has been erased.
+		 * Retrying INIT command here should succeed.
+		 */
+		dev_dbg(sp->dev, "SEV: retrying INIT command");
+		rc = sev_platform_init(&error);
+	}
+
 	if (rc) {
 		dev_err(sp->dev, "SEV: failed to INIT error %#x\n", error);
 		return;

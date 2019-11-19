@@ -46,9 +46,7 @@ nfp_map_ptr_record(struct nfp_app_bpf *bpf, struct nfp_prog *nfp_prog,
 	/* Grab a single ref to the map for our record.  The prog destroy ndo
 	 * happens after free_used_maps().
 	 */
-	map = bpf_map_inc(map, false);
-	if (IS_ERR(map))
-		return PTR_ERR(map);
+	bpf_map_inc(map);
 
 	record = kmalloc(sizeof(*record), GFP_KERNEL);
 	if (!record) {
@@ -376,7 +374,7 @@ nfp_bpf_map_alloc(struct nfp_app_bpf *bpf, struct bpf_offloaded_map *offmap)
 	}
 
 	use_map_size = DIV_ROUND_UP(offmap->map.value_size, 4) *
-		       FIELD_SIZEOF(struct nfp_bpf_map, use_map[0]);
+		       sizeof_member(struct nfp_bpf_map, use_map[0]);
 
 	nfp_map = kzalloc(sizeof(*nfp_map) + use_map_size, GFP_USER);
 	if (!nfp_map)
