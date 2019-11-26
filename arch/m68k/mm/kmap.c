@@ -345,7 +345,6 @@ void kernel_set_cachemode(void *addr, unsigned long size, int cmode)
 			cmode = 0;
 		}
 	}
-#endif
 
 	while ((long)size > 0) {
 		pgd_dir = pgd_offset_k(virtaddr);
