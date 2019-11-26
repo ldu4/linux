@@ -22,11 +22,10 @@
  * Author: AMD
  */
 
-#ifdef CONFIG_DRM_AMD_DC_DSC_SUPPORT
-#include "dc.h"
-#include "core_types.h"
+#include "dc_hw_types.h"
 #include "dsc.h"
 #include <drm/drm_dp_helper.h>
+#include "dc.h"
 
 struct dc_dsc_policy {
 	bool use_min_slices_h;
@@ -46,6 +45,59 @@ const struct dc_dsc_policy dsc_policy = {
 
 
 /* This module's internal functions */
+
+static uint32_t dc_dsc_bandwidth_in_kbps_from_timing(
+	const struct dc_crtc_timing *timing)
+{
+	uint32_t bits_per_channel = 0;
+	uint32_t kbps;
+
+	if (timing->flags.DSC) {
+		kbps = (timing->pix_clk_100hz * timing->dsc_cfg.bits_per_pixel);
+		kbps = kbps / 160 + ((kbps % 160) ? 1 : 0);
+		return kbps;
+	}
+
+	switch (timing->display_color_depth) {
+	case COLOR_DEPTH_666:
+		bits_per_channel = 6;
+		break;
+	case COLOR_DEPTH_888:
+		bits_per_channel = 8;
+		break;
+	case COLOR_DEPTH_101010:
+		bits_per_channel = 10;
+		break;
+	case COLOR_DEPTH_121212:
+		bits_per_channel = 12;
+		break;
+	case COLOR_DEPTH_141414:
+		bits_per_channel = 14;
+		break;
+	case COLOR_DEPTH_161616:
+		bits_per_channel = 16;
+		break;
+	default:
+		break;
+	}
+
+	ASSERT(bits_per_channel != 0);
+
+	kbps = timing->pix_clk_100hz / 10;
+	kbps *= bits_per_channel;
+
+	if (timing->flags.Y_ONLY != 1) {
+		/*Only YOnly make reduce bandwidth by 1/3 compares to RGB*/
+		kbps *= 3;
+		if (timing->pixel_encoding == PIXEL_ENCODING_YCBCR420)
+			kbps /= 2;
+		else if (timing->pixel_encoding == PIXEL_ENCODING_YCBCR422)
+			kbps = kbps * 2 / 3;
+	}
+
+	return kbps;
+
+}
 
 static bool dsc_buff_block_size_from_dpcd(int dpcd_buff_block_size, int *buff_block_size)
 {
@@ -178,16 +230,18 @@ static bool dsc_bpp_increment_div_from_dpcd(int bpp_increment_dpcd, uint32_t *bp
 }
 
 static void get_dsc_enc_caps(
-	const struct dc *dc,
+	const struct display_stream_compressor *dsc,
 	struct dsc_enc_caps *dsc_enc_caps,
 	int pixel_clock_100Hz)
 {
 	// This is a static HW query, so we can use any DSC
-	struct display_stream_compressor *dsc = dc->res_pool->dscs[0];
 
 	memset(dsc_enc_caps, 0, sizeof(struct dsc_enc_caps));
-	if (dsc)
+	if (dsc) {
 		dsc->funcs->dsc_get_enc_caps(dsc_enc_caps, pixel_clock_100Hz);
+		if (dsc->ctx->dc->debug.native422_support)
+			dsc_enc_caps->color_formats.bits.YCBCR_NATIVE_422 = 1;
+	}
 }
 
 /* Returns 'false' if no intersection was found for at least one capablity.
@@ -290,7 +344,7 @@ static void get_dsc_bandwidth_range(
 		struct dc_dsc_bw_range *range)
 {
 	/* native stream bandwidth */
-	range->stream_kbps = dc_bandwidth_in_kbps_from_timing(timing);
+	range->stream_kbps = dc_dsc_bandwidth_in_kbps_from_timing(timing);
 
 	/* max dsc target bpp */
 	range->max_kbps = dsc_div_by_10_round_up(max_bpp * timing->pix_clk_100hz);
@@ -512,6 +566,7 @@ static bool setup_dsc_config(
 		const struct dsc_enc_caps *dsc_enc_caps,
 		int target_bandwidth_kbps,
 		const struct dc_crtc_timing *timing,
+		int min_slice_height_override,
 		struct dc_dsc_config *dsc_cfg)
 {
 	struct dsc_enc_caps dsc_common_caps;
@@ -680,7 +735,10 @@ static bool setup_dsc_config(
 
 	// Slice height (i.e. number of slices per column): start with policy and pick the first one that height is divisible by.
 	// For 4:2:0 make sure the slice height is divisible by 2 as well.
-	slice_height = min(dsc_policy.min_sice_height, pic_height);
+	if (min_slice_height_override == 0)
+		slice_height = min(dsc_policy.min_sice_height, pic_height);
+	else
+		slice_height = min(min_slice_height_override, pic_height);
 
 	while (slice_height < pic_height && (pic_height % slice_height != 0 ||
 		(timing->pixel_encoding == PIXEL_ENCODING_YCBCR420 && slice_height % 2 != 0)))
@@ -802,7 +860,8 @@ bool dc_dsc_parse_dsc_dpcd(const uint8_t *dpcd_dsc_basic_data, const uint8_t *dp
  * If DSC is not possible, leave '*range' untouched.
  */
 bool dc_dsc_compute_bandwidth_range(
-		const struct dc *dc,
+		const struct display_stream_compressor *dsc,
+		const uint32_t dsc_min_slice_height_override,
 		const uint32_t min_bpp,
 		const uint32_t max_bpp,
 		const struct dsc_dec_dpcd_caps *dsc_sink_caps,
@@ -814,16 +873,14 @@ bool dc_dsc_compute_bandwidth_range(
 	struct dsc_enc_caps dsc_common_caps;
 	struct dc_dsc_config config;
 
-	get_dsc_enc_caps(dc, &dsc_enc_caps, timing->pix_clk_100hz);
+	get_dsc_enc_caps(dsc, &dsc_enc_caps, timing->pix_clk_100hz);
 
 	is_dsc_possible = intersect_dsc_caps(dsc_sink_caps, &dsc_enc_caps,
 			timing->pixel_encoding, &dsc_common_caps);
 
 	if (is_dsc_possible)
-		is_dsc_possible = setup_dsc_config(dsc_sink_caps,
-				&dsc_enc_caps,
-				0,
-				timing, &config);
+		is_dsc_possible = setup_dsc_config(dsc_sink_caps, &dsc_enc_caps, 0, timing,
+				dsc_min_slice_height_override, &config);
 
 	if (is_dsc_possible)
 		get_dsc_bandwidth_range(min_bpp, max_bpp, &dsc_common_caps, timing, range);
@@ -832,8 +889,9 @@ bool dc_dsc_compute_bandwidth_range(
 }
 
 bool dc_dsc_compute_config(
-		const struct dc *dc,
+		const struct display_stream_compressor *dsc,
 		const struct dsc_dec_dpcd_caps *dsc_sink_caps,
+		const uint32_t dsc_min_slice_height_override,
 		uint32_t target_bandwidth_kbps,
 		const struct dc_crtc_timing *timing,
 		struct dc_dsc_config *dsc_cfg)
@@ -841,11 +899,10 @@ bool dc_dsc_compute_config(
 	bool is_dsc_possible = false;
 	struct dsc_enc_caps dsc_enc_caps;
 
-	get_dsc_enc_caps(dc, &dsc_enc_caps, timing->pix_clk_100hz);
+	get_dsc_enc_caps(dsc, &dsc_enc_caps, timing->pix_clk_100hz);
 	is_dsc_possible = setup_dsc_config(dsc_sink_caps,
 			&dsc_enc_caps,
 			target_bandwidth_kbps,
-			timing, dsc_cfg);
+			timing, dsc_min_slice_height_override, dsc_cfg);
 	return is_dsc_possible;
 }
-#endif /* CONFIG_DRM_AMD_DC_DSC_SUPPORT */

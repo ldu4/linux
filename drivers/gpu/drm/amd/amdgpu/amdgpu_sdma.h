@@ -79,7 +79,8 @@ struct amdgpu_buffer_funcs {
 				 /* dst addr in bytes */
 				 uint64_t dst_offset,
 				 /* number of byte to transfer */
-				 uint32_t byte_count);
+				 uint32_t byte_count,
+				 bool tmz);
 
 	/* maximum bytes in a single operation */
 	uint32_t	fill_max_bytes;
@@ -97,11 +98,20 @@ struct amdgpu_buffer_funcs {
 				 uint32_t byte_count);
 };
 
-#define amdgpu_emit_copy_buffer(adev, ib, s, d, b) (adev)->mman.buffer_funcs->emit_copy_buffer((ib),  (s), (d), (b))
+#define amdgpu_emit_copy_buffer(adev, ib, s, d, b, t) (adev)->mman.buffer_funcs->emit_copy_buffer((ib),  (s), (d), (b), (t))
 #define amdgpu_emit_fill_buffer(adev, ib, s, d, b) (adev)->mman.buffer_funcs->emit_fill_buffer((ib), (s), (d), (b))
 
 struct amdgpu_sdma_instance *
 amdgpu_sdma_get_instance_from_ring(struct amdgpu_ring *ring);
 int amdgpu_sdma_get_index_from_ring(struct amdgpu_ring *ring, uint32_t *index);
 uint64_t amdgpu_sdma_get_csa_mc_addr(struct amdgpu_ring *ring, unsigned vmid);
+int amdgpu_sdma_ras_late_init(struct amdgpu_device *adev,
+			      void *ras_ih_info);
+void amdgpu_sdma_ras_fini(struct amdgpu_device *adev);
+int amdgpu_sdma_process_ras_data_cb(struct amdgpu_device *adev,
+		void *err_data,
+		struct amdgpu_iv_entry *entry);
+int amdgpu_sdma_process_ecc_irq(struct amdgpu_device *adev,
+				      struct amdgpu_irq_src *source,
+				      struct amdgpu_iv_entry *entry);
 #endif

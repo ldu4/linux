@@ -435,11 +435,10 @@ static int disable_trace_kprobe(struct trace_event_call *call,
 
 #if defined(CONFIG_KPROBES_ON_FTRACE) && \
 	!defined(CONFIG_KPROBE_EVENTS_ON_NOTRACE)
-static bool within_notrace_func(struct trace_kprobe *tk)
+static bool __within_notrace_func(unsigned long addr)
 {
-	unsigned long offset, size, addr;
+	unsigned long offset, size;
 
-	addr = trace_kprobe_address(tk);
 	if (!addr || !kallsyms_lookup_size_offset(addr, &size, &offset))
 		return false;
 
@@ -451,6 +450,28 @@ static bool within_notrace_func(struct trace_kprobe *tk)
 	 * to subtract 1 byte from the end address.
 	 */
 	return !ftrace_location_range(addr, addr + size - 1);
+}
+
+static bool within_notrace_func(struct trace_kprobe *tk)
+{
+	unsigned long addr = addr = trace_kprobe_address(tk);
+	char symname[KSYM_NAME_LEN], *p;
+
+	if (!__within_notrace_func(addr))
+		return false;
+
+	/* Check if the address is on a suffixed-symbol */
+	if (!lookup_symbol_name(addr, symname)) {
+		p = strchr(symname, '.');
+		if (!p)
+			return true;
+		*p = '\0';
+		addr = (unsigned long)kprobe_lookup_name(symname, 0);
+		if (addr)
+			return __within_notrace_func(addr);
+	}
+
+	return true;
 }
 #else
 #define within_notrace_func(tk)	(false)
@@ -1534,16 +1555,28 @@ static struct trace_event_functions kprobe_funcs = {
 	.trace		= print_kprobe_event
 };
 
+static struct trace_event_fields kretprobe_fields_array[] = {
+	{ .type = TRACE_FUNCTION_TYPE,
+	  .define_fields = kretprobe_event_define_fields },
+	{}
+};
+
+static struct trace_event_fields kprobe_fields_array[] = {
+	{ .type = TRACE_FUNCTION_TYPE,
+	  .define_fields = kprobe_event_define_fields },
+	{}
+};
+
 static inline void init_trace_event_call(struct trace_kprobe *tk)
 {
 	struct trace_event_call *call = trace_probe_event_call(&tk->tp);
 
 	if (trace_kprobe_is_return(tk)) {
 		call->event.funcs = &kretprobe_funcs;
-		call->class->define_fields = kretprobe_event_define_fields;
+		call->class->fields_array = kretprobe_fields_array;
 	} else {
 		call->event.funcs = &kprobe_funcs;
-		call->class->define_fields = kprobe_event_define_fields;
+		call->class->fields_array = kprobe_fields_array;
 	}
 
 	call->flags = TRACE_EVENT_FL_KPROBE;
