@@ -63,18 +63,23 @@ static void __free_io_area(void *addr, unsigned long size)
 {
 	unsigned long virtaddr = (unsigned long)addr;
 	pgd_t *pgd_dir;
+	p4d_t *p4d_dir;
+	pud_t *pud_dir;
 	pmd_t *pmd_dir;
 	pte_t *pte_dir;
 
 	while ((long)size > 0) {
 		pgd_dir = pgd_offset_k(virtaddr);
-		if (pgd_bad(*pgd_dir)) {
-			printk("iounmap: bad pgd(%08lx)\n", pgd_val(*pgd_dir));
-			pgd_clear(pgd_dir);
+		p4d_dir = p4d_offset(pgd_dir, virtaddr);
+		pud_dir = pud_offset(p4d_dir, virtaddr);
+		if (pud_bad(*pud_dir)) {
+			printk("iounmap: bad pgd(%08lx)\n", pud_val(*pud_dir));
+			pud_clear(pud_dir);
 			return;
 		}
-		pmd_dir = pmd_offset(pgd_dir, virtaddr);
+		pmd_dir = pmd_offset(pud_dir, virtaddr);
 
+#if CONFIG_PGTABLE_LEVELS == 3
 		if (CPU_IS_020_OR_030) {
 			int pmd_off = (virtaddr/PTRTREESIZE) & 15;
 			int pmd_type = pmd_dir->pmd[pmd_off] & _DESCTYPE_MASK;
@@ -87,6 +92,7 @@ static void __free_io_area(void *addr, unsigned long size)
 			} else if (pmd_type == 0)
 				continue;
 		}
+#endif
 
 		if (pmd_bad(*pmd_dir)) {
 			printk("iounmap: bad pmd (%08lx)\n", pmd_val(*pmd_dir));
@@ -314,6 +320,8 @@ void kernel_set_cachemode(void *addr, unsigned long size, int cmode)
 {
 	unsigned long virtaddr = (unsigned long)addr;
 	pgd_t *pgd_dir;
+	p4d_t *p4d_dir;
+	pud_t *pud_dir;
 	pmd_t *pmd_dir;
 	pte_t *pte_dir;
 
