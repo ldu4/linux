@@ -73,7 +73,7 @@ static void __free_io_area(void *addr, unsigned long size)
 		p4d_dir = p4d_offset(pgd_dir, virtaddr);
 		pud_dir = pud_offset(p4d_dir, virtaddr);
 		if (pud_bad(*pud_dir)) {
-			printk("iounmap: bad pgd(%08lx)\n", pud_val(*pud_dir));
+			printk("iounmap: bad pud(%08lx)\n", pud_val(*pud_dir));
 			pud_clear(pud_dir);
 			return;
 		}
