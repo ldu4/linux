@@ -51,7 +51,7 @@ struct statx;
 struct __sysctl_args;
 struct sysinfo;
 struct timespec;
-struct timeval;
+struct __kernel_old_timeval;
 struct __kernel_timex;
 struct timezone;
 struct tms;
@@ -1000,6 +1000,7 @@ asmlinkage long sys_fspick(int dfd, const char __user *path, unsigned int flags)
 asmlinkage long sys_pidfd_send_signal(int pidfd, int sig,
 				       siginfo_t __user *info,
 				       unsigned int flags);
+asmlinkage long sys_watch_devices(int watch_fd, int watch_id, unsigned int flags);
 
 /*
  * Architecture-specific system calls
@@ -1076,15 +1077,15 @@ asmlinkage long sys_fadvise64(int fd, loff_t offset, size_t len, int advice);
 asmlinkage long sys_alarm(unsigned int seconds);
 asmlinkage long sys_getpgrp(void);
 asmlinkage long sys_pause(void);
-asmlinkage long sys_time(time_t __user *tloc);
+asmlinkage long sys_time(__kernel_old_time_t __user *tloc);
 asmlinkage long sys_time32(old_time32_t __user *tloc);
 #ifdef __ARCH_WANT_SYS_UTIME
 asmlinkage long sys_utime(char __user *filename,
 				struct utimbuf __user *times);
 asmlinkage long sys_utimes(char __user *filename,
-				struct timeval __user *utimes);
+				struct __kernel_old_timeval __user *utimes);
 asmlinkage long sys_futimesat(int dfd, const char __user *filename,
-			      struct timeval __user *utimes);
+			      struct __kernel_old_timeval __user *utimes);
 #endif
 asmlinkage long sys_futimesat_time32(unsigned int dfd,
 				     const char __user *filename,
@@ -1098,7 +1099,7 @@ asmlinkage long sys_getdents(unsigned int fd,
 				struct linux_dirent __user *dirent,
 				unsigned int count);
 asmlinkage long sys_select(int n, fd_set __user *inp, fd_set __user *outp,
-			fd_set __user *exp, struct timeval __user *tvp);
+			fd_set __user *exp, struct __kernel_old_timeval __user *tvp);
 asmlinkage long sys_poll(struct pollfd __user *ufds, unsigned int nfds,
 				int timeout);
 asmlinkage long sys_epoll_wait(int epfd, struct epoll_event __user *events,
@@ -1116,7 +1117,7 @@ asmlinkage long sys_sysfs(int option,
 asmlinkage long sys_fork(void);
 
 /* obsolete: kernel/time/time.c */
-asmlinkage long sys_stime(time_t __user *tptr);
+asmlinkage long sys_stime(__kernel_old_time_t __user *tptr);
 asmlinkage long sys_stime32(old_time32_t __user *tptr);
 
 /* obsolete: kernel/signal.c */

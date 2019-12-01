@@ -1068,7 +1068,11 @@ vm_fault_t iomap_page_mkwrite(struct vm_fault *vmf, const struct iomap_ops *ops)
 	lock_page(page);
 	size = i_size_read(inode);
 	offset = page_offset(page);
+<<<<<<< HEAD
 	if (page->mapping != inode->i_mapping || offset > size) {
+=======
+	if (page->mapping != inode->i_mapping || offset >= size) {
+>>>>>>> linux-next/akpm-base
 		/* We overload EFAULT to mean page got truncated */
 		ret = -EFAULT;
 		goto out_unlock;
