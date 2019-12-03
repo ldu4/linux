@@ -63,9 +63,9 @@ static int acpi_sleep_prepare(u32 acpi_state)
 #ifdef CONFIG_ACPI_SLEEP
 	/* do we have a wakeup address for S2 and S3? */
 	if (acpi_state == ACPI_STATE_S3) {
-		if (!acpi_wakeup_address)
+		if (!acpi_get_wakeup_address())
 			return -EFAULT;
-		acpi_set_waking_vector(acpi_wakeup_address);
+		acpi_set_waking_vector(acpi_get_wakeup_address());
 
 	}
 	ACPI_FLUSH_CPU_CACHE();
@@ -977,6 +977,16 @@ static int acpi_s2idle_prepare_late(void)
 	return 0;
 }
 
+static void acpi_s2idle_sync(void)
+{
+	/*
+	 * The EC driver uses the system workqueue and an additional special
+	 * one, so those need to be flushed too.
+	 */
+	acpi_ec_flush_work();
+	acpi_os_wait_events_complete(); /* synchronize Notify handling */
+}
+
 static void acpi_s2idle_wake(void)
 {
 	/*
@@ -1001,13 +1011,8 @@ static void acpi_s2idle_wake(void)
 		 * should be missed by canceling the wakeup here.
 		 */
 		pm_system_cancel_wakeup();
-		/*
-		 * The EC driver uses the system workqueue and an additional
-		 * special one, so those need to be flushed too.
-		 */
-		acpi_os_wait_events_complete(); /* synchronize EC GPE processing */
-		acpi_ec_flush_work();
-		acpi_os_wait_events_complete(); /* synchronize Notify handling */
+
+		acpi_s2idle_sync();
 
 		rearm_wake_irq(acpi_sci_irq);
 	}
@@ -1024,6 +1029,13 @@ static void acpi_s2idle_restore_early(void)
 
 static void acpi_s2idle_restore(void)
 {
+	/*
+	 * Drain pending events before restoring the working-state configuration
+	 * of GPEs.
+	 */
+	acpi_os_wait_events_complete(); /* synchronize GPE processing */
+	acpi_s2idle_sync();
+
 	s2idle_wakeup = false;
 
 	acpi_enable_all_runtime_gpes();
