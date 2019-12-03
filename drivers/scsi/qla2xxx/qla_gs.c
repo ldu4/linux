@@ -3589,11 +3589,6 @@ void qla24xx_async_gnnft_done(scsi_qla_host_t *vha, srb_t *sp)
 			set_bit(LOOP_RESYNC_NEEDED, &vha->dpc_flags);
 			goto out;
 		} else {
-<<<<<<< HEAD
-			ql_dbg(ql_dbg_disc + ql_dbg_verbose, vha, 0xffff,
-			    "%s: Fabric scan failed for %d retries.\n",
-			    __func__, vha->scan.scan_retry);
-=======
 			ql_dbg(ql_dbg_disc, vha, 0xffff,
 			    "%s: Fabric scan failed for %d retries.\n",
 			    __func__, vha->scan.scan_retry);
@@ -3608,7 +3603,6 @@ void qla24xx_async_gnnft_done(scsi_qla_host_t *vha, srb_t *sp)
 				}
 			}
 			goto login_logout;
->>>>>>> linux-next/akpm-base
 		}
 	}
 	vha->scan.scan_retry = 0;

@@ -203,12 +203,6 @@ COMPAT_SYSCALL_DEFINE3(ioctl, unsigned int, fd, unsigned int, cmd,
 #else
 	case FS_IOC_RESVSP:
 	case FS_IOC_RESVSP64:
-<<<<<<< HEAD
-	case FS_IOC_UNRESVSP:
-	case FS_IOC_UNRESVSP64:
-	case FS_IOC_ZERO_RANGE:
-		goto found_handler;
-=======
 		error = ioctl_preallocate(f.file, 0, compat_ptr(arg));
 		goto out_fput;
 	case FS_IOC_UNRESVSP:
@@ -220,7 +214,6 @@ COMPAT_SYSCALL_DEFINE3(ioctl, unsigned int, fd, unsigned int, cmd,
 		error = ioctl_preallocate(f.file, FALLOC_FL_ZERO_RANGE,
 				compat_ptr(arg));
 		goto out_fput;
->>>>>>> linux-next/akpm-base
 #endif
 
 	default:
