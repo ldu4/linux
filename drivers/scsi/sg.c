@@ -435,6 +435,7 @@ sg_read(struct file *filp, char __user *buf, size_t count, loff_t * ppos)
 			return PTR_ERR(old_hdr);
 		if (old_hdr->reply_len < 0) {
 			if (count >= SZ_SG_IO_HDR) {
+<<<<<<< HEAD
 				/*
 				 * This is stupid.
 				 *
@@ -459,6 +460,10 @@ sg_read(struct file *filp, char __user *buf, size_t count, loff_t * ppos)
 				req_pack_id = new_hdr->pack_id;
 				kfree(new_hdr);
 				if (retval) {
+=======
+				sg_io_hdr_t __user *p = (void __user *)buf;
+				if (get_user(req_pack_id, &p->pack_id)) {
+>>>>>>> linux-next/akpm-base
 					retval = -EFAULT;
 					goto free_old_hdr;
 				}
