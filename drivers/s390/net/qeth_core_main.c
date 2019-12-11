@@ -4325,7 +4325,7 @@ int qeth_set_access_ctrl_online(struct qeth_card *card, int fallback)
 	return rc;
 }
 
-void qeth_tx_timeout(struct net_device *dev)
+void qeth_tx_timeout(struct net_device *dev, unsigned int txqueue)
 {
 	struct qeth_card *card;
 
@@ -4779,7 +4779,7 @@ static int qeth_qdio_establish(struct qeth_card *card)
 
 	QETH_CARD_TEXT(card, 2, "qdioest");
 
-	qib_param_field = kzalloc(FIELD_SIZEOF(struct qib, parm), GFP_KERNEL);
+	qib_param_field = kzalloc(sizeof_field(struct qib, parm), GFP_KERNEL);
 	if (!qib_param_field) {
 		rc =  -ENOMEM;
 		goto out_free_nothing;
