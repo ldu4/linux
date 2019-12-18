@@ -184,13 +184,6 @@ struct device * __init imx_soc_device_init(void)
 	}
 
 	if (!IS_ERR_OR_NULL(ocotp)) {
-<<<<<<< HEAD
-		regmap_read(ocotp, OCOTP_UID_H, &val);
-		soc_uid = val;
-		regmap_read(ocotp, OCOTP_UID_L, &val);
-		soc_uid <<= 32;
-		soc_uid |= val;
-=======
 		if (__mxc_cpu_type == MXC_CPU_IMX7ULP) {
 			regmap_read(ocotp, OCOTP_ULP_UID_4, &val);
 			soc_uid = val & 0xffff;
@@ -210,7 +203,6 @@ struct device * __init imx_soc_device_init(void)
 			soc_uid <<= 32;
 			soc_uid |= val;
 		}
->>>>>>> linux-next/akpm-base
 	}
 
 	soc_dev_attr->revision = kasprintf(GFP_KERNEL, "%d.%d",

@@ -788,14 +788,7 @@ struct reset_control *__devm_reset_control_get(struct device *dev,
 		return ERR_PTR(-ENOMEM);
 
 	rstc = __reset_control_get(dev, id, index, shared, optional, acquired);
-<<<<<<< HEAD
-	if (!IS_ERR_OR_NULL(rstc)) {
-		*ptr = rstc;
-		devres_add(dev, ptr);
-	} else {
-=======
 	if (IS_ERR_OR_NULL(rstc)) {
->>>>>>> linux-next/akpm-base
 		devres_free(ptr);
 		return rstc;
 	}
@@ -937,11 +930,7 @@ devm_reset_control_array_get(struct device *dev, bool shared, bool optional)
 
 	rstc = of_reset_control_array_get(dev->of_node, shared, optional, true);
 	if (IS_ERR_OR_NULL(rstc)) {
-<<<<<<< HEAD
-		devres_free(devres);
-=======
 		devres_free(ptr);
->>>>>>> linux-next/akpm-base
 		return rstc;
 	}
 
