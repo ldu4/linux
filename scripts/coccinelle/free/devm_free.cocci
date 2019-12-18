@@ -95,8 +95,6 @@ position p;
 |
  kzfree@p(x)
 |
- __krealloc@p(x, ...)
-|
  krealloc@p(x, ...)
 |
  free_pages@p(x, ...)
@@ -119,8 +117,6 @@ position p != safe.p;
 * kfree@p(x)
 |
 * kzfree@p(x)
-|
-* __krealloc@p(x, ...)
 |
 * krealloc@p(x, ...)
 |
