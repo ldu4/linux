@@ -93,6 +93,7 @@ config X86
 	select ARCH_USE_QUEUED_RWLOCKS
 	select ARCH_USE_QUEUED_SPINLOCKS
 	select ARCH_WANT_BATCHED_UNMAP_TLB_FLUSH
+	select ARCH_WANT_DEFAULT_BPF_JIT	if X86_64
 	select ARCH_WANTS_DYNAMIC_TASK_STRUCT
 	select ARCH_WANT_HUGE_PMD_SHARE
 	select ARCH_WANTS_THP_SWAP		if X86_64
@@ -227,6 +228,7 @@ config X86
 	select VIRT_TO_BUS
 	select X86_FEATURE_NAMES		if PROC_FS
 	select PROC_PID_ARCH_STATUS		if PROC_FS
+	select HAVE_ARCH_KCSAN			if X86_64
 
 config INSTRUCTION_DECODER
 	def_bool y
@@ -1512,7 +1514,7 @@ config X86_CPA_STATISTICS
 	bool "Enable statistic for Change Page Attribute"
 	depends on DEBUG_FS
 	---help---
-	  Expose statistics about the Change Page Attribute mechanims, which
+	  Expose statistics about the Change Page Attribute mechanism, which
 	  helps to determine the effectiveness of preserving large and huge
 	  page mappings when mapping protections are changed.
 

@@ -150,12 +150,13 @@ int devm_reset_controller_register(struct device *dev,
 		return -ENOMEM;
 
 	ret = reset_controller_register(rcdev);
-	if (!ret) {
-		*rcdevp = rcdev;
-		devres_add(dev, rcdevp);
-	} else {
+	if (ret) {
 		devres_free(rcdevp);
+		return ret;
 	}
+
+	*rcdevp = rcdev;
+	devres_add(dev, rcdevp);
 
 	return ret;
 }
@@ -787,12 +788,20 @@ struct reset_control *__devm_reset_control_get(struct device *dev,
 		return ERR_PTR(-ENOMEM);
 
 	rstc = __reset_control_get(dev, id, index, shared, optional, acquired);
+<<<<<<< HEAD
 	if (!IS_ERR_OR_NULL(rstc)) {
 		*ptr = rstc;
 		devres_add(dev, ptr);
 	} else {
+=======
+	if (IS_ERR_OR_NULL(rstc)) {
+>>>>>>> linux-next/akpm-base
 		devres_free(ptr);
+		return rstc;
 	}
+
+	*ptr = rstc;
+	devres_add(dev, ptr);
 
 	return rstc;
 }
@@ -919,22 +928,25 @@ EXPORT_SYMBOL_GPL(of_reset_control_array_get);
 struct reset_control *
 devm_reset_control_array_get(struct device *dev, bool shared, bool optional)
 {
-	struct reset_control **devres;
-	struct reset_control *rstc;
+	struct reset_control **ptr, *rstc;
 
-	devres = devres_alloc(devm_reset_control_release, sizeof(*devres),
-			      GFP_KERNEL);
-	if (!devres)
+	ptr = devres_alloc(devm_reset_control_release, sizeof(*ptr),
+			   GFP_KERNEL);
+	if (!ptr)
 		return ERR_PTR(-ENOMEM);
 
 	rstc = of_reset_control_array_get(dev->of_node, shared, optional, true);
 	if (IS_ERR_OR_NULL(rstc)) {
+<<<<<<< HEAD
 		devres_free(devres);
+=======
+		devres_free(ptr);
+>>>>>>> linux-next/akpm-base
 		return rstc;
 	}
 
-	*devres = rstc;
-	devres_add(dev, devres);
+	*ptr = rstc;
+	devres_add(dev, ptr);
 
 	return rstc;
 }

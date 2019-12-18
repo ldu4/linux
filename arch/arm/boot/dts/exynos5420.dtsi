@@ -48,62 +48,62 @@
 
 		opp-1800000000 {
 			opp-hz = /bits/ 64 <1800000000>;
-			opp-microvolt = <1250000>;
+			opp-microvolt = <1250000 1250000 1500000>;
 			clock-latency-ns = <140000>;
 		};
 		opp-1700000000 {
 			opp-hz = /bits/ 64 <1700000000>;
-			opp-microvolt = <1212500>;
+			opp-microvolt = <1212500 1212500 1500000>;
 			clock-latency-ns = <140000>;
 		};
 		opp-1600000000 {
 			opp-hz = /bits/ 64 <1600000000>;
-			opp-microvolt = <1175000>;
+			opp-microvolt = <1175000 1175000 1500000>;
 			clock-latency-ns = <140000>;
 		};
 		opp-1500000000 {
 			opp-hz = /bits/ 64 <1500000000>;
-			opp-microvolt = <1137500>;
+			opp-microvolt = <1137500 1137500 1500000>;
 			clock-latency-ns = <140000>;
 		};
 		opp-1400000000 {
 			opp-hz = /bits/ 64 <1400000000>;
-			opp-microvolt = <1112500>;
+			opp-microvolt = <1112500 1112500 1500000>;
 			clock-latency-ns = <140000>;
 		};
 		opp-1300000000 {
 			opp-hz = /bits/ 64 <1300000000>;
-			opp-microvolt = <1062500>;
+			opp-microvolt = <1062500 1062500 1500000>;
 			clock-latency-ns = <140000>;
 		};
 		opp-1200000000 {
 			opp-hz = /bits/ 64 <1200000000>;
-			opp-microvolt = <1037500>;
+			opp-microvolt = <1037500 1037500 1500000>;
 			clock-latency-ns = <140000>;
 		};
 		opp-1100000000 {
 			opp-hz = /bits/ 64 <1100000000>;
-			opp-microvolt = <1012500>;
+			opp-microvolt = <1012500 1012500 1500000>;
 			clock-latency-ns = <140000>;
 		};
 		opp-1000000000 {
 			opp-hz = /bits/ 64 <1000000000>;
-			opp-microvolt = < 987500>;
+			opp-microvolt = < 987500 987500 1500000>;
 			clock-latency-ns = <140000>;
 		};
 		opp-900000000 {
 			opp-hz = /bits/ 64 <900000000>;
-			opp-microvolt = < 962500>;
+			opp-microvolt = < 962500 962500 1500000>;
 			clock-latency-ns = <140000>;
 		};
 		opp-800000000 {
 			opp-hz = /bits/ 64 <800000000>;
-			opp-microvolt = < 937500>;
+			opp-microvolt = < 937500 937500 1500000>;
 			clock-latency-ns = <140000>;
 		};
 		opp-700000000 {
 			opp-hz = /bits/ 64 <700000000>;
-			opp-microvolt = < 912500>;
+			opp-microvolt = < 912500 912500 1500000>;
 			clock-latency-ns = <140000>;
 		};
 	};
@@ -744,6 +744,56 @@
 			iommus = <&sysmmu_gscl1>;
 		};
 
+		gpu: gpu@11800000 {
+			compatible = "samsung,exynos5420-mali", "arm,mali-t628";
+			reg = <0x11800000 0x5000>;
+			interrupts = <GIC_SPI 219 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 74 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 117 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "job", "mmu", "gpu";
+
+			clocks = <&clock CLK_G3D>;
+			clock-names = "core";
+			power-domains = <&g3d_pd>;
+			operating-points-v2 = <&gpu_opp_table>;
+
+			status = "disabled";
+			#cooling-cells = <2>;
+
+			gpu_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				opp-177000000 {
+					opp-hz = /bits/ 64 <177000000>;
+					opp-microvolt = <812500>;
+				};
+				opp-266000000 {
+					opp-hz = /bits/ 64 <266000000>;
+					opp-microvolt = <862500>;
+				};
+				opp-350000000 {
+					opp-hz = /bits/ 64 <350000000>;
+					opp-microvolt = <912500>;
+				};
+				opp-420000000 {
+					opp-hz = /bits/ 64 <420000000>;
+					opp-microvolt = <962500>;
+				};
+				opp-480000000 {
+					opp-hz = /bits/ 64 <480000000>;
+					opp-microvolt = <1000000>;
+				};
+				opp-543000000 {
+					opp-hz = /bits/ 64 <543000000>;
+					opp-microvolt = <1037500>;
+				};
+				opp-600000000 {
+					opp-hz = /bits/ 64 <600000000>;
+					opp-microvolt = <1150000>;
+				};
+			};
+		};
+
 		scaler_0: scaler@12800000 {
 			compatible = "samsung,exynos5420-scaler";
 			reg = <0x12800000 0x1294>;
@@ -1171,23 +1221,23 @@
 
 			opp00 {
 				opp-hz = /bits/ 64 <84000000>;
-				opp-microvolt = <925000>;
+				opp-microvolt = <925000 925000 1400000>;
 			};
 			opp01 {
 				opp-hz = /bits/ 64 <111000000>;
-				opp-microvolt = <950000>;
+				opp-microvolt = <950000 950000 1400000>;
 			};
 			opp02 {
 				opp-hz = /bits/ 64 <222000000>;
-				opp-microvolt = <950000>;
+				opp-microvolt = <950000 950000 1400000>;
 			};
 			opp03 {
 				opp-hz = /bits/ 64 <333000000>;
-				opp-microvolt = <950000>;
+				opp-microvolt = <950000 950000 1400000>;
 			};
 			opp04 {
 				opp-hz = /bits/ 64 <400000000>;
-				opp-microvolt = <987500>;
+				opp-microvolt = <987500 987500 1400000>;
 			};
 		};
 

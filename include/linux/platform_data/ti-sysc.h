@@ -49,6 +49,10 @@ struct sysc_regbits {
 	s8 emufree_shift;
 };
 
+<<<<<<< HEAD
+=======
+#define SYSC_QUIRK_CLKDM_NOAUTO		BIT(21)
+>>>>>>> linux-next/akpm-base
 #define SYSC_QUIRK_FORCE_MSTANDBY	BIT(20)
 #define SYSC_MODULE_QUIRK_AESS		BIT(19)
 #define SYSC_MODULE_QUIRK_SGX		BIT(18)

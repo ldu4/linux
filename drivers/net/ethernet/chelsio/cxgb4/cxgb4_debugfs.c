@@ -3048,6 +3048,9 @@ static int sge_queue_entries(const struct adapter *adap)
 	int tot_uld_entries = 0;
 	int i;
 
+	if (!is_uld(adap))
+		goto lld_only;
+
 	mutex_lock(&uld_mutex);
 	for (i = 0; i < CXGB4_TX_MAX; i++)
 		tot_uld_entries += sge_qinfo_uld_txq_entries(adap, i);
@@ -3058,6 +3061,7 @@ static int sge_queue_entries(const struct adapter *adap)
 	}
 	mutex_unlock(&uld_mutex);
 
+lld_only:
 	return DIV_ROUND_UP(adap->sge.ethqsets, 4) +
 	       (adap->sge.eohw_txq ? DIV_ROUND_UP(adap->sge.eoqsets, 4) : 0) +
 	       tot_uld_entries +
@@ -3240,6 +3244,9 @@ static int tid_info_show(struct seq_file *seq, void *v)
 		seq_printf(seq, "SFTID range: %u..%u in use: %u\n",
 			   t->sftid_base, t->sftid_base + t->nsftids - 2,
 			   t->sftids_in_use);
+	if (t->nhpftids)
+		seq_printf(seq, "HPFTID range: %u..%u\n", t->hpftid_base,
+			   t->hpftid_base + t->nhpftids - 1);
 	if (t->ntids)
 		seq_printf(seq, "HW TID usage: %u IP users, %u IPv6 users\n",
 			   t4_read_reg(adap, LE_DB_ACT_CNT_IPV4_A),
