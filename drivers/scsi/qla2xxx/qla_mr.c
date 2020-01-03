@@ -53,10 +53,9 @@ qlafx00_mailbox_command(scsi_qla_host_t *vha, struct mbx_cmd_32 *mcp)
 	struct qla_hw_data *ha = vha->hw;
 	scsi_qla_host_t *base_vha = pci_get_drvdata(ha->pdev);
 
-	if (ha->pdev->error_state > pci_channel_io_frozen) {
+	if (ha->pdev->error_state == pci_channel_io_perm_failure) {
 		ql_log(ql_log_warn, vha, 0x115c,
-		    "error_state is greater than pci_channel_io_frozen, "
-		    "exiting.\n");
+		    "PCI channel failed permanently, exiting.\n");
 		return QLA_FUNCTION_TIMEOUT;
 	}
 
@@ -789,7 +788,7 @@ qlafx00_iospace_config(struct qla_hw_data *ha)
 	}
 
 	ha->cregbase =
-	    ioremap_nocache(pci_resource_start(ha->pdev, 0), BAR0_LEN_FX00);
+	    ioremap(pci_resource_start(ha->pdev, 0), BAR0_LEN_FX00);
 	if (!ha->cregbase) {
 		ql_log_pci(ql_log_fatal, ha->pdev, 0x0128,
 		    "cannot remap MMIO (%s), aborting\n", pci_name(ha->pdev));
@@ -810,7 +809,7 @@ qlafx00_iospace_config(struct qla_hw_data *ha)
 	}
 
 	ha->iobase =
-	    ioremap_nocache(pci_resource_start(ha->pdev, 2), BAR2_LEN_FX00);
+	    ioremap(pci_resource_start(ha->pdev, 2), BAR2_LEN_FX00);
 	if (!ha->iobase) {
 		ql_log_pci(ql_log_fatal, ha->pdev, 0x012b,
 		    "cannot remap MMIO (%s), aborting\n", pci_name(ha->pdev));

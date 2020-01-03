@@ -6594,7 +6594,7 @@ static int snd_hdspm_create(struct snd_card *card,
 	dev_dbg(card->dev, "grabbed memory region 0x%lx-0x%lx\n",
 			hdspm->port, hdspm->port + io_extent - 1);
 
-	hdspm->iobase = ioremap_nocache(hdspm->port, io_extent);
+	hdspm->iobase = ioremap(hdspm->port, io_extent);
 	if (!hdspm->iobase) {
 		dev_err(card->dev, "unable to remap region 0x%lx-0x%lx\n",
 				hdspm->port, hdspm->port + io_extent - 1);
@@ -6613,6 +6613,7 @@ static int snd_hdspm_create(struct snd_card *card,
 	dev_dbg(card->dev, "use IRQ %d\n", pci->irq);
 
 	hdspm->irq = pci->irq;
+	card->sync_irq = hdspm->irq;
 
 	dev_dbg(card->dev, "kmalloc Mixer memory of %zd Bytes\n",
 		sizeof(*hdspm->mixer));
