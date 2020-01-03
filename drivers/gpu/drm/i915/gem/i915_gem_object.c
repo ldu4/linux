@@ -306,15 +306,7 @@ i915_gem_object_flush_write_domain(struct drm_i915_gem_object *obj,
 
 	switch (obj->write_domain) {
 	case I915_GEM_DOMAIN_GTT:
-<<<<<<< HEAD
-		for_each_ggtt_vma(vma, obj)
-			intel_gt_flush_ggtt_writes(vma->vm->gt);
-
-		i915_gem_object_flush_frontbuffer(obj, ORIGIN_CPU);
-
-=======
 		spin_lock(&obj->vma.lock);
->>>>>>> linux-next/akpm-base
 		for_each_ggtt_vma(vma, obj) {
 			if (i915_vma_unset_ggtt_write(vma))
 				intel_gt_flush_ggtt_writes(vma->vm->gt);

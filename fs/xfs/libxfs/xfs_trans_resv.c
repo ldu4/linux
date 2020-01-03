@@ -202,11 +202,7 @@ xfs_calc_inode_chunk_res(
  * blocks as needed to mark inuse MAXEXTLEN blocks' worth of realtime extents,
  * as well as the realtime summary block.
  */
-<<<<<<< HEAD
-static unsigned int
-=======
 unsigned int
->>>>>>> linux-next/akpm-base
 xfs_rtalloc_log_count(
 	struct xfs_mount	*mp,
 	unsigned int		num_ops)

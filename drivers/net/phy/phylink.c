@@ -445,11 +445,7 @@ static void phylink_mac_link_up(struct phylink *pl,
 	struct net_device *ndev = pl->netdev;
 
 	pl->cur_interface = link_state.interface;
-<<<<<<< HEAD
-	pl->ops->mac_link_up(pl->config, pl->link_an_mode,
-=======
 	pl->ops->mac_link_up(pl->config, pl->cur_link_an_mode,
->>>>>>> linux-next/akpm-base
 			     pl->cur_interface, pl->phydev);
 
 	if (ndev)

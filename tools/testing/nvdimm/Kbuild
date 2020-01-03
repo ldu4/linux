@@ -4,10 +4,6 @@ ldflags-y += --wrap=memremap
 ldflags-y += --wrap=devm_ioremap
 ldflags-y += --wrap=devm_memremap
 ldflags-y += --wrap=devm_memunmap
-<<<<<<< HEAD
-ldflags-y += --wrap=ioremap_nocache
-=======
->>>>>>> linux-next/akpm-base
 ldflags-y += --wrap=ioremap
 ldflags-y += --wrap=iounmap
 ldflags-y += --wrap=memunmap

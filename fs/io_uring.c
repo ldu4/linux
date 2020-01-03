@@ -344,10 +344,7 @@ struct io_sync {
 	loff_t				len;
 	loff_t				off;
 	int				flags;
-<<<<<<< HEAD
-=======
 	int				mode;
->>>>>>> linux-next/akpm-base
 };
 
 struct io_cancel {
@@ -359,28 +356,6 @@ struct io_timeout {
 	struct file			*file;
 	u64				addr;
 	int				flags;
-<<<<<<< HEAD
-	unsigned			count;
-};
-
-struct io_rw {
-	/* NOTE: kiocb has the file as the first member, so don't do it here */
-	struct kiocb			kiocb;
-	u64				addr;
-	u64				len;
-};
-
-struct io_connect {
-	struct file			*file;
-	struct sockaddr __user		*addr;
-	int				addr_len;
-};
-
-struct io_sr_msg {
-	struct file			*file;
-	struct user_msghdr __user	*msg;
-	int				msg_flags;
-=======
 };
 
 struct io_open {
@@ -394,7 +369,6 @@ struct io_open {
 	struct filename			*filename;
 	struct statx __user		*buffer;
 	int				flags;
->>>>>>> linux-next/akpm-base
 };
 
 struct io_async_connect {
@@ -420,6 +394,7 @@ struct io_async_open {
 };
 
 struct io_async_ctx {
+	struct io_uring_sqe		sqe;
 	union {
 		struct io_async_rw	rw;
 		struct io_async_msghdr	msg;
@@ -438,21 +413,17 @@ struct io_async_ctx {
 struct io_kiocb {
 	union {
 		struct file		*file;
-		struct io_rw		rw;
+		struct kiocb		rw;
 		struct io_poll_iocb	poll;
 		struct io_accept	accept;
 		struct io_sync		sync;
 		struct io_cancel	cancel;
 		struct io_timeout	timeout;
-<<<<<<< HEAD
-		struct io_connect	connect;
-		struct io_sr_msg	sr_msg;
-=======
 		struct io_open		open;
 		struct io_close		close;
->>>>>>> linux-next/akpm-base
 	};
 
+	const struct io_uring_sqe	*sqe;
 	struct io_async_ctx		*io;
 	struct file			*ring_file;
 	int				ring_fd;
@@ -804,47 +775,12 @@ static void __io_commit_cqring(struct io_ring_ctx *ctx)
 	}
 }
 
-<<<<<<< HEAD
-static inline bool io_req_needs_user(struct io_kiocb *req)
-{
-	return !(req->opcode == IORING_OP_READ_FIXED ||
-		 req->opcode == IORING_OP_WRITE_FIXED);
-}
-
-=======
->>>>>>> linux-next/akpm-base
 static inline bool io_prep_async_work(struct io_kiocb *req,
 				      struct io_kiocb **link)
 {
 	const struct io_op_def *def = &io_op_defs[req->opcode];
 	bool do_hashed = false;
 
-<<<<<<< HEAD
-	switch (req->opcode) {
-	case IORING_OP_WRITEV:
-	case IORING_OP_WRITE_FIXED:
-		/* only regular files should be hashed for writes */
-		if (req->flags & REQ_F_ISREG)
-			do_hashed = true;
-		/* fall-through */
-	case IORING_OP_READV:
-	case IORING_OP_READ_FIXED:
-	case IORING_OP_SENDMSG:
-	case IORING_OP_RECVMSG:
-	case IORING_OP_ACCEPT:
-	case IORING_OP_POLL_ADD:
-	case IORING_OP_CONNECT:
-		/*
-		 * We know REQ_F_ISREG is not set on some of these
-		 * opcodes, but this enables us to keep the check in
-		 * just one place.
-		 */
-		if (!(req->flags & REQ_F_ISREG))
-			req->work.flags |= IO_WQ_WORK_UNBOUND;
-		break;
-	}
-	if (io_req_needs_user(req))
-=======
 	if (req->flags & REQ_F_ISREG) {
 		if (def->hash_reg_file)
 			do_hashed = true;
@@ -853,7 +789,6 @@ static inline bool io_prep_async_work(struct io_kiocb *req,
 			req->work.flags |= IO_WQ_WORK_UNBOUND;
 	}
 	if (def->needs_mm)
->>>>>>> linux-next/akpm-base
 		req->work.flags |= IO_WQ_WORK_NEEDS_USER;
 
 	*link = io_prep_linked_timeout(req);
@@ -1413,7 +1348,7 @@ static int io_do_iopoll(struct io_ring_ctx *ctx, unsigned int *nr_events,
 
 	ret = 0;
 	list_for_each_entry_safe(req, tmp, &ctx->poll_list, list) {
-		struct kiocb *kiocb = &req->rw.kiocb;
+		struct kiocb *kiocb = &req->rw;
 
 		/*
 		 * Move completed entries to our local list. If we find a
@@ -1568,7 +1503,7 @@ static inline void req_set_fail_links(struct io_kiocb *req)
 
 static void io_complete_rw_common(struct kiocb *kiocb, long res)
 {
-	struct io_kiocb *req = container_of(kiocb, struct io_kiocb, rw.kiocb);
+	struct io_kiocb *req = container_of(kiocb, struct io_kiocb, rw);
 
 	if (kiocb->ki_flags & IOCB_WRITE)
 		kiocb_end_write(req);
@@ -1580,7 +1515,7 @@ static void io_complete_rw_common(struct kiocb *kiocb, long res)
 
 static void io_complete_rw(struct kiocb *kiocb, long res, long res2)
 {
-	struct io_kiocb *req = container_of(kiocb, struct io_kiocb, rw.kiocb);
+	struct io_kiocb *req = container_of(kiocb, struct io_kiocb, rw);
 
 	io_complete_rw_common(kiocb, res);
 	io_put_req(req);
@@ -1588,7 +1523,7 @@ static void io_complete_rw(struct kiocb *kiocb, long res, long res2)
 
 static struct io_kiocb *__io_complete_rw(struct kiocb *kiocb, long res)
 {
-	struct io_kiocb *req = container_of(kiocb, struct io_kiocb, rw.kiocb);
+	struct io_kiocb *req = container_of(kiocb, struct io_kiocb, rw);
 	struct io_kiocb *nxt = NULL;
 
 	io_complete_rw_common(kiocb, res);
@@ -1599,7 +1534,7 @@ static struct io_kiocb *__io_complete_rw(struct kiocb *kiocb, long res)
 
 static void io_complete_rw_iopoll(struct kiocb *kiocb, long res, long res2)
 {
-	struct io_kiocb *req = container_of(kiocb, struct io_kiocb, rw.kiocb);
+	struct io_kiocb *req = container_of(kiocb, struct io_kiocb, rw);
 
 	if (kiocb->ki_flags & IOCB_WRITE)
 		kiocb_end_write(req);
@@ -1633,7 +1568,7 @@ static void io_iopoll_req_issued(struct io_kiocb *req)
 
 		list_req = list_first_entry(&ctx->poll_list, struct io_kiocb,
 						list);
-		if (list_req->file != req->file)
+		if (list_req->rw.ki_filp != req->rw.ki_filp)
 			ctx->poll_multi_file = true;
 	}
 
@@ -1704,11 +1639,11 @@ static bool io_file_supports_async(struct file *file)
 	return false;
 }
 
-static int io_prep_rw(struct io_kiocb *req, const struct io_uring_sqe *sqe,
-		      bool force_nonblock)
+static int io_prep_rw(struct io_kiocb *req, bool force_nonblock)
 {
+	const struct io_uring_sqe *sqe = req->sqe;
 	struct io_ring_ctx *ctx = req->ctx;
-	struct kiocb *kiocb = &req->rw.kiocb;
+	struct kiocb *kiocb = &req->rw;
 	unsigned ioprio;
 	int ret;
 
@@ -1757,12 +1692,6 @@ static int io_prep_rw(struct io_kiocb *req, const struct io_uring_sqe *sqe,
 			return -EINVAL;
 		kiocb->ki_complete = io_complete_rw;
 	}
-
-	req->rw.addr = READ_ONCE(sqe->addr);
-	req->rw.len = READ_ONCE(sqe->len);
-	/* we own ->private, reuse it for the buffer index */
-	req->rw.kiocb.private = (void *) (unsigned long)
-					READ_ONCE(sqe->buf_index);
 	return 0;
 }
 
@@ -1796,11 +1725,11 @@ static void kiocb_done(struct kiocb *kiocb, ssize_t ret, struct io_kiocb **nxt,
 		io_rw_done(kiocb, ret);
 }
 
-static ssize_t io_import_fixed(struct io_kiocb *req, int rw,
+static ssize_t io_import_fixed(struct io_ring_ctx *ctx, int rw,
+			       const struct io_uring_sqe *sqe,
 			       struct iov_iter *iter)
 {
-	struct io_ring_ctx *ctx = req->ctx;
-	size_t len = req->rw.len;
+	size_t len = READ_ONCE(sqe->len);
 	struct io_mapped_ubuf *imu;
 	unsigned index, buf_index;
 	size_t offset;
@@ -1810,13 +1739,13 @@ static ssize_t io_import_fixed(struct io_kiocb *req, int rw,
 	if (unlikely(!ctx->user_bufs))
 		return -EFAULT;
 
-	buf_index = (unsigned long) req->rw.kiocb.private;
+	buf_index = READ_ONCE(sqe->buf_index);
 	if (unlikely(buf_index >= ctx->nr_user_bufs))
 		return -EFAULT;
 
 	index = array_index_nospec(buf_index, ctx->nr_user_bufs);
 	imu = &ctx->user_bufs[index];
-	buf_addr = req->rw.addr;
+	buf_addr = READ_ONCE(sqe->addr);
 
 	/* overflow */
 	if (buf_addr + len < buf_addr)
@@ -1873,12 +1802,11 @@ static ssize_t io_import_fixed(struct io_kiocb *req, int rw,
 static ssize_t io_import_iovec(int rw, struct io_kiocb *req,
 			       struct iovec **iovec, struct iov_iter *iter)
 {
-	void __user *buf = u64_to_user_ptr(req->rw.addr);
-	size_t sqe_len = req->rw.len;
+	const struct io_uring_sqe *sqe = req->sqe;
+	void __user *buf = u64_to_user_ptr(READ_ONCE(sqe->addr));
+	size_t sqe_len = READ_ONCE(sqe->len);
 	u8 opcode;
 
-<<<<<<< HEAD
-=======
 	/*
 	 * We're reading ->opcode for the second time, but the first read
 	 * doesn't care whether it's _FIXED or not, so it doesn't matter
@@ -1887,16 +1815,11 @@ static ssize_t io_import_iovec(int rw, struct io_kiocb *req,
 	 * for that purpose and instead let the caller pass in the read/write
 	 * flag.
 	 */
->>>>>>> linux-next/akpm-base
 	opcode = req->opcode;
 	if (opcode == IORING_OP_READ_FIXED || opcode == IORING_OP_WRITE_FIXED) {
 		*iovec = NULL;
-		return io_import_fixed(req, rw, iter);
+		return io_import_fixed(req->ctx, rw, sqe, iter);
 	}
-
-	/* buffer index only valid with fixed read/write */
-	if (req->rw.kiocb.private)
-		return -EINVAL;
 
 	if (req->io) {
 		struct io_async_rw *iorw = &req->io->rw;
@@ -1993,31 +1916,6 @@ static void io_req_map_rw(struct io_kiocb *req, ssize_t io_size,
 }
 
 static int io_alloc_async_ctx(struct io_kiocb *req)
-<<<<<<< HEAD
-{
-	req->io = kmalloc(sizeof(*req->io), GFP_KERNEL);
-	return req->io == NULL;
-}
-
-static void io_rw_async(struct io_wq_work **workptr)
-{
-	struct io_kiocb *req = container_of(*workptr, struct io_kiocb, work);
-	struct iovec *iov = NULL;
-
-	if (req->io->rw.iov != req->io->rw.fast_iov)
-		iov = req->io->rw.iov;
-	io_wq_submit_work(workptr);
-	kfree(iov);
-}
-
-static int io_setup_async_rw(struct io_kiocb *req, ssize_t io_size,
-			     struct iovec *iovec, struct iovec *fast_iov,
-			     struct iov_iter *iter)
-{
-	if (!req->io && io_alloc_async_ctx(req))
-		return -ENOMEM;
-
-=======
 {
 	if (!io_op_defs[req->opcode].async_ctx)
 		return 0;
@@ -2049,66 +1947,51 @@ static int io_setup_async_rw(struct io_kiocb *req, ssize_t io_size,
 	if (!req->io && io_alloc_async_ctx(req))
 		return -ENOMEM;
 
->>>>>>> linux-next/akpm-base
 	io_req_map_rw(req, io_size, iovec, fast_iov, iter);
 	req->work.func = io_rw_async;
 	return 0;
 }
 
-static int io_read_prep(struct io_kiocb *req, const struct io_uring_sqe *sqe,
-			bool force_nonblock)
+static int io_read_prep(struct io_kiocb *req, struct iovec **iovec,
+			struct iov_iter *iter, bool force_nonblock)
 {
-	struct io_async_ctx *io;
-	struct iov_iter iter;
 	ssize_t ret;
 
-	ret = io_prep_rw(req, sqe, force_nonblock);
+	ret = io_prep_rw(req, force_nonblock);
 	if (ret)
 		return ret;
 
 	if (unlikely(!(req->file->f_mode & FMODE_READ)))
 		return -EBADF;
 
-	if (!req->io)
-		return 0;
-
-	io = req->io;
-	io->rw.iov = io->rw.fast_iov;
-	req->io = NULL;
-	ret = io_import_iovec(READ, req, &io->rw.iov, &iter);
-	req->io = io;
-	if (ret < 0)
-		return ret;
-
-	io_req_map_rw(req, ret, io->rw.iov, io->rw.fast_iov, &iter);
-	return 0;
+	return io_import_iovec(READ, req, iovec, iter);
 }
 
 static int io_read(struct io_kiocb *req, struct io_kiocb **nxt,
 		   bool force_nonblock)
 {
 	struct iovec inline_vecs[UIO_FASTIOV], *iovec = inline_vecs;
-	struct kiocb *kiocb = &req->rw.kiocb;
+	struct kiocb *kiocb = &req->rw;
 	struct iov_iter iter;
+	struct file *file;
 	size_t iov_count;
 	ssize_t io_size, ret;
 
-	ret = io_import_iovec(READ, req, &iovec, &iter);
-	if (ret < 0)
-		return ret;
+	if (!req->io) {
+		ret = io_read_prep(req, &iovec, &iter, force_nonblock);
+		if (ret < 0)
+			return ret;
+	} else {
+		ret = io_import_iovec(READ, req, &iovec, &iter);
+		if (ret < 0)
+			return ret;
+	}
 
-	/* Ensure we clear previously set non-block flag */
-	if (!force_nonblock)
-		req->rw.kiocb.ki_flags &= ~IOCB_NOWAIT;
-
-<<<<<<< HEAD
-=======
 	/* Ensure we clear previously set non-block flag */
 	if (!force_nonblock)
 		req->rw.ki_flags &= ~IOCB_NOWAIT;
 
 	file = req->file;
->>>>>>> linux-next/akpm-base
 	io_size = ret;
 	if (req->flags & REQ_F_LINK)
 		req->result = io_size;
@@ -2117,20 +2000,20 @@ static int io_read(struct io_kiocb *req, struct io_kiocb **nxt,
 	 * If the file doesn't support async, mark it as REQ_F_MUST_PUNT so
 	 * we know to async punt it even if it was opened O_NONBLOCK
 	 */
-	if (force_nonblock && !io_file_supports_async(req->file)) {
+	if (force_nonblock && !io_file_supports_async(file)) {
 		req->flags |= REQ_F_MUST_PUNT;
 		goto copy_iov;
 	}
 
 	iov_count = iov_iter_count(&iter);
-	ret = rw_verify_area(READ, req->file, &kiocb->ki_pos, iov_count);
+	ret = rw_verify_area(READ, file, &kiocb->ki_pos, iov_count);
 	if (!ret) {
 		ssize_t ret2;
 
-		if (req->file->f_op->read_iter)
-			ret2 = call_read_iter(req->file, kiocb, &iter);
+		if (file->f_op->read_iter)
+			ret2 = call_read_iter(file, kiocb, &iter);
 		else
-			ret2 = loop_rw_iter(READ, req->file, kiocb, &iter);
+			ret2 = loop_rw_iter(READ, file, kiocb, &iter);
 
 		/*
 		 * In case of a short read, punt to async. This can happen
@@ -2162,60 +2045,46 @@ out_free:
 	return ret;
 }
 
-static int io_write_prep(struct io_kiocb *req, const struct io_uring_sqe *sqe,
-			 bool force_nonblock)
+static int io_write_prep(struct io_kiocb *req, struct iovec **iovec,
+			 struct iov_iter *iter, bool force_nonblock)
 {
-	struct io_async_ctx *io;
-	struct iov_iter iter;
 	ssize_t ret;
 
-	ret = io_prep_rw(req, sqe, force_nonblock);
+	ret = io_prep_rw(req, force_nonblock);
 	if (ret)
 		return ret;
 
 	if (unlikely(!(req->file->f_mode & FMODE_WRITE)))
 		return -EBADF;
 
-	if (!req->io)
-		return 0;
-
-	io = req->io;
-	io->rw.iov = io->rw.fast_iov;
-	req->io = NULL;
-	ret = io_import_iovec(WRITE, req, &io->rw.iov, &iter);
-	req->io = io;
-	if (ret < 0)
-		return ret;
-
-	io_req_map_rw(req, ret, io->rw.iov, io->rw.fast_iov, &iter);
-	return 0;
+	return io_import_iovec(WRITE, req, iovec, iter);
 }
 
 static int io_write(struct io_kiocb *req, struct io_kiocb **nxt,
 		    bool force_nonblock)
 {
 	struct iovec inline_vecs[UIO_FASTIOV], *iovec = inline_vecs;
-	struct kiocb *kiocb = &req->rw.kiocb;
+	struct kiocb *kiocb = &req->rw;
 	struct iov_iter iter;
+	struct file *file;
 	size_t iov_count;
 	ssize_t ret, io_size;
 
-	ret = io_import_iovec(WRITE, req, &iovec, &iter);
-	if (ret < 0)
-		return ret;
+	if (!req->io) {
+		ret = io_write_prep(req, &iovec, &iter, force_nonblock);
+		if (ret < 0)
+			return ret;
+	} else {
+		ret = io_import_iovec(WRITE, req, &iovec, &iter);
+		if (ret < 0)
+			return ret;
+	}
 
-	/* Ensure we clear previously set non-block flag */
-	if (!force_nonblock)
-		req->rw.kiocb.ki_flags &= ~IOCB_NOWAIT;
-
-<<<<<<< HEAD
-=======
 	/* Ensure we clear previously set non-block flag */
 	if (!force_nonblock)
 		req->rw.ki_flags &= ~IOCB_NOWAIT;
 
 	file = kiocb->ki_filp;
->>>>>>> linux-next/akpm-base
 	io_size = ret;
 	if (req->flags & REQ_F_LINK)
 		req->result = io_size;
@@ -2235,7 +2104,7 @@ static int io_write(struct io_kiocb *req, struct io_kiocb **nxt,
 		goto copy_iov;
 
 	iov_count = iov_iter_count(&iter);
-	ret = rw_verify_area(WRITE, req->file, &kiocb->ki_pos, iov_count);
+	ret = rw_verify_area(WRITE, file, &kiocb->ki_pos, iov_count);
 	if (!ret) {
 		ssize_t ret2;
 
@@ -2247,17 +2116,17 @@ static int io_write(struct io_kiocb *req, struct io_kiocb **nxt,
 		 * we return to userspace.
 		 */
 		if (req->flags & REQ_F_ISREG) {
-			__sb_start_write(file_inode(req->file)->i_sb,
+			__sb_start_write(file_inode(file)->i_sb,
 						SB_FREEZE_WRITE, true);
-			__sb_writers_release(file_inode(req->file)->i_sb,
+			__sb_writers_release(file_inode(file)->i_sb,
 						SB_FREEZE_WRITE);
 		}
 		kiocb->ki_flags |= IOCB_WRITE;
 
-		if (req->file->f_op->write_iter)
-			ret2 = call_write_iter(req->file, kiocb, &iter);
+		if (file->f_op->write_iter)
+			ret2 = call_write_iter(file, kiocb, &iter);
 		else
-			ret2 = loop_rw_iter(WRITE, req->file, kiocb, &iter);
+			ret2 = loop_rw_iter(WRITE, file, kiocb, &iter);
 		if (!force_nonblock || ret2 != -EAGAIN) {
 			kiocb_done(kiocb, ret2, nxt, req->in_async);
 		} else {
@@ -2311,40 +2180,11 @@ static int io_prep_fsync(struct io_kiocb *req)
 
 	req->sync.off = READ_ONCE(sqe->off);
 	req->sync.len = READ_ONCE(sqe->len);
-<<<<<<< HEAD
-=======
 	req->flags |= REQ_F_PREPPED;
->>>>>>> linux-next/akpm-base
 	return 0;
 }
 
 static bool io_req_cancelled(struct io_kiocb *req)
-<<<<<<< HEAD
-{
-	if (req->work.flags & IO_WQ_WORK_CANCEL) {
-		req_set_fail_links(req);
-		io_cqring_add_event(req, -ECANCELED);
-		io_put_req(req);
-		return true;
-	}
-
-	return false;
-}
-
-static void io_fsync_finish(struct io_wq_work **workptr)
-{
-	struct io_kiocb *req = container_of(*workptr, struct io_kiocb, work);
-	loff_t end = req->sync.off + req->sync.len;
-	struct io_kiocb *nxt = NULL;
-	int ret;
-
-	if (io_req_cancelled(req))
-		return;
-
-	ret = vfs_fsync_range(req->file, req->sync.off,
-				end > 0 ? end : LLONG_MAX,
-				req->sync.flags & IORING_FSYNC_DATASYNC);
-=======
 {
 	if (req->work.flags & IO_WQ_WORK_CANCEL) {
 		req_set_fail_links(req);
@@ -2409,47 +2249,17 @@ static void io_fallocate_finish(struct io_wq_work **workptr)
 
 	ret = vfs_fallocate(req->file, req->sync.mode, req->sync.off,
 				req->sync.len);
->>>>>>> linux-next/akpm-base
 	if (ret < 0)
 		req_set_fail_links(req);
 	io_cqring_add_event(req, ret);
 	io_put_req_find_next(req, &nxt);
 	if (nxt)
 		*workptr = &nxt->work;
-<<<<<<< HEAD
-}
-
-static int io_fsync(struct io_kiocb *req, struct io_kiocb **nxt,
-		    bool force_nonblock)
-{
-	struct io_wq_work *work, *old_work;
-
-	/* fsync always requires a blocking context */
-	if (force_nonblock) {
-		io_put_req(req);
-		req->work.func = io_fsync_finish;
-		return -EAGAIN;
-	}
-
-	work = old_work = &req->work;
-	io_fsync_finish(&work);
-	if (work && work != old_work)
-		*nxt = container_of(work, struct io_kiocb, work);
-	return 0;
-=======
->>>>>>> linux-next/akpm-base
 }
 
 static int io_fallocate_prep(struct io_kiocb *req)
 {
-<<<<<<< HEAD
-	struct io_ring_ctx *ctx = req->ctx;
-
-	if (!req->file)
-		return -EBADF;
-=======
 	const struct io_uring_sqe *sqe = req->sqe;
->>>>>>> linux-next/akpm-base
 
 	if (req->flags & REQ_F_PREPPED)
 		return 0;
@@ -2457,41 +2267,6 @@ static int io_fallocate_prep(struct io_kiocb *req)
 		return -EINVAL;
 
 	req->sync.off = READ_ONCE(sqe->off);
-<<<<<<< HEAD
-	req->sync.len = READ_ONCE(sqe->len);
-	req->sync.flags = READ_ONCE(sqe->sync_range_flags);
-	return 0;
-}
-
-static void io_sync_file_range_finish(struct io_wq_work **workptr)
-{
-	struct io_kiocb *req = container_of(*workptr, struct io_kiocb, work);
-	struct io_kiocb *nxt = NULL;
-	int ret;
-
-	if (io_req_cancelled(req))
-		return;
-
-	ret = sync_file_range(req->file, req->sync.off, req->sync.len,
-				req->sync.flags);
-	if (ret < 0)
-		req_set_fail_links(req);
-	io_cqring_add_event(req, ret);
-	io_put_req_find_next(req, &nxt);
-	if (nxt)
-		*workptr = &nxt->work;
-}
-
-static int io_sync_file_range(struct io_kiocb *req, struct io_kiocb **nxt,
-			      bool force_nonblock)
-{
-	struct io_wq_work *work, *old_work;
-
-	/* sync_file_range always requires a blocking context */
-	if (force_nonblock) {
-		io_put_req(req);
-		req->work.func = io_sync_file_range_finish;
-=======
 	req->sync.len = READ_ONCE(sqe->addr);
 	req->sync.mode = READ_ONCE(sqe->len);
 	req->flags |= REQ_F_PREPPED;
@@ -2512,67 +2287,17 @@ static int io_fallocate(struct io_kiocb *req, struct io_kiocb **nxt,
 	if (force_nonblock) {
 		io_put_req(req);
 		req->work.func = io_fallocate_finish;
->>>>>>> linux-next/akpm-base
 		return -EAGAIN;
 	}
 
 	work = old_work = &req->work;
-<<<<<<< HEAD
-	io_sync_file_range_finish(&work);
-	if (work && work != old_work)
-		*nxt = container_of(work, struct io_kiocb, work);
-	return 0;
-}
-
-#if defined(CONFIG_NET)
-static void io_sendrecv_async(struct io_wq_work **workptr)
-{
-	struct io_kiocb *req = container_of(*workptr, struct io_kiocb, work);
-	struct iovec *iov = NULL;
-
-	if (req->io->rw.iov != req->io->rw.fast_iov)
-		iov = req->io->msg.iov;
-	io_wq_submit_work(workptr);
-	kfree(iov);
-=======
 	io_fallocate_finish(&work);
 	if (work && work != old_work)
 		*nxt = container_of(work, struct io_kiocb, work);
 
 	return 0;
->>>>>>> linux-next/akpm-base
-}
-#endif
-
-<<<<<<< HEAD
-static int io_sendmsg_prep(struct io_kiocb *req, const struct io_uring_sqe *sqe)
-{
-#if defined(CONFIG_NET)
-	struct io_sr_msg *sr = &req->sr_msg;
-	struct io_async_ctx *io = req->io;
-
-	sr->msg_flags = READ_ONCE(sqe->msg_flags);
-	sr->msg = u64_to_user_ptr(READ_ONCE(sqe->addr));
-
-	if (!io)
-		return 0;
-
-	io->msg.iov = io->msg.fast_iov;
-	return sendmsg_copy_msghdr(&io->msg.msg, sr->msg, sr->msg_flags,
-					&io->msg.iov);
-#else
-	return -EOPNOTSUPP;
-#endif
 }
 
-static int io_sendmsg(struct io_kiocb *req, struct io_kiocb **nxt,
-		      bool force_nonblock)
-{
-#if defined(CONFIG_NET)
-	struct io_async_msghdr *kmsg = NULL;
-	struct socket *sock;
-	int ret;
-=======
 static int io_openat_prep(struct io_kiocb *req)
 {
 	const struct io_uring_sqe *sqe = req->sqe;
@@ -2603,54 +2328,11 @@ static void io_openat_statx_async(struct io_wq_work **workptr)
 {
 	struct io_kiocb *req = container_of(*workptr, struct io_kiocb, work);
 	struct filename *filename = req->open.filename;
->>>>>>> linux-next/akpm-base
 
 	io_wq_submit_work(workptr);
 	putname(filename);
 }
 
-<<<<<<< HEAD
-	sock = sock_from_file(req->file, &ret);
-	if (sock) {
-		struct io_async_ctx io;
-		struct sockaddr_storage addr;
-		unsigned flags;
-
-		if (req->io) {
-			kmsg = &req->io->msg;
-			kmsg->msg.msg_name = &addr;
-			/* if iov is set, it's allocated already */
-			if (!kmsg->iov)
-				kmsg->iov = kmsg->fast_iov;
-			kmsg->msg.msg_iter.iov = kmsg->iov;
-		} else {
-			struct io_sr_msg *sr = &req->sr_msg;
-
-			kmsg = &io.msg;
-			kmsg->msg.msg_name = &addr;
-
-			io.msg.iov = io.msg.fast_iov;
-			ret = sendmsg_copy_msghdr(&io.msg.msg, sr->msg,
-					sr->msg_flags, &io.msg.iov);
-			if (ret)
-				return ret;
-		}
-
-		flags = req->sr_msg.msg_flags;
-		if (flags & MSG_DONTWAIT)
-			req->flags |= REQ_F_NOWAIT;
-		else if (force_nonblock)
-			flags |= MSG_DONTWAIT;
-
-		ret = __sys_sendmsg_sock(sock, &kmsg->msg, flags);
-		if (force_nonblock && ret == -EAGAIN) {
-			if (req->io)
-				return -EAGAIN;
-			if (io_alloc_async_ctx(req))
-				return -ENOMEM;
-			memcpy(&req->io->msg, &io.msg, sizeof(io.msg));
-			req->work.func = io_sendrecv_async;
-=======
 static int io_openat(struct io_kiocb *req, struct io_kiocb **nxt,
 		     bool force_nonblock)
 {
@@ -2680,23 +2362,15 @@ static int io_openat(struct io_kiocb *req, struct io_kiocb **nxt,
 		if (ret == -EAGAIN) {
 			req->work.flags |= IO_WQ_WORK_NEEDS_FILES;
 			req->work.func = io_openat_statx_async;
->>>>>>> linux-next/akpm-base
 			return -EAGAIN;
 		}
 	} else {
 		fsnotify_open(file);
 		fd_install(ret, file);
 	}
-<<<<<<< HEAD
-
-	if (!io_wq_current_is_worker() && kmsg && kmsg->iov != kmsg->fast_iov)
-		kfree(kmsg->iov);
-	io_cqring_add_event(req, ret);
-=======
 err:
 	if (!io_wq_current_is_worker())
 		putname(req->open.filename);
->>>>>>> linux-next/akpm-base
 	if (ret < 0)
 		req_set_fail_links(req);
 	io_cqring_add_event(req, ret);
@@ -2704,35 +2378,6 @@ err:
 	return 0;
 }
 
-<<<<<<< HEAD
-static int io_recvmsg_prep(struct io_kiocb *req,
-			   const struct io_uring_sqe *sqe)
-{
-#if defined(CONFIG_NET)
-	struct io_sr_msg *sr = &req->sr_msg;
-	struct io_async_ctx *io = req->io;
-
-	sr->msg_flags = READ_ONCE(sqe->msg_flags);
-	sr->msg = u64_to_user_ptr(READ_ONCE(sqe->addr));
-
-	if (!io)
-		return 0;
-
-	io->msg.iov = io->msg.fast_iov;
-	return recvmsg_copy_msghdr(&io->msg.msg, sr->msg, sr->msg_flags,
-					&io->msg.uaddr, &io->msg.iov);
-#else
-	return -EOPNOTSUPP;
-#endif
-}
-
-static int io_recvmsg(struct io_kiocb *req, struct io_kiocb **nxt,
-		      bool force_nonblock)
-{
-#if defined(CONFIG_NET)
-	struct io_async_msghdr *kmsg = NULL;
-	struct socket *sock;
-=======
 static int io_statx_prep(struct io_kiocb *req)
 {
 	const struct io_uring_sqe *sqe = req->sqe;
@@ -2771,7 +2416,6 @@ static int io_statx(struct io_kiocb *req, struct io_kiocb **nxt,
 	unsigned lookup_flags;
 	struct path path;
 	struct kstat stat;
->>>>>>> linux-next/akpm-base
 	int ret;
 
 	ret = io_statx_prep(req);
@@ -2783,14 +2427,6 @@ static int io_statx(struct io_kiocb *req, struct io_kiocb **nxt,
 	if (force_nonblock)
 		lookup_flags |= LOOKUP_NONBLOCK;
 
-<<<<<<< HEAD
-	sock = sock_from_file(req->file, &ret);
-	if (sock) {
-		struct io_async_ctx io;
-		struct sockaddr_storage addr;
-		unsigned flags;
-
-=======
 retry:
 	/* filename_lookup() drops it, keep a reference */
 	ctx->filename->refcnt++;
@@ -3034,7 +2670,6 @@ static int io_sendmsg(struct io_kiocb *req, struct io_kiocb **nxt,
 		else if (force_nonblock)
 			flags |= MSG_DONTWAIT;
 
->>>>>>> linux-next/akpm-base
 		if (req->io) {
 			kmsg = &req->io->msg;
 			kmsg->msg.msg_name = &addr;
@@ -3043,37 +2678,14 @@ static int io_sendmsg(struct io_kiocb *req, struct io_kiocb **nxt,
 				kmsg->iov = kmsg->fast_iov;
 			kmsg->msg.msg_iter.iov = kmsg->iov;
 		} else {
-<<<<<<< HEAD
-			struct io_sr_msg *sr = &req->sr_msg;
-
-			kmsg = &io.msg;
-			kmsg->msg.msg_name = &addr;
-
-			io.msg.iov = io.msg.fast_iov;
-			ret = recvmsg_copy_msghdr(&io.msg.msg, sr->msg,
-					sr->msg_flags, &io.msg.uaddr,
-					&io.msg.iov);
-=======
 			kmsg = &io.msg;
 			kmsg->msg.msg_name = &addr;
 			ret = io_sendmsg_prep(req, &io);
->>>>>>> linux-next/akpm-base
 			if (ret)
-				return ret;
+				goto out;
 		}
 
-<<<<<<< HEAD
-		flags = req->sr_msg.msg_flags;
-		if (flags & MSG_DONTWAIT)
-			req->flags |= REQ_F_NOWAIT;
-		else if (force_nonblock)
-			flags |= MSG_DONTWAIT;
-
-		ret = __sys_recvmsg_sock(sock, &kmsg->msg, req->sr_msg.msg,
-						kmsg->uaddr, flags);
-=======
 		ret = __sys_sendmsg_sock(sock, &kmsg->msg, flags);
->>>>>>> linux-next/akpm-base
 		if (force_nonblock && ret == -EAGAIN) {
 			if (req->io)
 				return -EAGAIN;
@@ -3082,8 +2694,6 @@ static int io_sendmsg(struct io_kiocb *req, struct io_kiocb **nxt,
 			memcpy(&req->io->msg, &io.msg, sizeof(io.msg));
 			req->work.func = io_sendrecv_async;
 			return -EAGAIN;
-<<<<<<< HEAD
-=======
 		}
 		if (ret == -ERESTARTSYS)
 			ret = -EINTR;
@@ -3169,16 +2779,12 @@ static int io_recvmsg(struct io_kiocb *req, struct io_kiocb **nxt,
 			memcpy(&req->io->msg, &io.msg, sizeof(io.msg));
 			req->work.func = io_sendrecv_async;
 			return -EAGAIN;
->>>>>>> linux-next/akpm-base
 		}
 		if (ret == -ERESTARTSYS)
 			ret = -EINTR;
 	}
 
-<<<<<<< HEAD
-=======
 out:
->>>>>>> linux-next/akpm-base
 	if (!io_wq_current_is_worker() && kmsg && kmsg->iov != kmsg->fast_iov)
 		kfree(kmsg->iov);
 	io_cqring_add_event(req, ret);
@@ -3191,12 +2797,6 @@ out:
 #endif
 }
 
-<<<<<<< HEAD
-static int io_accept_prep(struct io_kiocb *req, const struct io_uring_sqe *sqe)
-{
-#if defined(CONFIG_NET)
-	struct io_accept *accept = &req->accept;
-=======
 static int io_accept_prep(struct io_kiocb *req)
 {
 #if defined(CONFIG_NET)
@@ -3205,7 +2805,6 @@ static int io_accept_prep(struct io_kiocb *req)
 
 	if (req->flags & REQ_F_PREPPED)
 		return 0;
->>>>>>> linux-next/akpm-base
 
 	if (unlikely(req->ctx->flags & (IORING_SETUP_IOPOLL|IORING_SETUP_SQPOLL)))
 		return -EINVAL;
@@ -3215,10 +2814,7 @@ static int io_accept_prep(struct io_kiocb *req)
 	accept->addr = u64_to_user_ptr(READ_ONCE(sqe->addr));
 	accept->addr_len = u64_to_user_ptr(READ_ONCE(sqe->addr2));
 	accept->flags = READ_ONCE(sqe->accept_flags);
-<<<<<<< HEAD
-=======
 	req->flags |= REQ_F_PREPPED;
->>>>>>> linux-next/akpm-base
 	return 0;
 #else
 	return -EOPNOTSUPP;
@@ -3245,8 +2841,6 @@ static int __io_accept(struct io_kiocb *req, struct io_kiocb **nxt,
 	io_cqring_add_event(req, ret);
 	io_put_req_find_next(req, nxt);
 	return 0;
-<<<<<<< HEAD
-=======
 }
 
 static void io_accept_finish(struct io_wq_work **workptr)
@@ -3283,55 +2877,23 @@ static int io_accept(struct io_kiocb *req, struct io_kiocb **nxt,
 #else
 	return -EOPNOTSUPP;
 #endif
->>>>>>> linux-next/akpm-base
 }
 
-static void io_accept_finish(struct io_wq_work **workptr)
-{
-	struct io_kiocb *req = container_of(*workptr, struct io_kiocb, work);
-	struct io_kiocb *nxt = NULL;
-
-	if (io_req_cancelled(req))
-		return;
-	__io_accept(req, &nxt, false);
-	if (nxt)
-		*workptr = &nxt->work;
-}
-#endif
-
-static int io_accept(struct io_kiocb *req, struct io_kiocb **nxt,
-		     bool force_nonblock)
+static int io_connect_prep(struct io_kiocb *req, struct io_async_ctx *io)
 {
 #if defined(CONFIG_NET)
-	int ret;
+	const struct io_uring_sqe *sqe = req->sqe;
+	struct sockaddr __user *addr;
+	int addr_len;
 
-<<<<<<< HEAD
-	ret = __io_accept(req, nxt, force_nonblock);
-	if (ret == -EAGAIN && force_nonblock) {
-		req->work.func = io_accept_finish;
-		req->work.flags |= IO_WQ_WORK_NEEDS_FILES;
-		io_put_req(req);
-		return -EAGAIN;
-	}
-=======
 	addr = u64_to_user_ptr(READ_ONCE(sqe->addr));
 	addr_len = READ_ONCE(sqe->addr2);
 	return move_addr_to_kernel(addr, addr_len, &io->connect.address);
 #else
->>>>>>> linux-next/akpm-base
 	return 0;
-#else
-	return -EOPNOTSUPP;
 #endif
 }
 
-<<<<<<< HEAD
-static int io_connect_prep(struct io_kiocb *req, const struct io_uring_sqe *sqe)
-{
-#if defined(CONFIG_NET)
-	struct io_connect *conn = &req->connect;
-	struct io_async_ctx *io = req->io;
-=======
 static int io_connect(struct io_kiocb *req, struct io_kiocb **nxt,
 		      bool force_nonblock)
 {
@@ -3340,49 +2902,26 @@ static int io_connect(struct io_kiocb *req, struct io_kiocb **nxt,
 	struct io_async_ctx __io, *io;
 	unsigned file_flags;
 	int addr_len, ret;
->>>>>>> linux-next/akpm-base
 
 	if (unlikely(req->ctx->flags & (IORING_SETUP_IOPOLL|IORING_SETUP_SQPOLL)))
 		return -EINVAL;
 	if (sqe->ioprio || sqe->len || sqe->buf_index || sqe->rw_flags)
 		return -EINVAL;
 
-	conn->addr = u64_to_user_ptr(READ_ONCE(sqe->addr));
-	conn->addr_len =  READ_ONCE(sqe->addr2);
-
-	if (!io)
-		return 0;
-
-	return move_addr_to_kernel(conn->addr, conn->addr_len,
-					&io->connect.address);
-#else
-	return -EOPNOTSUPP;
-#endif
-}
-
-static int io_connect(struct io_kiocb *req, struct io_kiocb **nxt,
-		      bool force_nonblock)
-{
-#if defined(CONFIG_NET)
-	struct io_async_ctx __io, *io;
-	unsigned file_flags;
-	int ret;
+	addr_len = READ_ONCE(sqe->addr2);
+	file_flags = force_nonblock ? O_NONBLOCK : 0;
 
 	if (req->io) {
 		io = req->io;
 	} else {
-		ret = move_addr_to_kernel(req->connect.addr,
-						req->connect.addr_len,
-						&__io.connect.address);
+		ret = io_connect_prep(req, &__io);
 		if (ret)
 			goto out;
 		io = &__io;
 	}
 
-	file_flags = force_nonblock ? O_NONBLOCK : 0;
-
-	ret = __sys_connect_file(req->file, &io->connect.address,
-					req->connect.addr_len, file_flags);
+	ret = __sys_connect_file(req->file, &io->connect.address, addr_len,
+					file_flags);
 	if ((ret == -EAGAIN || ret == -EINPROGRESS) && force_nonblock) {
 		if (req->io)
 			return -EAGAIN;
@@ -3453,18 +2992,12 @@ static int io_poll_cancel(struct io_ring_ctx *ctx, __u64 sqe_addr)
 	return -ENOENT;
 }
 
-<<<<<<< HEAD
-static int io_poll_remove_prep(struct io_kiocb *req,
-			       const struct io_uring_sqe *sqe)
-{
-=======
 static int io_poll_remove_prep(struct io_kiocb *req)
 {
 	const struct io_uring_sqe *sqe = req->sqe;
 
 	if (req->flags & REQ_F_PREPPED)
 		return 0;
->>>>>>> linux-next/akpm-base
 	if (unlikely(req->ctx->flags & IORING_SETUP_IOPOLL))
 		return -EINVAL;
 	if (sqe->ioprio || sqe->off || sqe->len || sqe->buf_index ||
@@ -3472,10 +3005,7 @@ static int io_poll_remove_prep(struct io_kiocb *req)
 		return -EINVAL;
 
 	req->poll.addr = READ_ONCE(sqe->addr);
-<<<<<<< HEAD
-=======
 	req->flags |= REQ_F_PREPPED;
->>>>>>> linux-next/akpm-base
 	return 0;
 }
 
@@ -3489,13 +3019,10 @@ static int io_poll_remove(struct io_kiocb *req)
 	u64 addr;
 	int ret;
 
-<<<<<<< HEAD
-=======
 	ret = io_poll_remove_prep(req);
 	if (ret)
 		return ret;
 
->>>>>>> linux-next/akpm-base
 	addr = req->poll.addr;
 	spin_lock_irq(&ctx->completion_lock);
 	ret = io_poll_cancel(ctx, addr);
@@ -3633,11 +3160,7 @@ static void io_poll_req_insert(struct io_kiocb *req)
 	hlist_add_head(&req->hash_node, list);
 }
 
-<<<<<<< HEAD
-static int io_poll_add_prep(struct io_kiocb *req, const struct io_uring_sqe *sqe)
-=======
 static int io_poll_add_prep(struct io_kiocb *req)
->>>>>>> linux-next/akpm-base
 {
 	const struct io_uring_sqe *sqe = req->sqe;
 	struct io_poll_iocb *poll = &req->poll;
@@ -3652,10 +3175,7 @@ static int io_poll_add_prep(struct io_kiocb *req)
 	if (!poll->file)
 		return -EBADF;
 
-<<<<<<< HEAD
-=======
 	req->flags |= REQ_F_PREPPED;
->>>>>>> linux-next/akpm-base
 	events = READ_ONCE(sqe->poll_events);
 	poll->events = demangle_poll(events) | EPOLLERR | EPOLLHUP;
 	return 0;
@@ -3668,14 +3188,11 @@ static int io_poll_add(struct io_kiocb *req, struct io_kiocb **nxt)
 	struct io_poll_table ipt;
 	bool cancel = false;
 	__poll_t mask;
-<<<<<<< HEAD
-=======
 	int ret;
 
 	ret = io_poll_add_prep(req);
 	if (ret)
 		return ret;
->>>>>>> linux-next/akpm-base
 
 	INIT_IO_WORK(&req->work, io_poll_complete_work);
 	INIT_HLIST_NODE(&req->hash_node);
@@ -3794,18 +3311,12 @@ static int io_timeout_cancel(struct io_ring_ctx *ctx, __u64 user_data)
 	return 0;
 }
 
-<<<<<<< HEAD
-static int io_timeout_remove_prep(struct io_kiocb *req,
-				  const struct io_uring_sqe *sqe)
-{
-=======
 static int io_timeout_remove_prep(struct io_kiocb *req)
 {
 	const struct io_uring_sqe *sqe = req->sqe;
 
 	if (req->flags & REQ_F_PREPPED)
 		return 0;
->>>>>>> linux-next/akpm-base
 	if (unlikely(req->ctx->flags & IORING_SETUP_IOPOLL))
 		return -EINVAL;
 	if (sqe->flags || sqe->ioprio || sqe->buf_index || sqe->len)
@@ -3816,10 +3327,7 @@ static int io_timeout_remove_prep(struct io_kiocb *req)
 	if (req->timeout.flags)
 		return -EINVAL;
 
-<<<<<<< HEAD
-=======
 	req->flags |= REQ_F_PREPPED;
->>>>>>> linux-next/akpm-base
 	return 0;
 }
 
@@ -3831,13 +3339,10 @@ static int io_timeout_remove(struct io_kiocb *req)
 	struct io_ring_ctx *ctx = req->ctx;
 	int ret;
 
-<<<<<<< HEAD
-=======
 	ret = io_timeout_remove_prep(req);
 	if (ret)
 		return ret;
 
->>>>>>> linux-next/akpm-base
 	spin_lock_irq(&ctx->completion_lock);
 	ret = io_timeout_cancel(ctx, req->timeout.addr);
 
@@ -3851,9 +3356,10 @@ static int io_timeout_remove(struct io_kiocb *req)
 	return 0;
 }
 
-static int io_timeout_prep(struct io_kiocb *req, const struct io_uring_sqe *sqe,
+static int io_timeout_prep(struct io_kiocb *req, struct io_async_ctx *io,
 			   bool is_timeout_link)
 {
+	const struct io_uring_sqe *sqe = req->sqe;
 	struct io_timeout_data *data;
 	unsigned flags;
 
@@ -3867,12 +3373,7 @@ static int io_timeout_prep(struct io_kiocb *req, const struct io_uring_sqe *sqe,
 	if (flags & ~IORING_TIMEOUT_ABS)
 		return -EINVAL;
 
-	req->timeout.count = READ_ONCE(sqe->off);
-
-	if (!req->io && io_alloc_async_ctx(req))
-		return -ENOMEM;
-
-	data = &req->io->timeout;
+	data = &io->timeout;
 	data->req = req;
 	req->flags |= REQ_F_TIMEOUT;
 
@@ -3898,8 +3399,6 @@ static int io_timeout(struct io_kiocb *req)
 	unsigned span = 0;
 	int ret;
 
-<<<<<<< HEAD
-=======
 	if (!req->io) {
 		if (io_alloc_async_ctx(req))
 			return -ENOMEM;
@@ -3907,7 +3406,6 @@ static int io_timeout(struct io_kiocb *req)
 		if (ret)
 			return ret;
 	}
->>>>>>> linux-next/akpm-base
 	data = &req->io->timeout;
 
 	/*
@@ -3915,7 +3413,7 @@ static int io_timeout(struct io_kiocb *req)
 	 * timeout event to be satisfied. If it isn't set, then this is
 	 * a pure timeout request, sequence isn't used.
 	 */
-	count = req->timeout.count;
+	count = READ_ONCE(sqe->off);
 	if (!count) {
 		req->flags |= REQ_F_TIMEOUT_NOSEQ;
 		spin_lock_irq(&ctx->completion_lock);
@@ -4033,43 +3531,18 @@ done:
 	io_put_req_find_next(req, nxt);
 }
 
-<<<<<<< HEAD
-static int io_async_cancel_prep(struct io_kiocb *req,
-				const struct io_uring_sqe *sqe)
-{
-=======
 static int io_async_cancel_prep(struct io_kiocb *req)
 {
 	const struct io_uring_sqe *sqe = req->sqe;
 
 	if (req->flags & REQ_F_PREPPED)
 		return 0;
->>>>>>> linux-next/akpm-base
 	if (unlikely(req->ctx->flags & IORING_SETUP_IOPOLL))
 		return -EINVAL;
 	if (sqe->flags || sqe->ioprio || sqe->off || sqe->len ||
 	    sqe->cancel_flags)
 		return -EINVAL;
 
-<<<<<<< HEAD
-	req->cancel.addr = READ_ONCE(sqe->addr);
-	return 0;
-}
-
-static int io_async_cancel(struct io_kiocb *req, struct io_kiocb **nxt)
-{
-	struct io_ring_ctx *ctx = req->ctx;
-
-	io_async_find_and_cancel(ctx, req, req->cancel.addr, nxt, 0);
-	return 0;
-}
-
-static int io_req_defer_prep(struct io_kiocb *req,
-			     const struct io_uring_sqe *sqe)
-{
-	ssize_t ret = 0;
-
-=======
 	req->flags |= REQ_F_PREPPED;
 	req->cancel.addr = READ_ONCE(sqe->addr);
 	return 0;
@@ -4124,31 +3597,11 @@ static int io_req_defer_prep(struct io_kiocb *req)
 	struct iov_iter iter;
 	ssize_t ret = 0;
 
->>>>>>> linux-next/akpm-base
 	switch (req->opcode) {
 	case IORING_OP_NOP:
 		break;
 	case IORING_OP_READV:
 	case IORING_OP_READ_FIXED:
-<<<<<<< HEAD
-		ret = io_read_prep(req, sqe, true);
-		break;
-	case IORING_OP_WRITEV:
-	case IORING_OP_WRITE_FIXED:
-		ret = io_write_prep(req, sqe, true);
-		break;
-	case IORING_OP_POLL_ADD:
-		ret = io_poll_add_prep(req, sqe);
-		break;
-	case IORING_OP_POLL_REMOVE:
-		ret = io_poll_remove_prep(req, sqe);
-		break;
-	case IORING_OP_FSYNC:
-		ret = io_prep_fsync(req, sqe);
-		break;
-	case IORING_OP_SYNC_FILE_RANGE:
-		ret = io_prep_sfr(req, sqe);
-=======
 		/* ensure prep does right import */
 		req->io = NULL;
 		ret = io_read_prep(req, &iovec, &iter, true);
@@ -4180,34 +3633,17 @@ static int io_req_defer_prep(struct io_kiocb *req)
 		break;
 	case IORING_OP_SYNC_FILE_RANGE:
 		ret = io_prep_sfr(req);
->>>>>>> linux-next/akpm-base
 		break;
 	case IORING_OP_SENDMSG:
-		ret = io_sendmsg_prep(req, sqe);
+		ret = io_sendmsg_prep(req, io);
 		break;
 	case IORING_OP_RECVMSG:
-		ret = io_recvmsg_prep(req, sqe);
+		ret = io_recvmsg_prep(req, io);
 		break;
 	case IORING_OP_CONNECT:
-		ret = io_connect_prep(req, sqe);
+		ret = io_connect_prep(req, io);
 		break;
 	case IORING_OP_TIMEOUT:
-<<<<<<< HEAD
-		ret = io_timeout_prep(req, sqe, false);
-		break;
-	case IORING_OP_TIMEOUT_REMOVE:
-		ret = io_timeout_remove_prep(req, sqe);
-		break;
-	case IORING_OP_ASYNC_CANCEL:
-		ret = io_async_cancel_prep(req, sqe);
-		break;
-	case IORING_OP_LINK_TIMEOUT:
-		ret = io_timeout_prep(req, sqe, true);
-		break;
-	case IORING_OP_ACCEPT:
-		ret = io_accept_prep(req, sqe);
-		break;
-=======
 		ret = io_timeout_prep(req, io, false);
 		break;
 	case IORING_OP_TIMEOUT_REMOVE:
@@ -4236,7 +3672,6 @@ static int io_req_defer_prep(struct io_kiocb *req)
 		break;
 	case IORING_OP_FILES_UPDATE:
 		return -EINVAL;
->>>>>>> linux-next/akpm-base
 	default:
 		printk_once(KERN_WARNING "io_uring: unhandled opcode %d\n",
 				req->opcode);
@@ -4247,7 +3682,7 @@ static int io_req_defer_prep(struct io_kiocb *req)
 	return ret;
 }
 
-static int io_req_defer(struct io_kiocb *req, const struct io_uring_sqe *sqe)
+static int io_req_defer(struct io_kiocb *req)
 {
 	struct io_ring_ctx *ctx = req->ctx;
 	int ret;
@@ -4256,17 +3691,10 @@ static int io_req_defer(struct io_kiocb *req, const struct io_uring_sqe *sqe)
 	if (!req_need_defer(req) && list_empty(&ctx->defer_list))
 		return 0;
 
-<<<<<<< HEAD
-	if (!req->io && io_alloc_async_ctx(req))
-		return -EAGAIN;
-
-	ret = io_req_defer_prep(req, sqe);
-=======
 	if (io_alloc_async_ctx(req))
 		return -EAGAIN;
 
 	ret = io_req_defer_prep(req);
->>>>>>> linux-next/akpm-base
 	if (ret < 0)
 		return ret;
 
@@ -4282,8 +3710,9 @@ static int io_req_defer(struct io_kiocb *req, const struct io_uring_sqe *sqe)
 	return -EIOCBQUEUED;
 }
 
-static int io_issue_sqe(struct io_kiocb *req, const struct io_uring_sqe *sqe,
-			struct io_kiocb **nxt, bool force_nonblock)
+__attribute__((nonnull))
+static int io_issue_sqe(struct io_kiocb *req, struct io_kiocb **nxt,
+			bool force_nonblock)
 {
 	struct io_ring_ctx *ctx = req->ctx;
 	int ret;
@@ -4293,112 +3722,22 @@ static int io_issue_sqe(struct io_kiocb *req, const struct io_uring_sqe *sqe,
 		ret = io_nop(req);
 		break;
 	case IORING_OP_READV:
-	case IORING_OP_READ_FIXED:
-		if (sqe) {
-			ret = io_read_prep(req, sqe, force_nonblock);
-			if (ret < 0)
-				break;
-		}
+		if (unlikely(req->sqe->buf_index))
+			return -EINVAL;
 		ret = io_read(req, nxt, force_nonblock);
 		break;
 	case IORING_OP_WRITEV:
+		if (unlikely(req->sqe->buf_index))
+			return -EINVAL;
+		ret = io_write(req, nxt, force_nonblock);
+		break;
+	case IORING_OP_READ_FIXED:
+		ret = io_read(req, nxt, force_nonblock);
+		break;
 	case IORING_OP_WRITE_FIXED:
-		if (sqe) {
-			ret = io_write_prep(req, sqe, force_nonblock);
-			if (ret < 0)
-				break;
-		}
 		ret = io_write(req, nxt, force_nonblock);
 		break;
 	case IORING_OP_FSYNC:
-<<<<<<< HEAD
-		if (sqe) {
-			ret = io_prep_fsync(req, sqe);
-			if (ret < 0)
-				break;
-		}
-		ret = io_fsync(req, nxt, force_nonblock);
-		break;
-	case IORING_OP_POLL_ADD:
-		if (sqe) {
-			ret = io_poll_add_prep(req, sqe);
-			if (ret)
-				break;
-		}
-		ret = io_poll_add(req, nxt);
-		break;
-	case IORING_OP_POLL_REMOVE:
-		if (sqe) {
-			ret = io_poll_remove_prep(req, sqe);
-			if (ret < 0)
-				break;
-		}
-		ret = io_poll_remove(req);
-		break;
-	case IORING_OP_SYNC_FILE_RANGE:
-		if (sqe) {
-			ret = io_prep_sfr(req, sqe);
-			if (ret < 0)
-				break;
-		}
-		ret = io_sync_file_range(req, nxt, force_nonblock);
-		break;
-	case IORING_OP_SENDMSG:
-		if (sqe) {
-			ret = io_sendmsg_prep(req, sqe);
-			if (ret < 0)
-				break;
-		}
-		ret = io_sendmsg(req, nxt, force_nonblock);
-		break;
-	case IORING_OP_RECVMSG:
-		if (sqe) {
-			ret = io_recvmsg_prep(req, sqe);
-			if (ret)
-				break;
-		}
-		ret = io_recvmsg(req, nxt, force_nonblock);
-		break;
-	case IORING_OP_TIMEOUT:
-		if (sqe) {
-			ret = io_timeout_prep(req, sqe, false);
-			if (ret)
-				break;
-		}
-		ret = io_timeout(req);
-		break;
-	case IORING_OP_TIMEOUT_REMOVE:
-		if (sqe) {
-			ret = io_timeout_remove_prep(req, sqe);
-			if (ret)
-				break;
-		}
-		ret = io_timeout_remove(req);
-		break;
-	case IORING_OP_ACCEPT:
-		if (sqe) {
-			ret = io_accept_prep(req, sqe);
-			if (ret)
-				break;
-		}
-		ret = io_accept(req, nxt, force_nonblock);
-		break;
-	case IORING_OP_CONNECT:
-		if (sqe) {
-			ret = io_connect_prep(req, sqe);
-			if (ret)
-				break;
-		}
-		ret = io_connect(req, nxt, force_nonblock);
-		break;
-	case IORING_OP_ASYNC_CANCEL:
-		if (sqe) {
-			ret = io_async_cancel_prep(req, sqe);
-			if (ret)
-				break;
-		}
-		ret = io_async_cancel(req, nxt);
-=======
 		ret = io_fsync(req, nxt, force_nonblock);
 		break;
 	case IORING_OP_POLL_ADD:
@@ -4445,7 +3784,6 @@ static int io_issue_sqe(struct io_kiocb *req, const struct io_uring_sqe *sqe,
 		break;
 	case IORING_OP_STATX:
 		ret = io_statx(req, nxt, force_nonblock);
->>>>>>> linux-next/akpm-base
 		break;
 	default:
 		ret = -EINVAL;
@@ -4481,13 +3819,9 @@ static void io_wq_submit_work(struct io_wq_work **workptr)
 	struct io_kiocb *nxt = NULL;
 	int ret = 0;
 
-<<<<<<< HEAD
-	if (work->flags & IO_WQ_WORK_CANCEL)
-=======
 	/* if NO_CANCEL is set, we must still run the work */
 	if ((work->flags & (IO_WQ_WORK_CANCEL|IO_WQ_WORK_NO_CANCEL)) ==
 				IO_WQ_WORK_CANCEL) {
->>>>>>> linux-next/akpm-base
 		ret = -ECANCELED;
 	}
 
@@ -4495,7 +3829,7 @@ static void io_wq_submit_work(struct io_wq_work **workptr)
 		req->has_user = (work->flags & IO_WQ_WORK_HAS_MM) != 0;
 		req->in_async = true;
 		do {
-			ret = io_issue_sqe(req, NULL, &nxt, false);
+			ret = io_issue_sqe(req, &nxt, false);
 			/*
 			 * We can get EAGAIN for polled IO even though we're
 			 * forcing a sync submission from here, since we can't
@@ -4530,28 +3864,6 @@ static void io_wq_submit_work(struct io_wq_work **workptr)
 	}
 }
 
-<<<<<<< HEAD
-static bool io_req_op_valid(int op)
-{
-	return op >= IORING_OP_NOP && op < IORING_OP_LAST;
-}
-
-static int io_req_needs_file(struct io_kiocb *req)
-{
-	switch (req->opcode) {
-	case IORING_OP_NOP:
-	case IORING_OP_POLL_REMOVE:
-	case IORING_OP_TIMEOUT:
-	case IORING_OP_TIMEOUT_REMOVE:
-	case IORING_OP_ASYNC_CANCEL:
-	case IORING_OP_LINK_TIMEOUT:
-		return 0;
-	default:
-		if (io_req_op_valid(req->opcode))
-			return 1;
-		return -EINVAL;
-	}
-=======
 static int io_req_needs_file(struct io_kiocb *req, int fd)
 {
 	if (!io_op_defs[req->opcode].needs_file)
@@ -4559,7 +3871,6 @@ static int io_req_needs_file(struct io_kiocb *req, int fd)
 	if (fd == -1 && io_op_defs[req->opcode].fd_non_neg)
 		return 0;
 	return 1;
->>>>>>> linux-next/akpm-base
 }
 
 static inline struct file *io_file_from_index(struct io_ring_ctx *ctx,
@@ -4571,27 +3882,20 @@ static inline struct file *io_file_from_index(struct io_ring_ctx *ctx,
 	return table->files[index & IORING_FILE_TABLE_MASK];;
 }
 
-static int io_req_set_file(struct io_submit_state *state, struct io_kiocb *req,
-			   const struct io_uring_sqe *sqe)
+static int io_req_set_file(struct io_submit_state *state, struct io_kiocb *req)
 {
 	struct io_ring_ctx *ctx = req->ctx;
 	unsigned flags;
 	int fd;
 
-	flags = READ_ONCE(sqe->flags);
-	fd = READ_ONCE(sqe->fd);
+	flags = READ_ONCE(req->sqe->flags);
+	fd = READ_ONCE(req->sqe->fd);
 
 	if (flags & IOSQE_IO_DRAIN)
 		req->flags |= REQ_F_IO_DRAIN;
 
-<<<<<<< HEAD
-	ret = io_req_needs_file(req);
-	if (ret <= 0)
-		return ret;
-=======
 	if (!io_req_needs_file(req, fd))
 		return 0;
->>>>>>> linux-next/akpm-base
 
 	if (flags & IOSQE_FIXED_FILE) {
 		if (unlikely(!ctx->file_data ||
@@ -4720,7 +4024,7 @@ static struct io_kiocb *io_prep_linked_timeout(struct io_kiocb *req)
 	return nxt;
 }
 
-static void __io_queue_sqe(struct io_kiocb *req, const struct io_uring_sqe *sqe)
+static void __io_queue_sqe(struct io_kiocb *req)
 {
 	struct io_kiocb *linked_timeout;
 	struct io_kiocb *nxt = NULL;
@@ -4729,7 +4033,7 @@ static void __io_queue_sqe(struct io_kiocb *req, const struct io_uring_sqe *sqe)
 again:
 	linked_timeout = io_prep_linked_timeout(req);
 
-	ret = io_issue_sqe(req, sqe, &nxt, true);
+	ret = io_issue_sqe(req, &nxt, true);
 
 	/*
 	 * We async punt it if the file wasn't marked NOWAIT, or if the file
@@ -4776,7 +4080,7 @@ done_req:
 	}
 }
 
-static void io_queue_sqe(struct io_kiocb *req, const struct io_uring_sqe *sqe)
+static void io_queue_sqe(struct io_kiocb *req)
 {
 	int ret;
 
@@ -4786,7 +4090,7 @@ static void io_queue_sqe(struct io_kiocb *req, const struct io_uring_sqe *sqe)
 	}
 	req->ctx->drain_next = (req->flags & REQ_F_DRAIN_LINK);
 
-	ret = io_req_defer(req, sqe);
+	ret = io_req_defer(req);
 	if (ret) {
 		if (ret != -EIOCBQUEUED) {
 err_req:
@@ -4794,10 +4098,6 @@ err_req:
 			req_set_fail_links(req);
 			io_double_put_req(req);
 		}
-<<<<<<< HEAD
-	} else
-		__io_queue_sqe(req, sqe);
-=======
 	} else if ((req->sqe->flags & IOSQE_ASYNC) &&
 		   !io_wq_current_is_worker()) {
 		/*
@@ -4818,7 +4118,6 @@ err_req:
 	} else {
 		__io_queue_sqe(req);
 	}
->>>>>>> linux-next/akpm-base
 }
 
 static inline void io_queue_link_head(struct io_kiocb *req)
@@ -4827,33 +4126,28 @@ static inline void io_queue_link_head(struct io_kiocb *req)
 		io_cqring_add_event(req, -ECANCELED);
 		io_double_put_req(req);
 	} else
-		io_queue_sqe(req, NULL);
+		io_queue_sqe(req);
 }
 
 #define SQE_VALID_FLAGS	(IOSQE_FIXED_FILE|IOSQE_IO_DRAIN|IOSQE_IO_LINK|	\
 				IOSQE_IO_HARDLINK | IOSQE_ASYNC)
 
-static bool io_submit_sqe(struct io_kiocb *req, const struct io_uring_sqe *sqe,
-			  struct io_submit_state *state, struct io_kiocb **link)
+static bool io_submit_sqe(struct io_kiocb *req, struct io_submit_state *state,
+			  struct io_kiocb **link)
 {
 	struct io_ring_ctx *ctx = req->ctx;
 	unsigned int sqe_flags;
 	int ret;
 
-<<<<<<< HEAD
-	/* enforce forwards compatibility on users */
-	if (unlikely(sqe->flags & ~SQE_VALID_FLAGS)) {
-=======
 	sqe_flags = READ_ONCE(req->sqe->flags);
 
 	/* enforce forwards compatibility on users */
 	if (unlikely(sqe_flags & ~SQE_VALID_FLAGS)) {
->>>>>>> linux-next/akpm-base
 		ret = -EINVAL;
 		goto err_req;
 	}
 
-	ret = io_req_set_file(state, req, sqe);
+	ret = io_req_set_file(state, req);
 	if (unlikely(ret)) {
 err_req:
 		io_cqring_add_event(req, ret);
@@ -4869,21 +4163,12 @@ err_req:
 	 * conditions are true (normal request), then just queue it.
 	 */
 	if (*link) {
-<<<<<<< HEAD
-		struct io_kiocb *prev = *link;
-
-		if (sqe->flags & IOSQE_IO_DRAIN)
-			(*link)->flags |= REQ_F_DRAIN_LINK | REQ_F_IO_DRAIN;
-
-		if (sqe->flags & IOSQE_IO_HARDLINK)
-=======
 		struct io_kiocb *head = *link;
 
 		if (sqe_flags & IOSQE_IO_DRAIN)
 			head->flags |= REQ_F_DRAIN_LINK | REQ_F_IO_DRAIN;
 
 		if (sqe_flags & IOSQE_IO_HARDLINK)
->>>>>>> linux-next/akpm-base
 			req->flags |= REQ_F_HARDLINK;
 
 		if (io_alloc_async_ctx(req)) {
@@ -4891,23 +4176,12 @@ err_req:
 			goto err_req;
 		}
 
-<<<<<<< HEAD
-		ret = io_req_defer_prep(req, sqe);
-=======
 		ret = io_req_defer_prep(req);
->>>>>>> linux-next/akpm-base
 		if (ret) {
 			/* fail even hard links since we don't submit */
 			head->flags |= REQ_F_FAIL_LINK;
 			goto err_req;
 		}
-<<<<<<< HEAD
-		trace_io_uring_link(ctx, req, prev);
-		list_add_tail(&req->link_list, &prev->link_list);
-	} else if (sqe->flags & (IOSQE_IO_LINK|IOSQE_IO_HARDLINK)) {
-		req->flags |= REQ_F_LINK;
-		if (sqe->flags & IOSQE_IO_HARDLINK)
-=======
 		trace_io_uring_link(ctx, req, head);
 		list_add_tail(&req->link_list, &head->link_list);
 
@@ -4919,16 +4193,12 @@ err_req:
 	} else if (sqe_flags & (IOSQE_IO_LINK|IOSQE_IO_HARDLINK)) {
 		req->flags |= REQ_F_LINK;
 		if (sqe_flags & IOSQE_IO_HARDLINK)
->>>>>>> linux-next/akpm-base
 			req->flags |= REQ_F_HARDLINK;
 
 		INIT_LIST_HEAD(&req->link_list);
-		ret = io_req_defer_prep(req, sqe);
-		if (ret)
-			req->flags |= REQ_F_FAIL_LINK;
 		*link = req;
 	} else {
-		io_queue_sqe(req, sqe);
+		io_queue_sqe(req);
 	}
 
 	return true;
@@ -4973,19 +4243,14 @@ static void io_commit_sqring(struct io_ring_ctx *ctx)
 }
 
 /*
-<<<<<<< HEAD
- * Fetch an sqe, if one is available. Note that sqe_ptr will point to memory
-=======
  * Fetch an sqe, if one is available. Note that req->sqe will point to memory
->>>>>>> linux-next/akpm-base
  * that is mapped by userspace. This means that care needs to be taken to
  * ensure that reads are stable, as we cannot rely on userspace always
  * being a good citizen. If members of the sqe are validated and then later
  * used, it's important that those reads are done through READ_ONCE() to
  * prevent a re-load down the line.
  */
-static bool io_get_sqring(struct io_ring_ctx *ctx, struct io_kiocb *req,
-			  const struct io_uring_sqe **sqe_ptr)
+static bool io_get_sqring(struct io_ring_ctx *ctx, struct io_kiocb *req)
 {
 	struct io_rings *rings = ctx->rings;
 	u32 *sq_array = ctx->sq_array;
@@ -5012,15 +4277,9 @@ static bool io_get_sqring(struct io_ring_ctx *ctx, struct io_kiocb *req,
 		 * link list.
 		 */
 		req->sequence = ctx->cached_sq_head;
-<<<<<<< HEAD
-		*sqe_ptr = &ctx->sq_sqes[head];
-		req->opcode = READ_ONCE((*sqe_ptr)->opcode);
-		req->user_data = READ_ONCE((*sqe_ptr)->user_data);
-=======
 		req->sqe = &ctx->sq_sqes[head];
 		req->opcode = READ_ONCE(req->sqe->opcode);
 		req->user_data = READ_ONCE(req->sqe->user_data);
->>>>>>> linux-next/akpm-base
 		ctx->cached_sq_head++;
 		return true;
 	}
@@ -5054,20 +4313,14 @@ static int io_submit_sqes(struct io_ring_ctx *ctx, unsigned int nr,
 	}
 
 	for (i = 0; i < nr; i++) {
-<<<<<<< HEAD
-		const struct io_uring_sqe *sqe;
-		struct io_kiocb *req;
-		unsigned int sqe_flags;
-=======
 		struct io_kiocb *req = io_get_req(ctx, statep);
->>>>>>> linux-next/akpm-base
 
 		if (unlikely(!req)) {
 			if (!submitted)
 				submitted = -EAGAIN;
 			break;
 		}
-		if (!io_get_sqring(ctx, req, &sqe)) {
+		if (!io_get_sqring(ctx, req)) {
 			__io_free_req(req);
 			break;
 		}
@@ -5077,11 +4330,7 @@ static int io_submit_sqes(struct io_ring_ctx *ctx, unsigned int nr,
 			break;
 		}
 
-<<<<<<< HEAD
-		if (io_req_needs_user(req) && !*mm) {
-=======
 		if (io_op_defs[req->opcode].needs_mm && !*mm) {
->>>>>>> linux-next/akpm-base
 			mm_fault = mm_fault || !mmget_not_zero(ctx->sqo_mm);
 			if (!mm_fault) {
 				use_mm(ctx->sqo_mm);
@@ -5090,32 +4339,14 @@ static int io_submit_sqes(struct io_ring_ctx *ctx, unsigned int nr,
 		}
 
 		submitted++;
-<<<<<<< HEAD
-		sqe_flags = sqe->flags;
-
-=======
->>>>>>> linux-next/akpm-base
 		req->ring_file = ring_file;
 		req->ring_fd = ring_fd;
 		req->has_user = *mm != NULL;
 		req->in_async = async;
 		req->needs_fixed_file = async;
 		trace_io_uring_submit_sqe(ctx, req->user_data, true, async);
-<<<<<<< HEAD
-		if (!io_submit_sqe(req, sqe, statep, &link))
-			break;
-		/*
-		 * If previous wasn't linked and we have a linked command,
-		 * that's the end of the chain. Submit the previous link.
-		 */
-		if (!(sqe_flags & (IOSQE_IO_LINK|IOSQE_IO_HARDLINK)) && link) {
-			io_queue_link_head(link);
-			link = NULL;
-		}
-=======
 		if (!io_submit_sqe(req, statep, &link))
 			break;
->>>>>>> linux-next/akpm-base
 	}
 
 	if (link)

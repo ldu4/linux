@@ -733,13 +733,7 @@ static int emit_bpf_tail_call(int insn, struct rv_jit_context *ctx)
 	 */
 	emit(rv_addi(RV_REG_T1, tcc, -1), ctx);
 	off = (tc_ninsn - (ctx->ninsns - start_insn)) << 2;
-<<<<<<< HEAD
-	if (is_13b_check(off, insn))
-		return -1;
-	emit(rv_blt(tcc, RV_REG_ZERO, off >> 1), ctx);
-=======
 	emit_branch(BPF_JSLT, RV_REG_T1, RV_REG_ZERO, off, ctx);
->>>>>>> linux-next/akpm-base
 
 	/* prog = array->ptrs[index];
 	 * if (!prog)

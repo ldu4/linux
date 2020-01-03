@@ -88,14 +88,6 @@ static int __gt_park(struct intel_wakeref *wf)
 	/* Everything switched off, flush any residual interrupt just in case */
 	intel_synchronize_irq(i915);
 
-<<<<<<< HEAD
-	if (NEEDS_RC6_CTX_CORRUPTION_WA(i915)) {
-		intel_rc6_ctx_wa_check(&i915->gt.rc6);
-		intel_uncore_forcewake_put(&i915->uncore, FORCEWAKE_ALL);
-	}
-
-=======
->>>>>>> linux-next/akpm-base
 	/* Defer dropping the display power well for 100ms, it's slow! */
 	GEM_BUG_ON(!wakeref);
 	intel_display_power_put_async(i915, POWER_DOMAIN_GT_IRQ, wakeref);
