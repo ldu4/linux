@@ -2684,13 +2684,7 @@ static const struct block_device_operations pktcdvd_ops = {
 	.open =			pkt_open,
 	.release =		pkt_close,
 	.ioctl =		pkt_ioctl,
-<<<<<<< HEAD
-#ifdef CONFIG_COMPAT
-	.compat_ioctl =		pkt_compat_ioctl,
-#endif
-=======
 	.compat_ioctl =		blkdev_compat_ptr_ioctl,
->>>>>>> linux-next/akpm-base
 	.check_events =		pkt_check_events,
 };
 

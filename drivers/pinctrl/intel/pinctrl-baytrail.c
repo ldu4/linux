@@ -105,19 +105,6 @@ struct intel_pad_context {
 		.pad_map	= (map),\
 	}
 
-<<<<<<< HEAD
-struct byt_gpio {
-	struct gpio_chip chip;
-	struct platform_device *pdev;
-	struct pinctrl_dev *pctl_dev;
-	struct pinctrl_desc pctl_desc;
-	const struct intel_pinctrl_soc_data *soc_data;
-	struct intel_community *communities_copy;
-	struct byt_gpio_pin_context *saved_context;
-};
-
-=======
->>>>>>> linux-next/akpm-base
 /* SCORE pins, aka GPIOC_<pin_no> or GPIO_S0_SC[<pin_no>] */
 static const struct pinctrl_pin_desc byt_score_pins[] = {
 	PINCTRL_PIN(0, "SATA_GP0"),
@@ -553,11 +540,7 @@ static const struct intel_pinctrl_soc_data *byt_soc_data[] = {
 
 static DEFINE_RAW_SPINLOCK(byt_lock);
 
-<<<<<<< HEAD
-static struct intel_community *byt_get_community(struct byt_gpio *vg,
-=======
 static struct intel_community *byt_get_community(struct intel_pinctrl *vg,
->>>>>>> linux-next/akpm-base
 						 unsigned int pin)
 {
 	struct intel_community *comm;
@@ -1208,11 +1191,7 @@ static void byt_gpio_dbg_show(struct seq_file *s, struct gpio_chip *chip)
 		unsigned int pin;
 
 		raw_spin_lock_irqsave(&byt_lock, flags);
-<<<<<<< HEAD
-		pin = vg->soc_data->pins[i].number;
-=======
 		pin = vg->soc->pins[i].number;
->>>>>>> linux-next/akpm-base
 		reg = byt_gpio_reg(vg, pin, BYT_CONF0_REG);
 		if (!reg) {
 			seq_printf(s,
@@ -1441,24 +1420,7 @@ static void byt_init_irq_valid_mask(struct gpio_chip *chip,
 				    unsigned long *valid_mask,
 				    unsigned int ngpios)
 {
-<<<<<<< HEAD
-	/*
-	 * FIXME: currently the valid_mask is filled in as part of
-	 * initializing the irq_chip below in byt_gpio_irq_init_hw().
-	 * when converting this driver to the new way of passing the
-	 * gpio_irq_chip along when adding the gpio_chip, move the
-	 * mask initialization into this callback instead. Right now
-	 * this callback is here to make sure the mask gets allocated.
-	 */
-}
-
-static int byt_gpio_irq_init_hw(struct gpio_chip *chip)
-{
-	struct byt_gpio *vg = gpiochip_get_data(chip);
-	struct device *dev = &vg->pdev->dev;
-=======
 	struct intel_pinctrl *vg = gpiochip_get_data(chip);
->>>>>>> linux-next/akpm-base
 	void __iomem *reg;
 	u32 value;
 	int i;
@@ -1481,13 +1443,8 @@ static int byt_gpio_irq_init_hw(struct gpio_chip *chip)
 
 		value = readl(reg);
 		if (value & BYT_DIRECT_IRQ_EN) {
-<<<<<<< HEAD
-			clear_bit(i, chip->irq.valid_mask);
-			dev_dbg(dev, "excluding GPIO %d from IRQ domain\n", i);
-=======
 			clear_bit(i, valid_mask);
 			dev_dbg(vg->dev, "excluding GPIO %d from IRQ domain\n", i);
->>>>>>> linux-next/akpm-base
 		} else if ((value & BYT_PIN_MUX) == byt_get_gpio_mux(vg, i)) {
 			byt_gpio_clear_triggering(vg, i);
 			dev_dbg(vg->dev, "disabling GPIO %d\n", i);
@@ -1527,19 +1484,11 @@ static int byt_gpio_irq_init_hw(struct gpio_chip *chip)
 
 static int byt_gpio_add_pin_ranges(struct gpio_chip *chip)
 {
-<<<<<<< HEAD
-	struct byt_gpio *vg = gpiochip_get_data(chip);
-	struct device *dev = &vg->pdev->dev;
-	int ret;
-
-	ret = gpiochip_add_pin_range(chip, dev_name(dev), 0, 0, vg->soc_data->npins);
-=======
 	struct intel_pinctrl *vg = gpiochip_get_data(chip);
 	struct device *dev = vg->dev;
 	int ret;
 
 	ret = gpiochip_add_pin_range(chip, dev_name(dev), 0, 0, vg->soc->npins);
->>>>>>> linux-next/akpm-base
 	if (ret)
 		dev_err(dev, "failed to add GPIO pin range\n");
 
@@ -1560,14 +1509,8 @@ static int byt_gpio_probe(struct intel_pinctrl *vg)
 	gc->base	= -1;
 	gc->can_sleep	= false;
 	gc->add_pin_ranges = byt_gpio_add_pin_ranges;
-<<<<<<< HEAD
-	gc->parent	= &vg->pdev->dev;
-	gc->ngpio	= vg->soc_data->npins;
-	gc->irq.init_valid_mask	= byt_init_irq_valid_mask;
-=======
 	gc->parent	= vg->dev;
 	gc->ngpio	= vg->soc->npins;
->>>>>>> linux-next/akpm-base
 
 #ifdef CONFIG_PM_SLEEP
 	vg->context.pads = devm_kcalloc(vg->dev, gc->ngpio, sizeof(*vg->context.pads),
@@ -1581,14 +1524,6 @@ static int byt_gpio_probe(struct intel_pinctrl *vg)
 	if (irq_rc && irq_rc->start) {
 		struct gpio_irq_chip *girq;
 
-<<<<<<< HEAD
-		girq = &gc->irq;
-		girq->chip = &byt_irqchip;
-		girq->init_hw = byt_gpio_irq_init_hw;
-		girq->parent_handler = byt_gpio_irq_handler;
-		girq->num_parents = 1;
-		girq->parents = devm_kcalloc(&vg->pdev->dev, girq->num_parents,
-=======
 		vg->irqchip.name = "BYT-GPIO",
 		vg->irqchip.irq_ack = byt_irq_ack,
 		vg->irqchip.irq_mask = byt_irq_mask,
@@ -1603,7 +1538,6 @@ static int byt_gpio_probe(struct intel_pinctrl *vg)
 		girq->parent_handler = byt_gpio_irq_handler;
 		girq->num_parents = 1;
 		girq->parents = devm_kcalloc(vg->dev, girq->num_parents,
->>>>>>> linux-next/akpm-base
 					     sizeof(*girq->parents), GFP_KERNEL);
 		if (!girq->parents)
 			return -ENOMEM;
@@ -1612,15 +1546,9 @@ static int byt_gpio_probe(struct intel_pinctrl *vg)
 		girq->handler = handle_bad_irq;
 	}
 
-<<<<<<< HEAD
-	ret = devm_gpiochip_add_data(&vg->pdev->dev, gc, vg);
-	if (ret) {
-		dev_err(&vg->pdev->dev, "failed adding byt-gpio chip\n");
-=======
 	ret = devm_gpiochip_add_data(vg->dev, gc, vg);
 	if (ret) {
 		dev_err(vg->dev, "failed adding byt-gpio chip\n");
->>>>>>> linux-next/akpm-base
 		return ret;
 	}
 
@@ -1720,21 +1648,13 @@ static int byt_pinctrl_probe(struct platform_device *pdev)
 #ifdef CONFIG_PM_SLEEP
 static int byt_gpio_suspend(struct device *dev)
 {
-<<<<<<< HEAD
-	struct byt_gpio *vg = dev_get_drvdata(dev);
-=======
 	struct intel_pinctrl *vg = dev_get_drvdata(dev);
->>>>>>> linux-next/akpm-base
 	unsigned long flags;
 	int i;
 
 	raw_spin_lock_irqsave(&byt_lock, flags);
 
-<<<<<<< HEAD
-	for (i = 0; i < vg->soc_data->npins; i++) {
-=======
 	for (i = 0; i < vg->soc->npins; i++) {
->>>>>>> linux-next/akpm-base
 		void __iomem *reg;
 		u32 value;
 		unsigned int pin = vg->soc->pins[i].number;
@@ -1760,21 +1680,13 @@ static int byt_gpio_suspend(struct device *dev)
 
 static int byt_gpio_resume(struct device *dev)
 {
-<<<<<<< HEAD
-	struct byt_gpio *vg = dev_get_drvdata(dev);
-=======
 	struct intel_pinctrl *vg = dev_get_drvdata(dev);
->>>>>>> linux-next/akpm-base
 	unsigned long flags;
 	int i;
 
 	raw_spin_lock_irqsave(&byt_lock, flags);
 
-<<<<<<< HEAD
-	for (i = 0; i < vg->soc_data->npins; i++) {
-=======
 	for (i = 0; i < vg->soc->npins; i++) {
->>>>>>> linux-next/akpm-base
 		void __iomem *reg;
 		u32 value;
 		unsigned int pin = vg->soc->pins[i].number;

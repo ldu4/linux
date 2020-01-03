@@ -1861,10 +1861,6 @@ static int ena_io_poll(struct napi_struct *napi, int budget)
 {
 	struct ena_napi *ena_napi = container_of(napi, struct ena_napi, napi);
 	struct ena_ring *tx_ring, *rx_ring;
-<<<<<<< HEAD
-
-=======
->>>>>>> linux-next/akpm-base
 	int tx_work_done;
 	int rx_work_done = 0;
 	int tx_budget;

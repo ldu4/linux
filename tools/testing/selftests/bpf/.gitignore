@@ -41,8 +41,4 @@ test_cpp
 *.skel.h
 /no_alu32
 /bpf_gcc
-<<<<<<< HEAD
-bpf_helper_defs.h
-=======
 /tools
->>>>>>> linux-next/akpm-base

@@ -670,11 +670,8 @@ i915_gem_gtt_pwrite_fast(struct drm_i915_gem_object *obj,
 		user_data += page_length;
 		offset += page_length;
 	}
-<<<<<<< HEAD
-=======
 
 	intel_gt_flush_ggtt_writes(ggtt->vm.gt);
->>>>>>> linux-next/akpm-base
 	i915_gem_object_flush_frontbuffer(obj, ORIGIN_CPU);
 
 	i915_gem_object_unlock_fence(obj, fence);
