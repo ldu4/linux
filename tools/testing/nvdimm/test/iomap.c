@@ -193,18 +193,6 @@ void __iomem *__wrap_ioremap(resource_size_t offset, unsigned long size)
 }
 EXPORT_SYMBOL(__wrap_ioremap);
 
-void __iomem *__wrap_ioremap(resource_size_t offset, unsigned long size)
-{
-	return __nfit_test_ioremap(offset, size, ioremap);
-}
-EXPORT_SYMBOL(__wrap_ioremap);
-
-void __iomem *__wrap_ioremap_wc(resource_size_t offset, unsigned long size)
-{
-	return __nfit_test_ioremap(offset, size, ioremap_wc);
-}
-EXPORT_SYMBOL(__wrap_ioremap_wc);
-
 void __wrap_iounmap(volatile void __iomem *addr)
 {
 	struct nfit_test_resource *nfit_res = get_nfit_res((long) addr);
