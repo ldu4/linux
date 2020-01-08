@@ -544,10 +544,12 @@ static __latent_entropy int dup_mmap(struct mm_struct *mm,
 		tmp = vm_area_dup(mpnt);
 		if (!tmp)
 			goto fail_nomem;
+		tmp->vm_mm = mm;
+		tmp->vm_prev = prev;
+		tmp->vm_next = NULL;
 		retval = vma_dup_policy(mpnt, tmp);
 		if (retval)
 			goto fail_nomem_policy;
-		tmp->vm_mm = mm;
 		retval = dup_userfaultfd(tmp, &uf);
 		if (retval)
 			goto fail_nomem_anon_vma_fork;
@@ -559,7 +561,6 @@ static __latent_entropy int dup_mmap(struct mm_struct *mm,
 		} else if (anon_vma_fork(tmp, mpnt, prev))
 			goto fail_nomem_anon_vma_fork;
 		tmp->vm_flags &= ~(VM_LOCKED | VM_LOCKONFAULT);
-		tmp->vm_next = tmp->vm_prev = NULL;
 		file = tmp->vm_file;
 		if (file) {
 			struct inode *inode = file_inode(file);
@@ -592,7 +593,6 @@ static __latent_entropy int dup_mmap(struct mm_struct *mm,
 		 */
 		*pprev = tmp;
 		pprev = &tmp->vm_next;
-		tmp->vm_prev = prev;
 		prev = tmp;
 
 		__vma_link_rb(mm, tmp, rb_link, rb_parent);
