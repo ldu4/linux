@@ -384,8 +384,10 @@ navi10_get_allowed_feature_mask(struct smu_context *smu,
 		*(uint64_t *)feature_mask |= FEATURE_MASK(FEATURE_ATHUB_PG_BIT);
 
 	if (smu->adev->pg_flags & AMD_PG_SUPPORT_VCN)
-		*(uint64_t *)feature_mask |= FEATURE_MASK(FEATURE_VCN_PG_BIT)
-				| FEATURE_MASK(FEATURE_JPEG_PG_BIT);
+		*(uint64_t *)feature_mask |= FEATURE_MASK(FEATURE_VCN_PG_BIT);
+
+	if (smu->adev->pg_flags & AMD_PG_SUPPORT_JPEG)
+		*(uint64_t *)feature_mask |= FEATURE_MASK(FEATURE_JPEG_PG_BIT);
 
 	/* disable DPM UCLK and DS SOCCLK on navi10 A0 secure board */
 	if (is_asic_secure(smu)) {
@@ -663,6 +665,31 @@ static int navi10_dpm_set_uvd_enable(struct smu_context *smu, bool enable)
 				return ret;
 		}
 		power_gate->vcn_gated = true;
+	}
+
+	return ret;
+}
+
+static int navi10_dpm_set_jpeg_enable(struct smu_context *smu, bool enable)
+{
+	struct smu_power_context *smu_power = &smu->smu_power;
+	struct smu_power_gate *power_gate = &smu_power->power_gate;
+	int ret = 0;
+
+	if (enable) {
+		if (smu_feature_is_enabled(smu, SMU_FEATURE_JPEG_PG_BIT)) {
+			ret = smu_send_smc_msg(smu, SMU_MSG_PowerUpJpeg);
+			if (ret)
+				return ret;
+		}
+		power_gate->jpeg_gated = false;
+	} else {
+		if (smu_feature_is_enabled(smu, SMU_FEATURE_JPEG_PG_BIT)) {
+			ret = smu_send_smc_msg(smu, SMU_MSG_PowerDownJpeg);
+			if (ret)
+				return ret;
+		}
+		power_gate->jpeg_gated = true;
 	}
 
 	return ret;
@@ -1350,7 +1377,7 @@ static int navi10_get_profiling_clk_mask(struct smu_context *smu,
 	return ret;
 }
 
-static int navi10_notify_smc_dispaly_config(struct smu_context *smu)
+static int navi10_notify_smc_display_config(struct smu_context *smu)
 {
 	struct smu_clocks min_clocks = {0};
 	struct pp_display_clock_request clock_req;
@@ -1560,7 +1587,7 @@ static int navi10_set_peak_clock_by_device(struct smu_context *smu)
 	struct amdgpu_device *adev = smu->adev;
 	int ret = 0;
 	uint32_t sclk_freq = 0, uclk_freq = 0;
-	uint32_t uclk_level = 0;
+	uint32_t sclk_level = 0, uclk_level = 0;
 
 	switch (adev->asic_type) {
 	case CHIP_NAVI10:
@@ -1601,8 +1628,17 @@ static int navi10_set_peak_clock_by_device(struct smu_context *smu)
 			break;
 		}
 		break;
+	case CHIP_NAVI12:
+		sclk_freq = NAVI12_UMD_PSTATE_PEAK_GFXCLK;
+		break;
 	default:
-		return -EINVAL;
+		ret = smu_get_dpm_level_count(smu, SMU_SCLK, &sclk_level);
+		if (ret)
+			return ret;
+		ret = smu_get_dpm_freq_by_index(smu, SMU_SCLK, sclk_level - 1, &sclk_freq);
+		if (ret)
+			return ret;
+		break;
 	}
 
 	ret = smu_get_dpm_level_count(smu, SMU_UCLK, &uclk_level);
@@ -1622,19 +1658,43 @@ static int navi10_set_peak_clock_by_device(struct smu_context *smu)
 	return ret;
 }
 
-static int navi10_set_performance_level(struct smu_context *smu, enum amd_dpm_forced_level level)
+static int navi10_set_performance_level(struct smu_context *smu,
+					enum amd_dpm_forced_level level)
 {
 	int ret = 0;
+	uint32_t sclk_mask, mclk_mask, soc_mask;
 
 	switch (level) {
+	case AMD_DPM_FORCED_LEVEL_HIGH:
+		ret = smu_force_dpm_limit_value(smu, true);
+		break;
+	case AMD_DPM_FORCED_LEVEL_LOW:
+		ret = smu_force_dpm_limit_value(smu, false);
+		break;
+	case AMD_DPM_FORCED_LEVEL_AUTO:
+	case AMD_DPM_FORCED_LEVEL_PROFILE_STANDARD:
+		ret = smu_unforce_dpm_levels(smu);
+		break;
+	case AMD_DPM_FORCED_LEVEL_PROFILE_MIN_SCLK:
+	case AMD_DPM_FORCED_LEVEL_PROFILE_MIN_MCLK:
+		ret = smu_get_profiling_clk_mask(smu, level,
+						 &sclk_mask,
+						 &mclk_mask,
+						 &soc_mask);
+		if (ret)
+			return ret;
+		smu_force_clk_levels(smu, SMU_SCLK, 1 << sclk_mask, false);
+		smu_force_clk_levels(smu, SMU_MCLK, 1 << mclk_mask, false);
+		smu_force_clk_levels(smu, SMU_SOCCLK, 1 << soc_mask, false);
+		break;
 	case AMD_DPM_FORCED_LEVEL_PROFILE_PEAK:
 		ret = navi10_set_peak_clock_by_device(smu);
 		break;
+	case AMD_DPM_FORCED_LEVEL_MANUAL:
+	case AMD_DPM_FORCED_LEVEL_PROFILE_EXIT:
 	default:
-		ret = -EINVAL;
 		break;
 	}
-
 	return ret;
 }
 
@@ -2015,6 +2075,7 @@ static const struct pptable_funcs navi10_ppt_funcs = {
 	.get_allowed_feature_mask = navi10_get_allowed_feature_mask,
 	.set_default_dpm_table = navi10_set_default_dpm_table,
 	.dpm_set_uvd_enable = navi10_dpm_set_uvd_enable,
+	.dpm_set_jpeg_enable = navi10_dpm_set_jpeg_enable,
 	.get_current_clk_freq_by_table = navi10_get_current_clk_freq_by_table,
 	.print_clk_levels = navi10_print_clk_levels,
 	.force_clk_levels = navi10_force_clk_levels,
@@ -2022,7 +2083,7 @@ static const struct pptable_funcs navi10_ppt_funcs = {
 	.get_clock_by_type_with_latency = navi10_get_clock_by_type_with_latency,
 	.pre_display_config_changed = navi10_pre_display_config_changed,
 	.display_config_changed = navi10_display_config_changed,
-	.notify_smc_dispaly_config = navi10_notify_smc_dispaly_config,
+	.notify_smc_display_config = navi10_notify_smc_display_config,
 	.force_dpm_limit_value = navi10_force_dpm_limit_value,
 	.unforce_dpm_levels = navi10_unforce_dpm_levels,
 	.is_dpm_running = navi10_is_dpm_running,
@@ -2083,7 +2144,8 @@ static const struct pptable_funcs navi10_ppt_funcs = {
 	.baco_is_support= smu_v11_0_baco_is_support,
 	.baco_get_state = smu_v11_0_baco_get_state,
 	.baco_set_state = smu_v11_0_baco_set_state,
-	.baco_reset = smu_v11_0_baco_reset,
+	.baco_enter = smu_v11_0_baco_enter,
+	.baco_exit = smu_v11_0_baco_exit,
 	.get_dpm_ultimate_freq = smu_v11_0_get_dpm_ultimate_freq,
 	.set_soft_freq_limited_range = smu_v11_0_set_soft_freq_limited_range,
 	.override_pcie_parameters = smu_v11_0_override_pcie_parameters,

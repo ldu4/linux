@@ -2235,7 +2235,7 @@ static int vega20_apply_clocks_adjust_rules(struct smu_context *smu)
 }
 
 static int
-vega20_notify_smc_dispaly_config(struct smu_context *smu)
+vega20_notify_smc_display_config(struct smu_context *smu)
 {
 	struct vega20_dpm_table *dpm_table = smu->smu_dpm.dpm_context;
 	struct vega20_single_dpm_table *memtable = &dpm_table->mem_table;
@@ -3194,6 +3194,7 @@ static const struct pptable_funcs vega20_ppt_funcs = {
 	.get_od_percentage = vega20_get_od_percentage,
 	.get_power_profile_mode = vega20_get_power_profile_mode,
 	.set_power_profile_mode = vega20_set_power_profile_mode,
+	.set_performance_level = smu_v11_0_set_performance_level,
 	.set_od_percentage = vega20_set_od_percentage,
 	.set_default_od_settings = vega20_set_default_od_settings,
 	.od_edit_dpm_table = vega20_odn_edit_dpm_table,
@@ -3203,7 +3204,7 @@ static const struct pptable_funcs vega20_ppt_funcs = {
 	.pre_display_config_changed = vega20_pre_display_config_changed,
 	.display_config_changed = vega20_display_config_changed,
 	.apply_clocks_adjust_rules = vega20_apply_clocks_adjust_rules,
-	.notify_smc_dispaly_config = vega20_notify_smc_dispaly_config,
+	.notify_smc_display_config = vega20_notify_smc_display_config,
 	.force_dpm_limit_value = vega20_force_dpm_limit_value,
 	.unforce_dpm_levels = vega20_unforce_dpm_levels,
 	.get_profiling_clk_mask = vega20_get_profiling_clk_mask,
@@ -3259,7 +3260,8 @@ static const struct pptable_funcs vega20_ppt_funcs = {
 	.baco_is_support= smu_v11_0_baco_is_support,
 	.baco_get_state = smu_v11_0_baco_get_state,
 	.baco_set_state = smu_v11_0_baco_set_state,
-	.baco_reset = smu_v11_0_baco_reset,
+	.baco_enter = smu_v11_0_baco_enter,
+	.baco_exit = smu_v11_0_baco_exit,
 	.get_dpm_ultimate_freq = smu_v11_0_get_dpm_ultimate_freq,
 	.set_soft_freq_limited_range = smu_v11_0_set_soft_freq_limited_range,
 	.override_pcie_parameters = smu_v11_0_override_pcie_parameters,

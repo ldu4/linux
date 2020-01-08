@@ -1338,7 +1338,7 @@ static int efx_init_io(struct efx_nic *efx)
 		rc = -EIO;
 		goto fail3;
 	}
-	efx->membase = ioremap_nocache(efx->membase_phys, mem_map_size);
+	efx->membase = ioremap(efx->membase_phys, mem_map_size);
 	if (!efx->membase) {
 		netif_err(efx, probe, efx->net_dev,
 			  "could not map memory BAR at %llx+%x\n",
@@ -2394,7 +2394,7 @@ static void efx_net_stats(struct net_device *net_dev,
 }
 
 /* Context: netif_tx_lock held, BHs disabled. */
-static void efx_watchdog(struct net_device *net_dev)
+static void efx_watchdog(struct net_device *net_dev, unsigned int txqueue)
 {
 	struct efx_nic *efx = netdev_priv(net_dev);
 
