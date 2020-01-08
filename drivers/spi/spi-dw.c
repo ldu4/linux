@@ -296,12 +296,9 @@ static int dw_spi_transfer_one(struct spi_controller *master,
 	dws->rx_end = dws->rx + transfer->len;
 	dws->len = transfer->len;
 	spin_unlock_irqrestore(&dws->buf_lock, flags);
-<<<<<<< HEAD
-=======
 
 	/* Ensure dw->rx and dw->rx_end are visible */
 	smp_mb();
->>>>>>> linux-next/akpm-base
 
 	spi_enable_chip(dws, 0);
 
