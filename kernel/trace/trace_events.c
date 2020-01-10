@@ -24,6 +24,7 @@
 #include <linux/delay.h>
 
 #include <trace/events/sched.h>
+#include <trace/syscall.h>
 
 #include <asm/setup.h>
 
@@ -697,7 +698,7 @@ static void remove_subsystem(struct trace_subsystem_dir *dir)
 		return;
 
 	if (!--dir->nr_events) {
-		tracefs_remove_recursive(dir->entry);
+		tracefs_remove(dir->entry);
 		list_del(&dir->list);
 		__put_system_dir(dir);
 	}
@@ -716,7 +717,7 @@ static void remove_event_file_dir(struct trace_event_file *file)
 		}
 		spin_unlock(&dir->d_lock);
 
-		tracefs_remove_recursive(dir);
+		tracefs_remove(dir);
 	}
 
 	list_del(&file->list);
@@ -2017,7 +2018,24 @@ event_create_dir(struct dentry *parent, struct trace_event_file *file)
 	 */
 	head = trace_get_fields(call);
 	if (list_empty(head)) {
-		ret = call->class->define_fields(call);
+		struct trace_event_fields *field = call->class->fields_array;
+		unsigned int offset = sizeof(struct trace_entry);
+
+		for (; field->type; field++) {
+			if (field->type == TRACE_FUNCTION_TYPE) {
+				ret = field->define_fields(call);
+				break;
+			}
+
+			offset = ALIGN(offset, field->align);
+			ret = trace_define_field(call, field->type, field->name,
+						 offset, field->size,
+						 field->is_signed, field->filter_type);
+			if (ret)
+				break;
+
+			offset += field->size;
+		}
 		if (ret < 0) {
 			pr_warn("Could not initialize trace point events/%s\n",
 				name);
@@ -3064,7 +3082,7 @@ int event_trace_del_tracer(struct trace_array *tr)
 
 	down_write(&trace_event_sem);
 	__trace_remove_event_dirs(tr);
-	tracefs_remove_recursive(tr->event_dir);
+	tracefs_remove(tr->event_dir);
 	up_write(&trace_event_sem);
 
 	tr->event_dir = NULL;
