@@ -1409,7 +1409,7 @@ static void ag71xx_oom_timer_handler(struct timer_list *t)
 	napi_schedule(&ag->napi);
 }
 
-static void ag71xx_tx_timeout(struct net_device *ndev)
+static void ag71xx_tx_timeout(struct net_device *ndev, unsigned int txqueue)
 {
 	struct ag71xx *ag = netdev_priv(ndev);
 
@@ -1687,8 +1687,7 @@ static int ag71xx_probe(struct platform_device *pdev)
 		goto err_free;
 	}
 
-	ag->mac_base = devm_ioremap_nocache(&pdev->dev, res->start,
-					    resource_size(res));
+	ag->mac_base = devm_ioremap(&pdev->dev, res->start, resource_size(res));
 	if (!ag->mac_base) {
 		err = -ENOMEM;
 		goto err_free;

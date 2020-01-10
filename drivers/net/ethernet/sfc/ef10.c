@@ -5,14 +5,17 @@
  */
 
 #include "net_driver.h"
+#include "rx_common.h"
 #include "ef10_regs.h"
 #include "io.h"
 #include "mcdi.h"
 #include "mcdi_pcol.h"
+#include "mcdi_port_common.h"
 #include "nic.h"
 #include "workarounds.h"
 #include "selftest.h"
 #include "ef10_sriov.h"
+#include "rx_common.h"
 #include <linux/in.h>
 #include <linux/jhash.h>
 #include <linux/wait.h>
@@ -1401,7 +1404,7 @@ static int efx_ef10_dimension_resources(struct efx_nic *efx)
 	}
 
 	/* Shrink the original UC mapping of the memory BAR */
-	membase = ioremap_nocache(efx->membase_phys, uc_mem_map_size);
+	membase = ioremap(efx->membase_phys, uc_mem_map_size);
 	if (!membase) {
 		netif_err(efx, probe, efx->net_dev,
 			  "could not shrink memory BAR to %x\n",
