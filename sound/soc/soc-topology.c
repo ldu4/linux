@@ -549,12 +549,8 @@ static void remove_link(struct snd_soc_component *comp,
 		dobj->ops->link_unload(comp, dobj);
 
 	list_del(&dobj->list);
-<<<<<<< HEAD
-	snd_soc_remove_dai_link(comp->card, link);
-=======
 	snd_soc_remove_pcm_runtime(comp->card,
 			snd_soc_get_pcm_runtime(comp->card, link));
->>>>>>> linux-next/akpm-base
 
 	kfree(link->name);
 	kfree(link->stream_name);

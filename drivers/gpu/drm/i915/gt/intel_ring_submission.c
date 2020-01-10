@@ -1559,10 +1559,6 @@ static int switch_mm(struct i915_request *rq, struct i915_address_space *vm)
 	if (ret)
 		return ret;
 
-<<<<<<< HEAD
-	if (ce->state) {
-		u32 flags;
-=======
 	/*
 	 * Not only do we need a full barrier (post-sync write) after
 	 * invalidating the TLBs, but we need to wait a little bit
@@ -1574,34 +1570,16 @@ static int switch_mm(struct i915_request *rq, struct i915_address_space *vm)
 	ret = load_pd_dir(rq, i915_vm_to_ppgtt(vm), PP_DIR_DCLV_2G);
 	if (ret)
 		return ret;
->>>>>>> linux-next/akpm-base
 
 	return rq->engine->emit_flush(rq, EMIT_INVALIDATE);
 }
 
-<<<<<<< HEAD
-		/* For resource streamer on HSW+ and power context elsewhere */
-		BUILD_BUG_ON(HSW_MI_RS_SAVE_STATE_EN != MI_SAVE_EXT_STATE_EN);
-		BUILD_BUG_ON(HSW_MI_RS_RESTORE_STATE_EN != MI_RESTORE_EXT_STATE_EN);
-
-		flags = MI_SAVE_EXT_STATE_EN | MI_MM_SPACE_GTT;
-		if (!i915_gem_context_is_kernel(rq->gem_context))
-			flags |= MI_RESTORE_EXT_STATE_EN;
-		else
-			flags |= MI_RESTORE_INHIBIT;
-
-		ret = mi_set_context(rq, flags);
-		if (ret)
-			return ret;
-	}
-=======
 static int switch_context(struct i915_request *rq)
 {
 	struct intel_context *ce = rq->context;
 	int ret;
 
 	GEM_BUG_ON(HAS_EXECLISTS(rq->i915));
->>>>>>> linux-next/akpm-base
 
 	ret = switch_mm(rq, vm_alias(ce));
 	if (ret)
