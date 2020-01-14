@@ -40,7 +40,7 @@
 #include <linux/slab.h>
 #include <linux/bitmap.h>
 #if defined(CONFIG_X86)
-#include <asm/pat.h>
+#include <asm/memtype.h>
 #endif
 #include <linux/sched.h>
 #include <linux/sched/mm.h>
@@ -6725,6 +6725,8 @@ void __mlx5_ib_remove(struct mlx5_ib_dev *dev,
 		      const struct mlx5_ib_profile *profile,
 		      int stage)
 {
+	dev->ib_active = false;
+
 	/* Number of stages to cleanup */
 	while (stage) {
 		stage--;
