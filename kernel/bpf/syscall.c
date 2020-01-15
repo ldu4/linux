@@ -23,6 +23,7 @@
 #include <linux/timekeeping.h>
 #include <linux/ctype.h>
 #include <linux/nospec.h>
+#include <linux/audit.h>
 #include <uapi/linux/btf.h>
 
 #define IS_FD_ARRAY(map) ((map)->map_type == BPF_MAP_TYPE_PERF_EVENT_ARRAY || \
@@ -627,7 +628,7 @@ static int map_check_btf(struct bpf_map *map, const struct btf *btf,
 	return ret;
 }
 
-#define BPF_MAP_CREATE_LAST_FIELD btf_value_type_id
+#define BPF_MAP_CREATE_LAST_FIELD btf_vmlinux_value_type_id
 /* called via syscall */
 static int map_create(union bpf_attr *attr)
 {
@@ -640,6 +641,14 @@ static int map_create(union bpf_attr *attr)
 	err = CHECK_ATTR(BPF_MAP_CREATE);
 	if (err)
 		return -EINVAL;
+
+	if (attr->btf_vmlinux_value_type_id) {
+		if (attr->map_type != BPF_MAP_TYPE_STRUCT_OPS ||
+		    attr->btf_key_type_id || attr->btf_value_type_id)
+			return -EINVAL;
+	} else if (attr->btf_key_type_id && !attr->btf_value_type_id) {
+		return -EINVAL;
+	}
 
 	f_flags = bpf_get_file_flag(attr->map_flags);
 	if (f_flags < 0)
@@ -663,32 +672,35 @@ static int map_create(union bpf_attr *attr)
 	atomic64_set(&map->usercnt, 1);
 	mutex_init(&map->freeze_mutex);
 
-	if (attr->btf_key_type_id || attr->btf_value_type_id) {
+	map->spin_lock_off = -EINVAL;
+	if (attr->btf_key_type_id || attr->btf_value_type_id ||
+	    /* Even the map's value is a kernel's struct,
+	     * the bpf_prog.o must have BTF to begin with
+	     * to figure out the corresponding kernel's
+	     * counter part.  Thus, attr->btf_fd has
+	     * to be valid also.
+	     */
+	    attr->btf_vmlinux_value_type_id) {
 		struct btf *btf;
-
-		if (!attr->btf_value_type_id) {
-			err = -EINVAL;
-			goto free_map;
-		}
 
 		btf = btf_get_by_fd(attr->btf_fd);
 		if (IS_ERR(btf)) {
 			err = PTR_ERR(btf);
 			goto free_map;
 		}
+		map->btf = btf;
 
-		err = map_check_btf(map, btf, attr->btf_key_type_id,
-				    attr->btf_value_type_id);
-		if (err) {
-			btf_put(btf);
-			goto free_map;
+		if (attr->btf_value_type_id) {
+			err = map_check_btf(map, btf, attr->btf_key_type_id,
+					    attr->btf_value_type_id);
+			if (err)
+				goto free_map;
 		}
 
-		map->btf = btf;
 		map->btf_key_type_id = attr->btf_key_type_id;
 		map->btf_value_type_id = attr->btf_value_type_id;
-	} else {
-		map->spin_lock_off = -EINVAL;
+		map->btf_vmlinux_value_type_id =
+			attr->btf_vmlinux_value_type_id;
 	}
 
 	err = security_bpf_map_alloc(map);
@@ -887,6 +899,9 @@ static int map_lookup_elem(union bpf_attr *attr)
 	} else if (map->map_type == BPF_MAP_TYPE_QUEUE ||
 		   map->map_type == BPF_MAP_TYPE_STACK) {
 		err = map->ops->map_peek_elem(map, value);
+	} else if (map->map_type == BPF_MAP_TYPE_STRUCT_OPS) {
+		/* struct_ops map requires directly updating "value" */
+		err = bpf_struct_ops_map_sys_lookup_elem(map, key, value);
 	} else {
 		rcu_read_lock();
 		if (map->ops->map_lookup_elem_sys_only)
@@ -1002,7 +1017,8 @@ static int map_update_elem(union bpf_attr *attr)
 		goto out;
 	} else if (map->map_type == BPF_MAP_TYPE_CPUMAP ||
 		   map->map_type == BPF_MAP_TYPE_SOCKHASH ||
-		   map->map_type == BPF_MAP_TYPE_SOCKMAP) {
+		   map->map_type == BPF_MAP_TYPE_SOCKMAP ||
+		   map->map_type == BPF_MAP_TYPE_STRUCT_OPS) {
 		err = map->ops->map_update_elem(map, key, value, attr->flags);
 		goto out;
 	} else if (IS_FD_PROG_ARRAY(map)) {
@@ -1091,7 +1107,9 @@ static int map_delete_elem(union bpf_attr *attr)
 	if (bpf_map_is_dev_bound(map)) {
 		err = bpf_map_offload_delete_elem(map, key);
 		goto out;
-	} else if (IS_FD_PROG_ARRAY(map)) {
+	} else if (IS_FD_PROG_ARRAY(map) ||
+		   map->map_type == BPF_MAP_TYPE_STRUCT_OPS) {
+		/* These maps require sleepable context */
 		err = map->ops->map_delete_elem(map, key);
 		goto out;
 	}
@@ -1306,6 +1324,36 @@ static int find_prog_type(enum bpf_prog_type type, struct bpf_prog *prog)
 	return 0;
 }
 
+enum bpf_audit {
+	BPF_AUDIT_LOAD,
+	BPF_AUDIT_UNLOAD,
+	BPF_AUDIT_MAX,
+};
+
+static const char * const bpf_audit_str[BPF_AUDIT_MAX] = {
+	[BPF_AUDIT_LOAD]   = "LOAD",
+	[BPF_AUDIT_UNLOAD] = "UNLOAD",
+};
+
+static void bpf_audit_prog(const struct bpf_prog *prog, unsigned int op)
+{
+	struct audit_context *ctx = NULL;
+	struct audit_buffer *ab;
+
+	if (WARN_ON_ONCE(op >= BPF_AUDIT_MAX))
+		return;
+	if (audit_enabled == AUDIT_OFF)
+		return;
+	if (op == BPF_AUDIT_LOAD)
+		ctx = audit_context();
+	ab = audit_log_start(ctx, GFP_ATOMIC, AUDIT_BPF);
+	if (unlikely(!ab))
+		return;
+	audit_log_format(ab, "prog-id=%u op=%s",
+			 prog->aux->id, bpf_audit_str[op]);
+	audit_log_end(ab);
+}
+
 int __bpf_prog_charge(struct user_struct *user, u32 pages)
 {
 	unsigned long memlock_limit = rlimit(RLIMIT_MEMLOCK) >> PAGE_SHIFT;
@@ -1421,6 +1469,7 @@ static void __bpf_prog_put(struct bpf_prog *prog, bool do_idr_lock)
 {
 	if (atomic64_dec_and_test(&prog->aux->refcnt)) {
 		perf_event_bpf_event(prog, PERF_BPF_EVENT_PROG_UNLOAD, 0);
+		bpf_audit_prog(prog, BPF_AUDIT_UNLOAD);
 		/* bpf_prog_free_id() must be called first */
 		bpf_prog_free_id(prog, do_idr_lock);
 		__bpf_prog_put_noref(prog, true);
@@ -1640,16 +1689,21 @@ bpf_prog_load_check_attach(enum bpf_prog_type prog_type,
 			   enum bpf_attach_type expected_attach_type,
 			   u32 btf_id, u32 prog_fd)
 {
-	switch (prog_type) {
-	case BPF_PROG_TYPE_TRACING:
+	if (btf_id) {
 		if (btf_id > BTF_MAX_TYPE)
 			return -EINVAL;
-		break;
-	default:
-		if (btf_id || prog_fd)
+
+		switch (prog_type) {
+		case BPF_PROG_TYPE_TRACING:
+		case BPF_PROG_TYPE_STRUCT_OPS:
+			break;
+		default:
 			return -EINVAL;
-		break;
+		}
 	}
+
+	if (prog_fd && prog_type != BPF_PROG_TYPE_TRACING)
+		return -EINVAL;
 
 	switch (prog_type) {
 	case BPF_PROG_TYPE_CGROUP_SOCK:
@@ -1830,6 +1884,7 @@ static int bpf_prog_load(union bpf_attr *attr, union bpf_attr __user *uattr)
 	 */
 	bpf_prog_kallsyms_add(prog);
 	perf_event_bpf_event(prog, PERF_BPF_EVENT_PROG_LOAD, 0);
+	bpf_audit_prog(prog, BPF_AUDIT_LOAD);
 
 	err = bpf_prog_new_fd(prog);
 	if (err < 0)
@@ -2040,10 +2095,10 @@ static int bpf_prog_attach_check_attach_type(const struct bpf_prog *prog,
 	}
 }
 
-#define BPF_PROG_ATTACH_LAST_FIELD attach_flags
+#define BPF_PROG_ATTACH_LAST_FIELD replace_bpf_fd
 
 #define BPF_F_ATTACH_MASK \
-	(BPF_F_ALLOW_OVERRIDE | BPF_F_ALLOW_MULTI)
+	(BPF_F_ALLOW_OVERRIDE | BPF_F_ALLOW_MULTI | BPF_F_REPLACE)
 
 static int bpf_prog_attach(const union bpf_attr *attr)
 {
@@ -2305,6 +2360,23 @@ static int bpf_obj_get_next_id(const union bpf_attr *attr,
 
 #define BPF_PROG_GET_FD_BY_ID_LAST_FIELD prog_id
 
+struct bpf_prog *bpf_prog_by_id(u32 id)
+{
+	struct bpf_prog *prog;
+
+	if (!id)
+		return ERR_PTR(-ENOENT);
+
+	spin_lock_bh(&prog_idr_lock);
+	prog = idr_find(&prog_idr, id);
+	if (prog)
+		prog = bpf_prog_inc_not_zero(prog);
+	else
+		prog = ERR_PTR(-ENOENT);
+	spin_unlock_bh(&prog_idr_lock);
+	return prog;
+}
+
 static int bpf_prog_get_fd_by_id(const union bpf_attr *attr)
 {
 	struct bpf_prog *prog;
@@ -2317,14 +2389,7 @@ static int bpf_prog_get_fd_by_id(const union bpf_attr *attr)
 	if (!capable(CAP_SYS_ADMIN))
 		return -EPERM;
 
-	spin_lock_bh(&prog_idr_lock);
-	prog = idr_find(&prog_idr, id);
-	if (prog)
-		prog = bpf_prog_inc_not_zero(prog);
-	else
-		prog = ERR_PTR(-ENOENT);
-	spin_unlock_bh(&prog_idr_lock);
-
+	prog = bpf_prog_by_id(id);
 	if (IS_ERR(prog))
 		return PTR_ERR(prog);
 
@@ -2774,6 +2839,7 @@ static int bpf_map_get_info_by_fd(struct bpf_map *map,
 		info.btf_key_type_id = map->btf_key_type_id;
 		info.btf_value_type_id = map->btf_value_type_id;
 	}
+	info.btf_vmlinux_value_type_id = map->btf_vmlinux_value_type_id;
 
 	if (bpf_map_is_dev_bound(map)) {
 		err = bpf_map_offload_info_fill(&info, map);
