@@ -1,6 +1,15 @@
 # SPDX-License-Identifier: GPL-2.0
 menu "Generic Driver Options"
 
+config DEVICE_NOTIFICATIONS
+	bool "Provide device event notifications"
+	depends on WATCH_QUEUE
+	help
+	  This option provides support for getting hardware event notifications
+	  on devices, buses and interfaces.  This makes use of the
+	  /dev/watch_queue misc device to handle the notification buffer.
+	  device_notify(2) is used to set/remove watches.
+
 config UEVENT_HELPER
 	bool "Support for uevent helper"
 	help
@@ -150,7 +159,7 @@ config DEBUG_TEST_DRIVER_REMOVE
 
 config PM_QOS_KUNIT_TEST
 	bool "KUnit Test for PM QoS features"
-	depends on KUNIT
+	depends on KUNIT=y
 
 config HMEM_REPORTING
 	bool
