@@ -17,6 +17,9 @@
 #include "libbpf_internal.h"
 #include "hashmap.h"
 
+/* make sure libbpf doesn't use kernel-only integer typedefs */
+#pragma GCC poison u8 u16 u32 u64 s8 s16 s32 s64
+
 #define BTF_MAX_NR_TYPES 0x7fffffff
 #define BTF_MAX_STR_OFFSET 0x7fffffff
 
@@ -276,6 +279,45 @@ done:
 		return -E2BIG;
 
 	return nelems * size;
+}
+
+int btf__align_of(const struct btf *btf, __u32 id)
+{
+	const struct btf_type *t = btf__type_by_id(btf, id);
+	__u16 kind = btf_kind(t);
+
+	switch (kind) {
+	case BTF_KIND_INT:
+	case BTF_KIND_ENUM:
+		return min(sizeof(void *), t->size);
+	case BTF_KIND_PTR:
+		return sizeof(void *);
+	case BTF_KIND_TYPEDEF:
+	case BTF_KIND_VOLATILE:
+	case BTF_KIND_CONST:
+	case BTF_KIND_RESTRICT:
+		return btf__align_of(btf, t->type);
+	case BTF_KIND_ARRAY:
+		return btf__align_of(btf, btf_array(t)->type);
+	case BTF_KIND_STRUCT:
+	case BTF_KIND_UNION: {
+		const struct btf_member *m = btf_members(t);
+		__u16 vlen = btf_vlen(t);
+		int i, max_align = 1, align;
+
+		for (i = 0; i < vlen; i++, m++) {
+			align = btf__align_of(btf, m->type);
+			if (align <= 0)
+				return align;
+			max_align = max(max_align, align);
+		}
+
+		return max_align;
+	}
+	default:
+		pr_warn("unsupported BTF_KIND:%u\n", btf_kind(t));
+		return 0;
+	}
 }
 
 int btf__resolve_type(const struct btf *btf, __u32 type_id)
@@ -539,6 +581,12 @@ static int btf_fixup_datasec(struct bpf_object *obj, struct btf *btf,
 		return -ENOENT;
 	}
 
+	/* .extern datasec size and var offsets were set correctly during
+	 * extern collection step, so just skip straight to sorting variables
+	 */
+	if (t->size)
+		goto sort_vars;
+
 	ret = bpf_object__section_size(obj, name, &size);
 	if (ret || !size || (t->size && t->size != size)) {
 		pr_debug("Invalid size for section %s: %u bytes\n", name, size);
@@ -575,7 +623,8 @@ static int btf_fixup_datasec(struct bpf_object *obj, struct btf *btf,
 		vsi->offset = off;
 	}
 
-	qsort(t + 1, vars, sizeof(*vsi), compare_vsi_off);
+sort_vars:
+	qsort(btf_var_secinfos(t), vars, sizeof(*vsi), compare_vsi_off);
 	return 0;
 }
 
