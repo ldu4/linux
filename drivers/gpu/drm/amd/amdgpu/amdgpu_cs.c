@@ -231,6 +231,8 @@ static int amdgpu_cs_parser_init(struct amdgpu_cs_parser *p, union drm_amdgpu_cs
 	if (ret)
 		goto free_all_kdata;
 
+	p->job->secure = cs->in.flags & AMDGPU_CS_FLAGS_SECURE;
+
 	if (p->ctx->vram_lost_counter != p->job->vram_lost_counter) {
 		ret = -ECANCELED;
 		goto free_all_kdata;
@@ -651,16 +653,19 @@ out:
 
 static int amdgpu_cs_sync_rings(struct amdgpu_cs_parser *p)
 {
+	struct amdgpu_fpriv *fpriv = p->filp->driver_priv;
 	struct amdgpu_bo_list_entry *e;
 	int r;
 
 	list_for_each_entry(e, &p->validated, tv.head) {
 		struct amdgpu_bo *bo = ttm_to_amdgpu_bo(e->tv.bo);
 		struct dma_resv *resv = bo->tbo.base.resv;
+		enum amdgpu_sync_mode sync_mode;
 
-		r = amdgpu_sync_resv(p->adev, &p->job->sync, resv, p->filp,
-				     amdgpu_bo_explicit_sync(bo));
-
+		sync_mode = amdgpu_bo_explicit_sync(bo) ?
+			AMDGPU_SYNC_EXPLICIT : AMDGPU_SYNC_NE_OWNER;
+		r = amdgpu_sync_resv(p->adev, &p->job->sync, resv, sync_mode,
+				     &fpriv->vm);
 		if (r)
 			return r;
 	}
@@ -795,29 +800,23 @@ static int amdgpu_cs_vm_handling(struct amdgpu_cs_parser *p)
 	if (r)
 		return r;
 
-	r = amdgpu_sync_fence(adev, &p->job->sync,
-			      fpriv->prt_va->last_pt_update, false);
+	r = amdgpu_sync_vm_fence(&p->job->sync, fpriv->prt_va->last_pt_update);
 	if (r)
 		return r;
 
 	if (amdgpu_mcbp || amdgpu_sriov_vf(adev)) {
-		struct dma_fence *f;
-
 		bo_va = fpriv->csa_va;
 		BUG_ON(!bo_va);
 		r = amdgpu_vm_bo_update(adev, bo_va, false);
 		if (r)
 			return r;
 
-		f = bo_va->last_pt_update;
-		r = amdgpu_sync_fence(adev, &p->job->sync, f, false);
+		r = amdgpu_sync_vm_fence(&p->job->sync, bo_va->last_pt_update);
 		if (r)
 			return r;
 	}
 
 	amdgpu_bo_list_for_each_entry(e, p->bo_list) {
-		struct dma_fence *f;
-
 		/* ignore duplicates */
 		bo = ttm_to_amdgpu_bo(e->tv.bo);
 		if (!bo)
@@ -831,8 +830,7 @@ static int amdgpu_cs_vm_handling(struct amdgpu_cs_parser *p)
 		if (r)
 			return r;
 
-		f = bo_va->last_pt_update;
-		r = amdgpu_sync_fence(adev, &p->job->sync, f, false);
+		r = amdgpu_sync_vm_fence(&p->job->sync, bo_va->last_pt_update);
 		if (r)
 			return r;
 	}
@@ -845,7 +843,7 @@ static int amdgpu_cs_vm_handling(struct amdgpu_cs_parser *p)
 	if (r)
 		return r;
 
-	r = amdgpu_sync_fence(adev, &p->job->sync, vm->last_update, false);
+	r = amdgpu_sync_vm_fence(&p->job->sync, vm->last_update);
 	if (r)
 		return r;
 
@@ -914,6 +912,11 @@ static int amdgpu_cs_ib_fill(struct amdgpu_device *adev,
 				AMDGPU_PREAMBLE_IB_PRESENT;
 
 		if (parser->entity && parser->entity != entity)
+			return -EINVAL;
+
+		/* Return if there is no run queue associated with this entity.
+		 * Possibly because of disabled HW IP*/
+		if (entity->rq == NULL)
 			return -EINVAL;
 
 		parser->entity = entity;
@@ -987,7 +990,7 @@ static int amdgpu_cs_process_fence_dep(struct amdgpu_cs_parser *p,
 			dma_fence_put(old);
 		}
 
-		r = amdgpu_sync_fence(p->adev, &p->job->sync, fence, true);
+		r = amdgpu_sync_fence(&p->job->sync, fence, true);
 		dma_fence_put(fence);
 		if (r)
 			return r;
@@ -1009,7 +1012,7 @@ static int amdgpu_syncobj_lookup_and_add_to_sync(struct amdgpu_cs_parser *p,
 		return r;
 	}
 
-	r = amdgpu_sync_fence(p->adev, &p->job->sync, fence, true);
+	r = amdgpu_sync_fence(&p->job->sync, fence, true);
 	dma_fence_put(fence);
 
 	return r;
@@ -1213,7 +1216,7 @@ static int amdgpu_cs_submit(struct amdgpu_cs_parser *p,
 	job = p->job;
 	p->job = NULL;
 
-	r = drm_sched_job_init(&job->base, entity, p->filp);
+	r = drm_sched_job_init(&job->base, entity, &fpriv->vm);
 	if (r)
 		goto error_unlock;
 
@@ -1236,7 +1239,6 @@ static int amdgpu_cs_submit(struct amdgpu_cs_parser *p,
 		goto error_abort;
 	}
 
-	job->owner = p->filp;
 	p->fence = dma_fence_get(&job->base.s_fence->finished);
 
 	amdgpu_ctx_add_fence(p->ctx, entity, p->fence, &seq);
