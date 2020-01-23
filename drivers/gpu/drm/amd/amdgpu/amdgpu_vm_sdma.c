@@ -71,7 +71,7 @@ static int amdgpu_vm_sdma_prepare(struct amdgpu_vm_update_params *p,
 	p->num_dw_left = ndw;
 
 	/* Wait for moves to be completed */
-	r = amdgpu_sync_fence(p->adev, &p->job->sync, exclusive, false);
+	r = amdgpu_sync_fence(&p->job->sync, exclusive, false);
 	if (r)
 		return r;
 
@@ -80,7 +80,7 @@ static int amdgpu_vm_sdma_prepare(struct amdgpu_vm_update_params *p,
 		return 0;
 
 	return amdgpu_sync_resv(p->adev, &p->job->sync, root->tbo.base.resv,
-				owner, false);
+				AMDGPU_SYNC_NE_OWNER, owner);
 }
 
 /**
@@ -95,11 +95,10 @@ static int amdgpu_vm_sdma_prepare(struct amdgpu_vm_update_params *p,
 static int amdgpu_vm_sdma_commit(struct amdgpu_vm_update_params *p,
 				 struct dma_fence **fence)
 {
-	struct amdgpu_bo *root = p->vm->root.base.bo;
 	struct amdgpu_ib *ib = p->job->ibs;
 	struct drm_sched_entity *entity;
+	struct dma_fence *f, *tmp;
 	struct amdgpu_ring *ring;
-	struct dma_fence *f;
 	int r;
 
 	entity = p->direct ? &p->vm->direct : &p->vm->delayed;
@@ -112,7 +111,13 @@ static int amdgpu_vm_sdma_commit(struct amdgpu_vm_update_params *p,
 	if (r)
 		goto error;
 
-	amdgpu_bo_fence(root, f, true);
+	tmp = dma_fence_get(f);
+	if (p->direct)
+		swap(p->vm->last_direct, tmp);
+	else
+		swap(p->vm->last_delayed, tmp);
+	dma_fence_put(tmp);
+
 	if (fence && !p->direct)
 		swap(*fence, f);
 	dma_fence_put(f);
@@ -142,7 +147,7 @@ static void amdgpu_vm_sdma_copy_ptes(struct amdgpu_vm_update_params *p,
 
 	src += p->num_dw_left * 4;
 
-	pe += amdgpu_bo_gpu_offset(bo);
+	pe += amdgpu_gmc_sign_extend(bo->tbo.offset);
 	trace_amdgpu_vm_copy_ptes(pe, src, count, p->direct);
 
 	amdgpu_vm_copy_pte(p->adev, ib, pe, src, count);
@@ -169,7 +174,7 @@ static void amdgpu_vm_sdma_set_ptes(struct amdgpu_vm_update_params *p,
 {
 	struct amdgpu_ib *ib = p->job->ibs;
 
-	pe += amdgpu_bo_gpu_offset(bo);
+	pe += amdgpu_gmc_sign_extend(bo->tbo.offset);
 	trace_amdgpu_vm_set_ptes(pe, addr, count, incr, flags, p->direct);
 	if (count < 3) {
 		amdgpu_vm_write_pte(p->adev, ib, pe, addr | flags,
@@ -202,6 +207,11 @@ static int amdgpu_vm_sdma_update(struct amdgpu_vm_update_params *p,
 	unsigned int i, ndw, nptes;
 	uint64_t *pte;
 	int r;
+
+	/* Wait for PD/PT moves to be completed */
+	r = amdgpu_sync_fence(&p->job->sync, bo->tbo.moving, false);
+	if (r)
+		return r;
 
 	do {
 		ndw = p->num_dw_left;
