@@ -5568,29 +5568,13 @@ static int __io_sqe_files_update(struct io_ring_ctx *ctx,
 	int fd, i, err;
 	__u32 done;
 
-<<<<<<< HEAD
-	if (!ctx->file_table)
-		return -ENXIO;
-	if (!nr_args)
-		return -EINVAL;
-	if (copy_from_user(&up, arg, sizeof(up)))
-		return -EFAULT;
-	if (up.resv)
-		return -EINVAL;
-	if (check_add_overflow(up.offset, nr_args, &done))
-=======
 	if (check_add_overflow(up->offset, nr_args, &done))
->>>>>>> linux-next/akpm-base
 		return -EOVERFLOW;
 	if (done > ctx->nr_user_files)
 		return -EINVAL;
 
 	done = 0;
-<<<<<<< HEAD
-	fds = u64_to_user_ptr(up.fds);
-=======
 	fds = u64_to_user_ptr(up->fds);
->>>>>>> linux-next/akpm-base
 	while (nr_args) {
 		struct fixed_file_table *table;
 		unsigned index;

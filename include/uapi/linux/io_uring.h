@@ -213,8 +213,6 @@ struct io_uring_files_update {
 	__u32 offset;
 	__u32 resv;
 	__aligned_u64 /* __s32 * */ fds;
-<<<<<<< HEAD
-=======
 };
 
 #define IO_URING_OP_SUPPORTED	(1U << 0)
@@ -232,7 +230,6 @@ struct io_uring_probe {
 	__u16 resv;
 	__u32 resv2[3];
 	struct io_uring_probe_op ops[0];
->>>>>>> linux-next/akpm-base
 };
 
 #endif
