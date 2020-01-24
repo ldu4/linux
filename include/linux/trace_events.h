@@ -11,7 +11,7 @@
 #include <linux/tracepoint.h>
 
 struct trace_array;
-struct trace_buffer;
+struct array_buffer;
 struct tracer;
 struct dentry;
 struct bpf_prog;
@@ -79,7 +79,7 @@ struct trace_entry {
 struct trace_iterator {
 	struct trace_array	*tr;
 	struct tracer		*trace;
-	struct trace_buffer	*trace_buffer;
+	struct array_buffer	*array_buffer;
 	void			*private;
 	int			cpu_file;
 	struct mutex		mutex;
@@ -153,7 +153,7 @@ void tracing_generic_entry_update(struct trace_entry *entry,
 struct trace_event_file;
 
 struct ring_buffer_event *
-trace_event_buffer_lock_reserve(struct ring_buffer **current_buffer,
+trace_event_buffer_lock_reserve(struct trace_buffer **current_buffer,
 				struct trace_event_file *trace_file,
 				int type, unsigned long len,
 				unsigned long flags, int pc);
@@ -192,6 +192,22 @@ enum trace_reg {
 
 struct trace_event_call;
 
+#define TRACE_FUNCTION_TYPE ((const char *)~0UL)
+
+struct trace_event_fields {
+	const char *type;
+	union {
+		struct {
+			const char *name;
+			const int  size;
+			const int  align;
+			const int  is_signed;
+			const int  filter_type;
+		};
+		int (*define_fields)(struct trace_event_call *);
+	};
+};
+
 struct trace_event_class {
 	const char		*system;
 	void			*probe;
@@ -200,7 +216,7 @@ struct trace_event_class {
 #endif
 	int			(*reg)(struct trace_event_call *event,
 				       enum trace_reg type, void *data);
-	int			(*define_fields)(struct trace_event_call *);
+	struct trace_event_fields *fields_array;
 	struct list_head	*(*get_fields)(struct trace_event_call *);
 	struct list_head	fields;
 	int			(*raw_init)(struct trace_event_call *);
@@ -210,12 +226,13 @@ extern int trace_event_reg(struct trace_event_call *event,
 			    enum trace_reg type, void *data);
 
 struct trace_event_buffer {
-	struct ring_buffer		*buffer;
+	struct trace_buffer		*buffer;
 	struct ring_buffer_event	*event;
 	struct trace_event_file		*trace_file;
 	void				*entry;
 	unsigned long			flags;
 	int				pc;
+	struct pt_regs			*regs;
 };
 
 void *trace_event_buffer_reserve(struct trace_event_buffer *fbuffer,
