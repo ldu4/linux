@@ -33,6 +33,25 @@
 #include "cifsproto.h"
 #include "cifs_debug.h"
 
+static struct key_acl cifs_idmap_key_acl = {
+	.usage	= REFCOUNT_INIT(1),
+	.nr_ace	= 2,
+	.possessor_viewable = true,
+	.aces = {
+		KEY_POSSESSOR_ACE(KEY_ACE_VIEW | KEY_ACE_SEARCH | KEY_ACE_READ),
+		KEY_OWNER_ACE(KEY_ACE_VIEW),
+	}
+};
+
+static struct key_acl cifs_idmap_keyring_acl = {
+	.usage	= REFCOUNT_INIT(1),
+	.nr_ace	= 2,
+	.aces = {
+		KEY_POSSESSOR_ACE(KEY_ACE_SEARCH | KEY_ACE_WRITE),
+		KEY_OWNER_ACE(KEY_ACE_VIEW | KEY_ACE_READ),
+	}
+};
+
 /* security id for everyone/world system group */
 static const struct cifs_sid sid_everyone = {
 	1, 1, {0, 0, 0, 0, 0, 1}, {0} };
@@ -296,7 +315,8 @@ id_to_sid(unsigned int cid, uint sidtype, struct cifs_sid *ssid)
 
 	rc = 0;
 	saved_cred = override_creds(root_cred);
-	sidkey = request_key(&cifs_idmap_key_type, desc, "");
+	sidkey = request_key(&cifs_idmap_key_type, desc, "",
+			     &cifs_idmap_key_acl);
 	if (IS_ERR(sidkey)) {
 		rc = -EINVAL;
 		cifs_dbg(FYI, "%s: Can't map %cid %u to a SID\n",
@@ -401,7 +421,8 @@ try_upcall_to_get_id:
 		return -ENOMEM;
 
 	saved_cred = override_creds(root_cred);
-	sidkey = request_key(&cifs_idmap_key_type, sidstr, "");
+	sidkey = request_key(&cifs_idmap_key_type, sidstr, "",
+			     &cifs_idmap_key_acl);
 	if (IS_ERR(sidkey)) {
 		rc = -EINVAL;
 		cifs_dbg(FYI, "%s: Can't map SID %s to a %cid\n",
@@ -479,8 +500,7 @@ init_cifs_idmap(void)
 
 	keyring = keyring_alloc(".cifs_idmap",
 				GLOBAL_ROOT_UID, GLOBAL_ROOT_GID, cred,
-				(KEY_POS_ALL & ~KEY_POS_SETATTR) |
-				KEY_USR_VIEW | KEY_USR_READ,
+				&cifs_idmap_keyring_acl,
 				KEY_ALLOC_NOT_IN_QUOTA, NULL, NULL);
 	if (IS_ERR(keyring)) {
 		ret = PTR_ERR(keyring);
@@ -800,6 +820,26 @@ static void parse_dacl(struct cifs_acl *pdacl, char *end_of_acl,
 	}
 
 	return;
+}
+
+unsigned int setup_authusers_ACE(struct cifs_ace *pntace)
+{
+	int i;
+	unsigned int ace_size = 20;
+
+	pntace->type = ACCESS_ALLOWED_ACE_TYPE;
+	pntace->flags = 0x0;
+	pntace->access_req = cpu_to_le32(GENERIC_ALL);
+	pntace->sid.num_subauth = 1;
+	pntace->sid.revision = 1;
+	for (i = 0; i < NUM_AUTHS; i++)
+		pntace->sid.authority[i] =  sid_authusers.authority[i];
+
+	pntace->sid.sub_auth[0] =  sid_authusers.sub_auth[0];
+
+	/* size = 1 + 1 + 2 + 4 + 1 + 1 + 6 + (psid->num_subauth*4) */
+	pntace->size = cpu_to_le16(ace_size);
+	return ace_size;
 }
 
 /*
