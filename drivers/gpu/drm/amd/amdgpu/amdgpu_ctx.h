@@ -42,7 +42,6 @@ struct amdgpu_ctx {
 	unsigned			reset_counter_query;
 	uint32_t			vram_lost_counter;
 	spinlock_t			ring_lock;
-	struct dma_fence		**fences;
 	struct amdgpu_ctx_entity	*entities[AMDGPU_HW_IP_NUM];
 	bool				preamble_presented;
 	enum drm_sched_priority		init_priority;
@@ -86,5 +85,8 @@ void amdgpu_ctx_mgr_init(struct amdgpu_ctx_mgr *mgr);
 void amdgpu_ctx_mgr_entity_fini(struct amdgpu_ctx_mgr *mgr);
 long amdgpu_ctx_mgr_entity_flush(struct amdgpu_ctx_mgr *mgr, long timeout);
 void amdgpu_ctx_mgr_fini(struct amdgpu_ctx_mgr *mgr);
+
+void amdgpu_ctx_init_sched(struct amdgpu_device *adev);
+
 
 #endif

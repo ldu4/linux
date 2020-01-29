@@ -74,7 +74,12 @@ struct common_audit_data {
 #define LSM_AUDIT_DATA_FILE	12
 #define LSM_AUDIT_DATA_IBPKEY	13
 #define LSM_AUDIT_DATA_IBENDPORT 14
+<<<<<<< HEAD
 #define LSM_AUDIT_DATA_LOCKDOWN 15
+=======
+#define LSM_AUDIT_DATA_NOTIFICATION 15
+#define LSM_AUDIT_DATA_LOCKDOWN 16
+>>>>>>> linux-next/akpm-base
 	union 	{
 		struct path path;
 		struct dentry *dentry;
