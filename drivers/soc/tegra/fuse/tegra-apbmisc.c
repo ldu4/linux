@@ -158,11 +158,7 @@ void __init tegra_init_apbmisc(void)
 	}
 
 	apbmisc_base = ioremap(apbmisc.start, resource_size(&apbmisc));
-<<<<<<< HEAD
-	if (!apbmisc_base)
-=======
 	if (!apbmisc_base) {
->>>>>>> linux-next/akpm-base
 		pr_err("failed to map APBMISC registers\n");
 	} else {
 		chipid = readl_relaxed(apbmisc_base + 4);
@@ -170,11 +166,7 @@ void __init tegra_init_apbmisc(void)
 	}
 
 	strapping_base = ioremap(straps.start, resource_size(&straps));
-<<<<<<< HEAD
-	if (!strapping_base)
-=======
 	if (!strapping_base) {
->>>>>>> linux-next/akpm-base
 		pr_err("failed to map strapping options registers\n");
 	} else {
 		strapping = readl_relaxed(strapping_base);
