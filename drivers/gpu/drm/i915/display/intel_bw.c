@@ -15,7 +15,7 @@ struct intel_qgv_point {
 };
 
 struct intel_qgv_info {
-	struct intel_qgv_point points[3];
+	struct intel_qgv_point points[I915_NUM_QGV_POINTS];
 	u8 num_points;
 	u8 num_channels;
 	u8 t_bl;
@@ -132,9 +132,10 @@ static int icl_get_qgv_points(struct drm_i915_private *dev_priv,
 		if (ret)
 			return ret;
 
-		DRM_DEBUG_KMS("QGV %d: DCLK=%d tRP=%d tRDPRE=%d tRAS=%d tRCD=%d tRC=%d\n",
-			      i, sp->dclk, sp->t_rp, sp->t_rdpre, sp->t_ras,
-			      sp->t_rcd, sp->t_rc);
+		drm_dbg_kms(&dev_priv->drm,
+			    "QGV %d: DCLK=%d tRP=%d tRDPRE=%d tRAS=%d tRCD=%d tRC=%d\n",
+			    i, sp->dclk, sp->t_rp, sp->t_rdpre, sp->t_ras,
+			    sp->t_rcd, sp->t_rc);
 	}
 
 	return 0;
@@ -187,7 +188,8 @@ static int icl_get_bw_info(struct drm_i915_private *dev_priv, const struct intel
 
 	ret = icl_get_qgv_points(dev_priv, &qi);
 	if (ret) {
-		DRM_DEBUG_KMS("Failed to get memory subsystem information, ignoring bandwidth limits");
+		drm_dbg_kms(&dev_priv->drm,
+			    "Failed to get memory subsystem information, ignoring bandwidth limits");
 		return ret;
 	}
 	num_channels = qi.num_channels;
@@ -228,8 +230,9 @@ static int icl_get_bw_info(struct drm_i915_private *dev_priv, const struct intel
 			bi->deratedbw[j] = min(maxdebw,
 					       bw * 9 / 10); /* 90% */
 
-			DRM_DEBUG_KMS("BW%d / QGV %d: num_planes=%d deratedbw=%u\n",
-				      i, j, bi->num_planes, bi->deratedbw[j]);
+			drm_dbg_kms(&dev_priv->drm,
+				    "BW%d / QGV %d: num_planes=%d deratedbw=%u\n",
+				    i, j, bi->num_planes, bi->deratedbw[j]);
 		}
 
 		if (bi->num_planes == 1)
@@ -264,6 +267,9 @@ static unsigned int icl_max_bw(struct drm_i915_private *dev_priv,
 
 void intel_bw_init_hw(struct drm_i915_private *dev_priv)
 {
+	if (!HAS_DISPLAY(dev_priv))
+		return;
+
 	if (IS_GEN(dev_priv, 12))
 		icl_get_bw_info(dev_priv, &tgl_sa_info);
 	else if (IS_GEN(dev_priv, 11))
@@ -273,17 +279,29 @@ void intel_bw_init_hw(struct drm_i915_private *dev_priv)
 static unsigned int intel_max_data_rate(struct drm_i915_private *dev_priv,
 					int num_planes)
 {
-	if (INTEL_GEN(dev_priv) >= 11)
+	if (INTEL_GEN(dev_priv) >= 11) {
+		/*
+		 * Any bw group has same amount of QGV points
+		 */
+		const struct intel_bw_info *bi =
+			&dev_priv->max_bw[0];
+		unsigned int min_bw = UINT_MAX;
+		int i;
+
 		/*
 		 * FIXME with SAGV disabled maybe we can assume
 		 * point 1 will always be used? Seems to match
 		 * the behaviour observed in the wild.
 		 */
-		return min3(icl_max_bw(dev_priv, num_planes, 0),
-			    icl_max_bw(dev_priv, num_planes, 1),
-			    icl_max_bw(dev_priv, num_planes, 2));
-	else
+		for (i = 0; i < bi->num_qgv_points; i++) {
+			unsigned int bw = icl_max_bw(dev_priv, num_planes, i);
+
+			min_bw = min(bw, min_bw);
+		}
+		return min_bw;
+	} else {
 		return UINT_MAX;
+	}
 }
 
 static unsigned int intel_bw_crtc_num_active_planes(const struct intel_crtc_state *crtc_state)
@@ -297,7 +315,7 @@ static unsigned int intel_bw_crtc_num_active_planes(const struct intel_crtc_stat
 
 static unsigned int intel_bw_crtc_data_rate(const struct intel_crtc_state *crtc_state)
 {
-	struct intel_crtc *crtc = to_intel_crtc(crtc_state->base.crtc);
+	struct intel_crtc *crtc = to_intel_crtc(crtc_state->uapi.crtc);
 	unsigned int data_rate = 0;
 	enum plane_id plane_id;
 
@@ -318,7 +336,7 @@ static unsigned int intel_bw_crtc_data_rate(const struct intel_crtc_state *crtc_
 void intel_bw_crtc_update(struct intel_bw_state *bw_state,
 			  const struct intel_crtc_state *crtc_state)
 {
-	struct intel_crtc *crtc = to_intel_crtc(crtc_state->base.crtc);
+	struct intel_crtc *crtc = to_intel_crtc(crtc_state->uapi.crtc);
 
 	bw_state->data_rate[crtc->pipe] =
 		intel_bw_crtc_data_rate(crtc_state);
@@ -409,10 +427,11 @@ int intel_bw_atomic_check(struct intel_atomic_state *state)
 		bw_state->data_rate[crtc->pipe] = new_data_rate;
 		bw_state->num_active_planes[crtc->pipe] = new_active_planes;
 
-		DRM_DEBUG_KMS("pipe %c data rate %u num active planes %u\n",
-			      pipe_name(crtc->pipe),
-			      bw_state->data_rate[crtc->pipe],
-			      bw_state->num_active_planes[crtc->pipe]);
+		drm_dbg_kms(&dev_priv->drm,
+			    "pipe %c data rate %u num active planes %u\n",
+			    pipe_name(crtc->pipe),
+			    bw_state->data_rate[crtc->pipe],
+			    bw_state->num_active_planes[crtc->pipe]);
 	}
 
 	if (!bw_state)
@@ -426,8 +445,9 @@ int intel_bw_atomic_check(struct intel_atomic_state *state)
 	data_rate = DIV_ROUND_UP(data_rate, 1000);
 
 	if (data_rate > max_data_rate) {
-		DRM_DEBUG_KMS("Bandwidth %u MB/s exceeds max available %d MB/s (%d active planes)\n",
-			      data_rate, max_data_rate, num_active_planes);
+		drm_dbg_kms(&dev_priv->drm,
+			    "Bandwidth %u MB/s exceeds max available %d MB/s (%d active planes)\n",
+			    data_rate, max_data_rate, num_active_planes);
 		return -EINVAL;
 	}
 
@@ -470,4 +490,9 @@ int intel_bw_init(struct drm_i915_private *dev_priv)
 				    &state->base, &intel_bw_funcs);
 
 	return 0;
+}
+
+void intel_bw_cleanup(struct drm_i915_private *dev_priv)
+{
+	drm_atomic_private_obj_fini(&dev_priv->bw_obj);
 }

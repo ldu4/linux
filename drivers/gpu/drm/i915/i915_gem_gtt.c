@@ -1,26 +1,7 @@
+// SPDX-License-Identifier: MIT
 /*
  * Copyright © 2010 Daniel Vetter
- * Copyright © 2011-2014 Intel Corporation
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
- *
+ * Copyright © 2020 Intel Corporation
  */
 
 #include <linux/slab.h> /* fault-inject.h is not standalone! */
@@ -45,661 +26,50 @@
 #include "i915_trace.h"
 #include "i915_vgpu.h"
 
-#define I915_GFP_ALLOW_FAIL (GFP_KERNEL | __GFP_RETRY_MAYFAIL | __GFP_NOWARN)
-
-#if IS_ENABLED(CONFIG_DRM_I915_TRACE_GTT)
-#define DBG(...) trace_printk(__VA_ARGS__)
-#else
-#define DBG(...)
-#endif
-
-/**
- * DOC: Global GTT views
- *
- * Background and previous state
- *
- * Historically objects could exists (be bound) in global GTT space only as
- * singular instances with a view representing all of the object's backing pages
- * in a linear fashion. This view will be called a normal view.
- *
- * To support multiple views of the same object, where the number of mapped
- * pages is not equal to the backing store, or where the layout of the pages
- * is not linear, concept of a GGTT view was added.
- *
- * One example of an alternative view is a stereo display driven by a single
- * image. In this case we would have a framebuffer looking like this
- * (2x2 pages):
- *
- *    12
- *    34
- *
- * Above would represent a normal GGTT view as normally mapped for GPU or CPU
- * rendering. In contrast, fed to the display engine would be an alternative
- * view which could look something like this:
- *
- *   1212
- *   3434
- *
- * In this example both the size and layout of pages in the alternative view is
- * different from the normal view.
- *
- * Implementation and usage
- *
- * GGTT views are implemented using VMAs and are distinguished via enum
- * i915_ggtt_view_type and struct i915_ggtt_view.
- *
- * A new flavour of core GEM functions which work with GGTT bound objects were
- * added with the _ggtt_ infix, and sometimes with _view postfix to avoid
- * renaming  in large amounts of code. They take the struct i915_ggtt_view
- * parameter encapsulating all metadata required to implement a view.
- *
- * As a helper for callers which are only interested in the normal view,
- * globally const i915_ggtt_view_normal singleton instance exists. All old core
- * GEM API functions, the ones not taking the view parameter, are operating on,
- * or with the normal GGTT view.
- *
- * Code wanting to add or use a new GGTT view needs to:
- *
- * 1. Add a new enum with a suitable name.
- * 2. Extend the metadata in the i915_ggtt_view structure if required.
- * 3. Add support to i915_get_vma_pages().
- *
- * New views are required to build a scatter-gather table from within the
- * i915_get_vma_pages function. This table is stored in the vma.ggtt_view and
- * exists for the lifetime of an VMA.
- *
- * Core API is designed to have copy semantics which means that passed in
- * struct i915_ggtt_view does not need to be persistent (left around after
- * calling the core API functions).
- *
- */
-
-#define as_pd(x) container_of((x), typeof(struct i915_page_directory), pt)
-
-static int
-i915_get_ggtt_vma_pages(struct i915_vma *vma);
-
-static void gen6_ggtt_invalidate(struct i915_ggtt *ggtt)
+int i915_gem_gtt_prepare_pages(struct drm_i915_gem_object *obj,
+			       struct sg_table *pages)
 {
-	struct intel_uncore *uncore = ggtt->vm.gt->uncore;
-
-	/*
-	 * Note that as an uncached mmio write, this will flush the
-	 * WCB of the writes into the GGTT before it triggers the invalidate.
-	 */
-	intel_uncore_write_fw(uncore, GFX_FLSH_CNTL_GEN6, GFX_FLSH_CNTL_EN);
-}
-
-static void guc_ggtt_invalidate(struct i915_ggtt *ggtt)
-{
-	struct intel_uncore *uncore = ggtt->vm.gt->uncore;
-	struct drm_i915_private *i915 = ggtt->vm.i915;
-
-	gen6_ggtt_invalidate(ggtt);
-
-	if (INTEL_GEN(i915) >= 12)
-		intel_uncore_write_fw(uncore, GEN12_GUC_TLB_INV_CR,
-				      GEN12_GUC_TLB_INV_CR_INVALIDATE);
-	else
-		intel_uncore_write_fw(uncore, GEN8_GTCR, GEN8_GTCR_INVALIDATE);
-}
-
-static void gmch_ggtt_invalidate(struct i915_ggtt *ggtt)
-{
-	intel_gtt_chipset_flush();
-}
-
-static int ppgtt_bind_vma(struct i915_vma *vma,
-			  enum i915_cache_level cache_level,
-			  u32 flags)
-{
-	u32 pte_flags;
-	int err;
-
-	if (flags & I915_VMA_ALLOC) {
-		err = vma->vm->allocate_va_range(vma->vm,
-						 vma->node.start, vma->size);
-		if (err)
-			return err;
-
-		set_bit(I915_VMA_ALLOC_BIT, __i915_vma_flags(vma));
-	}
-
-	/* Applicable to VLV, and gen8+ */
-	pte_flags = 0;
-	if (i915_gem_object_is_readonly(vma->obj))
-		pte_flags |= PTE_READ_ONLY;
-
-	GEM_BUG_ON(!test_bit(I915_VMA_ALLOC_BIT, __i915_vma_flags(vma)));
-	vma->vm->insert_entries(vma->vm, vma, cache_level, pte_flags);
-	wmb();
-
-	return 0;
-}
-
-static void ppgtt_unbind_vma(struct i915_vma *vma)
-{
-	if (test_and_clear_bit(I915_VMA_ALLOC_BIT, __i915_vma_flags(vma)))
-		vma->vm->clear_range(vma->vm, vma->node.start, vma->size);
-}
-
-static int ppgtt_set_pages(struct i915_vma *vma)
-{
-	GEM_BUG_ON(vma->pages);
-
-	vma->pages = vma->obj->mm.pages;
-
-	vma->page_sizes = vma->obj->mm.page_sizes;
-
-	return 0;
-}
-
-static void clear_pages(struct i915_vma *vma)
-{
-	GEM_BUG_ON(!vma->pages);
-
-	if (vma->pages != vma->obj->mm.pages) {
-		sg_free_table(vma->pages);
-		kfree(vma->pages);
-	}
-	vma->pages = NULL;
-
-	memset(&vma->page_sizes, 0, sizeof(vma->page_sizes));
-}
-
-static u64 gen8_pte_encode(dma_addr_t addr,
-			   enum i915_cache_level level,
-			   u32 flags)
-{
-	gen8_pte_t pte = addr | _PAGE_PRESENT | _PAGE_RW;
-
-	if (unlikely(flags & PTE_READ_ONLY))
-		pte &= ~_PAGE_RW;
-
-	switch (level) {
-	case I915_CACHE_NONE:
-		pte |= PPAT_UNCACHED;
-		break;
-	case I915_CACHE_WT:
-		pte |= PPAT_DISPLAY_ELLC;
-		break;
-	default:
-		pte |= PPAT_CACHED;
-		break;
-	}
-
-	return pte;
-}
-
-static u64 gen8_pde_encode(const dma_addr_t addr,
-			   const enum i915_cache_level level)
-{
-	u64 pde = _PAGE_PRESENT | _PAGE_RW;
-	pde |= addr;
-	if (level != I915_CACHE_NONE)
-		pde |= PPAT_CACHED_PDE;
-	else
-		pde |= PPAT_UNCACHED;
-	return pde;
-}
-
-static u64 snb_pte_encode(dma_addr_t addr,
-			  enum i915_cache_level level,
-			  u32 flags)
-{
-	gen6_pte_t pte = GEN6_PTE_VALID;
-	pte |= GEN6_PTE_ADDR_ENCODE(addr);
-
-	switch (level) {
-	case I915_CACHE_L3_LLC:
-	case I915_CACHE_LLC:
-		pte |= GEN6_PTE_CACHE_LLC;
-		break;
-	case I915_CACHE_NONE:
-		pte |= GEN6_PTE_UNCACHED;
-		break;
-	default:
-		MISSING_CASE(level);
-	}
-
-	return pte;
-}
-
-static u64 ivb_pte_encode(dma_addr_t addr,
-			  enum i915_cache_level level,
-			  u32 flags)
-{
-	gen6_pte_t pte = GEN6_PTE_VALID;
-	pte |= GEN6_PTE_ADDR_ENCODE(addr);
-
-	switch (level) {
-	case I915_CACHE_L3_LLC:
-		pte |= GEN7_PTE_CACHE_L3_LLC;
-		break;
-	case I915_CACHE_LLC:
-		pte |= GEN6_PTE_CACHE_LLC;
-		break;
-	case I915_CACHE_NONE:
-		pte |= GEN6_PTE_UNCACHED;
-		break;
-	default:
-		MISSING_CASE(level);
-	}
-
-	return pte;
-}
-
-static u64 byt_pte_encode(dma_addr_t addr,
-			  enum i915_cache_level level,
-			  u32 flags)
-{
-	gen6_pte_t pte = GEN6_PTE_VALID;
-	pte |= GEN6_PTE_ADDR_ENCODE(addr);
-
-	if (!(flags & PTE_READ_ONLY))
-		pte |= BYT_PTE_WRITEABLE;
-
-	if (level != I915_CACHE_NONE)
-		pte |= BYT_PTE_SNOOPED_BY_CPU_CACHES;
-
-	return pte;
-}
-
-static u64 hsw_pte_encode(dma_addr_t addr,
-			  enum i915_cache_level level,
-			  u32 flags)
-{
-	gen6_pte_t pte = GEN6_PTE_VALID;
-	pte |= HSW_PTE_ADDR_ENCODE(addr);
-
-	if (level != I915_CACHE_NONE)
-		pte |= HSW_WB_LLC_AGE3;
-
-	return pte;
-}
-
-static u64 iris_pte_encode(dma_addr_t addr,
-			   enum i915_cache_level level,
-			   u32 flags)
-{
-	gen6_pte_t pte = GEN6_PTE_VALID;
-	pte |= HSW_PTE_ADDR_ENCODE(addr);
-
-	switch (level) {
-	case I915_CACHE_NONE:
-		break;
-	case I915_CACHE_WT:
-		pte |= HSW_WT_ELLC_LLC_AGE3;
-		break;
-	default:
-		pte |= HSW_WB_ELLC_LLC_AGE3;
-		break;
-	}
-
-	return pte;
-}
-
-static void stash_init(struct pagestash *stash)
-{
-	pagevec_init(&stash->pvec);
-	spin_lock_init(&stash->lock);
-}
-
-static struct page *stash_pop_page(struct pagestash *stash)
-{
-	struct page *page = NULL;
-
-	spin_lock(&stash->lock);
-	if (likely(stash->pvec.nr))
-		page = stash->pvec.pages[--stash->pvec.nr];
-	spin_unlock(&stash->lock);
-
-	return page;
-}
-
-static void stash_push_pagevec(struct pagestash *stash, struct pagevec *pvec)
-{
-	unsigned int nr;
-
-	spin_lock_nested(&stash->lock, SINGLE_DEPTH_NESTING);
-
-	nr = min_t(typeof(nr), pvec->nr, pagevec_space(&stash->pvec));
-	memcpy(stash->pvec.pages + stash->pvec.nr,
-	       pvec->pages + pvec->nr - nr,
-	       sizeof(pvec->pages[0]) * nr);
-	stash->pvec.nr += nr;
-
-	spin_unlock(&stash->lock);
-
-	pvec->nr -= nr;
-}
-
-static struct page *vm_alloc_page(struct i915_address_space *vm, gfp_t gfp)
-{
-	struct pagevec stack;
-	struct page *page;
-
-	if (I915_SELFTEST_ONLY(should_fail(&vm->fault_attr, 1)))
-		i915_gem_shrink_all(vm->i915);
-
-	page = stash_pop_page(&vm->free_pages);
-	if (page)
-		return page;
-
-	if (!vm->pt_kmap_wc)
-		return alloc_page(gfp);
-
-	/* Look in our global stash of WC pages... */
-	page = stash_pop_page(&vm->i915->mm.wc_stash);
-	if (page)
-		return page;
-
-	/*
-	 * Otherwise batch allocate pages to amortize cost of set_pages_wc.
-	 *
-	 * We have to be careful as page allocation may trigger the shrinker
-	 * (via direct reclaim) which will fill up the WC stash underneath us.
-	 * So we add our WB pages into a temporary pvec on the stack and merge
-	 * them into the WC stash after all the allocations are complete.
-	 */
-	pagevec_init(&stack);
 	do {
-		struct page *page;
-
-		page = alloc_page(gfp);
-		if (unlikely(!page))
-			break;
-
-		stack.pages[stack.nr++] = page;
-	} while (pagevec_space(&stack));
-
-	if (stack.nr && !set_pages_array_wc(stack.pages, stack.nr)) {
-		page = stack.pages[--stack.nr];
-
-		/* Merge spare WC pages to the global stash */
-		if (stack.nr)
-			stash_push_pagevec(&vm->i915->mm.wc_stash, &stack);
-
-		/* Push any surplus WC pages onto the local VM stash */
-		if (stack.nr)
-			stash_push_pagevec(&vm->free_pages, &stack);
-	}
-
-	/* Return unwanted leftovers */
-	if (unlikely(stack.nr)) {
-		WARN_ON_ONCE(set_pages_array_wb(stack.pages, stack.nr));
-		__pagevec_release(&stack);
-	}
-
-	return page;
-}
-
-static void vm_free_pages_release(struct i915_address_space *vm,
-				  bool immediate)
-{
-	struct pagevec *pvec = &vm->free_pages.pvec;
-	struct pagevec stack;
-
-	lockdep_assert_held(&vm->free_pages.lock);
-	GEM_BUG_ON(!pagevec_count(pvec));
-
-	if (vm->pt_kmap_wc) {
-		/*
-		 * When we use WC, first fill up the global stash and then
-		 * only if full immediately free the overflow.
-		 */
-		stash_push_pagevec(&vm->i915->mm.wc_stash, pvec);
+		if (dma_map_sg_attrs(&obj->base.dev->pdev->dev,
+				     pages->sgl, pages->nents,
+				     PCI_DMA_BIDIRECTIONAL,
+				     DMA_ATTR_NO_WARN))
+			return 0;
 
 		/*
-		 * As we have made some room in the VM's free_pages,
-		 * we can wait for it to fill again. Unless we are
-		 * inside i915_address_space_fini() and must
-		 * immediately release the pages!
+		 * If the DMA remap fails, one cause can be that we have
+		 * too many objects pinned in a small remapping table,
+		 * such as swiotlb. Incrementally purge all other objects and
+		 * try again - if there are no more pages to remove from
+		 * the DMA remapper, i915_gem_shrink will return 0.
 		 */
-		if (pvec->nr <= (immediate ? 0 : PAGEVEC_SIZE - 1))
-			return;
+		GEM_BUG_ON(obj->mm.pages == pages);
+	} while (i915_gem_shrink(to_i915(obj->base.dev),
+				 obj->base.size >> PAGE_SHIFT, NULL,
+				 I915_SHRINK_BOUND |
+				 I915_SHRINK_UNBOUND));
 
-		/*
-		 * We have to drop the lock to allow ourselves to sleep,
-		 * so take a copy of the pvec and clear the stash for
-		 * others to use it as we sleep.
-		 */
-		stack = *pvec;
-		pagevec_reinit(pvec);
-		spin_unlock(&vm->free_pages.lock);
+	return -ENOSPC;
+}
 
-		pvec = &stack;
-		set_pages_array_wb(pvec->pages, pvec->nr);
+void i915_gem_gtt_finish_pages(struct drm_i915_gem_object *obj,
+			       struct sg_table *pages)
+{
+	struct drm_i915_private *dev_priv = to_i915(obj->base.dev);
+	struct device *kdev = &dev_priv->drm.pdev->dev;
+	struct i915_ggtt *ggtt = &dev_priv->ggtt;
 
-		spin_lock(&vm->free_pages.lock);
+	if (unlikely(ggtt->do_idle_maps)) {
+		/* XXX This does not prevent more requests being submitted! */
+		if (intel_gt_retire_requests_timeout(ggtt->vm.gt,
+						     -MAX_SCHEDULE_TIMEOUT)) {
+			DRM_ERROR("Failed to wait for idle; VT'd may hang.\n");
+			/* Wait a bit, in hopes it avoids the hang */
+			udelay(10);
+		}
 	}
 
-	__pagevec_release(pvec);
-}
-
-static void vm_free_page(struct i915_address_space *vm, struct page *page)
-{
-	/*
-	 * On !llc, we need to change the pages back to WB. We only do so
-	 * in bulk, so we rarely need to change the page attributes here,
-	 * but doing so requires a stop_machine() from deep inside arch/x86/mm.
-	 * To make detection of the possible sleep more likely, use an
-	 * unconditional might_sleep() for everybody.
-	 */
-	might_sleep();
-	spin_lock(&vm->free_pages.lock);
-	while (!pagevec_space(&vm->free_pages.pvec))
-		vm_free_pages_release(vm, false);
-	GEM_BUG_ON(pagevec_count(&vm->free_pages.pvec) >= PAGEVEC_SIZE);
-	pagevec_add(&vm->free_pages.pvec, page);
-	spin_unlock(&vm->free_pages.lock);
-}
-
-static void i915_address_space_fini(struct i915_address_space *vm)
-{
-	spin_lock(&vm->free_pages.lock);
-	if (pagevec_count(&vm->free_pages.pvec))
-		vm_free_pages_release(vm, true);
-	GEM_BUG_ON(pagevec_count(&vm->free_pages.pvec));
-	spin_unlock(&vm->free_pages.lock);
-
-	drm_mm_takedown(&vm->mm);
-
-	mutex_destroy(&vm->mutex);
-}
-
-void __i915_vm_close(struct i915_address_space *vm)
-{
-	struct i915_vma *vma, *vn;
-
-	mutex_lock(&vm->mutex);
-	list_for_each_entry_safe(vma, vn, &vm->bound_list, vm_link) {
-		struct drm_i915_gem_object *obj = vma->obj;
-
-		/* Keep the obj (and hence the vma) alive as _we_ destroy it */
-		if (!kref_get_unless_zero(&obj->base.refcount))
-			continue;
-
-		atomic_and(~I915_VMA_PIN_MASK, &vma->flags);
-		WARN_ON(__i915_vma_unbind(vma));
-		i915_vma_destroy(vma);
-
-		i915_gem_object_put(obj);
-	}
-	GEM_BUG_ON(!list_empty(&vm->bound_list));
-	mutex_unlock(&vm->mutex);
-}
-
-static void __i915_vm_release(struct work_struct *work)
-{
-	struct i915_address_space *vm =
-		container_of(work, struct i915_address_space, rcu.work);
-
-	vm->cleanup(vm);
-	i915_address_space_fini(vm);
-
-	kfree(vm);
-}
-
-void i915_vm_release(struct kref *kref)
-{
-	struct i915_address_space *vm =
-		container_of(kref, struct i915_address_space, ref);
-
-	GEM_BUG_ON(i915_is_ggtt(vm));
-	trace_i915_ppgtt_release(vm);
-
-	queue_rcu_work(vm->i915->wq, &vm->rcu);
-}
-
-static void i915_address_space_init(struct i915_address_space *vm, int subclass)
-{
-	kref_init(&vm->ref);
-	INIT_RCU_WORK(&vm->rcu, __i915_vm_release);
-	atomic_set(&vm->open, 1);
-
-	/*
-	 * The vm->mutex must be reclaim safe (for use in the shrinker).
-	 * Do a dummy acquire now under fs_reclaim so that any allocation
-	 * attempt holding the lock is immediately reported by lockdep.
-	 */
-	mutex_init(&vm->mutex);
-	lockdep_set_subclass(&vm->mutex, subclass);
-	i915_gem_shrinker_taints_mutex(vm->i915, &vm->mutex);
-
-	GEM_BUG_ON(!vm->total);
-	drm_mm_init(&vm->mm, 0, vm->total);
-	vm->mm.head_node.color = I915_COLOR_UNEVICTABLE;
-
-	stash_init(&vm->free_pages);
-
-	INIT_LIST_HEAD(&vm->bound_list);
-}
-
-static int __setup_page_dma(struct i915_address_space *vm,
-			    struct i915_page_dma *p,
-			    gfp_t gfp)
-{
-	p->page = vm_alloc_page(vm, gfp | I915_GFP_ALLOW_FAIL);
-	if (unlikely(!p->page))
-		return -ENOMEM;
-
-	p->daddr = dma_map_page_attrs(vm->dma,
-				      p->page, 0, PAGE_SIZE,
-				      PCI_DMA_BIDIRECTIONAL,
-				      DMA_ATTR_SKIP_CPU_SYNC |
-				      DMA_ATTR_NO_WARN);
-	if (unlikely(dma_mapping_error(vm->dma, p->daddr))) {
-		vm_free_page(vm, p->page);
-		return -ENOMEM;
-	}
-
-	return 0;
-}
-
-static int setup_page_dma(struct i915_address_space *vm,
-			  struct i915_page_dma *p)
-{
-	return __setup_page_dma(vm, p, __GFP_HIGHMEM);
-}
-
-static void cleanup_page_dma(struct i915_address_space *vm,
-			     struct i915_page_dma *p)
-{
-	dma_unmap_page(vm->dma, p->daddr, PAGE_SIZE, PCI_DMA_BIDIRECTIONAL);
-	vm_free_page(vm, p->page);
-}
-
-#define kmap_atomic_px(px) kmap_atomic(px_base(px)->page)
-
-static void
-fill_page_dma(const struct i915_page_dma *p, const u64 val, unsigned int count)
-{
-	kunmap_atomic(memset64(kmap_atomic(p->page), val, count));
-}
-
-#define fill_px(px, v) fill_page_dma(px_base(px), (v), PAGE_SIZE / sizeof(u64))
-#define fill32_px(px, v) do {						\
-	u64 v__ = lower_32_bits(v);					\
-	fill_px((px), v__ << 32 | v__);					\
-} while (0)
-
-static int
-setup_scratch_page(struct i915_address_space *vm, gfp_t gfp)
-{
-	unsigned long size;
-
-	/*
-	 * In order to utilize 64K pages for an object with a size < 2M, we will
-	 * need to support a 64K scratch page, given that every 16th entry for a
-	 * page-table operating in 64K mode must point to a properly aligned 64K
-	 * region, including any PTEs which happen to point to scratch.
-	 *
-	 * This is only relevant for the 48b PPGTT where we support
-	 * huge-gtt-pages, see also i915_vma_insert(). However, as we share the
-	 * scratch (read-only) between all vm, we create one 64k scratch page
-	 * for all.
-	 */
-	size = I915_GTT_PAGE_SIZE_4K;
-	if (i915_vm_is_4lvl(vm) &&
-	    HAS_PAGE_SIZES(vm->i915, I915_GTT_PAGE_SIZE_64K)) {
-		size = I915_GTT_PAGE_SIZE_64K;
-		gfp |= __GFP_NOWARN;
-	}
-	gfp |= __GFP_ZERO | __GFP_RETRY_MAYFAIL;
-
-	do {
-		unsigned int order = get_order(size);
-		struct page *page;
-		dma_addr_t addr;
-
-		page = alloc_pages(gfp, order);
-		if (unlikely(!page))
-			goto skip;
-
-		addr = dma_map_page_attrs(vm->dma,
-					  page, 0, size,
-					  PCI_DMA_BIDIRECTIONAL,
-					  DMA_ATTR_SKIP_CPU_SYNC |
-					  DMA_ATTR_NO_WARN);
-		if (unlikely(dma_mapping_error(vm->dma, addr)))
-			goto free_page;
-
-		if (unlikely(!IS_ALIGNED(addr, size)))
-			goto unmap_page;
-
-		vm->scratch[0].base.page = page;
-		vm->scratch[0].base.daddr = addr;
-		vm->scratch_order = order;
-		return 0;
-
-unmap_page:
-		dma_unmap_page(vm->dma, addr, size, PCI_DMA_BIDIRECTIONAL);
-free_page:
-		__free_pages(page, order);
-skip:
-		if (size == I915_GTT_PAGE_SIZE_4K)
-			return -ENOMEM;
-
-		size = I915_GTT_PAGE_SIZE_4K;
-		gfp &= ~__GFP_NOWARN;
-	} while (1);
-}
-
-static void cleanup_scratch_page(struct i915_address_space *vm)
-{
-	struct i915_page_dma *p = px_base(&vm->scratch[0]);
-	unsigned int order = vm->scratch_order;
-
-	dma_unmap_page(vm->dma, p->daddr, BIT(order) << PAGE_SHIFT,
-		       PCI_DMA_BIDIRECTIONAL);
-	__free_pages(p->page, order);
-}
-
-static void free_scratch(struct i915_address_space *vm)
-{
-	int i;
-
+<<<<<<< HEAD
 	if (!px_dma(&vm->scratch[0])) /* set to 0 on clones */
 		return;
 
@@ -3604,6 +2974,9 @@ i915_get_ggtt_vma_pages(struct i915_vma *vma)
 			  vma->ggtt_view.type, ret);
 	}
 	return ret;
+=======
+	dma_unmap_sg(kdev, pages->sgl, pages->nents, PCI_DMA_BIDIRECTIONAL);
+>>>>>>> linux-next/akpm-base
 }
 
 /**
@@ -3827,6 +3200,5 @@ int i915_gem_gtt_insert(struct i915_address_space *vm,
 }
 
 #if IS_ENABLED(CONFIG_DRM_I915_SELFTEST)
-#include "selftests/mock_gtt.c"
 #include "selftests/i915_gem_gtt.c"
 #endif
