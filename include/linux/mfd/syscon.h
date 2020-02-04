@@ -51,7 +51,11 @@ static inline struct regmap *syscon_regmap_lookup_by_phandle(
 	return ERR_PTR(-ENOTSUPP);
 }
 
+<<<<<<< HEAD
 static inline struct regmap *syscon_regmap_lookup_by_phandle_args(
+=======
+static struct regmap *syscon_regmap_lookup_by_phandle_args(
+>>>>>>> linux-next/akpm-base
 					struct device_node *np,
 					const char *property,
 					int arg_count,

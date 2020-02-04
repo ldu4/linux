@@ -2092,6 +2092,7 @@ F:	drivers/rtc/rtc-pl031.c
 F:	drivers/watchdog/coh901327_wdt.c
 F:	Documentation/devicetree/bindings/arm/ste-*
 F:	Documentation/devicetree/bindings/arm/ux500/
+F:	Documentation/devicetree/bindings/arm/ux500.yaml
 T:	git git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-nomadik.git
 
 ARM/NUVOTON NPCM ARCHITECTURE
@@ -2237,6 +2238,8 @@ M:	Andreas Färber <afaerber@suse.de>
 L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
 L:	linux-realtek-soc@lists.infradead.org (moderated for non-subscribers)
 S:	Maintained
+F:	arch/arm/boot/dts/rtd*
+F:	arch/arm/mach-realtek/
 F:	arch/arm64/boot/dts/realtek/
 F:	Documentation/devicetree/bindings/arm/realtek.yaml
 
@@ -3288,6 +3291,8 @@ S:	Maintained
 N:	bcm2711
 N:	bcm2835
 F:	drivers/staging/vc04_services
+F:	Documentation/devicetree/bindings/pci/brcm,stb-pcie.yaml
+F:	drivers/pci/controller/pcie-brcmstb.c
 
 BROADCOM BCM47XX MIPS ARCHITECTURE
 M:	Hauke Mehrtens <hauke@hauke-m.de>
@@ -3343,6 +3348,8 @@ F:	drivers/bus/brcmstb_gisb.c
 F:	arch/arm/mm/cache-b15-rac.c
 F:	arch/arm/include/asm/hardware/cache-b15-rac.h
 N:	brcmstb
+F:	Documentation/devicetree/bindings/pci/brcm,stb-pcie.yaml
+F:	drivers/pci/controller/pcie-brcmstb.c
 
 BROADCOM BMIPS CPUFREQ DRIVER
 M:	Markus Mayer <mmayer@broadcom.com>
@@ -3644,6 +3651,7 @@ F:	sound/pci/oxygen/
 
 C-SKY ARCHITECTURE
 M:	Guo Ren <guoren@kernel.org>
+L:	linux-csky@vger.kernel.org
 T:	git https://github.com/c-sky/csky-linux.git
 S:	Supported
 F:	arch/csky/
@@ -7378,6 +7386,7 @@ F:	drivers/hwtracing/
 HARDWARE SPINLOCK CORE
 M:	Ohad Ben-Cohen <ohad@wizery.com>
 M:	Bjorn Andersson <bjorn.andersson@linaro.org>
+R:	Baolin Wang <baolin.wang7@gmail.com>
 L:	linux-remoteproc@vger.kernel.org
 S:	Maintained
 T:	git git://git.kernel.org/pub/scm/linux/kernel/git/andersson/remoteproc.git hwspinlock-next
@@ -7657,9 +7666,8 @@ S:	Orphan
 F:	drivers/net/usb/hso.c
 
 HSR NETWORK PROTOCOL
-M:	Arvid Brodin <arvid.brodin@alten.se>
 L:	netdev@vger.kernel.org
-S:	Maintained
+S:	Orphan
 F:	net/hsr/
 
 HT16K33 LED CONTROLLER DRIVER
@@ -7814,9 +7822,7 @@ M:	Jean Delvare <jdelvare@suse.com>
 L:	linux-i2c@vger.kernel.org
 S:	Maintained
 F:	Documentation/i2c/busses/i2c-parport.rst
-F:	Documentation/i2c/busses/i2c-parport-light.rst
 F:	drivers/i2c/busses/i2c-parport.c
-F:	drivers/i2c/busses/i2c-parport-light.c
 
 I2C SUBSYSTEM
 M:	Wolfram Sang <wsa@the-dreams.de>
@@ -8908,8 +8914,10 @@ L:	isdn4linux@listserv.isdn4linux.de (subscribers-only)
 L:	netdev@vger.kernel.org
 W:	http://www.isdn4linux.de
 S:	Maintained
-F:	drivers/isdn/mISDN
-F:	drivers/isdn/hardware
+F:	drivers/isdn/mISDN/
+F:	drivers/isdn/hardware/
+F:	drivers/isdn/Kconfig
+F:	drivers/isdn/Makefile
 
 ISDN/CMTP OVER BLUETOOTH
 M:	Karsten Keil <isdn@linux-pingi.de>
@@ -9052,6 +9060,17 @@ S:	Maintained
 F:	Documentation/kbuild/kconfig*
 F:	scripts/kconfig/
 F:	scripts/Kconfig.include
+
+KCSAN
+M:	Marco Elver <elver@google.com>
+R:	Dmitry Vyukov <dvyukov@google.com>
+L:	kasan-dev@googlegroups.com
+S:	Maintained
+F:	Documentation/dev-tools/kcsan.rst
+F:	include/linux/kcsan*.h
+F:	kernel/kcsan/
+F:	lib/Kconfig.kcsan
+F:	scripts/Makefile.kcsan
 
 KDUMP
 M:	Dave Young <dyoung@redhat.com>
@@ -13362,7 +13381,7 @@ S:	Maintained
 F:	fs/timerfd.c
 F:	include/linux/timer*
 F:	include/linux/time_namespace.h
-F:	kernel/time_namespace.c
+F:	kernel/time/namespace.c
 F:	kernel/time/*timer*
 
 POWER MANAGEMENT CORE
@@ -14231,7 +14250,7 @@ F:	include/dt-bindings/reset/
 F:	include/linux/reset.h
 F:	include/linux/reset/
 F:	include/linux/reset-controller.h
-K:      \b(?:devm_|of_)?reset_control(?:ler_[a-z]+|_[a-z_]+)?\b
+K:	\b(?:devm_|of_)?reset_control(?:ler_[a-z]+|_[a-z_]+)?\b
 
 RESTARTABLE SEQUENCES SUPPORT
 M:	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
@@ -14952,8 +14971,8 @@ S:	Maintained
 F:	drivers/mmc/host/sdhci-omap.c
 
 SECURE ENCRYPTING DEVICE (SED) OPAL DRIVER
-M:	Scott Bauer <scott.bauer@intel.com>
 M:	Jonathan Derrick <jonathan.derrick@intel.com>
+M:	Revanth Rajashekar <revanth.rajashekar@intel.com>
 L:	linux-block@vger.kernel.org
 S:	Supported
 F:	block/sed*
@@ -15939,6 +15958,15 @@ S:	Supported
 F:	Documentation/networking/device_drivers/stmicro/
 F:	drivers/net/ethernet/stmicro/stmmac/
 
+EXTRA BOOT CONFIG
+M:	Masami Hiramatsu <mhiramat@kernel.org>
+S:	Maintained
+F:	lib/bootconfig.c
+F:	fs/proc/bootconfig.c
+F:	include/linux/bootconfig.h
+F:	tools/bootconfig/*
+F:	Documentation/admin-guide/bootconfig.rst
+
 SUN3/3X
 M:	Sam Creasey <sammy@sammy.net>
 W:	http://sammy.net/sun3/
@@ -16146,6 +16174,7 @@ F:	drivers/firmware/arm_scpi.c
 F:	drivers/firmware/arm_scmi/
 F:	drivers/reset/reset-scmi.c
 F:	include/linux/sc[mp]i_protocol.h
+F:	include/trace/events/scmi.h
 
 SYSTEM RESET/SHUTDOWN DRIVERS
 M:	Sebastian Reichel <sre@kernel.org>
@@ -17131,7 +17160,6 @@ F:	drivers/staging/unisys/
 UNIVERSAL FLASH STORAGE HOST CONTROLLER DRIVER
 R:	Alim Akhtar <alim.akhtar@samsung.com>
 R:	Avri Altman <avri.altman@wdc.com>
-R:	Pedro Sousa <pedrom.sousa@synopsys.com>
 L:	linux-scsi@vger.kernel.org
 S:	Supported
 F:	Documentation/scsi/ufs.txt
@@ -17784,6 +17812,12 @@ S:	Maintained
 F:	include/linux/vbox_utils.h
 F:	include/uapi/linux/vbox*.h
 F:	drivers/virt/vboxguest/
+
+VIRTUAL BOX SHARED FOLDER VFS DRIVER:
+M:	Hans de Goede <hdegoede@redhat.com>
+L:	linux-fsdevel@vger.kernel.org
+S:	Maintained
+F:	fs/vboxsf/*
 
 VIRTUAL SERIO DEVICE DRIVER
 M:	Stephen Chandler Paul <thatslyude@gmail.com>
@@ -18483,6 +18517,16 @@ M:	Tony W Wang-oc <TonyWWang-oc@zhaoxin.com>
 L:	linux-kernel@vger.kernel.org
 S:	Maintained
 F:	arch/x86/kernel/cpu/zhaoxin.c
+
+ZONEFS FILESYSTEM
+M:	Damien Le Moal <damien.lemoal@wdc.com>
+M:	Naohiro Aota <naohiro.aota@wdc.com>
+R:	Johannes Thumshirn <jth@kernel.org>
+L:	linux-fsdevel@vger.kernel.org
+T:	git git://git.kernel.org/pub/scm/linux/kernel/git/dlemoal/zonefs.git
+S:	Maintained
+F:	fs/zonefs/
+F:	Documentation/filesystems/zonefs.txt
 
 ZPOOL COMPRESSED PAGE STORAGE API
 M:	Dan Streetman <ddstreet@ieee.org>
