@@ -1315,11 +1315,6 @@ int pipe_resize_ring(struct pipe_inode_info *pipe, unsigned int nr_slots)
 		pipe->max_usage = nr_slots;
 	pipe->tail = tail;
 	pipe->head = head;
-<<<<<<< HEAD
-
-	/* This might have made more room for writers */
-	wake_up_interruptible(&pipe->wr_wait);
-=======
 	wake_up_interruptible_all(&pipe->rd_wait);
 	wake_up_interruptible_all(&pipe->wr_wait);
 	return 0;
@@ -1373,7 +1368,6 @@ static long pipe_set_size(struct pipe_inode_info *pipe, unsigned long arg)
 
 	pipe->max_usage = nr_slots;
 	pipe->nr_accounted = nr_slots;
->>>>>>> linux-next/akpm-base
 	return pipe->max_usage * PAGE_SIZE;
 
 out_revert_acct:
