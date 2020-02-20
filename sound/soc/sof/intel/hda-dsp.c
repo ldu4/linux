@@ -669,12 +669,6 @@ int hda_dsp_resume(struct snd_sof_dev *sdev)
 			return ret;
 		}
 
-<<<<<<< HEAD
-	if (sdev->s0_suspend) {
-		hda_codec_i915_display_power(sdev, true);
-
-=======
->>>>>>> linux-next/akpm-base
 		/* restore L1SEN bit */
 		if (hda->l1_support_changed)
 			snd_sof_dsp_update_bits(sdev, HDA_DSP_HDA_BAR,
@@ -751,12 +745,6 @@ int hda_dsp_suspend(struct snd_sof_dev *sdev, u32 target_state)
 	};
 	int ret;
 
-<<<<<<< HEAD
-	if (sdev->s0_suspend) {
-		/* we can't keep a wakeref to display driver at suspend */
-		hda_codec_i915_display_power(sdev, false);
-
-=======
 	/* cancel any attempt for DSP D0I3 */
 	cancel_delayed_work_sync(&hda->d0i3_work);
 
@@ -773,7 +761,6 @@ int hda_dsp_suspend(struct snd_sof_dev *sdev, u32 target_state)
 			return ret;
 		}
 
->>>>>>> linux-next/akpm-base
 		/* enable L1SEN to make sure the system can enter S0Ix */
 		hda->l1_support_changed =
 			snd_sof_dsp_update_bits(sdev, HDA_DSP_HDA_BAR,
