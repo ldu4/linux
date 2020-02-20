@@ -3504,27 +3504,25 @@ static int rtnl_alt_ifname(int cmd, struct net_device *dev, struct nlattr *attr,
 	if (err)
 		return err;
 
-	alt_ifname = nla_data(attr);
+	alt_ifname = nla_strdup(attr, GFP_KERNEL);
+	if (!alt_ifname)
+		return -ENOMEM;
+
 	if (cmd == RTM_NEWLINKPROP) {
-		alt_ifname = kstrdup(alt_ifname, GFP_KERNEL);
-		if (!alt_ifname)
-			return -ENOMEM;
 		err = netdev_name_node_alt_create(dev, alt_ifname);
-		if (err) {
-			kfree(alt_ifname);
-			return err;
-		}
+		if (!err)
+			alt_ifname = NULL;
 	} else if (cmd == RTM_DELLINKPROP) {
 		err = netdev_name_node_alt_destroy(dev, alt_ifname);
-		if (err)
-			return err;
 	} else {
-		WARN_ON(1);
-		return 0;
+		WARN_ON_ONCE(1);
+		err = -EINVAL;
 	}
 
-	*changed = true;
-	return 0;
+	kfree(alt_ifname);
+	if (!err)
+		*changed = true;
+	return err;
 }
 
 static int rtnl_linkprop(int cmd, struct sk_buff *skb, struct nlmsghdr *nlh,
@@ -4555,7 +4553,11 @@ int ndo_dflt_bridge_getlink(struct sk_buff *skb, u32 pid, u32 seq,
 	    brport_nla_put_flag(skb, flags, mask,
 				IFLA_BRPORT_UNICAST_FLOOD, BR_FLOOD) ||
 	    brport_nla_put_flag(skb, flags, mask,
-				IFLA_BRPORT_PROXYARP, BR_PROXYARP)) {
+				IFLA_BRPORT_PROXYARP, BR_PROXYARP) ||
+	    brport_nla_put_flag(skb, flags, mask,
+				IFLA_BRPORT_MCAST_FLOOD, BR_MCAST_FLOOD) ||
+	    brport_nla_put_flag(skb, flags, mask,
+				IFLA_BRPORT_BCAST_FLOOD, BR_BCAST_FLOOD)) {
 		nla_nest_cancel(skb, protinfo);
 		goto nla_put_failure;
 	}
