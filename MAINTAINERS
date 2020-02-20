@@ -303,8 +303,8 @@ F:	drivers/net/ethernet/alteon/acenic*
 ACER ASPIRE ONE TEMPERATURE AND FAN DRIVER
 M:	Peter Kaestle <peter@piie.net>
 L:	platform-driver-x86@vger.kernel.org
-W:	http://piie.net/?section=acerhdf
 S:	Maintained
+W:	http://piie.net/?section=acerhdf
 F:	drivers/platform/x86/acerhdf.c
 
 ACER WMI LAPTOP EXTRAS
@@ -2238,6 +2238,8 @@ M:	Andreas Färber <afaerber@suse.de>
 L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
 L:	linux-realtek-soc@lists.infradead.org (moderated for non-subscribers)
 S:	Maintained
+F:	arch/arm/boot/dts/rtd*
+F:	arch/arm/mach-realtek/
 F:	arch/arm64/boot/dts/realtek/
 F:	Documentation/devicetree/bindings/arm/realtek.yaml
 
@@ -2725,8 +2727,8 @@ L:	linux-aspeed@lists.ozlabs.org (moderated for non-subscribers)
 L:	openbmc@lists.ozlabs.org (moderated for non-subscribers)
 L:	linux-gpio@vger.kernel.org
 S:	Maintained
-F:	drivers/pinctrl/aspeed/
 F:	Documentation/devicetree/bindings/pinctrl/aspeed,*
+F:	drivers/pinctrl/aspeed/
 
 ASPEED SCU INTERRUPT CONTROLLER DRIVER
 M:	Eddie James <eajames@linux.ibm.com>
@@ -2748,8 +2750,8 @@ ASUS NOTEBOOKS AND EEEPC ACPI/WMI EXTRAS DRIVERS
 M:	Corentin Chary <corentin.chary@gmail.com>
 L:	acpi4asus-user@lists.sourceforge.net
 L:	platform-driver-x86@vger.kernel.org
-W:	http://acpi4asus.sf.net
 S:	Maintained
+W:	http://acpi4asus.sf.net
 F:	drivers/platform/x86/asus*.c
 F:	drivers/platform/x86/eeepc*.c
 
@@ -2956,6 +2958,14 @@ L:	alsa-devel@alsa-project.org (moderated for non-subscribers)
 S:	Maintained
 F:	Documentation/devicetree/bindings/sound/axentia,*
 F:	sound/soc/atmel/tse850-pcm5142.c
+
+AXI-FAN-CONTROL HARDWARE MONITOR DRIVER
+M:	Nuno Sá <nuno.sa@analog.com>
+W:	http://ez.analog.com/community/linux-device-drivers
+L:	linux-hwmon@vger.kernel.org
+S:	Supported
+F:	drivers/hwmon/axi-fan-control.c
+F:	Documentation/devicetree/bindings/hwmon/adi,axi-fan-control.yaml
 
 AXXIA I2C CONTROLLER
 M:	Krzysztof Adamski <krzysztof.adamski@nokia.com>
@@ -3649,6 +3659,7 @@ F:	sound/pci/oxygen/
 
 C-SKY ARCHITECTURE
 M:	Guo Ren <guoren@kernel.org>
+L:	linux-csky@vger.kernel.org
 T:	git https://github.com/c-sky/csky-linux.git
 S:	Supported
 F:	arch/csky/
@@ -3909,7 +3920,7 @@ S:	Supported
 F:	Documentation/filesystems/ceph.txt
 F:	fs/ceph/
 
-CERTIFICATE HANDLING:
+CERTIFICATE HANDLING
 M:	David Howells <dhowells@redhat.com>
 M:	David Woodhouse <dwmw2@infradead.org>
 L:	keyrings@vger.kernel.org
@@ -3918,11 +3929,6 @@ F:	Documentation/admin-guide/module-signing.rst
 F:	certs/
 F:	scripts/sign-file.c
 F:	scripts/extract-cert.c
-
-CERTIFIED WIRELESS USB (WUSB) SUBSYSTEM:
-L:	devel@driverdev.osuosl.org
-S:	Obsolete
-F:	drivers/staging/wusbcore/
 
 CFAG12864B LCD DRIVER
 M:	Miguel Ojeda Sandonis <miguel.ojeda.sandonis@gmail.com>
@@ -4723,26 +4729,6 @@ S:	Maintained
 F:	drivers/media/platform/sunxi/sun8i-di/
 F:	Documentation/devicetree/bindings/media/allwinner,sun8i-h3-deinterlace.yaml
 
-DELL SMBIOS DRIVER
-M:	Pali Rohár <pali.rohar@gmail.com>
-M:	Mario Limonciello <mario.limonciello@dell.com>
-L:	platform-driver-x86@vger.kernel.org
-S:	Maintained
-F:	drivers/platform/x86/dell-smbios.*
-
-DELL SMBIOS SMM DRIVER
-M:	Mario Limonciello <mario.limonciello@dell.com>
-L:	platform-driver-x86@vger.kernel.org
-S:	Maintained
-F:	drivers/platform/x86/dell-smbios-smm.c
-
-DELL SMBIOS WMI DRIVER
-M:	Mario Limonciello <mario.limonciello@dell.com>
-L:	platform-driver-x86@vger.kernel.org
-S:	Maintained
-F:	drivers/platform/x86/dell-smbios-wmi.c
-F:	tools/wmi/dell-smbios-example.c
-
 DEFZA FDDI NETWORK DRIVER
 M:	"Maciej W. Rozycki" <macro@linux-mips.org>
 S:	Maintained
@@ -4765,17 +4751,37 @@ M:	Pali Rohár <pali.rohar@gmail.com>
 S:	Maintained
 F:	drivers/platform/x86/dell-rbtn.*
 
+DELL LAPTOP SMM DRIVER
+M:	Pali Rohár <pali.rohar@gmail.com>
+S:	Maintained
+F:	drivers/hwmon/dell-smm-hwmon.c
+F:	include/uapi/linux/i8k.h
+
 DELL REMOTE BIOS UPDATE DRIVER
 M:	Stuart Hayes <stuart.w.hayes@gmail.com>
 L:	platform-driver-x86@vger.kernel.org
 S:	Maintained
 F:	drivers/platform/x86/dell_rbu.c
 
-DELL LAPTOP SMM DRIVER
+DELL SMBIOS DRIVER
 M:	Pali Rohár <pali.rohar@gmail.com>
+M:	Mario Limonciello <mario.limonciello@dell.com>
+L:	platform-driver-x86@vger.kernel.org
 S:	Maintained
-F:	drivers/hwmon/dell-smm-hwmon.c
-F:	include/uapi/linux/i8k.h
+F:	drivers/platform/x86/dell-smbios.*
+
+DELL SMBIOS SMM DRIVER
+M:	Mario Limonciello <mario.limonciello@dell.com>
+L:	platform-driver-x86@vger.kernel.org
+S:	Maintained
+F:	drivers/platform/x86/dell-smbios-smm.c
+
+DELL SMBIOS WMI DRIVER
+M:	Mario Limonciello <mario.limonciello@dell.com>
+L:	platform-driver-x86@vger.kernel.org
+S:	Maintained
+F:	drivers/platform/x86/dell-smbios-wmi.c
+F:	tools/wmi/dell-smbios-example.c
 
 DELL SYSTEMS MANAGEMENT BASE DRIVER (dcdbas)
 M:	Stuart Hayes <stuart.w.hayes@gmail.com>
@@ -4784,16 +4790,16 @@ S:	Maintained
 F:	Documentation/driver-api/dcdbas.rst
 F:	drivers/platform/x86/dcdbas.*
 
+DELL WMI DESCRIPTOR DRIVER
+M:	Mario Limonciello <mario.limonciello@dell.com>
+S:	Maintained
+F:	drivers/platform/x86/dell-wmi-descriptor.c
+
 DELL WMI NOTIFICATIONS DRIVER
 M:	Matthew Garrett <mjg59@srcf.ucam.org>
 M:	Pali Rohár <pali.rohar@gmail.com>
 S:	Maintained
 F:	drivers/platform/x86/dell-wmi.c
-
-DELL WMI DESCRIPTOR DRIVER
-M:	Mario Limonciello <mario.limonciello@dell.com>
-S:	Maintained
-F:	drivers/platform/x86/dell-wmi-descriptor.c
 
 DELTA ST MEDIA DRIVER
 M:	Hugues Fruchet <hugues.fruchet@st.com>
@@ -7047,7 +7053,7 @@ L:	kvm@vger.kernel.org
 S:	Supported
 F:	drivers/uio/uio_pci_generic.c
 
-GENERIC VDSO LIBRARY:
+GENERIC VDSO LIBRARY
 M:	Andy Lutomirski <luto@kernel.org>
 M:	Thomas Gleixner <tglx@linutronix.de>
 M:	Vincenzo Frascino <vincenzo.frascino@arm.com>
@@ -7348,8 +7354,8 @@ F:	drivers/media/usb/hackrf/
 HARD DRIVE ACTIVE PROTECTION SYSTEM (HDAPS) DRIVER
 M:	Frank Seidel <frank@f-seidel.de>
 L:	platform-driver-x86@vger.kernel.org
-W:	http://www.kernel.org/pub/linux/kernel/people/fseidel/hdaps/
 S:	Maintained
+W:	http://www.kernel.org/pub/linux/kernel/people/fseidel/hdaps/
 F:	drivers/platform/x86/hdaps.c
 
 HARDWARE MONITORING
@@ -8084,15 +8090,15 @@ F:	drivers/ide/ide-cd*
 IDEAPAD LAPTOP EXTRAS DRIVER
 M:	Ike Panhc <ike.pan@canonical.com>
 L:	platform-driver-x86@vger.kernel.org
-W:	http://launchpad.net/ideapad-laptop
 S:	Maintained
+W:	http://launchpad.net/ideapad-laptop
 F:	drivers/platform/x86/ideapad-laptop.c
 
 IDEAPAD LAPTOP SLIDEBAR DRIVER
 M:	Andrey Moiseev <o2g.org.ru@gmail.com>
 L:	linux-input@vger.kernel.org
-W:	https://github.com/o2genum/ideapad-slidebar
 S:	Maintained
+W:	https://github.com/o2genum/ideapad-slidebar
 F:	drivers/input/misc/ideapad_slidebar.c
 
 IDT VersaClock 5 CLOCK DRIVER
@@ -8392,7 +8398,7 @@ M:	Joonas Lahtinen <joonas.lahtinen@linux.intel.com>
 M:	Rodrigo Vivi <rodrigo.vivi@intel.com>
 L:	intel-gfx@lists.freedesktop.org
 W:	https://01.org/linuxgraphics/
-B:	https://01.org/linuxgraphics/documentation/how-report-bugs
+B:	https://gitlab.freedesktop.org/drm/intel/-/wikis/How-to-file-i915-bugs
 C:	irc://chat.freenode.net/intel-gfx
 Q:	http://patchwork.freedesktop.org/project/intel-gfx/
 T:	git git://anongit.freedesktop.org/drm-intel
@@ -8559,8 +8565,8 @@ F:	samples/mei/*
 INTEL MENLOW THERMAL DRIVER
 M:	Sujith Thomas <sujith.thomas@intel.com>
 L:	platform-driver-x86@vger.kernel.org
-W:	https://01.org/linux-acpi
 S:	Supported
+W:	https://01.org/linux-acpi
 F:	drivers/platform/x86/intel_menlow.c
 
 INTEL MIC DRIVERS (mic)
@@ -8590,10 +8596,10 @@ INTEL PMC/P-Unit IPC DRIVER
 M:	Zha Qipeng<qipeng.zha@intel.com>
 L:	platform-driver-x86@vger.kernel.org
 S:	Maintained
-F:	drivers/platform/x86/intel_pmc_ipc.c
-F:	drivers/platform/x86/intel_punit_ipc.c
 F:	arch/x86/include/asm/intel_pmc_ipc.h
 F:	arch/x86/include/asm/intel_punit_ipc.h
+F:	drivers/platform/x86/intel_pmc_ipc.c
+F:	drivers/platform/x86/intel_punit_ipc.c
 
 INTEL PMIC GPIO DRIVERS
 M:	Andy Shevchenko <andy@kernel.org>
@@ -8638,8 +8644,8 @@ M:	Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>
 L:	platform-driver-x86@vger.kernel.org
 S:	Maintained
 F:	drivers/platform/x86/intel_speed_select_if/
-F:	tools/power/x86/intel-speed-select/
 F:	include/uapi/linux/isst_if.h
+F:	tools/power/x86/intel-speed-select/
 
 INTEL STRATIX10 FIRMWARE DRIVERS
 M:	Richard Gong <richard.gong@linux.intel.com>
@@ -9058,6 +9064,17 @@ F:	Documentation/kbuild/kconfig*
 F:	scripts/kconfig/
 F:	scripts/Kconfig.include
 
+KCSAN
+M:	Marco Elver <elver@google.com>
+R:	Dmitry Vyukov <dvyukov@google.com>
+L:	kasan-dev@googlegroups.com
+S:	Maintained
+F:	Documentation/dev-tools/kcsan.rst
+F:	include/linux/kcsan*.h
+F:	kernel/kcsan/
+F:	lib/Kconfig.kcsan
+F:	scripts/Makefile.kcsan
+
 KDUMP
 M:	Dave Young <dyoung@redhat.com>
 M:	Baoquan He <bhe@redhat.com>
@@ -9278,7 +9295,7 @@ F:	include/keys/trusted-type.h
 F:	security/keys/trusted.c
 F:	include/keys/trusted.h
 
-KEYS/KEYRINGS:
+KEYS/KEYRINGS
 M:	David Howells <dhowells@redhat.com>
 M:	Jarkko Sakkinen <jarkko.sakkinen@linux.intel.com>
 L:	keyrings@vger.kernel.org
@@ -11266,7 +11283,8 @@ F:	drivers/tty/mxser.*
 MONOLITHIC POWER SYSTEM PMIC DRIVER
 M:	Saravanan Sekar <sravanhome@gmail.com>
 S:	Maintained
-F:	Documentation/devicetree/bindings/regulator/mpq7920.yaml
+F:	Documentation/devicetree/bindings/regulator/mps,mp*.yaml
+F:	drivers/regulator/mp5416.c
 F:	drivers/regulator/mpq7920.c
 F:	drivers/regulator/mpq7920.h
 
@@ -11491,7 +11509,7 @@ F:	drivers/scsi/mac_scsi.*
 F:	drivers/scsi/sun3_scsi.*
 F:	drivers/scsi/sun3_scsi_vme.c
 
-NCSI LIBRARY:
+NCSI LIBRARY
 M:	Samuel Mendoza-Jonas <sam@mendozajonas.com>
 S:	Maintained
 F:	net/ncsi/
@@ -13175,20 +13193,12 @@ K:	\b(clone_args|kernel_clone_args)\b
 PIN CONTROL SUBSYSTEM
 M:	Linus Walleij <linus.walleij@linaro.org>
 L:	linux-gpio@vger.kernel.org
-T:	git git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-pinctrl.git
 S:	Maintained
+T:	git git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-pinctrl.git
 F:	Documentation/devicetree/bindings/pinctrl/
 F:	Documentation/driver-api/pinctl.rst
 F:	drivers/pinctrl/
 F:	include/linux/pinctrl/
-
-PIN CONTROLLER - MICROCHIP AT91
-M:	Ludovic Desroches <ludovic.desroches@microchip.com>
-L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
-L:	linux-gpio@vger.kernel.org
-S:	Supported
-F:	drivers/pinctrl/pinctrl-at91*
-F:	drivers/gpio/gpio-sama5d2-piobu.c
 
 PIN CONTROLLER - FREESCALE
 M:	Dong Aisheng <aisheng.dong@nxp.com>
@@ -13198,14 +13208,14 @@ M:	Stefan Agner <stefan@agner.ch>
 R:	Pengutronix Kernel Team <kernel@pengutronix.de>
 L:	linux-gpio@vger.kernel.org
 S:	Maintained
-F:	drivers/pinctrl/freescale/
 F:	Documentation/devicetree/bindings/pinctrl/fsl,*
+F:	drivers/pinctrl/freescale/
 
 PIN CONTROLLER - INTEL
 M:	Mika Westerberg <mika.westerberg@linux.intel.com>
 M:	Andy Shevchenko <andy@kernel.org>
-T:	git git://git.kernel.org/pub/scm/linux/kernel/git/pinctrl/intel.git
 S:	Maintained
+T:	git git://git.kernel.org/pub/scm/linux/kernel/git/pinctrl/intel.git
 F:	drivers/pinctrl/intel/
 
 PIN CONTROLLER - MEDIATEK
@@ -13216,18 +13226,26 @@ F:	Documentation/devicetree/bindings/pinctrl/pinctrl-mt65xx.txt
 F:	Documentation/devicetree/bindings/pinctrl/pinctrl-mt7622.txt
 F:	drivers/pinctrl/mediatek/
 
+PIN CONTROLLER - MICROCHIP AT91
+M:	Ludovic Desroches <ludovic.desroches@microchip.com>
+L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
+L:	linux-gpio@vger.kernel.org
+S:	Supported
+F:	drivers/gpio/gpio-sama5d2-piobu.c
+F:	drivers/pinctrl/pinctrl-at91*
+
 PIN CONTROLLER - QUALCOMM
 M:	Bjorn Andersson <bjorn.andersson@linaro.org>
-S:	Maintained
 L:	linux-arm-msm@vger.kernel.org
+S:	Maintained
 F:	Documentation/devicetree/bindings/pinctrl/qcom,*.txt
 F:	drivers/pinctrl/qcom/
 
 PIN CONTROLLER - RENESAS
 M:	Geert Uytterhoeven <geert+renesas@glider.be>
 L:	linux-renesas-soc@vger.kernel.org
-T:	git git://git.kernel.org/pub/scm/linux/kernel/git/geert/renesas-drivers.git sh-pfc
 S:	Maintained
+T:	git git://git.kernel.org/pub/scm/linux/kernel/git/geert/renesas-drivers.git sh-pfc
 F:	drivers/pinctrl/pinctrl-rz*
 F:	drivers/pinctrl/sh-pfc/
 
@@ -13237,12 +13255,12 @@ M:	Krzysztof Kozlowski <krzk@kernel.org>
 M:	Sylwester Nawrocki <s.nawrocki@samsung.com>
 L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
 L:	linux-samsung-soc@vger.kernel.org (moderated for non-subscribers)
-Q:	https://patchwork.kernel.org/project/linux-samsung-soc/list/
-T:	git git://git.kernel.org/pub/scm/linux/kernel/git/pinctrl/samsung.git
 S:	Maintained
+T:	git git://git.kernel.org/pub/scm/linux/kernel/git/pinctrl/samsung.git
+Q:	https://patchwork.kernel.org/project/linux-samsung-soc/list/
+F:	Documentation/devicetree/bindings/pinctrl/samsung-pinctrl.txt
 F:	drivers/pinctrl/samsung/
 F:	include/dt-bindings/pinctrl/samsung.h
-F:	Documentation/devicetree/bindings/pinctrl/samsung-pinctrl.txt
 
 PIN CONTROLLER - SINGLE
 M:	Tony Lindgren <tony@atomide.com>
@@ -13255,8 +13273,8 @@ F:	drivers/pinctrl/pinctrl-single.c
 PIN CONTROLLER - ST SPEAR
 M:	Viresh Kumar <vireshk@kernel.org>
 L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
-W:	http://www.st.com/spear
 S:	Maintained
+W:	http://www.st.com/spear
 F:	drivers/pinctrl/spear/
 
 PISTACHIO SOC SUPPORT
@@ -13519,7 +13537,7 @@ L:	linuxppc-dev@lists.ozlabs.org
 S:	Maintained
 F:	drivers/block/ps3vram.c
 
-PSAMPLE PACKET SAMPLING SUPPORT:
+PSAMPLE PACKET SAMPLING SUPPORT
 M:	Yotam Gigi <yotam.gi@gmail.com>
 S:	Maintained
 F:	net/psample
@@ -14080,6 +14098,7 @@ S:	Supported
 F:	arch/x86/kernel/cpu/resctrl/
 F:	arch/x86/include/asm/resctrl_sched.h
 F:	Documentation/x86/resctrl*
+F:	tools/testing/selftests/resctrl/
 
 READ-COPY UPDATE (RCU)
 M:	"Paul E. McKenney" <paulmck@kernel.org>
@@ -14235,7 +14254,7 @@ F:	include/dt-bindings/reset/
 F:	include/linux/reset.h
 F:	include/linux/reset/
 F:	include/linux/reset-controller.h
-K:      \b(?:devm_|of_)?reset_control(?:ler_[a-z]+|_[a-z_]+)?\b
+K:	\b(?:devm_|of_)?reset_control(?:ler_[a-z]+|_[a-z_]+)?\b
 
 RESTARTABLE SEQUENCES SUPPORT
 M:	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
@@ -14993,6 +15012,7 @@ F:	security/selinux/
 F:	scripts/selinux/
 F:	Documentation/admin-guide/LSM/SELinux.rst
 F:	Documentation/ABI/obsolete/sysfs-selinux-disable
+F:	Documentation/ABI/obsolete/sysfs-selinux-checkreqprot
 
 SENSABLE PHANTOM
 M:	Jiri Slaby <jirislaby@gmail.com>
@@ -15573,8 +15593,8 @@ F:	include/linux/memstick.h
 SONY VAIO CONTROL DEVICE DRIVER
 M:	Mattia Dongili <malattia@linux.it>
 L:	platform-driver-x86@vger.kernel.org
-W:	http://www.linux.it/~malattia/wiki/index.php/Sony_drivers
 S:	Maintained
+W:	http://www.linux.it/~malattia/wiki/index.php/Sony_drivers
 F:	Documentation/admin-guide/laptops/sony-laptop.rst
 F:	drivers/char/sonypi.c
 F:	drivers/platform/x86/sony-laptop.c
@@ -16547,10 +16567,10 @@ THINKPAD ACPI EXTRAS DRIVER
 M:	Henrique de Moraes Holschuh <ibm-acpi@hmh.eng.br>
 L:	ibm-acpi-devel@lists.sourceforge.net
 L:	platform-driver-x86@vger.kernel.org
+S:	Maintained
 W:	http://ibm-acpi.sourceforge.net
 W:	http://thinkwiki.org/wiki/Ibm-acpi
 T:	git git://repo.or.cz/linux-2.6/linux-acpi-2.6/ibm-acpi-2.6.git
-S:	Maintained
 F:	drivers/platform/x86/thinkpad_acpi.c
 
 THUNDERBOLT DRIVER
@@ -16559,8 +16579,8 @@ M:	Michael Jamet <michael.jamet@intel.com>
 M:	Mika Westerberg <mika.westerberg@linux.intel.com>
 M:	Yehezkel Bernat <YehezkelShB@gmail.com>
 L:	linux-usb@vger.kernel.org
-T:	git git://git.kernel.org/pub/scm/linux/kernel/git/westeri/thunderbolt.git
 S:	Maintained
+T:	git git://git.kernel.org/pub/scm/linux/kernel/git/westeri/thunderbolt.git
 F:	Documentation/admin-guide/thunderbolt.rst
 F:	drivers/thunderbolt/
 F:	include/linux/thunderbolt.h
@@ -17087,7 +17107,7 @@ S:	Maintained
 F:	Documentation/admin-guide/ufs.rst
 F:	fs/ufs/
 
-UHID USERSPACE HID IO DRIVER:
+UHID USERSPACE HID IO DRIVER
 M:	David Herrmann <dh.herrmann@googlemail.com>
 L:	linux-input@vger.kernel.org
 S:	Maintained
@@ -17101,18 +17121,13 @@ S:	Maintained
 F:	drivers/usb/common/ulpi.c
 F:	include/linux/ulpi/
 
-ULTRA-WIDEBAND (UWB) SUBSYSTEM:
-L:	devel@driverdev.osuosl.org
-S:	Obsolete
-F:	drivers/staging/uwb/
-
-UNICODE SUBSYSTEM:
+UNICODE SUBSYSTEM
 M:	Gabriel Krisman Bertazi <krisman@collabora.com>
 L:	linux-fsdevel@vger.kernel.org
 S:	Supported
 F:	fs/unicode/
 
-UNICORE32 ARCHITECTURE:
+UNICORE32 ARCHITECTURE
 M:	Guan Xuetao <gxt@pku.edu.cn>
 W:	http://mprc.pku.edu.cn/~guanxuetao/linux
 S:	Maintained
@@ -17188,6 +17203,12 @@ L:	linux-usb@vger.kernel.org
 S:	Maintained
 F:	Documentation/usb/acm.rst
 F:	drivers/usb/class/cdc-acm.*
+
+USB APPLE MFI FASTCHARGE DRIVER
+M:	Bastien Nocera <hadess@hadess.net>
+L:	linux-usb@vger.kernel.org
+S:	Maintained
+F:	drivers/usb/misc/apple-mfi-fastcharge.c
 
 USB AR5523 WIRELESS DRIVER
 M:	Pontus Fuchs <pontus.fuchs@gmail.com>
@@ -17399,11 +17420,14 @@ F:	drivers/usb/
 F:	include/linux/usb.h
 F:	include/linux/usb/
 
-USB TYPEC PI3USB30532 MUX DRIVER
-M:	Hans de Goede <hdegoede@redhat.com>
+USB TYPEC BUS FOR ALTERNATE MODES
+M:	Heikki Krogerus <heikki.krogerus@linux.intel.com>
 L:	linux-usb@vger.kernel.org
 S:	Maintained
-F:	drivers/usb/typec/mux/pi3usb30532.c
+F:	Documentation/ABI/testing/sysfs-bus-typec
+F:	Documentation/driver-api/usb/typec_bus.rst
+F:	drivers/usb/typec/altmodes/
+F:	include/linux/usb/typec_altmode.h
 
 USB TYPEC CLASS
 M:	Heikki Krogerus <heikki.krogerus@linux.intel.com>
@@ -17414,14 +17438,11 @@ F:	Documentation/driver-api/usb/typec.rst
 F:	drivers/usb/typec/
 F:	include/linux/usb/typec.h
 
-USB TYPEC BUS FOR ALTERNATE MODES
-M:	Heikki Krogerus <heikki.krogerus@linux.intel.com>
+USB TYPEC PI3USB30532 MUX DRIVER
+M:	Hans de Goede <hdegoede@redhat.com>
 L:	linux-usb@vger.kernel.org
 S:	Maintained
-F:	Documentation/ABI/testing/sysfs-bus-typec
-F:	Documentation/driver-api/usb/typec_bus.rst
-F:	drivers/usb/typec/altmodes/
-F:	include/linux/usb/typec_altmode.h
+F:	drivers/usb/typec/mux/pi3usb30532.c
 
 USB TYPEC PORT CONTROLLER DRIVERS
 M:	Guenter Roeck <linux@roeck-us.net>
@@ -17798,7 +17819,7 @@ F:	include/linux/vbox_utils.h
 F:	include/uapi/linux/vbox*.h
 F:	drivers/virt/vboxguest/
 
-VIRTUAL BOX SHARED FOLDER VFS DRIVER:
+VIRTUAL BOX SHARED FOLDER VFS DRIVER
 M:	Hans de Goede <hdegoede@redhat.com>
 L:	linux-fsdevel@vger.kernel.org
 S:	Maintained
@@ -18194,10 +18215,10 @@ X86 PLATFORM DRIVERS
 M:	Darren Hart <dvhart@infradead.org>
 M:	Andy Shevchenko <andy@infradead.org>
 L:	platform-driver-x86@vger.kernel.org
-T:	git git://git.infradead.org/linux-platform-drivers-x86.git
 S:	Odd Fixes
-F:	drivers/platform/x86/
+T:	git git://git.infradead.org/linux-platform-drivers-x86.git
 F:	drivers/platform/olpc/
+F:	drivers/platform/x86/
 
 X86 PLATFORM DRIVERS - ARCH
 R:	Darren Hart <dvhart@infradead.org>
