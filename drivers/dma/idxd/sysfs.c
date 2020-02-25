@@ -124,6 +124,7 @@ static int idxd_config_bus_probe(struct device *dev)
 		rc = idxd_device_config(idxd);
 		if (rc < 0) {
 			spin_unlock_irqrestore(&idxd->dev_lock, flags);
+			module_put(THIS_MODULE);
 			dev_warn(dev, "Device config failed: %d\n", rc);
 			return rc;
 		}
@@ -132,6 +133,7 @@ static int idxd_config_bus_probe(struct device *dev)
 		rc = idxd_device_enable(idxd);
 		if (rc < 0) {
 			spin_unlock_irqrestore(&idxd->dev_lock, flags);
+			module_put(THIS_MODULE);
 			dev_warn(dev, "Device enable failed: %d\n", rc);
 			return rc;
 		}
@@ -142,6 +144,7 @@ static int idxd_config_bus_probe(struct device *dev)
 		rc = idxd_register_dma_device(idxd);
 		if (rc < 0) {
 			spin_unlock_irqrestore(&idxd->dev_lock, flags);
+			module_put(THIS_MODULE);
 			dev_dbg(dev, "Failed to register dmaengine device\n");
 			return rc;
 		}
@@ -416,7 +419,7 @@ static ssize_t engine_group_id_store(struct device *dev,
 	struct idxd_device *idxd = engine->idxd;
 	long id;
 	int rc;
-	struct idxd_group *prevg, *group;
+	struct idxd_group *prevg;
 
 	rc = kstrtol(buf, 10, &id);
 	if (rc < 0)
@@ -436,7 +439,6 @@ static ssize_t engine_group_id_store(struct device *dev,
 		return count;
 	}
 
-	group = &idxd->groups[id];
 	prevg = engine->group;
 
 	if (prevg)
@@ -516,7 +518,7 @@ static ssize_t group_tokens_reserved_store(struct device *dev,
 	if (val > idxd->max_tokens)
 		return -EINVAL;
 
-	if (val > idxd->nr_tokens)
+	if (val > idxd->nr_tokens + group->tokens_reserved)
 		return -EINVAL;
 
 	group->tokens_reserved = val;
