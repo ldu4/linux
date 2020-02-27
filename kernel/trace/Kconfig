@@ -145,6 +145,10 @@ config BOOTTIME_TRACING
 	bool "Boot-time Tracing support"
 	depends on TRACING
 	select BOOT_CONFIG
+<<<<<<< HEAD
+=======
+	default y
+>>>>>>> linux-next/akpm-base
 	help
 	  Enable developer to setup ftrace subsystem via supplemental
 	  kernel cmdline at boot time for debugging (tracing) driver

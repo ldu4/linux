@@ -3,8 +3,14 @@
  * Copyright 2019 Google LLC
  */
 
+#include <linux/errno.h>
+#include <linux/export.h>
 #include <linux/platform_data/wilco-ec.h>
 #include <linux/string.h>
+<<<<<<< HEAD
+=======
+#include <linux/types.h>
+>>>>>>> linux-next/akpm-base
 #include <asm/unaligned.h>
 
 /* Operation code; what the EC should do with the property */
