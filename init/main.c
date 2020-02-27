@@ -36,6 +36,7 @@
 #include <linux/vmalloc.h>
 #include <linux/kernel_stat.h>
 #include <linux/start_kernel.h>
+#include <linux/kcsan.h>
 #include <linux/security.h>
 #include <linux/smp.h>
 #include <linux/profile.h>
