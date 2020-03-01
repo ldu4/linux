@@ -4988,8 +4988,6 @@ static int nl80211_start_ap(struct sk_buff *skb, struct genl_info *info)
 					info->attrs[NL80211_ATTR_HE_OBSS_PD],
 					&params.he_obss_pd);
 		goto out;
-<<<<<<< HEAD
-=======
 	}
 
 	if (info->attrs[NL80211_ATTR_HE_BSS_COLOR]) {
@@ -4998,7 +4996,6 @@ static int nl80211_start_ap(struct sk_buff *skb, struct genl_info *info)
 					&params.he_bss_color);
 		if (err)
 			return err;
->>>>>>> linux-next/akpm-base
 	}
 
 	nl80211_calculate_ap_params(&params);

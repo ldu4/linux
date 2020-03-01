@@ -671,8 +671,6 @@ static unsigned int mptcp_sync_mss(struct sock *sk, u32 pmtu)
 	return 0;
 }
 
-<<<<<<< HEAD
-=======
 static void mptcp_worker(struct work_struct *work)
 {
 	struct mptcp_sock *msk = container_of(work, struct mptcp_sock, work);
@@ -684,7 +682,6 @@ static void mptcp_worker(struct work_struct *work)
 	sock_put(sk);
 }
 
->>>>>>> linux-next/akpm-base
 static int __mptcp_init_sock(struct sock *sk)
 {
 	struct mptcp_sock *msk = mptcp_sk(sk);
