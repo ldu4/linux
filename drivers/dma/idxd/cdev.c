@@ -74,12 +74,10 @@ static int idxd_cdev_open(struct inode *inode, struct file *filp)
 	struct idxd_device *idxd;
 	struct idxd_wq *wq;
 	struct device *dev;
-	struct idxd_cdev *idxd_cdev;
 
 	wq = inode_wq(inode);
 	idxd = wq->idxd;
 	dev = &idxd->pdev->dev;
-	idxd_cdev = &wq->idxd_cdev;
 
 	dev_dbg(dev, "%s called\n", __func__);
 
@@ -135,10 +133,9 @@ static int idxd_cdev_mmap(struct file *filp, struct vm_area_struct *vma)
 	struct pci_dev *pdev = idxd->pdev;
 	phys_addr_t base = pci_resource_start(pdev, IDXD_WQ_BAR);
 	unsigned long pfn;
-	int rc;
 
 	dev_dbg(&pdev->dev, "%s called\n", __func__);
-	rc = check_vma(wq, vma, __func__);
+	check_vma(wq, vma, __func__);
 
 	vma->vm_flags |= VM_DONTCOPY;
 	pfn = (base + idxd_get_wq_portal_full_offset(wq->id,
@@ -204,6 +201,7 @@ static int idxd_wq_cdev_dev_setup(struct idxd_wq *wq)
 	minor = ida_simple_get(&cdev_ctx->minor_ida, 0, MINORMASK, GFP_KERNEL);
 	if (minor < 0) {
 		rc = minor;
+		kfree(dev);
 		goto ida_err;
 	}
 
@@ -212,7 +210,6 @@ static int idxd_wq_cdev_dev_setup(struct idxd_wq *wq)
 	rc = device_register(dev);
 	if (rc < 0) {
 		dev_err(&idxd->pdev->dev, "device register failed\n");
-		put_device(dev);
 		goto dev_reg_err;
 	}
 	idxd_cdev->minor = minor;
@@ -221,8 +218,8 @@ static int idxd_wq_cdev_dev_setup(struct idxd_wq *wq)
 
  dev_reg_err:
 	ida_simple_remove(&cdev_ctx->minor_ida, MINOR(dev->devt));
+	put_device(dev);
  ida_err:
-	kfree(dev);
 	idxd_cdev->dev = NULL;
 	return rc;
 }
