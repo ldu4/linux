@@ -580,9 +580,6 @@ static void icl_ctx_workarounds_init(struct intel_engine_cs *engine,
 static void tgl_ctx_workarounds_init(struct intel_engine_cs *engine,
 				     struct i915_wa_list *wal)
 {
-<<<<<<< HEAD
-	/* Wa_1409142259:tgl */
-=======
 	/*
 	 * Wa_1409142259:tgl
 	 * Wa_1409347922:tgl
@@ -592,7 +589,6 @@ static void tgl_ctx_workarounds_init(struct intel_engine_cs *engine,
 	 * Wa_1409178076:tgl
 	 * Wa_1408979724:tgl
 	 */
->>>>>>> linux-next/akpm-base
 	WA_SET_BIT_MASKED(GEN11_COMMON_SLICE_CHICKEN3,
 			  GEN12_DISABLE_CPS_AWARE_COLOR_PIPE);
 
@@ -605,14 +601,11 @@ static void tgl_ctx_workarounds_init(struct intel_engine_cs *engine,
 	 */
 	wa_add(wal, FF_MODE2, FF_MODE2_TDS_TIMER_MASK,
 	       FF_MODE2_TDS_TIMER_128, 0);
-<<<<<<< HEAD
-=======
 
 	/* WaDisableGPGPUMidThreadPreemption:tgl */
 	WA_SET_FIELD_MASKED(GEN8_CS_CHICKEN1,
 			    GEN9_PREEMPT_GPGPU_LEVEL_MASK,
 			    GEN9_PREEMPT_GPGPU_THREAD_GROUP_LEVEL);
->>>>>>> linux-next/akpm-base
 }
 
 static void

@@ -1166,8 +1166,6 @@ struct snd_soc_pcm_runtime {
 	     (i)++)
 #define for_each_rtd_codec_dai_rollback(rtd, i, dai)		\
 	for (; (--(i) >= 0) && ((dai) = rtd->codec_dais[i]);)
-<<<<<<< HEAD
-=======
 
 #define for_each_rtd_cpu_dai(rtd, i, dai)\
 	for ((i) = 0;						       \
@@ -1175,7 +1173,6 @@ struct snd_soc_pcm_runtime {
 	     (i)++)
 #define for_each_rtd_cpu_dai_rollback(rtd, i, dai)		\
 	for (; (--(i) >= 0) && ((dai) = rtd->cpu_dais[i]);)
->>>>>>> linux-next/akpm-base
 
 void snd_soc_close_delayed_work(struct snd_soc_pcm_runtime *rtd);
 

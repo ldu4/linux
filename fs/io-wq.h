@@ -7,10 +7,6 @@ enum {
 	IO_WQ_WORK_CANCEL	= 1,
 	IO_WQ_WORK_HASHED	= 4,
 	IO_WQ_WORK_UNBOUND	= 32,
-<<<<<<< HEAD
-	IO_WQ_WORK_CB		= 128,
-=======
->>>>>>> linux-next/akpm-base
 	IO_WQ_WORK_NO_CANCEL	= 256,
 	IO_WQ_WORK_CONCURRENT	= 512,
 

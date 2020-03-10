@@ -123,11 +123,7 @@ struct drm_gem_object *virtio_gpu_create_object(struct drm_device *dev,
 	if (!bo)
 		return NULL;
 
-<<<<<<< HEAD
-	bo->base.base.funcs = &virtio_gpu_gem_funcs;
-=======
 	bo->base.base.funcs = &virtio_gpu_shmem_funcs;
->>>>>>> linux-next/akpm-base
 	bo->base.map_cached = true;
 	return &bo->base.base;
 }

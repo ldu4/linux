@@ -1549,12 +1549,8 @@ static int stm32_sai_sub_probe(struct platform_device *pdev)
 
 	ret = snd_dmaengine_pcm_register(&pdev->dev, conf, 0);
 	if (ret) {
-<<<<<<< HEAD
-		dev_err(&pdev->dev, "Could not register pcm dma\n");
-=======
 		if (ret != -EPROBE_DEFER)
 			dev_err(&pdev->dev, "Could not register pcm dma\n");
->>>>>>> linux-next/akpm-base
 		return ret;
 	}
 

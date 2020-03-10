@@ -510,53 +510,6 @@ get_next:
 
 			old_work = work;
 			work->func(&work);
-<<<<<<< HEAD
-
-		if (work->files && current->files != work->files) {
-			task_lock(current);
-			current->files = work->files;
-			task_unlock(current);
-		}
-		if (work->fs && current->fs != work->fs)
-			current->fs = work->fs;
-		if (work->mm != worker->mm)
-			io_wq_switch_mm(worker, work);
-		if (worker->cur_creds != work->creds)
-			io_wq_switch_creds(worker, work);
-		/*
-		 * OK to set IO_WQ_WORK_CANCEL even for uncancellable work,
-		 * the worker function will do the right thing.
-		 */
-		if (test_bit(IO_WQ_BIT_CANCEL, &wq->state))
-			work->flags |= IO_WQ_WORK_CANCEL;
-		if (worker->mm)
-			work->flags |= IO_WQ_WORK_HAS_MM;
-
-		if (wq->get_work) {
-			put_work = work;
-			wq->get_work(work);
-		}
-
-		old_work = work;
-		work->func(&work);
-
-		spin_lock_irq(&worker->lock);
-		worker->cur_work = NULL;
-		spin_unlock_irq(&worker->lock);
-
-		spin_lock_irq(&wqe->lock);
-
-		if (hash != -1U) {
-			wqe->hash_map &= ~BIT_ULL(hash);
-			wqe->flags &= ~IO_WQE_FLAG_STALLED;
-		}
-		if (work && work != old_work) {
-			spin_unlock_irq(&wqe->lock);
-
-			if (put_work && wq->put_work) {
-				wq->put_work(put_work);
-				put_work = NULL;
-=======
 			work = (old_work == work) ? NULL : work;
 			io_assign_current_work(worker, work);
 			wq->free_work(old_work);
@@ -571,7 +524,6 @@ get_next:
 				if (!work)
 					goto get_next;
 				spin_unlock_irq(&wqe->lock);
->>>>>>> linux-next/akpm-base
 			}
 		} while (work);
 
@@ -791,25 +743,17 @@ static bool io_wq_can_queue(struct io_wqe *wqe, struct io_wqe_acct *acct,
 	return true;
 }
 
-<<<<<<< HEAD
-static void io_run_cancel(struct io_wq_work *work)
-{
-=======
 static void io_run_cancel(struct io_wq_work *work, struct io_wqe *wqe)
 {
 	struct io_wq *wq = wqe->wq;
 
->>>>>>> linux-next/akpm-base
 	do {
 		struct io_wq_work *old_work = work;
 
 		work->flags |= IO_WQ_WORK_CANCEL;
 		work->func(&work);
 		work = (work == old_work) ? NULL : work;
-<<<<<<< HEAD
-=======
 		wq->free_work(old_work);
->>>>>>> linux-next/akpm-base
 	} while (work);
 }
 
@@ -826,11 +770,7 @@ static void io_wqe_enqueue(struct io_wqe *wqe, struct io_wq_work *work)
 	 * It's close enough to not be an issue, fork() has the same delay.
 	 */
 	if (unlikely(!io_wq_can_queue(wqe, acct, work))) {
-<<<<<<< HEAD
-		io_run_cancel(work);
-=======
 		io_run_cancel(work, wqe);
->>>>>>> linux-next/akpm-base
 		return;
 	}
 
@@ -969,11 +909,7 @@ static enum io_wq_cancel io_wqe_cancel_cb_work(struct io_wqe *wqe,
 	spin_unlock_irqrestore(&wqe->lock, flags);
 
 	if (found) {
-<<<<<<< HEAD
-		io_run_cancel(work);
-=======
 		io_run_cancel(work, wqe);
->>>>>>> linux-next/akpm-base
 		return IO_WQ_CANCEL_OK;
 	}
 
@@ -1048,11 +984,7 @@ static enum io_wq_cancel io_wqe_cancel_work(struct io_wqe *wqe,
 	spin_unlock_irqrestore(&wqe->lock, flags);
 
 	if (found) {
-<<<<<<< HEAD
-		io_run_cancel(work);
-=======
 		io_run_cancel(work, wqe);
->>>>>>> linux-next/akpm-base
 		return IO_WQ_CANCEL_OK;
 	}
 

@@ -18,12 +18,8 @@
 #define XDPE122_AMD_625MV		0x10 /* AMD mode 6.25mV */
 #define XDPE122_PAGE_NUM		2
 
-<<<<<<< HEAD
-static int xdpe122_read_word_data(struct i2c_client *client, int page, int reg)
-=======
 static int xdpe122_read_word_data(struct i2c_client *client, int page,
 				  int phase, int reg)
->>>>>>> linux-next/akpm-base
 {
 	const struct pmbus_driver_info *info = pmbus_get_driver_info(client);
 	long val;
@@ -34,11 +30,7 @@ static int xdpe122_read_word_data(struct i2c_client *client, int page,
 	switch (reg) {
 	case PMBUS_VOUT_OV_FAULT_LIMIT:
 	case PMBUS_VOUT_UV_FAULT_LIMIT:
-<<<<<<< HEAD
-		ret = pmbus_read_word_data(client, page, reg);
-=======
 		ret = pmbus_read_word_data(client, page, phase, reg);
->>>>>>> linux-next/akpm-base
 		if (ret < 0)
 			return ret;
 

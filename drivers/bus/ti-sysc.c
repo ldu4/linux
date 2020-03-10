@@ -1731,11 +1731,7 @@ static void sysc_init_module_quirks(struct sysc *ddata)
 		return;
 
 	if (ddata->cfg.quirks & SYSC_MODULE_QUIRK_HDQ1W) {
-<<<<<<< HEAD
-		ddata->clk_disable_quirk = sysc_pre_reset_quirk_hdq1w;
-=======
 		ddata->pre_reset_quirk = sysc_pre_reset_quirk_hdq1w;
->>>>>>> linux-next/akpm-base
 
 		return;
 	}

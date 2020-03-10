@@ -263,11 +263,6 @@ asmlinkage void post_ttbr_update_workaround(void)
 			ARM64_WORKAROUND_CAVIUM_27456));
 }
 
-<<<<<<< HEAD
-static int asids_update_limit(void)
-{
-=======
-void cpu_do_switch_mm(phys_addr_t pgd_phys, struct mm_struct *mm)
 {
 	unsigned long ttbr1 = read_sysreg(ttbr1_el1);
 	unsigned long asid = ASID(mm);
@@ -294,7 +289,6 @@ void cpu_do_switch_mm(phys_addr_t pgd_phys, struct mm_struct *mm)
 
 static int asids_update_limit(void)
 {
->>>>>>> linux-next/akpm-base
 	unsigned long num_available_asids = NUM_USER_ASIDS;
 
 	if (arm64_kernel_unmapped_at_el0())
