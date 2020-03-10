@@ -303,6 +303,9 @@ __i915_request_create(struct intel_context *ce, gfp_t gfp);
 struct i915_request * __must_check
 i915_request_create(struct intel_context *ce);
 
+void i915_request_set_error_once(struct i915_request *rq, int error);
+void __i915_request_skip(struct i915_request *rq);
+
 struct i915_request *__i915_request_commit(struct i915_request *request);
 void __i915_request_queue(struct i915_request *rq,
 			  const struct i915_sched_attr *attr);
@@ -351,8 +354,6 @@ void i915_request_add(struct i915_request *rq);
 
 bool __i915_request_submit(struct i915_request *request);
 void i915_request_submit(struct i915_request *request);
-
-void i915_request_skip(struct i915_request *request, int error);
 
 void __i915_request_unsubmit(struct i915_request *request);
 void i915_request_unsubmit(struct i915_request *request);
@@ -479,7 +480,7 @@ static inline bool i915_request_is_running(const struct i915_request *rq)
 }
 
 /**
- * i915_request_is_running - check if the request is ready for execution
+ * i915_request_is_ready - check if the request is ready for execution
  * @rq: the request
  *
  * Upon construction, the request is instructed to wait upon various

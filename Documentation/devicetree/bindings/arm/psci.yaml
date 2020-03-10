@@ -101,6 +101,14 @@ properties:
 
       [1] Kernel documentation - ARM idle states bindings
         Documentation/devicetree/bindings/arm/idle-states.yaml
+<<<<<<< HEAD
+=======
+
+  "#power-domain-cells":
+    description:
+      The number of cells in a PM domain specifier as per binding in [3].
+      Must be 0 as to represent a single PM domain.
+>>>>>>> linux-next/akpm-base
 
 patternProperties:
   "^power-domain-":
@@ -123,8 +131,19 @@ patternProperties:
       helps to implement support for OSI mode and OS implementations may choose
       to mandate it.
 
+<<<<<<< HEAD
       [3] Documentation/devicetree/bindings/power/power-domain.yaml
       [4] Documentation/devicetree/bindings/power/domain-idle-state.yaml
+=======
+      [3] Documentation/devicetree/bindings/power/power_domain.txt
+      [4] Documentation/devicetree/bindings/power/domain-idle-state.yaml
+
+  power-domains:
+    $ref: '/schemas/types.yaml#/definitions/phandle-array'
+    description:
+      List of phandles and PM domain specifiers, as defined by bindings of the
+      PM domain provider.
+>>>>>>> linux-next/akpm-base
 
 required:
   - compatible

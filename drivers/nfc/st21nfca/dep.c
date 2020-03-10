@@ -66,7 +66,7 @@ struct st21nfca_atr_req {
 	u8 bsi;
 	u8 bri;
 	u8 ppi;
-	u8 gbi[0];
+	u8 gbi[];
 } __packed;
 
 struct st21nfca_atr_res {
@@ -79,7 +79,7 @@ struct st21nfca_atr_res {
 	u8 bri;
 	u8 to;
 	u8 ppi;
-	u8 gbi[0];
+	u8 gbi[];
 } __packed;
 
 struct st21nfca_psl_req {
@@ -206,7 +206,8 @@ static int st21nfca_tm_recv_atr_req(struct nfc_hci_dev *hdev,
 
 	atr_req = (struct st21nfca_atr_req *)skb->data;
 
-	if (atr_req->length < sizeof(struct st21nfca_atr_req)) {
+	if (atr_req->length < sizeof(struct st21nfca_atr_req) ||
+	    atr_req->length > skb->len) {
 		r = -EPROTO;
 		goto exit;
 	}

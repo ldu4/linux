@@ -56,8 +56,10 @@ enum mod_hdcp_status {
 	MOD_HDCP_STATUS_HDCP1_NOT_CAPABLE,
 	MOD_HDCP_STATUS_HDCP1_R0_PRIME_PENDING,
 	MOD_HDCP_STATUS_HDCP1_VALIDATE_RX_FAILURE,
+	MOD_HDCP_STATUS_HDCP1_BKSV_REVOKED,
 	MOD_HDCP_STATUS_HDCP1_KSV_LIST_NOT_READY,
 	MOD_HDCP_STATUS_HDCP1_VALIDATE_KSV_LIST_FAILURE,
+	MOD_HDCP_STATUS_HDCP1_KSV_LIST_REVOKED,
 	MOD_HDCP_STATUS_HDCP1_ENABLE_ENCRYPTION,
 	MOD_HDCP_STATUS_HDCP1_ENABLE_STREAM_ENCRYPTION_FAILURE,
 	MOD_HDCP_STATUS_HDCP1_MAX_CASCADE_EXCEEDED_FAILURE,
@@ -155,7 +157,8 @@ struct mod_hdcp_display_adjustment {
 struct mod_hdcp_link_adjustment_hdcp1 {
 	uint8_t disable			: 1;
 	uint8_t postpone_encryption	: 1;
-	uint8_t reserved		: 6;
+	uint8_t min_auth_retries_wa : 1;
+	uint8_t reserved		: 5;
 };
 
 enum mod_hdcp_force_hdcp_type {
