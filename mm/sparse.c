@@ -385,8 +385,8 @@ static void __init check_usemap_section_nr(int nid,
 		old_pgdat_snr = NR_MEM_SECTIONS;
 	}
 
-	usemap_snr = pfn_to_section_nr(__pa(usage) >> PAGE_SHIFT);
-	pgdat_snr = pfn_to_section_nr(__pa(pgdat) >> PAGE_SHIFT);
+	usemap_snr = pfn_to_section_nr(virt_to_pfn(usage));
+	pgdat_snr = pfn_to_section_nr(virt_to_pfn(pgdat));
 	if (usemap_snr == pgdat_snr)
 		return;
 
@@ -677,7 +677,7 @@ struct page * __meminit populate_section_memmap(unsigned long pfn,
 
 	return NULL;
 got_map_page:
-	ret = (struct page *)pfn_to_kaddr(page_to_pfn(page));
+	ret = (struct page *)page_to_virt(page);
 got_map_ptr:
 
 	return ret;
