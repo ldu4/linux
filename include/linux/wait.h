@@ -20,6 +20,7 @@ int default_wake_function(struct wait_queue_entry *wq_entry, unsigned mode, int 
 #define WQ_FLAG_EXCLUSIVE	0x01
 #define WQ_FLAG_WOKEN		0x02
 #define WQ_FLAG_BOOKMARK	0x04
+#define WQ_FLAG_CUSTOM		0x08
 
 /*
  * A single wait-queue entry structure:
@@ -1147,5 +1148,9 @@ int autoremove_wake_function(struct wait_queue_entry *wq_entry, unsigned mode, i
 		INIT_LIST_HEAD(&(wait)->entry);					\
 		(wait)->flags = 0;						\
 	} while (0)
+
+bool try_to_keep_sleeping(struct task_struct *p);
+void allow_awake(struct task_struct *p);
+bool try_invoke_on_runnable_task(struct task_struct *p, void (*func)(void *arg), void *arg);
 
 #endif /* _LINUX_WAIT_H */
