@@ -269,7 +269,6 @@ static void __hrtick_start(void *arg)
 
 	rq_lock(rq, &rf);
 	__hrtick_restart(rq);
-	rq->hrtick_csd_pending = 0;
 	rq_unlock(rq, &rf);
 }
 
@@ -293,12 +292,10 @@ void hrtick_start(struct rq *rq, u64 delay)
 
 	hrtimer_set_expires(timer, time);
 
-	if (rq == this_rq()) {
+	if (rq == this_rq())
 		__hrtick_restart(rq);
-	} else if (!rq->hrtick_csd_pending) {
+	else
 		smp_call_function_single_async(cpu_of(rq), &rq->hrtick_csd);
-		rq->hrtick_csd_pending = 1;
-	}
 }
 
 #else
@@ -322,8 +319,6 @@ void hrtick_start(struct rq *rq, u64 delay)
 static void hrtick_rq_init(struct rq *rq)
 {
 #ifdef CONFIG_SMP
-	rq->hrtick_csd_pending = 0;
-
 	rq->hrtick_csd.flags = 0;
 	rq->hrtick_csd.func = __hrtick_start;
 	rq->hrtick_csd.info = rq;
@@ -761,7 +756,6 @@ static void set_load_weight(struct task_struct *p, bool update_load)
 	if (task_has_idle_policy(p)) {
 		load->weight = scale_load(WEIGHT_IDLEPRIO);
 		load->inv_weight = WMULT_IDLEPRIO;
-		p->se.runnable_weight = load->weight;
 		return;
 	}
 
@@ -774,7 +768,6 @@ static void set_load_weight(struct task_struct *p, bool update_load)
 	} else {
 		load->weight = scale_load(sched_prio_to_weight[prio]);
 		load->inv_weight = sched_prio_to_wmult[prio];
-		p->se.runnable_weight = load->weight;
 	}
 }
 
@@ -2574,6 +2567,8 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 	 *
 	 * Pairs with the LOCK+smp_mb__after_spinlock() on rq->lock in
 	 * __schedule().  See the comment for smp_mb__after_spinlock().
+	 *
+	 * A similar smp_rmb() lives in try_to_keep_sleeping().
 	 */
 	smp_rmb();
 	if (p->on_rq && ttwu_remote(p, wake_flags))
@@ -2645,6 +2640,85 @@ out:
 	preempt_enable();
 
 	return success;
+}
+
+/**
+ * try_to_keep_sleeping - Attempt to force task to remain off runqueues
+ * @p: The process to remain asleep.
+ *
+ * Acquires the process's ->pi_lock and checks state.  If the process
+ * is still blocked, returns @true and leave ->pi_lock held, otherwise
+ * releases ->pi_lock and returns @false.
+ *
+ * Returns:
+ *	@false if the task is awake, in which case no lock is held.
+ *	@true if the task is sleeping, in which case the process's
+ *		->pi_lock will be held.  Use allow_awake() to release
+ *		this lock and thus allow process @p to awaken.
+ */
+bool try_to_keep_sleeping(struct task_struct *p)
+{
+	lockdep_assert_irqs_enabled();
+	raw_spin_lock_irq(&p->pi_lock);
+	switch (p->state) {
+	case TASK_RUNNING:
+	case TASK_WAKING:
+		raw_spin_unlock_irq(&p->pi_lock);
+		return false;
+
+	default:
+		smp_rmb(); /* See comments in try_to_wake_up(). */
+		if (p->on_rq) {
+			raw_spin_unlock_irq(&p->pi_lock);
+			return false;
+		}
+		return true;  /* Process is now stuck in blocked state. */
+	}
+	/* NOTREACHED */
+}
+
+/**
+ * allow_awake - Allow a kept-sleeping process to awaken
+ * @p: Process to be allowed to awaken.
+ *
+ * Given that @p was passed to an earlier call to try_to_keep_sleeping
+ * that returned @true, hence preventing @p from waking up, allow @p
+ * to once again be awakened.
+ */
+void allow_awake(struct task_struct *p)
+{
+	raw_spin_unlock_irq(&p->pi_lock);
+}
+
+/**
+ * try_invoke_on_runnable_task - Invoke a function for a runnable task
+ * @p: Process for which the function is to be invoked.
+ * @func: Function to invoke.
+ * @arg: Argument to function.
+ *
+ * If the specified task is runnable, but not running, arrange to keep
+ * it in that state while invoking @func(@arg).  Given that @func will be
+ * invoked with a runqueue lock held, it had better be quite lightweight.
+ *
+ * Returns:
+ *	@false if the task is running or blocked.
+ *	@true if the task is runnable but not running.
+ */
+bool try_invoke_on_runnable_task(struct task_struct *p, void (*func)(void *arg), void *arg)
+{
+	struct rq_flags rf;
+	struct rq *rq;
+
+	lockdep_assert_irqs_enabled();
+	rq = task_rq(p);
+	rq_lock_irq(rq, &rf);
+	if (task_rq(p) != rq || task_curr(p)) {
+		rq_unlock_irq(rq, &rf);
+		return false;
+	}
+	func(arg);
+	rq_unlock_irq(rq, &rf);
+	return true;
 }
 
 /**
@@ -3578,6 +3652,17 @@ unsigned long long task_sched_runtime(struct task_struct *p)
 	return ns;
 }
 
+DEFINE_PER_CPU(unsigned long, thermal_pressure);
+
+void arch_set_thermal_pressure(struct cpumask *cpus,
+			       unsigned long th_pressure)
+{
+	int cpu;
+
+	for_each_cpu(cpu, cpus)
+		WRITE_ONCE(per_cpu(thermal_pressure, cpu), th_pressure);
+}
+
 /*
  * This function gets called by the timer code, with HZ frequency.
  * We call it with interrupts disabled.
@@ -3588,12 +3673,16 @@ void scheduler_tick(void)
 	struct rq *rq = cpu_rq(cpu);
 	struct task_struct *curr = rq->curr;
 	struct rq_flags rf;
+	unsigned long thermal_pressure;
 
+	arch_scale_freq_tick();
 	sched_clock_tick();
 
 	rq_lock(rq, &rf);
 
 	update_rq_clock(rq);
+	thermal_pressure = arch_scale_thermal_pressure(cpu_of(rq));
+	update_thermal_load_avg(rq_clock_thermal(rq), rq, thermal_pressure);
 	curr->sched_class->task_tick(rq, curr, 0);
 	calc_global_load_tick(rq);
 	psi_task_tick(rq);
@@ -3671,7 +3760,6 @@ static void sched_tick_remote(struct work_struct *work)
 	if (cpu_is_offline(cpu))
 		goto out_unlock;
 
-	curr = rq->curr;
 	update_rq_clock(rq);
 
 	if (!is_idle_task(curr)) {
