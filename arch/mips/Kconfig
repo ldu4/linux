@@ -4,7 +4,6 @@ config MIPS
 	default y
 	select ARCH_32BIT_OFF_T if !64BIT
 	select ARCH_BINFMT_ELF_STATE if MIPS_FP_SUPPORT
-	select ARCH_CLOCKSOURCE_DATA
 	select ARCH_HAS_FORTIFY_SOURCE
 	select ARCH_HAS_KCOV
 	select ARCH_HAS_PTE_SPECIAL if !(32BIT && CPU_HAS_RIXI)
@@ -51,6 +50,7 @@ config MIPS
 	select HAVE_ASM_MODVERSIONS
 	select HAVE_CBPF_JIT if !64BIT && !CPU_MICROMIPS
 	select HAVE_CONTEXT_TRACKING
+	select HAVE_TIF_NOHZ
 	select HAVE_COPY_THREAD_TLS
 	select HAVE_C_RECORDMCOUNT
 	select HAVE_DEBUG_KMEMLEAK
@@ -1187,8 +1187,9 @@ config DMA_NONCOHERENT
 	# significant advantages.
 	#
 	select ARCH_HAS_DMA_WRITE_COMBINE
+	select ARCH_HAS_DMA_PREP_COHERENT
 	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
-	select ARCH_HAS_UNCACHED_SEGMENT
+	select ARCH_HAS_DMA_SET_UNCACHED
 	select DMA_NONCOHERENT_MMAP
 	select DMA_NONCOHERENT_CACHE_SYNC
 	select NEED_DMA_MAP_STATE
@@ -2676,7 +2677,7 @@ config NUMA
 	  Say Y to compile the kernel to support NUMA (Non-Uniform Memory
 	  Access).  This option improves performance on systems with more
 	  than two nodes; on two node systems it is generally better to
-	  leave it disabled; on single node systems disable this option
+	  leave it disabled; on single node systems leave this option
 	  disabled.
 
 config SYS_SUPPORTS_NUMA

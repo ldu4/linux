@@ -216,7 +216,7 @@ int intel_gt_resume(struct intel_gt *gt)
 		intel_engine_pm_get(engine);
 
 		engine->serial++; /* kernel context lost */
-		err = engine->resume(engine);
+		err = intel_engine_resume(engine);
 
 		intel_engine_pm_put(engine);
 		if (err) {
@@ -324,6 +324,7 @@ int intel_gt_runtime_resume(struct intel_gt *gt)
 {
 	GT_TRACE(gt, "\n");
 	intel_gt_init_swizzling(gt);
+	intel_ggtt_restore_fences(gt->ggtt);
 
 	return intel_uc_runtime_resume(&gt->uc);
 }
