@@ -922,6 +922,7 @@ static void intel_pstate_update_limits(unsigned int cpu)
 	 */
 	if (global.turbo_disabled_mf != global.turbo_disabled) {
 		global.turbo_disabled_mf = global.turbo_disabled;
+		arch_set_max_freq_ratio(global.turbo_disabled);
 		for_each_possible_cpu(cpu)
 			intel_pstate_update_max_freq(cpu);
 	} else {
@@ -2155,15 +2156,19 @@ static void intel_pstate_adjust_policy_max(struct cpudata *cpu,
 	}
 }
 
-static int intel_pstate_verify_policy(struct cpufreq_policy_data *policy)
+static void intel_pstate_verify_cpu_policy(struct cpudata *cpu,
+					   struct cpufreq_policy_data *policy)
 {
-	struct cpudata *cpu = all_cpu_data[policy->cpu];
-
 	update_turbo_state();
 	cpufreq_verify_within_limits(policy, policy->cpuinfo.min_freq,
 				     intel_pstate_get_max_freq(cpu));
 
 	intel_pstate_adjust_policy_max(cpu, policy);
+}
+
+static int intel_pstate_verify_policy(struct cpufreq_policy_data *policy)
+{
+	intel_pstate_verify_cpu_policy(all_cpu_data[policy->cpu], policy);
 
 	return 0;
 }
@@ -2268,12 +2273,7 @@ static int intel_cpufreq_verify_policy(struct cpufreq_policy_data *policy)
 {
 	struct cpudata *cpu = all_cpu_data[policy->cpu];
 
-	update_turbo_state();
-	cpufreq_verify_within_limits(policy, policy->cpuinfo.min_freq,
-				     intel_pstate_get_max_freq(cpu));
-
-	intel_pstate_adjust_policy_max(cpu, policy);
-
+	intel_pstate_verify_cpu_policy(cpu, policy);
 	intel_pstate_update_perf_limits(cpu, policy->min, policy->max);
 
 	return 0;
