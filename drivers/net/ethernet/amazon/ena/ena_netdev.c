@@ -3484,13 +3484,7 @@ static int ena_restore_device(struct ena_adapter *adapter)
 
 	mod_timer(&adapter->timer_service, round_jiffies(jiffies + HZ));
 	adapter->last_keep_alive_jiffies = jiffies;
-<<<<<<< HEAD
-	dev_err(&pdev->dev,
-		"Device reset completed successfully, Driver info: %s\n",
-		version);
-=======
 	dev_err(&pdev->dev, "Device reset completed successfully\n");
->>>>>>> linux-next/akpm-base
 
 	return rc;
 err_disable_msix:

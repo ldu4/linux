@@ -20,10 +20,7 @@
 #include <net/macsec.h>
 #include <linux/phy.h>
 #include <linux/if_arp.h>
-<<<<<<< HEAD
-=======
 #include <linux/byteorder/generic.h>
->>>>>>> linux-next/akpm-base
 
 #include <uapi/linux/if_macsec.h>
 
