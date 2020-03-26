@@ -177,6 +177,8 @@ extern int sched_policy;
 static const int sched_policy = KFD_SCHED_POLICY_HWS;
 #endif
 
+extern int amdgpu_tmz;
+
 #ifdef CONFIG_DRM_AMDGPU_SI
 extern int amdgpu_si_support;
 #endif
@@ -579,6 +581,7 @@ struct amdgpu_asic_funcs {
 	/* invalidate hdp read cache */
 	void (*invalidate_hdp)(struct amdgpu_device *adev,
 			       struct amdgpu_ring *ring);
+	void (*reset_hdp_ras_error_count)(struct amdgpu_device *adev);
 	/* check if the asic needs a full reset of if soft reset will work */
 	bool (*need_full_reset)(struct amdgpu_device *adev);
 	/* initialize doorbell layout for specific asic*/
@@ -922,7 +925,7 @@ struct amdgpu_device {
 	atomic64_t gart_pin_size;
 
 	/* soc15 register offset based on ip, instance and  segment */
-	uint32_t 		*reg_offset[MAX_HWIP][HWIP_MAX_INSTANCE];
+	uint32_t		*reg_offset[MAX_HWIP][HWIP_MAX_INSTANCE];
 
 	/* delayed work_func for deferring clockgating during resume */
 	struct delayed_work     delayed_init_work;
@@ -969,9 +972,15 @@ struct amdgpu_device {
 	int				pstate;
 	/* enable runtime pm on the device */
 	bool                            runpm;
+	bool                            in_runpm;
 
 	bool                            pm_sysfs_en;
 	bool                            ucode_sysfs_en;
+
+	/* Chip product information */
+	char				product_number[16];
+	char				product_name[32];
+	char				serial[16];
 };
 
 static inline struct amdgpu_device *amdgpu_ttm_adev(struct ttm_bo_device *bdev)
@@ -991,6 +1000,8 @@ void amdgpu_device_vram_access(struct amdgpu_device *adev, loff_t pos,
 uint32_t amdgpu_mm_rreg(struct amdgpu_device *adev, uint32_t reg,
 			uint32_t acc_flags);
 void amdgpu_mm_wreg(struct amdgpu_device *adev, uint32_t reg, uint32_t v,
+		    uint32_t acc_flags);
+void amdgpu_mm_wreg_mmio_rlc(struct amdgpu_device *adev, uint32_t reg, uint32_t v,
 		    uint32_t acc_flags);
 void amdgpu_mm_wreg8(struct amdgpu_device *adev, uint32_t offset, uint8_t value);
 uint8_t amdgpu_mm_rreg8(struct amdgpu_device *adev, uint32_t offset);
@@ -1174,9 +1185,9 @@ void amdgpu_driver_postclose_kms(struct drm_device *dev,
 int amdgpu_device_ip_suspend(struct amdgpu_device *adev);
 int amdgpu_device_suspend(struct drm_device *dev, bool fbcon);
 int amdgpu_device_resume(struct drm_device *dev, bool fbcon);
-u32 amdgpu_get_vblank_counter_kms(struct drm_device *dev, unsigned int pipe);
-int amdgpu_enable_vblank_kms(struct drm_device *dev, unsigned int pipe);
-void amdgpu_disable_vblank_kms(struct drm_device *dev, unsigned int pipe);
+u32 amdgpu_get_vblank_counter_kms(struct drm_crtc *crtc);
+int amdgpu_enable_vblank_kms(struct drm_crtc *crtc);
+void amdgpu_disable_vblank_kms(struct drm_crtc *crtc);
 long amdgpu_kms_compat_ioctl(struct file *filp, unsigned int cmd,
 			     unsigned long arg);
 
@@ -1244,5 +1255,9 @@ _name##_show(struct device *dev,					\
 									\
 static struct device_attribute pmu_attr_##_name = __ATTR_RO(_name)
 
-#endif
+static inline bool amdgpu_is_tmz(struct amdgpu_device *adev)
+{
+       return adev->gmc.tmz_enabled;
+}
 
+#endif

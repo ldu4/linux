@@ -465,8 +465,6 @@ int nv_set_ip_blocks(struct amdgpu_device *adev)
 	adev->nbio.funcs = &nbio_v2_3_funcs;
 	adev->nbio.hdp_flush_reg = &nbio_v2_3_hdp_flush_reg;
 
-	adev->nbio.funcs->detect_hw_virt(adev);
-
 	if (amdgpu_sriov_vf(adev))
 		adev->virt.ops = &xgpu_nv_virt_ops;
 
@@ -516,7 +514,8 @@ int nv_set_ip_blocks(struct amdgpu_device *adev)
 		    !amdgpu_sriov_vf(adev))
 			amdgpu_device_ip_block_add(adev, &smu_v11_0_ip_block);
 		amdgpu_device_ip_block_add(adev, &vcn_v2_0_ip_block);
-		amdgpu_device_ip_block_add(adev, &jpeg_v2_0_ip_block);
+		if (!amdgpu_sriov_vf(adev))
+			amdgpu_device_ip_block_add(adev, &jpeg_v2_0_ip_block);
 		break;
 	default:
 		return -EINVAL;

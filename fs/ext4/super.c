@@ -43,7 +43,7 @@
 #include <linux/uaccess.h>
 #include <linux/iversion.h>
 #include <linux/unicode.h>
-
+#include <linux/part_stat.h>
 #include <linux/kthread.h>
 #include <linux/freezer.h>
 
@@ -927,7 +927,6 @@ void ext4_update_dynamic_rev(struct super_block *sb)
 static struct block_device *ext4_blkdev_get(dev_t dev, struct super_block *sb)
 {
 	struct block_device *bdev;
-	char b[BDEVNAME_SIZE];
 
 	bdev = blkdev_get_by_dev(dev, FMODE_READ|FMODE_WRITE|FMODE_EXCL, sb);
 	if (IS_ERR(bdev))
@@ -935,8 +934,9 @@ static struct block_device *ext4_blkdev_get(dev_t dev, struct super_block *sb)
 	return bdev;
 
 fail:
-	ext4_msg(sb, KERN_ERR, "failed to open journal device %s: %ld",
-			__bdevname(dev, b), PTR_ERR(bdev));
+	ext4_msg(sb, KERN_ERR,
+		 "failed to open journal device unknown-block(%u,%u) %ld",
+		 MAJOR(dev), MINOR(dev), PTR_ERR(bdev));
 	return NULL;
 }
 
@@ -5622,10 +5622,8 @@ static int ext4_statfs_project(struct super_block *sb,
 		return PTR_ERR(dquot);
 	spin_lock(&dquot->dq_dqb_lock);
 
-	limit = dquot->dq_dqb.dqb_bsoftlimit;
-	if (dquot->dq_dqb.dqb_bhardlimit &&
-	    (!limit || dquot->dq_dqb.dqb_bhardlimit < limit))
-		limit = dquot->dq_dqb.dqb_bhardlimit;
+	limit = min_not_zero(dquot->dq_dqb.dqb_bsoftlimit,
+			     dquot->dq_dqb.dqb_bhardlimit);
 	limit >>= sb->s_blocksize_bits;
 
 	if (limit && buf->f_blocks > limit) {
@@ -5637,11 +5635,8 @@ static int ext4_statfs_project(struct super_block *sb,
 			 (buf->f_blocks - curblock) : 0;
 	}
 
-	limit = dquot->dq_dqb.dqb_isoftlimit;
-	if (dquot->dq_dqb.dqb_ihardlimit &&
-	    (!limit || dquot->dq_dqb.dqb_ihardlimit < limit))
-		limit = dquot->dq_dqb.dqb_ihardlimit;
-
+	limit = min_not_zero(dquot->dq_dqb.dqb_isoftlimit,
+			     dquot->dq_dqb.dqb_ihardlimit);
 	if (limit && buf->f_files > limit) {
 		buf->f_files = limit;
 		buf->f_ffree =
