@@ -149,6 +149,16 @@ _c_flags += $(if $(patsubst n%,, \
 	$(CFLAGS_KCOV))
 endif
 
+#
+# Enable KCSAN flags except some files or directories we don't want to check
+# (depends on variables KCSAN_SANITIZE_obj.o, KCSAN_SANITIZE)
+#
+ifeq ($(CONFIG_KCSAN),y)
+_c_flags += $(if $(patsubst n%,, \
+	$(KCSAN_SANITIZE_$(basetarget).o)$(KCSAN_SANITIZE)y), \
+	$(CFLAGS_KCSAN))
+endif
+
 # $(srctree)/$(src) for including checkin headers from generated source files
 # $(objtree)/$(obj) for including generated headers from checkin source files
 ifeq ($(KBUILD_EXTMOD),)
@@ -297,7 +307,8 @@ $(obj)/%.dtb: $(src)/%.dts $(DTC) FORCE
 
 DT_CHECKER ?= dt-validate
 DT_BINDING_DIR := Documentation/devicetree/bindings
-DT_TMP_SCHEMA := $(objtree)/$(DT_BINDING_DIR)/processed-schema.yaml
+# DT_TMP_SCHEMA may be overridden from Documentation/devicetree/bindings/Makefile
+DT_TMP_SCHEMA ?= $(objtree)/$(DT_BINDING_DIR)/processed-schema.yaml
 
 quiet_cmd_dtb_check =	CHECK   $@
       cmd_dtb_check =	$(DT_CHECKER) -u $(srctree)/$(DT_BINDING_DIR) -p $(DT_TMP_SCHEMA) $@
