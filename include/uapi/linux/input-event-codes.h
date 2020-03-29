@@ -653,7 +653,11 @@
 #define KEY_PRIVACY_SCREEN_TOGGLE	0x279
 
 /* Select an area of screen to be copied */
+<<<<<<< HEAD
 #define KEY_SELECTIVE_SCREENSHOT	0x27a
+=======
+#define KEY_SELECTIVE_SCREENSHOT	0x280
+>>>>>>> linux-next/akpm-base
 
 /*
  * Some keyboards have keys which do not have a defined meaning, these keys
