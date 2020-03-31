@@ -15,6 +15,7 @@
 #include <linux/gfp.h>
 #include <linux/pci.h>
 #include <linux/vmalloc.h>
+#include <linux/libnvdimm.h>
 
 #include <asm/e820/api.h>
 #include <asm/processor.h>
@@ -128,7 +129,7 @@ static inline void cpa_inc_2m_checked(void)
 
 static inline void cpa_inc_4k_install(void)
 {
-	cpa_4k_install++;
+	data_race(cpa_4k_install++);
 }
 
 static inline void cpa_inc_lp_sameprot(int level)
@@ -304,11 +305,13 @@ void clflush_cache_range(void *vaddr, unsigned int size)
 }
 EXPORT_SYMBOL_GPL(clflush_cache_range);
 
+#ifdef CONFIG_ARCH_HAS_PMEM_API
 void arch_invalidate_pmem(void *addr, size_t size)
 {
 	clflush_cache_range(addr, size);
 }
 EXPORT_SYMBOL_GPL(arch_invalidate_pmem);
+#endif
 
 static void __cpa_flush_all(void *arg)
 {
