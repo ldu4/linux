@@ -19,10 +19,7 @@ Kernel Build System
 
     issues
     reproducible-builds
-<<<<<<< HEAD
-=======
     llvm
->>>>>>> linux-next/akpm-base
     gcc-plugins
 
 .. only::  subproject and html
