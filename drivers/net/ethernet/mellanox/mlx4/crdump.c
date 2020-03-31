@@ -38,8 +38,8 @@
 #define CR_ENABLE_BIT_OFFSET		0xF3F04
 #define MAX_NUM_OF_DUMPS_TO_STORE	(8)
 
-static const char * const region_cr_space_str = "cr-space";
-static const char * const region_fw_health_str = "fw-health";
+static const char region_cr_space_str[] = "cr-space";
+static const char region_fw_health_str[] = "fw-health";
 
 static const struct devlink_region_ops region_cr_space_ops = {
 	.name = region_cr_space_str,
