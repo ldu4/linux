@@ -284,12 +284,8 @@ extern void disk_part_iter_init(struct disk_part_iter *piter,
 				 struct gendisk *disk, unsigned int flags);
 extern struct hd_struct *disk_part_iter_next(struct disk_part_iter *piter);
 extern void disk_part_iter_exit(struct disk_part_iter *piter);
-<<<<<<< HEAD
-extern bool disk_has_partitions(struct gendisk *disk);
-=======
 
 bool disk_has_partitions(struct gendisk *disk);
->>>>>>> linux-next/akpm-base
 
 /* block/genhd.c */
 extern void device_add_disk(struct device *parent, struct gendisk *disk,
