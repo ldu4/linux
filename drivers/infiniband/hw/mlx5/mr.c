@@ -54,17 +54,8 @@ static void
 assign_mkey_variant(struct mlx5_ib_dev *dev, struct mlx5_core_mkey *mkey,
 		    u32 *in)
 {
-<<<<<<< HEAD
-	void *mkc;
-	u8 key;
-
-	spin_lock_irq(&dev->mkey_lock);
-	key = dev->mkey_key++;
-	spin_unlock_irq(&dev->mkey_lock);
-=======
 	u8 key = atomic_inc_return(&dev->mkey_var);
 	void *mkc;
->>>>>>> linux-next/akpm-base
 
 	mkc = MLX5_ADDR_OF(create_mkey_in, in, memory_key_mkey_entry);
 	MLX5_SET(mkc, mkc, mkey_7_0, key);
@@ -120,13 +111,7 @@ static void create_mkey_callback(int status, struct mlx5_async_work *context)
 	struct mlx5_ib_mr *mr =
 		container_of(context, struct mlx5_ib_mr, cb_work);
 	struct mlx5_ib_dev *dev = mr->dev;
-<<<<<<< HEAD
-	struct mlx5_mr_cache *cache = &dev->cache;
-	int c = order2idx(dev, mr->order);
-	struct mlx5_cache_ent *ent = &cache->ent[c];
-=======
 	struct mlx5_cache_ent *ent = mr->cache_ent;
->>>>>>> linux-next/akpm-base
 	unsigned long flags;
 
 	if (status) {
@@ -208,17 +193,10 @@ static int add_keys(struct mlx5_cache_ent *ent, unsigned int num)
 		}
 		ent->pending++;
 		spin_unlock_irq(&ent->lock);
-<<<<<<< HEAD
-		err = mlx5_ib_create_mkey_cb(dev, &mr->mmkey,
-					       &dev->async_ctx, in, inlen,
-					       mr->out, sizeof(mr->out),
-					       &mr->cb_work);
-=======
 		err = mlx5_ib_create_mkey_cb(ent->dev, &mr->mmkey,
 					     &ent->dev->async_ctx, in, inlen,
 					     mr->out, sizeof(mr->out),
 					     &mr->cb_work);
->>>>>>> linux-next/akpm-base
 		if (err) {
 			spin_lock_irq(&ent->lock);
 			ent->pending--;

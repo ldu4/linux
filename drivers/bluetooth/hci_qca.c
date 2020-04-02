@@ -1770,11 +1770,7 @@ static int qca_power_off(struct hci_dev *hdev)
 	enum qca_btsoc_type soc_type = qca_soc_type(hu);
 
 	/* Stop sending shutdown command if soc crashes. */
-<<<<<<< HEAD
-	if (qca_is_wcn399x(soc_type)
-=======
 	if (soc_type != QCA_ROME
->>>>>>> linux-next/akpm-base
 		&& qca->memdump_state == QCA_MEMDUMP_IDLE) {
 		qca_send_pre_shutdown_cmd(hdev);
 		usleep_range(8000, 10000);
@@ -1910,16 +1906,6 @@ static int qca_serdev_probe(struct serdev_device *serdev)
 			return err;
 		}
 	} else {
-<<<<<<< HEAD
-		qcadev->btsoc_type = QCA_ROME;
-		qcadev->bt_en = devm_gpiod_get_optional(&serdev->dev, "enable",
-					       GPIOD_OUT_LOW);
-		if (!qcadev->bt_en) {
-			dev_warn(&serdev->dev, "failed to acquire enable gpio\n");
-			power_ctrl_enabled = false;
-		}
-
-=======
 		if (data)
 			qcadev->btsoc_type = data->soc_type;
 		else
@@ -1932,7 +1918,6 @@ static int qca_serdev_probe(struct serdev_device *serdev)
 			power_ctrl_enabled = false;
 		}
 
->>>>>>> linux-next/akpm-base
 		qcadev->susclk = devm_clk_get_optional(&serdev->dev, NULL);
 		if (!qcadev->susclk) {
 			dev_warn(&serdev->dev, "failed to acquire clk\n");

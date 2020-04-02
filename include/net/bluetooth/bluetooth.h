@@ -138,8 +138,6 @@ struct bt_voice {
 #define BT_PHY_LE_2M_RX		0x00001000
 #define BT_PHY_LE_CODED_TX	0x00002000
 #define BT_PHY_LE_CODED_RX	0x00004000
-<<<<<<< HEAD
-=======
 
 #define BT_MODE			15
 
@@ -148,7 +146,6 @@ struct bt_voice {
 #define BT_MODE_STREAMING	0x02
 #define BT_MODE_LE_FLOWCTL	0x03
 #define BT_MODE_EXT_FLOWCTL	0x04
->>>>>>> linux-next/akpm-base
 
 __printf(1, 2)
 void bt_info(const char *fmt, ...);

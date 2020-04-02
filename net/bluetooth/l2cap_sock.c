@@ -540,11 +540,7 @@ static int l2cap_sock_getsockopt(struct socket *sock, int level, int optname,
 	struct bt_security sec;
 	struct bt_power pwr;
 	u32 phys;
-<<<<<<< HEAD
-	int len, err = 0;
-=======
 	int len, mode, err = 0;
->>>>>>> linux-next/akpm-base
 
 	BT_DBG("sk %p", sk);
 
@@ -660,8 +656,6 @@ static int l2cap_sock_getsockopt(struct socket *sock, int level, int optname,
 			err = -EFAULT;
 		break;
 
-<<<<<<< HEAD
-=======
 	case BT_MODE:
 		if (!enable_ecred) {
 			err = -ENOPROTOOPT;
@@ -683,7 +677,6 @@ static int l2cap_sock_getsockopt(struct socket *sock, int level, int optname,
 			err = -EFAULT;
 		break;
 
->>>>>>> linux-next/akpm-base
 	default:
 		err = -ENOPROTOOPT;
 		break;
@@ -773,14 +766,11 @@ static int l2cap_sock_setsockopt_old(struct socket *sock, int optname,
 			break;
 		}
 
-<<<<<<< HEAD
-=======
 		if (err < 0)
 			break;
 
 		chan->mode = opts.mode;
 
->>>>>>> linux-next/akpm-base
 		BT_DBG("mode 0x%2.2x", chan->mode);
 
 		chan->imtu = opts.imtu;
@@ -1071,8 +1061,6 @@ static int l2cap_sock_setsockopt(struct socket *sock, int level, int optname,
 		else
 			chan->imtu = opt;
 
-<<<<<<< HEAD
-=======
 		break;
 
 	case BT_MODE:
@@ -1106,7 +1094,6 @@ static int l2cap_sock_setsockopt(struct socket *sock, int level, int optname,
 
 		BT_DBG("mode 0x%2.2x", chan->mode);
 
->>>>>>> linux-next/akpm-base
 		break;
 
 	default:

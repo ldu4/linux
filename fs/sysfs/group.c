@@ -479,11 +479,7 @@ int compat_only_sysfs_link_entry_to_kobj(struct kobject *kobj,
 	kernfs_put(target);
 	return PTR_ERR_OR_ZERO(link);
 }
-<<<<<<< HEAD
-EXPORT_SYMBOL_GPL(__compat_only_sysfs_link_entry_to_kobj);
-=======
 EXPORT_SYMBOL_GPL(compat_only_sysfs_link_entry_to_kobj);
->>>>>>> linux-next/akpm-base
 
 static int sysfs_group_attrs_change_owner(struct kernfs_node *grp_kn,
 					  const struct attribute_group *grp,

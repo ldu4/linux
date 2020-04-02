@@ -6555,11 +6555,7 @@ static int mlx5_ib_stage_init_init(struct mlx5_ib_dev *dev)
 	spin_lock_init(&dev->reset_flow_resource_lock);
 	xa_init(&dev->odp_mkeys);
 	xa_init(&dev->sig_mrs);
-<<<<<<< HEAD
-	spin_lock_init(&dev->mkey_lock);
-=======
 	atomic_set(&dev->mkey_var, 0);
->>>>>>> linux-next/akpm-base
 
 	spin_lock_init(&dev->dm.lock);
 	dev->dm.dev = mdev;
