@@ -181,6 +181,7 @@ dtb-$(CONFIG_ARCH_EXYNOS3) += \
 	exynos3250-monk.dtb \
 	exynos3250-rinato.dtb
 dtb-$(CONFIG_ARCH_EXYNOS4) += \
+	exynos4210-i9100.dtb \
 	exynos4210-origen.dtb \
 	exynos4210-smdkv310.dtb \
 	exynos4210-trats.dtb \
@@ -896,6 +897,9 @@ dtb-$(CONFIG_ARCH_QCOM) += \
 dtb-$(CONFIG_ARCH_RDA) += \
 	rda8810pl-orangepi-2g-iot.dtb \
 	rda8810pl-orangepi-i96.dtb
+dtb-$(CONFIG_ARCH_REALTEK) += \
+	rtd1195-horseradish.dtb \
+	rtd1195-mele-x1000.dtb
 dtb-$(CONFIG_ARCH_REALVIEW) += \
 	arm-realview-pb1176.dtb \
 	arm-realview-pb11mp.dtb \
