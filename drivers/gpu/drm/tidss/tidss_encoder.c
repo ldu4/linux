@@ -66,13 +66,6 @@ static const struct drm_encoder_helper_funcs encoder_helper_funcs = {
 	.atomic_check = tidss_encoder_atomic_check,
 };
 
-<<<<<<< HEAD
-static const struct drm_encoder_funcs encoder_funcs = {
-	.destroy = tidss_encoder_destroy,
-};
-
-=======
->>>>>>> linux-next/akpm-base
 struct drm_encoder *tidss_encoder_create(struct tidss_device *tidss,
 					 u32 encoder_type, u32 possible_crtcs)
 {
@@ -85,15 +78,8 @@ struct drm_encoder *tidss_encoder_create(struct tidss_device *tidss,
 
 	enc->possible_crtcs = possible_crtcs;
 
-<<<<<<< HEAD
-	ret = drm_encoder_init(&tidss->ddev, enc, &encoder_funcs,
-			       encoder_type, NULL);
-	if (ret < 0) {
-		kfree(enc);
-=======
 	ret = drm_simple_encoder_init(&tidss->ddev, enc, encoder_type);
 	if (ret < 0)
->>>>>>> linux-next/akpm-base
 		return ERR_PTR(ret);
 	}
 
