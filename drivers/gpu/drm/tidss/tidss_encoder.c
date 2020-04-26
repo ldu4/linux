@@ -81,7 +81,6 @@ struct drm_encoder *tidss_encoder_create(struct tidss_device *tidss,
 	ret = drm_simple_encoder_init(&tidss->ddev, enc, encoder_type);
 	if (ret < 0)
 		return ERR_PTR(ret);
-	}
 
 	drm_encoder_helper_add(enc, &encoder_helper_funcs);
 
