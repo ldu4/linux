@@ -494,6 +494,7 @@ config MACH_LOONGSON64
 	select COMMON_CLK
 	select USE_OF
 	select BUILTIN_DTB
+	select HAVE_ARCH_SOFT_DIRTY
 	help
 	  This enables the support of Loongson-2/3 family of machines.
 
