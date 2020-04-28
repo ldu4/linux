@@ -4188,11 +4188,7 @@ static const struct i915_power_well_desc tgl_power_wells[] = {
 	{
 		.name = "AUX D TBT1",
 		.domains = TGL_AUX_D_TBT1_IO_POWER_DOMAINS,
-<<<<<<< HEAD
-		.ops = &icl_tc_phy_aux_power_well_ops,
-=======
 		.ops = &icl_aux_power_well_ops,
->>>>>>> linux-next/akpm-base
 		.id = DISP_PW_ID_NONE,
 		{
 			.hsw.regs = &icl_aux_power_well_regs,
@@ -4203,11 +4199,7 @@ static const struct i915_power_well_desc tgl_power_wells[] = {
 	{
 		.name = "AUX E TBT2",
 		.domains = TGL_AUX_E_TBT2_IO_POWER_DOMAINS,
-<<<<<<< HEAD
-		.ops = &icl_tc_phy_aux_power_well_ops,
-=======
 		.ops = &icl_aux_power_well_ops,
->>>>>>> linux-next/akpm-base
 		.id = DISP_PW_ID_NONE,
 		{
 			.hsw.regs = &icl_aux_power_well_regs,
@@ -4218,11 +4210,7 @@ static const struct i915_power_well_desc tgl_power_wells[] = {
 	{
 		.name = "AUX F TBT3",
 		.domains = TGL_AUX_F_TBT3_IO_POWER_DOMAINS,
-<<<<<<< HEAD
-		.ops = &icl_tc_phy_aux_power_well_ops,
-=======
 		.ops = &icl_aux_power_well_ops,
->>>>>>> linux-next/akpm-base
 		.id = DISP_PW_ID_NONE,
 		{
 			.hsw.regs = &icl_aux_power_well_regs,
@@ -4233,11 +4221,7 @@ static const struct i915_power_well_desc tgl_power_wells[] = {
 	{
 		.name = "AUX G TBT4",
 		.domains = TGL_AUX_G_TBT4_IO_POWER_DOMAINS,
-<<<<<<< HEAD
-		.ops = &icl_tc_phy_aux_power_well_ops,
-=======
 		.ops = &icl_aux_power_well_ops,
->>>>>>> linux-next/akpm-base
 		.id = DISP_PW_ID_NONE,
 		{
 			.hsw.regs = &icl_aux_power_well_regs,
@@ -4248,11 +4232,7 @@ static const struct i915_power_well_desc tgl_power_wells[] = {
 	{
 		.name = "AUX H TBT5",
 		.domains = TGL_AUX_H_TBT5_IO_POWER_DOMAINS,
-<<<<<<< HEAD
-		.ops = &icl_tc_phy_aux_power_well_ops,
-=======
 		.ops = &icl_aux_power_well_ops,
->>>>>>> linux-next/akpm-base
 		.id = DISP_PW_ID_NONE,
 		{
 			.hsw.regs = &icl_aux_power_well_regs,
@@ -4263,11 +4243,7 @@ static const struct i915_power_well_desc tgl_power_wells[] = {
 	{
 		.name = "AUX I TBT6",
 		.domains = TGL_AUX_I_TBT6_IO_POWER_DOMAINS,
-<<<<<<< HEAD
-		.ops = &icl_tc_phy_aux_power_well_ops,
-=======
 		.ops = &icl_aux_power_well_ops,
->>>>>>> linux-next/akpm-base
 		.id = DISP_PW_ID_NONE,
 		{
 			.hsw.regs = &icl_aux_power_well_regs,

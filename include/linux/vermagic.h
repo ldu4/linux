@@ -2,13 +2,10 @@
 #ifndef _LINUX_VERMAGIC_H
 #define _LINUX_VERMAGIC_H
 
-<<<<<<< HEAD
-=======
 #ifndef INCLUDE_VERMAGIC
 #error "This header can be included from kernel/module.c or *.mod.c only"
 #endif
 
->>>>>>> linux-next/akpm-base
 #include <generated/utsrelease.h>
 #include <asm/vermagic.h>
 

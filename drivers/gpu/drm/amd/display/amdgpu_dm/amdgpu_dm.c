@@ -4748,8 +4748,6 @@ amdgpu_dm_connector_late_register(struct drm_connector *connector)
 	struct amdgpu_dm_connector *amdgpu_dm_connector =
 		to_amdgpu_dm_connector(connector);
 	int r;
-<<<<<<< HEAD
-=======
 
 	if ((connector->connector_type == DRM_MODE_CONNECTOR_DisplayPort) ||
 	    (connector->connector_type == DRM_MODE_CONNECTOR_eDP)) {
@@ -4758,7 +4756,6 @@ amdgpu_dm_connector_late_register(struct drm_connector *connector)
 		if (r)
 			return r;
 	}
->>>>>>> linux-next/akpm-base
 
 	if ((connector->connector_type == DRM_MODE_CONNECTOR_DisplayPort) ||
 	    (connector->connector_type == DRM_MODE_CONNECTOR_eDP)) {
