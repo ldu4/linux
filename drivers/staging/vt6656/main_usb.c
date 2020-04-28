@@ -740,14 +740,8 @@ static void vnt_bss_info_changed(struct ieee80211_hw *hw,
 		       BSS_CHANGED_ERP_SLOT))
 		vnt_set_bss_mode(priv);
 
-<<<<<<< HEAD
-	if (changed & BSS_CHANGED_TXPOWER)
-		vnt_rf_setpower(priv, priv->current_rate,
-				conf->chandef.chan->hw_value);
-=======
 	if (changed & (BSS_CHANGED_TXPOWER | BSS_CHANGED_BANDWIDTH))
 		vnt_rf_setpower(priv, conf->chandef.chan);
->>>>>>> linux-next/akpm-base
 
 	if (changed & BSS_CHANGED_BEACON_ENABLED) {
 		dev_dbg(&priv->usb->dev,
