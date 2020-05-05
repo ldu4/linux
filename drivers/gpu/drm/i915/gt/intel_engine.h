@@ -199,6 +199,8 @@ void intel_engine_cleanup(struct intel_engine_cs *engine);
 int intel_engines_init_mmio(struct intel_gt *gt);
 int intel_engines_init(struct intel_gt *gt);
 
+void intel_engine_free_request_pool(struct intel_engine_cs *engine);
+
 void intel_engines_release(struct intel_gt *gt);
 void intel_engines_free(struct intel_gt *gt);
 
@@ -308,9 +310,6 @@ void intel_engine_dump(struct intel_engine_cs *engine,
 		       struct drm_printer *m,
 		       const char *header, ...);
 
-int intel_enable_engine_stats(struct intel_engine_cs *engine);
-void intel_disable_engine_stats(struct intel_engine_cs *engine);
-
 ktime_t intel_engine_get_busy_time(struct intel_engine_cs *engine);
 
 struct i915_request *
@@ -331,15 +330,6 @@ intel_engine_has_preempt_reset(const struct intel_engine_cs *engine)
 		return false;
 
 	return intel_engine_has_preemption(engine);
-}
-
-static inline bool
-intel_engine_has_timeslices(const struct intel_engine_cs *engine)
-{
-	if (!IS_ACTIVE(CONFIG_DRM_I915_TIMESLICE_DURATION))
-		return false;
-
-	return intel_engine_has_semaphores(engine);
 }
 
 #endif /* _INTEL_RINGBUFFER_H_ */

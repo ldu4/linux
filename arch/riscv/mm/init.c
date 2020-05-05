@@ -17,6 +17,7 @@
 #include <asm/fixmap.h>
 #include <asm/tlbflush.h>
 #include <asm/sections.h>
+#include <asm/soc.h>
 #include <asm/pgtable.h>
 #include <asm/io.h>
 #include <asm/ptdump.h>
@@ -151,7 +152,8 @@ void __init setup_bootmem(void)
 	memblock_reserve(vmlinux_start, vmlinux_end - vmlinux_start);
 
 	set_max_mapnr(PFN_DOWN(mem_size));
-	max_low_pfn = PFN_DOWN(memblock_end_of_DRAM());
+	max_pfn = PFN_DOWN(memblock_end_of_DRAM());
+	max_low_pfn = max_pfn;
 
 #ifdef CONFIG_BLK_DEV_INITRD
 	setup_initrd();
@@ -493,7 +495,15 @@ void free_initmem(void)
 #else
 asmlinkage void __init setup_vm(uintptr_t dtb_pa)
 {
+#ifdef CONFIG_BUILTIN_DTB
+	dtb_early_va = soc_lookup_builtin_dtb();
+	if (!dtb_early_va) {
+		/* Fallback to first available DTS */
+		dtb_early_va = (void *) __dtb_start;
+	}
+#else
 	dtb_early_va = (void *)dtb_pa;
+#endif
 }
 
 static inline void setup_vm_final(void)

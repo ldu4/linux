@@ -80,6 +80,11 @@ enum iwl_regulatory_and_nvm_subcmd_ids {
 	 * response is &struct iwl_nvm_get_info_rsp
 	 */
 	NVM_GET_INFO = 0x2,
+
+	/**
+	 * @TAS_CONFIG: &struct iwl_tas_config_cmd
+	 */
+	TAS_CONFIG = 0x3,
 };
 
 /**
@@ -351,7 +356,7 @@ struct iwl_mcc_update_resp_v3 {
 	__le16 time;
 	__le16 geo_info;
 	__le32 n_channels;
-	__le32 channels[0];
+	__le32 channels[];
 } __packed; /* LAR_UPDATE_MCC_CMD_RESP_S_VER_3 */
 
 /**
@@ -380,7 +385,7 @@ struct iwl_mcc_update_resp {
 	u8 source_id;
 	u8 reserved[3];
 	__le32 n_channels;
-	__le32 channels[0];
+	__le32 channels[];
 } __packed; /* LAR_UPDATE_MCC_CMD_RESP_S_VER_4 */
 
 /**
@@ -431,4 +436,14 @@ enum iwl_mcc_source {
 	MCC_SOURCE_GETTING_MCC_TEST_MODE = 0x11,
 };
 
+#define IWL_TAS_BLACK_LIST_MAX 16
+/**
+ * struct iwl_tas_config_cmd - configures the TAS
+ * @black_list_size: size of relevant field in black_list_array
+ * @black_list_array: black list countries (without TAS)
+ */
+struct iwl_tas_config_cmd {
+	__le32 black_list_size;
+	__le32 black_list_array[IWL_TAS_BLACK_LIST_MAX];
+} __packed; /* TAS_CONFIG_CMD_API_S_VER_2 */
 #endif /* __iwl_fw_api_nvm_reg_h__ */
