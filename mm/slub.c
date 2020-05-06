@@ -2451,16 +2451,29 @@ static inline unsigned long node_nr_objs(struct kmem_cache_node *n)
 #endif /* CONFIG_SLUB_DEBUG */
 
 #if defined(CONFIG_SLUB_DEBUG) || defined(CONFIG_SYSFS)
+
+static unsigned long max_partial_to_count __read_mostly = 10000;
+module_param(max_partial_to_count, ulong, 0644);
+
 static unsigned long count_partial(struct kmem_cache_node *n,
 					int (*get_count)(struct page *))
 {
+	unsigned long counted = 0;
 	unsigned long flags;
 	unsigned long x = 0;
 	struct page *page;
 
 	spin_lock_irqsave(&n->list_lock, flags);
-	list_for_each_entry(page, &n->partial, slab_list)
+	list_for_each_entry(page, &n->partial, slab_list) {
 		x += get_count(page);
+
+		if (++counted > max_partial_to_count) {
+			pr_warn_once("SLUB: too much partial slabs to count all objects, increase max_partial_to_count.\n");
+			/* Approximate total count of objects */
+			x = mult_frac(x, n->nr_partial, counted);
+			break;
+		}
+	}
 	spin_unlock_irqrestore(&n->list_lock, flags);
 	return x;
 }
