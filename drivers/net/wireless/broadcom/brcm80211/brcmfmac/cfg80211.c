@@ -4449,6 +4449,11 @@ s32 brcmf_vif_set_mgmt_ie(struct brcmf_cfg80211_vif *vif, s32 pktflag,
 		mgmt_ie_len = &saved_ie->assoc_req_ie_len;
 		mgmt_ie_buf_len = sizeof(saved_ie->assoc_req_ie);
 		break;
+	case BRCMF_VNDR_IE_ASSOCRSP_FLAG:
+		mgmt_ie_buf = saved_ie->assoc_res_ie;
+		mgmt_ie_len = &saved_ie->assoc_res_ie_len;
+		mgmt_ie_buf_len = sizeof(saved_ie->assoc_res_ie);
+		break;
 	default:
 		err = -EPERM;
 		bphy_err(drvr, "not suitable type\n");
@@ -4595,6 +4600,15 @@ brcmf_config_ap_mgmt_ie(struct brcmf_cfg80211_vif *vif,
 	else
 		brcmf_dbg(TRACE, "Applied Vndr IEs for Probe Resp\n");
 
+	/* Set Assoc Response IEs to FW */
+	err = brcmf_vif_set_mgmt_ie(vif, BRCMF_VNDR_IE_ASSOCRSP_FLAG,
+				    beacon->assocresp_ies,
+				    beacon->assocresp_ies_len);
+	if (err)
+		brcmf_err("Set Assoc Resp IE Failed\n");
+	else
+		brcmf_dbg(TRACE, "Applied Vndr IEs for Assoc Resp\n");
+
 	return err;
 }
 
@@ -4727,7 +4741,8 @@ brcmf_cfg80211_start_ap(struct wiphy *wiphy, struct net_device *ndev,
 
 		if ((dev_role == NL80211_IFTYPE_AP) &&
 		    ((ifp->ifidx == 0) ||
-		     !brcmf_feat_is_enabled(ifp, BRCMF_FEAT_RSDB))) {
+		     (!brcmf_feat_is_enabled(ifp, BRCMF_FEAT_RSDB) &&
+		      !brcmf_feat_is_enabled(ifp, BRCMF_FEAT_MCHAN)))) {
 			err = brcmf_fil_cmd_int_set(ifp, BRCMF_C_DOWN, 1);
 			if (err < 0) {
 				bphy_err(drvr, "BRCMF_C_DOWN error %d\n",
@@ -4979,21 +4994,15 @@ brcmf_cfg80211_change_station(struct wiphy *wiphy, struct net_device *ndev,
 }
 
 static void
-brcmf_cfg80211_mgmt_frame_register(struct wiphy *wiphy,
-				   struct wireless_dev *wdev,
-				   u16 frame_type, bool reg)
+brcmf_cfg80211_update_mgmt_frame_registrations(struct wiphy *wiphy,
+					       struct wireless_dev *wdev,
+					       struct mgmt_frame_regs *upd)
 {
 	struct brcmf_cfg80211_vif *vif;
-	u16 mgmt_type;
 
-	brcmf_dbg(TRACE, "Enter, frame_type %04x, reg=%d\n", frame_type, reg);
-
-	mgmt_type = (frame_type & IEEE80211_FCTL_STYPE) >> 4;
 	vif = container_of(wdev, struct brcmf_cfg80211_vif, wdev);
-	if (reg)
-		vif->mgmt_rx_reg |= BIT(mgmt_type);
-	else
-		vif->mgmt_rx_reg &= ~BIT(mgmt_type);
+
+	vif->mgmt_rx_reg = upd->interface_stypes;
 }
 
 
@@ -5408,7 +5417,8 @@ static struct cfg80211_ops brcmf_cfg80211_ops = {
 	.change_station = brcmf_cfg80211_change_station,
 	.sched_scan_start = brcmf_cfg80211_sched_scan_start,
 	.sched_scan_stop = brcmf_cfg80211_sched_scan_stop,
-	.mgmt_frame_register = brcmf_cfg80211_mgmt_frame_register,
+	.update_mgmt_frame_registrations =
+		brcmf_cfg80211_update_mgmt_frame_registrations,
 	.mgmt_tx = brcmf_cfg80211_mgmt_tx,
 	.remain_on_channel = brcmf_p2p_remain_on_channel,
 	.cancel_remain_on_channel = brcmf_cfg80211_cancel_remain_on_channel,
