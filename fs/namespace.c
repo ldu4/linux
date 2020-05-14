@@ -30,6 +30,7 @@
 #include <uapi/linux/mount.h>
 #include <linux/fs_context.h>
 #include <linux/shmem_fs.h>
+#include <linux/fsinfo.h>
 
 #include "pnode.h"
 #include "internal.h"
@@ -63,7 +64,7 @@ static int __init set_mphash_entries(char *str)
 __setup("mphash_entries=", set_mphash_entries);
 
 static u64 event;
-static DEFINE_IDA(mnt_id_ida);
+static DEFINE_IDR(mnt_id_ida);
 static DEFINE_IDA(mnt_group_ida);
 
 static struct hlist_head *mount_hashtable __read_mostly;
@@ -104,17 +105,30 @@ static inline struct hlist_head *mp_hash(struct dentry *dentry)
 
 static int mnt_alloc_id(struct mount *mnt)
 {
-	int res = ida_alloc(&mnt_id_ida, GFP_KERNEL);
+	int res;
 
+	/* Allocate an ID, but don't set the pointer back to the mount until
+	 * later, as once we do that, we have to follow RCU protocols to get
+	 * rid of the mount struct.
+	 */
+	res = idr_alloc(&mnt_id_ida, NULL, 0, INT_MAX, GFP_KERNEL);
 	if (res < 0)
 		return res;
 	mnt->mnt_id = res;
+#ifdef CONFIG_FSINFO
+	vfs_generate_unique_id(&mnt->mnt_unique_id);
+#endif
 	return 0;
+}
+
+static void mnt_publish_id(struct mount *mnt)
+{
+	idr_replace(&mnt_id_ida, mnt, mnt->mnt_id);
 }
 
 static void mnt_free_id(struct mount *mnt)
 {
-	ida_free(&mnt_id_ida, mnt->mnt_id);
+	idr_remove(&mnt_id_ida, mnt->mnt_id);
 }
 
 /*
@@ -200,6 +214,7 @@ static struct mount *alloc_vfsmnt(const char *name)
 #endif
 
 		INIT_HLIST_NODE(&mnt->mnt_hash);
+		INIT_HLIST_NODE(&mnt->mnt_safe_link);
 		INIT_LIST_HEAD(&mnt->mnt_child);
 		INIT_LIST_HEAD(&mnt->mnt_mounts);
 		INIT_LIST_HEAD(&mnt->mnt_list);
@@ -498,6 +513,9 @@ static int mnt_make_readonly(struct mount *mnt)
 	smp_wmb();
 	mnt->mnt.mnt_flags &= ~MNT_WRITE_HOLD;
 	unlock_mount_hash();
+	if (ret == 0)
+		notify_mount(mnt, NULL, NOTIFY_MOUNT_READONLY,
+			     NOTIFY_MOUNT_IS_NOW_RO);
 	return ret;
 }
 
@@ -506,6 +524,7 @@ static int __mnt_unmake_readonly(struct mount *mnt)
 	lock_mount_hash();
 	mnt->mnt.mnt_flags &= ~MNT_READONLY;
 	unlock_mount_hash();
+	notify_mount(mnt, NULL, NOTIFY_MOUNT_READONLY, 0);
 	return 0;
 }
 
@@ -669,9 +688,6 @@ bool __is_local_mountpoint(struct dentry *dentry)
 	struct mount *mnt;
 	bool is_covered = false;
 
-	if (!d_mountpoint(dentry))
-		goto out;
-
 	down_read(&namespace_sem);
 	list_for_each_entry(mnt, &ns->list, mnt_list) {
 		is_covered = (mnt->mnt_mountpoint == dentry);
@@ -679,7 +695,7 @@ bool __is_local_mountpoint(struct dentry *dentry)
 			break;
 	}
 	up_read(&namespace_sem);
-out:
+
 	return is_covered;
 }
 
@@ -805,6 +821,7 @@ static struct mountpoint *unhash_mnt(struct mount *mnt)
 {
 	struct mountpoint *mp;
 	mnt->mnt_parent = mnt;
+	mnt->mnt_parent_id = mnt->mnt_id;
 	mnt->mnt_mountpoint = mnt->mnt.mnt_root;
 	list_del_init(&mnt->mnt_child);
 	hlist_del_init_rcu(&mnt->mnt_hash);
@@ -819,6 +836,7 @@ static struct mountpoint *unhash_mnt(struct mount *mnt)
  */
 static void umount_mnt(struct mount *mnt)
 {
+	notify_mount(mnt->mnt_parent, mnt, NOTIFY_MOUNT_UNMOUNT, 0);
 	put_mountpoint(unhash_mnt(mnt));
 }
 
@@ -833,6 +851,7 @@ void mnt_set_mountpoint(struct mount *mnt,
 	mnt_add_count(mnt, 1);	/* essentially, that's mntget */
 	child_mnt->mnt_mountpoint = mp->m_dentry;
 	child_mnt->mnt_parent = mnt;
+	child_mnt->mnt_parent_id = mnt->mnt_id;
 	child_mnt->mnt_mp = mp;
 	hlist_add_head(&child_mnt->mnt_mp_list, &mp->m_list);
 }
@@ -883,9 +902,10 @@ static void commit_tree(struct mount *mnt)
 	BUG_ON(parent == mnt);
 
 	list_add_tail(&head, &mnt->mnt_list);
-	list_for_each_entry(m, &head, mnt_list)
+	list_for_each_entry(m, &head, mnt_list) {
 		m->mnt_ns = n;
-
+		hlist_add_head_rcu(&m->mnt_safe_link, &n->mounts_safe);
+	}
 	list_splice(&head, n->list.prev);
 
 	n->mounts += n->pending_mounts;
@@ -949,10 +969,12 @@ struct vfsmount *vfs_create_mount(struct fs_context *fc)
 	mnt->mnt.mnt_root	= dget(fc->root);
 	mnt->mnt_mountpoint	= mnt->mnt.mnt_root;
 	mnt->mnt_parent		= mnt;
+	mnt->mnt_parent_id	= mnt->mnt_id;
 
 	lock_mount_hash();
 	list_add_tail(&mnt->mnt_instance, &mnt->mnt.mnt_sb->s_mounts);
 	unlock_mount_hash();
+	mnt_publish_id(mnt);
 	return &mnt->mnt;
 }
 EXPORT_SYMBOL(vfs_create_mount);
@@ -1043,9 +1065,11 @@ static struct mount *clone_mnt(struct mount *old, struct dentry *root,
 	mnt->mnt.mnt_root = dget(root);
 	mnt->mnt_mountpoint = mnt->mnt.mnt_root;
 	mnt->mnt_parent = mnt;
+	mnt->mnt_parent_id = mnt->mnt_id;
 	lock_mount_hash();
 	list_add_tail(&mnt->mnt_instance, &sb->s_mounts);
 	unlock_mount_hash();
+	mnt_publish_id(mnt);
 
 	if ((flag & CL_SLAVE) ||
 	    ((flag & CL_SHARED_TO_SLAVE) && IS_MNT_SHARED(old))) {
@@ -1158,6 +1182,11 @@ static void mntput_no_expire(struct mount *mnt)
 	}
 	mnt->mnt.mnt_flags |= MNT_DOOMED;
 	rcu_read_unlock();
+
+#ifdef CONFIG_MOUNT_NOTIFICATIONS
+	if (mnt->mnt_watchers)
+		remove_watch_list(mnt->mnt_watchers, mnt->mnt_id);
+#endif
 
 	list_del(&mnt->mnt_instance);
 
@@ -1453,6 +1482,8 @@ static void umount_tree(struct mount *mnt, enum umount_tree_flags how)
 		p = list_first_entry(&tmp_list, struct mount, mnt_list);
 		list_del_init(&p->mnt_expire);
 		list_del_init(&p->mnt_list);
+		hlist_del_rcu(&p->mnt_safe_link);
+
 		ns = p->mnt_ns;
 		if (ns) {
 			ns->mounts--;
@@ -1731,6 +1762,11 @@ static bool is_mnt_ns_file(struct dentry *dentry)
 static struct mnt_namespace *to_mnt_ns(struct ns_common *ns)
 {
 	return container_of(ns, struct mnt_namespace, ns);
+}
+
+struct ns_common *from_mnt_ns(struct mnt_namespace *mnt)
+{
+	return &mnt->ns;
 }
 
 static bool mnt_ns_loop(struct dentry *dentry)
@@ -2079,7 +2115,10 @@ static int attach_recursive_mnt(struct mount *source_mnt,
 	}
 	if (moving) {
 		unhash_mnt(source_mnt);
+		notify_mount(source_mnt->mnt_parent, source_mnt,
+			     NOTIFY_MOUNT_MOVE_FROM, 0);
 		attach_mnt(source_mnt, dest_mnt, dest_mp);
+		notify_mount(dest_mnt, source_mnt, NOTIFY_MOUNT_MOVE_TO, 0);
 		touch_mnt_namespace(source_mnt->mnt_ns);
 	} else {
 		if (source_mnt->mnt_ns) {
@@ -2088,6 +2127,11 @@ static int attach_recursive_mnt(struct mount *source_mnt,
 		}
 		mnt_set_mountpoint(dest_mnt, dest_mp, source_mnt);
 		commit_tree(source_mnt);
+		notify_mount(dest_mnt, source_mnt, NOTIFY_MOUNT_NEW_MOUNT,
+			     (source_mnt->mnt.mnt_sb->s_flags & SB_RDONLY ?
+			      NOTIFY_MOUNT_IS_NOW_RO : 0) |
+			     (source_mnt->mnt.mnt_sb->s_flags & SB_SUBMOUNT ?
+			      NOTIFY_MOUNT_IS_SUBMOUNT : 0));
 	}
 
 	hlist_for_each_entry_safe(child, n, &tree_list, mnt_hash) {
@@ -2339,6 +2383,7 @@ static struct file *open_detached_copy(struct path *path, bool recursive)
 	for (p = mnt; p; p = next_mnt(p, mnt)) {
 		p->mnt_ns = ns;
 		ns->mounts++;
+		hlist_add_head_rcu(&p->mnt_safe_link, &ns->mounts_safe);
 	}
 	ns->root = mnt;
 	list_add_tail(&ns->list, &mnt->mnt_list);
@@ -2464,6 +2509,8 @@ static void set_mount_attributes(struct mount *mnt, unsigned int mnt_flags)
 	mnt->mnt.mnt_flags = mnt_flags;
 	touch_mnt_namespace(mnt->mnt_ns);
 	unlock_mount_hash();
+	notify_mount(mnt, NULL, NOTIFY_MOUNT_SETATTR,
+		     (mnt_flags & SB_RDONLY ? NOTIFY_MOUNT_IS_NOW_RO : 0));
 }
 
 static void mnt_warn_timestamp_expiry(struct path *mountpoint, struct vfsmount *mnt)
@@ -2933,6 +2980,7 @@ void mark_mounts_for_expiry(struct list_head *mounts)
 			propagate_mount_busy(mnt, 1))
 			continue;
 		list_move(&mnt->mnt_expire, &graveyard);
+		notify_mount(mnt, NULL, NOTIFY_MOUNT_EXPIRY, 0);
 	}
 	while (!list_empty(&graveyard)) {
 		mnt = list_first_entry(&graveyard, struct mount, mnt_expire);
@@ -3200,6 +3248,7 @@ static struct mnt_namespace *alloc_mnt_ns(struct user_namespace *user_ns, bool a
 	if (!anon)
 		new_ns->seq = atomic64_add_return(1, &mnt_ns_seq);
 	atomic_set(&new_ns->count, 1);
+	INIT_HLIST_HEAD(&new_ns->mounts_safe);
 	INIT_LIST_HEAD(&new_ns->list);
 	init_waitqueue_head(&new_ns->poll);
 	new_ns->user_ns = get_user_ns(user_ns);
@@ -3260,6 +3309,7 @@ struct mnt_namespace *copy_mnt_ns(unsigned long flags, struct mnt_namespace *ns,
 	while (p) {
 		q->mnt_ns = new_ns;
 		new_ns->mounts++;
+		hlist_add_head_rcu(&q->mnt_safe_link, &new_ns->mounts_safe);
 		if (new_fs) {
 			if (&p->mnt == new_fs->root.mnt) {
 				new_fs->root.mnt = mntget(&q->mnt);
@@ -3304,6 +3354,7 @@ struct dentry *mount_subtree(struct vfsmount *m, const char *name)
 	ns->root = mnt;
 	ns->mounts++;
 	list_add(&mnt->mnt_list, &ns->list);
+	hlist_add_head_rcu(&mnt->mnt_safe_link, &ns->mounts_safe);
 
 	err = vfs_path_lookup(m->mnt_root, m,
 			name, LOOKUP_FOLLOW|LOOKUP_AUTOMOUNT, &path);
@@ -3470,6 +3521,7 @@ SYSCALL_DEFINE3(fsmount, int, fs_fd, unsigned int, flags,
 	ns->root = mnt;
 	ns->mounts = 1;
 	list_add(&mnt->mnt_list, &ns->list);
+	hlist_add_head_rcu(&mnt->mnt_safe_link, &ns->mounts_safe);
 	mntget(newmount.mnt);
 
 	/* Attach to an apparent O_PATH fd with a note that we need to unmount
@@ -3595,7 +3647,7 @@ EXPORT_SYMBOL(path_is_under);
  * file system may be mounted on put_old. After all, new_root is a mountpoint.
  *
  * Also, the current root cannot be on the 'rootfs' (initial ramfs) filesystem.
- * See Documentation/filesystems/ramfs-rootfs-initramfs.txt for alternatives
+ * See Documentation/filesystems/ramfs-rootfs-initramfs.rst for alternatives
  * in this situation.
  *
  * Notes:
@@ -3724,6 +3776,7 @@ static void __init init_mount_tree(void)
 	ns->root = m;
 	ns->mounts = 1;
 	list_add(&m->mnt_list, &ns->list);
+	hlist_add_head_rcu(&m->mnt_safe_link, &ns->mounts_safe);
 	init_task.nsproxy->mnt_ns = ns;
 	get_mnt_ns(ns);
 
@@ -3954,16 +4007,18 @@ static void mntns_put(struct ns_common *ns)
 	put_mnt_ns(to_mnt_ns(ns));
 }
 
-static int mntns_install(struct nsproxy *nsproxy, struct ns_common *ns)
+static int mntns_install(struct nsset *nsset, struct ns_common *ns)
 {
-	struct fs_struct *fs = current->fs;
+	struct nsproxy *nsproxy = nsset->nsproxy;
+	struct fs_struct *fs = nsset->fs;
 	struct mnt_namespace *mnt_ns = to_mnt_ns(ns), *old_mnt_ns;
+	struct user_namespace *user_ns = nsset->cred->user_ns;
 	struct path root;
 	int err;
 
 	if (!ns_capable(mnt_ns->user_ns, CAP_SYS_ADMIN) ||
-	    !ns_capable(current_user_ns(), CAP_SYS_CHROOT) ||
-	    !ns_capable(current_user_ns(), CAP_SYS_ADMIN))
+	    !ns_capable(user_ns, CAP_SYS_CHROOT) ||
+	    !ns_capable(user_ns, CAP_SYS_ADMIN))
 		return -EPERM;
 
 	if (is_anon_ns(mnt_ns))
@@ -4009,3 +4064,417 @@ const struct proc_ns_operations mntns_operations = {
 	.install	= mntns_install,
 	.owner		= mntns_owner,
 };
+
+#ifdef CONFIG_FSINFO
+static inline void mangle(struct seq_file *m, const char *s)
+{
+	seq_escape(m, s, " \t\n\\");
+}
+
+/*
+ * Return the mount source/device name as seen from this mountpoint.  Shared
+ * mounts may vary here and the filesystem is permitted to substitute its own
+ * rendering.
+ */
+int fsinfo_generic_mount_source(struct path *path, struct fsinfo_context *ctx)
+{
+	struct super_block *sb = path->mnt->mnt_sb;
+	struct mount *mnt = real_mount(path->mnt);
+	struct seq_file m = {
+		.buf	= ctx->buffer,
+		.size	= ctx->buf_size - 1,
+	};
+	int ret;
+
+	if (sb->s_op->show_devname) {
+		ret = sb->s_op->show_devname(&m, mnt->mnt.mnt_root);
+		if (ret < 0)
+			return ret;
+	} else {
+		if (!mnt->mnt_devname)
+			return fsinfo_string("none", ctx);
+		mangle(&m, mnt->mnt_devname);
+	}
+
+	if (seq_has_overflowed(&m))
+		return ctx->buf_size + PAGE_SIZE;
+
+	((char *)ctx->buffer)[m.count] = 0;
+	return m.count + 1;
+}
+
+/*
+ * See if one path point connects directly to another by ancestral relationship
+ * across mountpoints.  Must call with the RCU read lock held.
+ */
+static bool are_paths_connected(struct path *ancestor, struct path *to_check)
+{
+	struct mount *mnt, *parent;
+	struct path cursor;
+	unsigned seq;
+	bool connected;
+
+	seq = 0;
+restart:
+	cursor = *to_check;
+
+	read_seqbegin_or_lock(&rename_lock, &seq);
+	while (cursor.mnt != ancestor->mnt) {
+		mnt = real_mount(cursor.mnt);
+		parent = READ_ONCE(mnt->mnt_parent);
+		if (mnt == parent)
+			goto failed;
+		cursor.dentry = READ_ONCE(mnt->mnt_mountpoint);
+		cursor.mnt = &parent->mnt;
+	}
+
+	while (cursor.dentry != ancestor->dentry) {
+		if (cursor.dentry == cursor.mnt->mnt_root ||
+		    IS_ROOT(cursor.dentry))
+			goto failed;
+		cursor.dentry = READ_ONCE(cursor.dentry->d_parent);
+	}
+
+	connected = true;
+out:
+	done_seqretry(&rename_lock, seq);
+	return connected;
+
+failed:
+	if (need_seqretry(&rename_lock, seq)) {
+		seq = 1;
+		goto restart;
+	}
+	connected = false;
+	goto out;
+}
+
+/**
+ * lookup_mount_object - Look up a vfsmount object by ID
+ * @root: The mount root must connect backwards to this point (or chroot if NULL).
+ * @id: The ID of the mountpoint.
+ * @_mntpt: Where to return the resulting mountpoint path.
+ *
+ * Look up the root of the mount with the corresponding ID.  This is only
+ * permitted if that mount connects directly to the specified root/chroot.
+ */
+int lookup_mount_object(struct path *root, int mnt_id, struct path *_mntpt)
+{
+	struct mount *mnt;
+	struct path stop, mntpt = {};
+	int ret = -EPERM;
+
+	if (!root)
+		get_fs_root(current->fs, &stop);
+	else
+		stop = *root;
+
+	rcu_read_lock();
+	lock_mount_hash();
+	mnt = idr_find(&mnt_id_ida, mnt_id);
+	if (!mnt)
+		goto out_unlock_mh;
+	if (mnt->mnt.mnt_flags & (MNT_SYNC_UMOUNT | MNT_UMOUNT | MNT_DOOMED))
+		goto out_unlock_mh;
+	if (mnt_get_count(mnt) == 0)
+		goto out_unlock_mh;
+	mnt_add_count(mnt, 1);
+	mntpt.mnt = &mnt->mnt;
+	mntpt.dentry = dget(mnt->mnt.mnt_root);
+	unlock_mount_hash();
+
+	if (are_paths_connected(&stop, &mntpt)) {
+		*_mntpt = mntpt;
+		mntpt.mnt = NULL;
+		mntpt.dentry = NULL;
+		ret = 0;
+	}
+
+out_unlock:
+	rcu_read_unlock();
+	if (!root)
+		path_put(&stop);
+	path_put(&mntpt);
+	return ret;
+
+out_unlock_mh:
+	unlock_mount_hash();
+	goto out_unlock;
+}
+
+/*
+ * Retrieve information about the nominated mount.
+ */
+int fsinfo_generic_mount_info(struct path *path, struct fsinfo_context *ctx)
+{
+	struct fsinfo_mount_info *p = ctx->buffer;
+	struct super_block *sb;
+	struct mount *m;
+	unsigned int flags;
+
+	m = real_mount(path->mnt);
+	sb = m->mnt.mnt_sb;
+
+	p->sb_unique_id		= sb->s_unique_id;
+	p->mnt_unique_id	= m->mnt_unique_id;
+	p->mnt_id		= m->mnt_id;
+
+#ifdef CONFIG_SB_NOTIFICATIONS
+	p->sb_changes		= atomic_read(&sb->s_change_counter);
+	p->sb_notifications	= atomic_read(&sb->s_notify_counter);
+#endif
+#ifdef CONFIG_MOUNT_NOTIFICATIONS
+	p->mnt_subtree_notifications = atomic_read(&m->mnt_subtree_notifications);
+	p->mnt_topology_changes	= atomic_read(&m->mnt_topology_changes);
+	p->mnt_attr_changes	= atomic_read(&m->mnt_attr_changes);
+#endif
+
+	/* Record the counters before reading the attributes as we're not
+	 * holding a lock.  Paired with a write barrier in notify_mount().
+	 */
+	smp_rmb();
+
+	flags = READ_ONCE(m->mnt.mnt_flags);
+	if (flags & MNT_READONLY)
+		p->attr |= MOUNT_ATTR_RDONLY;
+	if (flags & MNT_NOSUID)
+		p->attr |= MOUNT_ATTR_NOSUID;
+	if (flags & MNT_NODEV)
+		p->attr |= MOUNT_ATTR_NODEV;
+	if (flags & MNT_NOEXEC)
+		p->attr |= MOUNT_ATTR_NOEXEC;
+	if (flags & MNT_NODIRATIME)
+		p->attr |= MOUNT_ATTR_NODIRATIME;
+
+	if (flags & MNT_NOATIME)
+		p->attr |= MOUNT_ATTR_NOATIME;
+	else if (flags & MNT_RELATIME)
+		p->attr |= MOUNT_ATTR_RELATIME;
+	else
+		p->attr |= MOUNT_ATTR_STRICTATIME;
+	return sizeof(*p);
+}
+
+/*
+ * Retrieve information about the topology at the nominated mount and
+ * its propogation attributes.
+ */
+int fsinfo_generic_mount_topology(struct path *path, struct fsinfo_context *ctx)
+{
+	struct fsinfo_mount_topology *p = ctx->buffer;
+	struct mount *m;
+	struct path root;
+
+	get_fs_root(current->fs, &root);
+
+	namespace_lock();
+
+	m = real_mount(path->mnt);
+
+	p->mnt_topology_changes	= atomic_read(&m->mnt_topology_changes);
+	p->parent_id = m->mnt_parent->mnt_id;
+
+	if (path->mnt == root.mnt) {
+		p->parent_id = m->mnt_id;
+	} else {
+		rcu_read_lock();
+		if (!are_paths_connected(&root, path))
+			p->parent_id = m->mnt_id;
+		rcu_read_unlock();
+	}
+
+	if (IS_MNT_SHARED(m)) {
+		p->group_id = m->mnt_group_id;
+		p->propagation |= MOUNT_PROPAGATION_SHARED;
+	}
+	if (IS_MNT_SLAVE(m)) {
+		int master = m->mnt_master->mnt_group_id;
+		int dom = get_dominating_id(m, &root);
+		p->master_id = master;
+		if (dom && dom != master)
+			p->from_id = dom;
+		p->propagation |= MOUNT_PROPAGATION_SLAVE;
+	}
+	if (IS_MNT_UNBINDABLE(m))
+		p->propagation |= MOUNT_PROPAGATION_UNBINDABLE;
+
+	namespace_unlock();
+	path_put(&root);
+	return sizeof(*p);
+}
+
+/*
+ * Return the path of this mount relative to its parent and clipped to
+ * the current chroot.
+ */
+int fsinfo_generic_mount_point(struct path *path, struct fsinfo_context *ctx)
+{
+	struct mountpoint *mp;
+	struct mount *m, *parent;
+	struct path mountpoint, root;
+	void *p;
+
+	rcu_read_lock();
+
+	m = real_mount(path->mnt);
+	parent = m->mnt_parent;
+	if (parent == m)
+		goto skip;
+	mp = READ_ONCE(m->mnt_mp);
+	if (mp)
+		goto found;
+skip:
+	rcu_read_unlock();
+	return -ENODATA;
+
+found:
+	mountpoint.mnt = &parent->mnt;
+	mountpoint.dentry = READ_ONCE(mp->m_dentry);
+
+	get_fs_root_rcu(current->fs, &root);
+	if (path->mnt == root.mnt) {
+		rcu_read_unlock();
+		return fsinfo_string("/", ctx);
+	}
+
+	if (root.mnt != &parent->mnt) {
+		root.mnt = &parent->mnt;
+		root.dentry = parent->mnt.mnt_root;
+	}
+
+	((char *)ctx->buffer)[ctx->buf_size - 1] = 0;
+	p = __d_path(&mountpoint, &root, ctx->buffer, ctx->buf_size - 1);
+	rcu_read_unlock();
+
+	if (IS_ERR(p))
+		return PTR_ERR(p);
+	if (!p)
+		return -EPERM;
+
+	ctx->skip = p - ctx->buffer;
+	return (ctx->buffer + ctx->buf_size) - p;
+}
+
+/*
+ * Return the path of this mount from the current chroot.
+ */
+int fsinfo_generic_mount_point_full(struct path *path, struct fsinfo_context *ctx)
+{
+	struct path root;
+	void *p;
+
+	((char *)ctx->buffer)[ctx->buf_size - 1] = 0;
+
+	rcu_read_lock();
+	get_fs_root_rcu(current->fs, &root);
+	p = __d_path(path, &root, ctx->buffer, ctx->buf_size - 1);
+	rcu_read_unlock();
+
+	if (IS_ERR(p))
+		return PTR_ERR(p);
+	if (!p)
+		return -EPERM;
+
+	ctx->skip = p - ctx->buffer;
+	return (ctx->buffer + ctx->buf_size) - p;
+}
+
+/*
+ * Store a mount record into the fsinfo buffer.
+ */
+static void fsinfo_store_mount(struct fsinfo_context *ctx, const struct mount *p,
+			       bool is_root)
+{
+	struct fsinfo_mount_child record = {};
+	const struct super_block *sb = READ_ONCE(p->mnt.mnt_sb);
+	unsigned int usage = ctx->usage;
+
+	if (ctx->usage >= INT_MAX)
+		return;
+	ctx->usage = usage + sizeof(record);
+	if (!ctx->buffer || ctx->usage > ctx->buf_size)
+		return;
+
+	record.mnt_unique_id	= p->mnt_unique_id;
+	record.mnt_id		= p->mnt_id;
+	record.parent_id	= is_root ? p->mnt_id : p->mnt_parent_id;
+	record.notify_sum	= 0;
+#ifdef CONFIG_SB_NOTIFICATIONS
+	if (sb)
+		record.notify_sum	+= (atomic_read(&sb->s_change_counter) +
+					    atomic_read(&sb->s_notify_counter));
+#endif
+#ifdef CONFIG_MOUNT_NOTIFICATIONS
+	record.notify_sum	+= (atomic_read(&p->mnt_attr_changes) +
+				    atomic_read(&p->mnt_topology_changes) +
+				    atomic_read(&p->mnt_subtree_notifications));
+#endif
+
+	memcpy(ctx->buffer + usage, &record, sizeof(record));
+}
+
+/*
+ * Return information about the submounts relative to path.
+ */
+int fsinfo_generic_mount_children(struct path *path, struct fsinfo_context *ctx)
+{
+	struct mount *m, *child;
+
+	m = real_mount(path->mnt);
+
+	read_seqlock_excl(&mount_lock);
+
+	list_for_each_entry_rcu(child, &m->mnt_mounts, mnt_child) {
+		if (child->mnt_parent != m)
+			continue;
+		fsinfo_store_mount(ctx, child, false);
+	}
+
+	/* End the list with a copy of the parameter mount's details so that
+	 * userspace can quickly check for changes.
+	 */
+	fsinfo_store_mount(ctx, m, true);
+	read_sequnlock_excl(&mount_lock);
+	return ctx->usage;
+}
+
+/*
+ * Return information about all the mounts in the namespace referenced by the
+ * path.
+ */
+int fsinfo_generic_mount_all(struct path *path, struct fsinfo_context *ctx)
+{
+	struct mnt_namespace *ns;
+	struct mount *m, *p;
+	struct path chroot;
+	unsigned seq = 0;
+
+	m = real_mount(path->mnt);
+	ns = m->mnt_ns;
+
+	rcu_read_lock();
+	do {
+		read_seqbegin_or_lock(&mount_lock, &seq);
+
+		get_fs_root_rcu(current->fs, &chroot);
+		if (!are_paths_connected(&chroot, path) && !capable(CAP_SYS_ADMIN)) {
+			rcu_read_unlock();
+			return -EPERM;
+		}
+
+		hlist_for_each_entry_rcu(p, &ns->mounts_safe, mnt_safe_link) {
+			struct path mnt_root;
+
+			mnt_root.mnt	= &p->mnt;
+			mnt_root.dentry	= p->mnt.mnt_root;
+			if (are_paths_connected(path, &mnt_root))
+				fsinfo_store_mount(ctx, p, p == m);
+		}
+	} while (need_seqretry(&mount_lock, seq));
+
+	done_seqretry(&mount_lock, seq);
+	rcu_read_unlock();
+	return ctx->usage;
+}
+
+#endif /* CONFIG_FSINFO */

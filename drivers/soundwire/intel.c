@@ -669,11 +669,11 @@ static int sdw_stream_setup(struct snd_pcm_substream *substream,
 
 	/* Set stream pointer on all CODEC DAIs */
 	for (i = 0; i < rtd->num_codecs; i++) {
-		ret = snd_soc_dai_set_sdw_stream(rtd->codec_dais[i], sdw_stream,
+		ret = snd_soc_dai_set_sdw_stream(asoc_rtd_to_codec(rtd, i), sdw_stream,
 						 substream->stream);
 		if (ret < 0) {
 			dev_err(dai->dev, "failed to set stream pointer on codec dai %s",
-				rtd->codec_dais[i]->name);
+				asoc_rtd_to_codec(rtd, i)->name);
 			goto release_stream;
 		}
 	}
@@ -1110,9 +1110,10 @@ static int intel_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, sdw);
 
-	ret = sdw_add_bus_master(&sdw->cdns.bus);
+	/* 2nd and 3rd arguments are just added for compilation */
+	ret = sdw_bus_master_add(&sdw->cdns.bus, NULL, NULL);
 	if (ret) {
-		dev_err(&pdev->dev, "sdw_add_bus_master fail: %d\n", ret);
+		dev_err(&pdev->dev, "sdw_bus_master_add fail: %d\n", ret);
 		return ret;
 	}
 
@@ -1173,7 +1174,7 @@ err_interrupt:
 	sdw_cdns_enable_interrupt(&sdw->cdns, false);
 	free_irq(sdw->link_res->irq, sdw);
 err_init:
-	sdw_delete_bus_master(&sdw->cdns.bus);
+	sdw_bus_master_delete(&sdw->cdns.bus);
 	return ret;
 }
 
@@ -1189,7 +1190,7 @@ static int intel_remove(struct platform_device *pdev)
 		free_irq(sdw->link_res->irq, sdw);
 		snd_soc_unregister_component(sdw->cdns.dev);
 	}
-	sdw_delete_bus_master(&sdw->cdns.bus);
+	sdw_bus_master_delete(&sdw->cdns.bus);
 
 	return 0;
 }
