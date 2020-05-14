@@ -4,12 +4,14 @@
 #include <linux/poll.h>
 #include <linux/ns_common.h>
 #include <linux/fs_pin.h>
+#include <linux/watch_queue.h>
 
 struct mnt_namespace {
 	atomic_t		count;
 	struct ns_common	ns;
 	struct mount *	root;
 	struct list_head	list;
+	struct hlist_head	mounts_safe;	/* RCU-safe mount list; mount->mnt_safe_link */
 	struct user_namespace	*user_ns;
 	struct ucounts		*ucounts;
 	u64			seq;	/* Sequence number to prevent loops */
@@ -46,6 +48,7 @@ struct mount {
 	int mnt_count;
 	int mnt_writers;
 #endif
+	struct hlist_node mnt_safe_link; /* Link in mnt_ns->mounts_safe */
 	struct list_head mnt_mounts;	/* list of children, anchored here */
 	struct list_head mnt_child;	/* and going through their mnt_child */
 	struct list_head mnt_instance;	/* mount instance on sb->s_mounts */
@@ -68,10 +71,20 @@ struct mount {
 	__u32 mnt_fsnotify_mask;
 #endif
 	int mnt_id;			/* mount identifier */
+	int mnt_parent_id;		/* Current parent mount identifier */
 	int mnt_group_id;		/* peer group identifier */
 	int mnt_expiry_mark;		/* true if marked for expiry */
 	struct hlist_head mnt_pins;
 	struct hlist_head mnt_stuck_children;
+#ifdef CONFIG_FSINFO
+	u64	mnt_unique_id;		/* ID unique over lifetime of kernel */
+#endif
+#ifdef CONFIG_MOUNT_NOTIFICATIONS
+	atomic_t mnt_topology_changes;	/* Number of topology changes applied */
+	atomic_t mnt_attr_changes;	/* Number of attribute changes applied */
+	atomic_t mnt_subtree_notifications;	/* Number of notifications in subtree */
+	struct watch_list *mnt_watchers; /* Watches on dentries within this mount */
+#endif
 } __randomize_layout;
 
 #define MNT_NS_INTERNAL ERR_PTR(-EINVAL) /* distinct from any mnt_namespace */
@@ -153,3 +166,17 @@ static inline bool is_anon_ns(struct mnt_namespace *ns)
 {
 	return ns->seq == 0;
 }
+
+#ifdef CONFIG_MOUNT_NOTIFICATIONS
+extern void notify_mount(struct mount *triggered,
+			 struct mount *aux,
+			 enum mount_notification_subtype subtype,
+			 u32 info_flags);
+#else
+static inline void notify_mount(struct mount *triggered,
+				struct mount *aux,
+				enum mount_notification_subtype subtype,
+				u32 info_flags)
+{
+}
+#endif

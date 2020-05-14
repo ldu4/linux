@@ -2607,7 +2607,7 @@ sub process {
 				if (($last_binding_patch != -1) &&
 				    ($last_binding_patch ^ $is_binding_patch)) {
 					WARN("DT_SPLIT_BINDING_PATCH",
-					     "DT binding docs and includes should be a separate patch. See: Documentation/devicetree/bindings/submitting-patches.txt\n");
+					     "DT binding docs and includes should be a separate patch. See: Documentation/devicetree/bindings/submitting-patches.rst\n");
 				}
 			}
 
@@ -5929,6 +5929,14 @@ sub process {
 			if (!ctx_has_comment($first_line, $linenr)) {
 				WARN("WAITQUEUE_ACTIVE",
 				     "waitqueue_active without comment\n" . $herecurr);
+			}
+		}
+
+# check for data_race without a comment.
+		if ($line =~ /\bdata_race\s*\(/) {
+			if (!ctx_has_comment($first_line, $linenr)) {
+				WARN("DATA_RACE",
+				     "data_race without comment\n" . $herecurr);
 			}
 		}
 

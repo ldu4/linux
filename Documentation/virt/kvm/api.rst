@@ -2572,13 +2572,15 @@ list in 4.68.
 :Parameters: None
 :Returns: 0 on success, -1 on error
 
-This signals to the host kernel that the specified guest is being paused by
-userspace.  The host will set a flag in the pvclock structure that is checked
-from the soft lockup watchdog.  The flag is part of the pvclock structure that
-is shared between guest and host, specifically the second bit of the flags
+This ioctl sets a flag accessible to the guest indicating that the specified
+vCPU has been paused by the host userspace.
+
+The host will set a flag in the pvclock structure that is checked from the
+soft lockup watchdog.  The flag is part of the pvclock structure that is
+shared between guest and host, specifically the second bit of the flags
 field of the pvclock_vcpu_time_info structure.  It will be set exclusively by
 the host and read/cleared exclusively by the guest.  The guest operation of
-checking and clearing the flag must an atomic operation so
+checking and clearing the flag must be an atomic operation so
 load-link/store-conditional, or equivalent must be used.  There are two cases
 where the guest will clear the flag: when the soft lockup watchdog timer resets
 itself or when a soft lockup is detected.  This ioctl can be called any time
@@ -5801,6 +5803,23 @@ has the opportunity to veto the transition.
 If present, this capability can be enabled for a VM, meaning that KVM
 will allow the transition to secure guest mode.  Otherwise KVM will
 veto the transition.
+
+7.20 KVM_CAP_HALT_POLL
+----------------------
+
+:Architectures: all
+:Target: VM
+:Parameters: args[0] is the maximum poll time in nanoseconds
+:Returns: 0 on success; -1 on error
+
+This capability overrides the kvm module parameter halt_poll_ns for the
+target VM.
+
+VCPU polling allows a VCPU to poll for wakeup events instead of immediately
+scheduling during guest halts. The maximum time a VCPU can spend polling is
+controlled by the kvm module parameter halt_poll_ns. This capability allows
+the maximum halt time to specified on a per-VM basis, effectively overriding
+the module parameter for the target VM.
 
 8. Other capabilities.
 ======================

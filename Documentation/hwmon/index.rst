@@ -42,6 +42,7 @@ Hardware Monitoring Kernel Drivers
    asb100
    asc7621
    aspeed-pwm-tacho
+   bcm54140
    bel-pfe
    coretemp
    da9052
@@ -106,6 +107,7 @@ Hardware Monitoring Kernel Drivers
    max16064
    max16065
    max1619
+   max16601
    max1668
    max197
    max20730
