@@ -19,6 +19,7 @@
  */
 
 
+#include <linux/bits.h>
 #include <linux/module.h>
 #include <linux/input.h>
 #include <linux/interrupt.h>
@@ -73,6 +74,7 @@
 #define FW_POS_STATE		1
 #define FW_POS_TOTAL		2
 #define FW_POS_XY		3
+#define FW_POS_TOOL_TYPE	33
 #define FW_POS_CHECKSUM		34
 #define FW_POS_WIDTH		35
 #define FW_POS_PRESSURE		45
@@ -87,6 +89,7 @@
 /* FW read command, 0x53 0x?? 0x0, 0x01 */
 #define E_ELAN_INFO_FW_VER	0x00
 #define E_ELAN_INFO_BC_VER	0x10
+#define E_ELAN_INFO_REK		0xE0
 #define E_ELAN_INFO_TEST_VER	0xE0
 #define E_ELAN_INFO_FW_ID	0xF0
 #define E_INFO_OSR		0xD6
@@ -842,6 +845,7 @@ static void elants_i2c_mt_event(struct elants_data *ts, u8 *buf)
 {
 	struct input_dev *input = ts->input;
 	unsigned int n_fingers;
+	unsigned int tool_type;
 	u16 finger_state;
 	int i;
 
@@ -851,6 +855,10 @@ static void elants_i2c_mt_event(struct elants_data *ts, u8 *buf)
 
 	dev_dbg(&ts->client->dev,
 		"n_fingers: %u, state: %04x\n",  n_fingers, finger_state);
+
+	/* Note: all fingers have the same tool type */
+	tool_type = buf[FW_POS_TOOL_TYPE] & BIT(0) ?
+			MT_TOOL_FINGER : MT_TOOL_PALM;
 
 	for (i = 0; i < MAX_CONTACT_NUM && n_fingers; i++) {
 		if (finger_state & 1) {
@@ -867,7 +875,7 @@ static void elants_i2c_mt_event(struct elants_data *ts, u8 *buf)
 				i, x, y, p, w);
 
 			input_mt_slot(input, i);
-			input_mt_report_slot_state(input, MT_TOOL_FINGER, true);
+			input_mt_report_slot_state(input, tool_type, true);
 			input_event(input, EV_ABS, ABS_MT_POSITION_X, x);
 			input_event(input, EV_ABS, ABS_MT_POSITION_Y, y);
 			input_event(input, EV_ABS, ABS_MT_PRESSURE, p);
@@ -1010,7 +1018,7 @@ out:
  */
 static ssize_t calibrate_store(struct device *dev,
 			       struct device_attribute *attr,
-			      const char *buf, size_t count)
+			       const char *buf, size_t count)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct elants_data *ts = i2c_get_clientdata(client);
@@ -1056,8 +1064,32 @@ static ssize_t show_iap_mode(struct device *dev,
 				"Normal" : "Recovery");
 }
 
+static ssize_t show_calibration_count(struct device *dev,
+				      struct device_attribute *attr, char *buf)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	const u8 cmd[] = { CMD_HEADER_READ, E_ELAN_INFO_REK, 0x00, 0x01 };
+	u8 resp[HEADER_SIZE];
+	u16 rek_count;
+	int error;
+
+	error = elants_i2c_execute_command(client, cmd, sizeof(cmd),
+						resp, sizeof(resp));
+	if (error) {
+		dev_err(&client->dev,
+			"read ReK status error=%d, buf=%*phC\n",
+			error, (int)sizeof(resp), resp);
+		return sprintf(buf, "%d\n", error);
+	}
+
+	rek_count = get_unaligned_be16(&resp[2]);
+
+	return sprintf(buf, "0x%04x\n", rek_count);
+}
+
 static DEVICE_ATTR_WO(calibrate);
 static DEVICE_ATTR(iap_mode, S_IRUGO, show_iap_mode, NULL);
+static DEVICE_ATTR(calibration_count, S_IRUGO, show_calibration_count, NULL);
 static DEVICE_ATTR(update_fw, S_IWUSR, NULL, write_update_fw);
 
 struct elants_version_attribute {
@@ -1113,6 +1145,7 @@ static struct attribute *elants_attributes[] = {
 	&dev_attr_calibrate.attr,
 	&dev_attr_update_fw.attr,
 	&dev_attr_iap_mode.attr,
+	&dev_attr_calibration_count.attr,
 
 	&elants_ver_attr_fw_version.dattr.attr,
 	&elants_ver_attr_hw_version.dattr.attr,
@@ -1307,6 +1340,8 @@ static int elants_i2c_probe(struct i2c_client *client,
 	input_set_abs_params(ts->input, ABS_MT_POSITION_Y, 0, ts->y_max, 0, 0);
 	input_set_abs_params(ts->input, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);
 	input_set_abs_params(ts->input, ABS_MT_PRESSURE, 0, 255, 0, 0);
+	input_set_abs_params(ts->input, ABS_MT_TOOL_TYPE,
+			     0, MT_TOOL_PALM, 0, 0);
 	input_abs_set_res(ts->input, ABS_MT_POSITION_X, ts->x_res);
 	input_abs_set_res(ts->input, ABS_MT_POSITION_Y, ts->y_res);
 	input_abs_set_res(ts->input, ABS_MT_TOUCH_MAJOR, 1);

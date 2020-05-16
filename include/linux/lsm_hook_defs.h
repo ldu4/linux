@@ -243,7 +243,7 @@ LSM_HOOK(int, -EINVAL, getprocattr, struct task_struct *p, char *name,
 	 char **value)
 LSM_HOOK(int, -EINVAL, setprocattr, const char *name, void *value, size_t size)
 LSM_HOOK(int, 0, ismaclabel, const char *name)
-LSM_HOOK(int, 0, secid_to_secctx, u32 secid, char **secdata,
+LSM_HOOK(int, -EOPNOTSUPP, secid_to_secctx, u32 secid, char **secdata,
 	 u32 *seclen)
 LSM_HOOK(int, 0, secctx_to_secid, const char *secdata, u32 seclen, u32 *secid)
 LSM_HOOK(void, LSM_RET_VOID, release_secctx, char *secdata, u32 seclen)
@@ -252,6 +252,21 @@ LSM_HOOK(int, 0, inode_notifysecctx, struct inode *inode, void *ctx, u32 ctxlen)
 LSM_HOOK(int, 0, inode_setsecctx, struct dentry *dentry, void *ctx, u32 ctxlen)
 LSM_HOOK(int, 0, inode_getsecctx, struct inode *inode, void **ctx,
 	 u32 *ctxlen)
+
+#if defined(CONFIG_SECURITY) && defined(CONFIG_WATCH_QUEUE)
+LSM_HOOK(int, 0, post_notification, const struct cred *w_cred,
+	 const struct cred *cred, struct watch_notification *n)
+#endif /* CONFIG_SECURITY && CONFIG_WATCH_QUEUE */
+
+#if defined(CONFIG_SECURITY) && defined(CONFIG_KEY_NOTIFICATIONS)
+LSM_HOOK(int, 0, watch_key, struct key *key)
+#endif /* CONFIG_SECURITY && CONFIG_KEY_NOTIFICATIONS */
+#ifdef CONFIG_MOUNT_NOTIFICATIONS
+LSM_HOOK(int, 0, watch_mount, struct watch *watch, struct path *path)
+#endif
+#ifdef CONFIG_SB_NOTIFICATIONS
+LSM_HOOK(int, 0, watch_sb, struct watch *watch, struct super_block *sb)
+#endif
 
 #ifdef CONFIG_SECURITY_NETWORK
 LSM_HOOK(int, 0, unix_stream_connect, struct sock *sock, struct sock *other,
