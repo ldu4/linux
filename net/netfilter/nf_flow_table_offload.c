@@ -754,12 +754,15 @@ static void flow_offload_work_add(struct flow_offload_work *offload)
 	err = flow_offload_rule_add(offload, flow_rule);
 	if (err < 0)
 		set_bit(NF_FLOW_HW_REFRESH, &offload->flow->flags);
+	else
+		set_bit(IPS_HW_OFFLOAD_BIT, &offload->flow->ct->status);
 
 	nf_flow_offload_destroy(flow_rule);
 }
 
 static void flow_offload_work_del(struct flow_offload_work *offload)
 {
+	clear_bit(IPS_HW_OFFLOAD_BIT, &offload->flow->ct->status);
 	flow_offload_tuple_del(offload, FLOW_OFFLOAD_DIR_ORIGINAL);
 	flow_offload_tuple_del(offload, FLOW_OFFLOAD_DIR_REPLY);
 	set_bit(NF_FLOW_HW_DEAD, &offload->flow->flags);
@@ -817,6 +820,7 @@ static void flow_offload_work_handler(struct work_struct *work)
 			WARN_ON_ONCE(1);
 	}
 
+	clear_bit(NF_FLOW_HW_PENDING, &offload->flow->flags);
 	kfree(offload);
 }
 
@@ -831,9 +835,14 @@ nf_flow_offload_work_alloc(struct nf_flowtable *flowtable,
 {
 	struct flow_offload_work *offload;
 
-	offload = kmalloc(sizeof(struct flow_offload_work), GFP_ATOMIC);
-	if (!offload)
+	if (test_and_set_bit(NF_FLOW_HW_PENDING, &flow->flags))
 		return NULL;
+
+	offload = kmalloc(sizeof(struct flow_offload_work), GFP_ATOMIC);
+	if (!offload) {
+		clear_bit(NF_FLOW_HW_PENDING, &flow->flags);
+		return NULL;
+	}
 
 	offload->cmd = cmd;
 	offload->flow = flow;
@@ -1056,7 +1065,7 @@ static struct flow_indr_block_entry block_ing_entry = {
 int nf_flow_table_offload_init(void)
 {
 	nf_flow_offload_wq  = alloc_workqueue("nf_flow_table_offload",
-					      WQ_UNBOUND | WQ_MEM_RECLAIM, 0);
+					      WQ_UNBOUND, 0);
 	if (!nf_flow_offload_wq)
 		return -ENOMEM;
 

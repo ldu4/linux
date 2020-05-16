@@ -134,14 +134,20 @@ void rtw_phy_init(struct rtw_dev *rtwdev)
 	mask = chip->dig[0].mask;
 	dm_info->igi_history[0] = rtw_read32_mask(rtwdev, addr, mask);
 	rtw_phy_cck_pd_init(rtwdev);
+
+	dm_info->iqk.done = false;
 }
 
 void rtw_phy_dig_write(struct rtw_dev *rtwdev, u8 igi)
 {
 	struct rtw_chip_info *chip = rtwdev->chip;
 	struct rtw_hal *hal = &rtwdev->hal;
+	const struct rtw_hw_reg *dig_cck = &chip->dig_cck[0];
 	u32 addr, mask;
 	u8 path;
+
+	if (dig_cck)
+		rtw_write32_mask(rtwdev, dig_cck->addr, dig_cck->mask, igi >> 1);
 
 	for (path = 0; path < hal->rf_path_num; path++) {
 		addr = chip->dig[path].addr;
@@ -679,7 +685,7 @@ u32 rtw_phy_read_rf(struct rtw_dev *rtwdev, enum rtw_rf_path rf_path,
 	const u32 *base_addr = chip->rf_base_addr;
 	u32 val, direct_addr;
 
-	if (rf_path >= hal->rf_path_num) {
+	if (rf_path >= hal->rf_phy_num) {
 		rtw_err(rtwdev, "unsupported rf path (%d)\n", rf_path);
 		return INV_RF_DATA;
 	}
@@ -693,6 +699,54 @@ u32 rtw_phy_read_rf(struct rtw_dev *rtwdev, enum rtw_rf_path rf_path,
 	return val;
 }
 
+u32 rtw_phy_read_rf_sipi(struct rtw_dev *rtwdev, enum rtw_rf_path rf_path,
+			 u32 addr, u32 mask)
+{
+	struct rtw_hal *hal = &rtwdev->hal;
+	struct rtw_chip_info *chip = rtwdev->chip;
+	const struct rtw_rf_sipi_addr *rf_sipi_addr;
+	const struct rtw_rf_sipi_addr *rf_sipi_addr_a;
+	u32 val32;
+	u32 en_pi;
+	u32 r_addr;
+	u32 shift;
+
+	if (rf_path >= hal->rf_phy_num) {
+		rtw_err(rtwdev, "unsupported rf path (%d)\n", rf_path);
+		return INV_RF_DATA;
+	}
+
+	if (!chip->rf_sipi_read_addr) {
+		rtw_err(rtwdev, "rf_sipi_read_addr isn't defined\n");
+		return INV_RF_DATA;
+	}
+
+	rf_sipi_addr = &chip->rf_sipi_read_addr[rf_path];
+	rf_sipi_addr_a = &chip->rf_sipi_read_addr[RF_PATH_A];
+
+	addr &= 0xff;
+
+	val32 = rtw_read32(rtwdev, rf_sipi_addr->hssi_2);
+	val32 = (val32 & ~LSSI_READ_ADDR_MASK) | (addr << 23);
+	rtw_write32(rtwdev, rf_sipi_addr->hssi_2, val32);
+
+	/* toggle read edge of path A */
+	val32 = rtw_read32(rtwdev, rf_sipi_addr_a->hssi_2);
+	rtw_write32(rtwdev, rf_sipi_addr_a->hssi_2, val32 & ~LSSI_READ_EDGE_MASK);
+	rtw_write32(rtwdev, rf_sipi_addr_a->hssi_2, val32 | LSSI_READ_EDGE_MASK);
+
+	udelay(120);
+
+	en_pi = rtw_read32_mask(rtwdev, rf_sipi_addr->hssi_1, BIT(8));
+	r_addr = en_pi ? rf_sipi_addr->lssi_read_pi : rf_sipi_addr->lssi_read;
+
+	val32 = rtw_read32_mask(rtwdev, r_addr, LSSI_READ_DATA_MASK);
+
+	shift = __ffs(mask);
+
+	return (val32 & mask) >> shift;
+}
+
 bool rtw_phy_write_rf_reg_sipi(struct rtw_dev *rtwdev, enum rtw_rf_path rf_path,
 			       u32 addr, u32 mask, u32 data)
 {
@@ -703,7 +757,7 @@ bool rtw_phy_write_rf_reg_sipi(struct rtw_dev *rtwdev, enum rtw_rf_path rf_path,
 	u32 old_data = 0;
 	u32 shift;
 
-	if (rf_path >= hal->rf_path_num) {
+	if (rf_path >= hal->rf_phy_num) {
 		rtw_err(rtwdev, "unsupported rf path (%d)\n", rf_path);
 		return false;
 	}
@@ -712,7 +766,7 @@ bool rtw_phy_write_rf_reg_sipi(struct rtw_dev *rtwdev, enum rtw_rf_path rf_path,
 	mask &= RFREG_MASK;
 
 	if (mask != RFREG_MASK) {
-		old_data = rtw_phy_read_rf(rtwdev, rf_path, addr, RFREG_MASK);
+		old_data = chip->ops->read_rf(rtwdev, rf_path, addr, RFREG_MASK);
 
 		if (old_data == INV_RF_DATA) {
 			rtw_err(rtwdev, "Write fail, rf is disabled\n");
@@ -740,7 +794,7 @@ bool rtw_phy_write_rf_reg(struct rtw_dev *rtwdev, enum rtw_rf_path rf_path,
 	const u32 *base_addr = chip->rf_base_addr;
 	u32 direct_addr;
 
-	if (rf_path >= hal->rf_path_num) {
+	if (rf_path >= hal->rf_phy_num) {
 		rtw_err(rtwdev, "unsupported rf path (%d)\n", rf_path);
 		return false;
 	}
@@ -1731,11 +1785,13 @@ void rtw_get_tx_power_params(struct rtw_dev *rtwdev, u8 path, u8 rate, u8 bw,
 			     u8 ch, u8 regd, struct rtw_power_params *pwr_param)
 {
 	struct rtw_hal *hal = &rtwdev->hal;
+	struct rtw_dm_info *dm_info = &rtwdev->dm_info;
 	struct rtw_txpwr_idx *pwr_idx;
 	u8 group, band;
 	u8 *base = &pwr_param->pwr_base;
 	s8 *offset = &pwr_param->pwr_offset;
 	s8 *limit = &pwr_param->pwr_limit;
+	s8 *remnant = &pwr_param->pwr_remnant;
 
 	pwr_idx = &rtwdev->efuse.txpwr_idx_table[path];
 	group = rtw_get_channel_group(ch);
@@ -1757,6 +1813,8 @@ void rtw_get_tx_power_params(struct rtw_dev *rtwdev, u8 path, u8 rate, u8 bw,
 
 	*limit = rtw_phy_get_tx_power_limit(rtwdev, band, bw, path,
 					    rate, ch, regd);
+	*remnant = (rate <= DESC_RATE11M ? dm_info->txagc_remnant_cck :
+		    dm_info->txagc_remnant_ofdm);
 }
 
 u8
@@ -1776,7 +1834,7 @@ rtw_phy_get_tx_power_index(struct rtw_dev *rtwdev, u8 rf_path, u8 rate,
 	if (rtwdev->chip->en_dis_dpd)
 		offset += rtw_phy_get_dis_dpd_by_rate_diff(rtwdev, rate);
 
-	tx_power += offset;
+	tx_power += offset + pwr_param.pwr_remnant;
 
 	if (tx_power > rtwdev->chip->max_power_index)
 		tx_power = rtwdev->chip->max_power_index;

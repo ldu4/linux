@@ -171,7 +171,7 @@ config MMC_SDHCI_OF_ASPEED
 config MMC_SDHCI_OF_AT91
 	tristate "SDHCI OF support for the Atmel SDMMC controller"
 	depends on MMC_SDHCI_PLTFM
-	depends on OF
+	depends on OF && HAVE_CLK
 	help
 	  This selects the Atmel SDMMC driver
 
@@ -409,7 +409,7 @@ config MMC_MESON_MX_SDIO
 	tristate "Amlogic Meson6/Meson8/Meson8b SD/MMC Host Controller support"
 	depends on ARCH_MESON || COMPILE_TEST
 	depends on COMMON_CLK
-	depends on OF
+	depends on OF_ADDRESS
 	help
 	  This selects support for the SD/MMC Host Controller on
 	  Amlogic Meson6, Meson8 and Meson8b SoCs.
