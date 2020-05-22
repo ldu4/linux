@@ -36,6 +36,9 @@
 #define DMUB_RB_SIZE (DMUB_RB_CMD_SIZE * DMUB_RB_MAX_ENTRY)
 #define REG_SET_MASK 0xFFFF
 
+#define SET_ABM_PIPE_GRADUALLY_DISABLE           0
+#define SET_ABM_PIPE_IMMEDIATELY_DISABLE         255
+#define SET_ABM_PIPE_NORMAL                      1
 
 /*
  * Command IDs should be treated as stable ABI.
@@ -216,6 +219,7 @@ struct dmub_rb_cmd_dpphy_init {
 };
 
 struct dmub_cmd_psr_copy_settings_data {
+	union dmub_psr_debug_flags debug;
 	uint16_t psr_level;
 	uint8_t dpp_inst;
 	uint8_t mpcc_inst;
@@ -228,6 +232,7 @@ struct dmub_cmd_psr_copy_settings_data {
 	uint8_t smu_optimizations_en;
 	uint8_t frame_delay;
 	uint8_t frame_cap_ind;
+	uint8_t pad[3];
 };
 
 struct dmub_rb_cmd_psr_copy_settings {
@@ -237,6 +242,7 @@ struct dmub_rb_cmd_psr_copy_settings {
 
 struct dmub_cmd_psr_set_level_data {
 	uint16_t psr_level;
+	uint8_t pad[2];
 };
 
 struct dmub_rb_cmd_psr_set_level {
@@ -258,8 +264,10 @@ struct dmub_rb_cmd_psr_set_version {
 };
 
 struct dmub_cmd_abm_set_pipe_data {
-	uint32_t ramping_boundary;
-	uint32_t otg_inst;
+	uint8_t otg_inst;
+	uint8_t panel_inst;
+	uint8_t set_pipe_option;
+	uint8_t ramping_boundary; // TODO: Remove this
 };
 
 struct dmub_rb_cmd_abm_set_pipe {
@@ -269,6 +277,7 @@ struct dmub_rb_cmd_abm_set_pipe {
 
 struct dmub_cmd_abm_set_backlight_data {
 	uint32_t frame_ramp;
+	uint32_t backlight_user_level;
 };
 
 struct dmub_rb_cmd_abm_set_backlight {
@@ -303,6 +312,16 @@ struct dmub_rb_cmd_abm_set_pwm_frac {
 	struct dmub_cmd_abm_set_pwm_frac_data abm_set_pwm_frac_data;
 };
 
+struct dmub_cmd_abm_init_config_data {
+	union dmub_addr src;
+	uint16_t bytes;
+};
+
+struct dmub_rb_cmd_abm_init_config {
+	struct dmub_cmd_header header;
+	struct dmub_cmd_abm_init_config_data abm_init_config_data;
+};
+
 union dmub_rb_cmd {
 	struct dmub_rb_cmd_read_modify_write read_modify_write;
 	struct dmub_rb_cmd_reg_field_update_sequence reg_field_update_seq;
@@ -324,6 +343,7 @@ union dmub_rb_cmd {
 	struct dmub_rb_cmd_abm_set_level abm_set_level;
 	struct dmub_rb_cmd_abm_set_ambient_level abm_set_ambient_level;
 	struct dmub_rb_cmd_abm_set_pwm_frac abm_set_pwm_frac;
+	struct dmub_rb_cmd_abm_init_config abm_init_config;
 };
 
 #pragma pack(pop)

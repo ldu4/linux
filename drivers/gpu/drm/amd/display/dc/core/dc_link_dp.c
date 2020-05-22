@@ -13,7 +13,6 @@
 #include "core_status.h"
 #include "dpcd_defs.h"
 
-#include "resource.h"
 #define DC_LOGGER \
 	link->ctx->logger
 
@@ -220,9 +219,33 @@ static enum dpcd_training_patterns
 	return dpcd_tr_pattern;
 }
 
+static uint8_t dc_dp_initialize_scrambling_data_symbols(
+	struct dc_link *link,
+	enum dc_dp_training_pattern pattern)
+{
+	uint8_t disable_scrabled_data_symbols = 0;
+
+	switch (pattern) {
+	case DP_TRAINING_PATTERN_SEQUENCE_1:
+	case DP_TRAINING_PATTERN_SEQUENCE_2:
+	case DP_TRAINING_PATTERN_SEQUENCE_3:
+		disable_scrabled_data_symbols = 1;
+		break;
+	case DP_TRAINING_PATTERN_SEQUENCE_4:
+		disable_scrabled_data_symbols = 0;
+		break;
+	default:
+		ASSERT(0);
+		DC_LOG_HW_LINK_TRAINING("%s: Invalid HW Training pattern: %d\n",
+			__func__, pattern);
+		break;
+	}
+	return disable_scrabled_data_symbols;
+}
+
 static inline bool is_repeater(struct dc_link *link, uint32_t offset)
 {
-	return (!link->is_lttpr_mode_transparent && offset != 0);
+	return (link->lttpr_non_transparent_mode && offset != 0);
 }
 
 static void dpcd_set_lt_pattern_and_lane_settings(
@@ -251,6 +274,9 @@ static void dpcd_set_lt_pattern_and_lane_settings(
 	*****************************************************************/
 	dpcd_pattern.v1_4.TRAINING_PATTERN_SET =
 		dc_dp_training_pattern_to_dpcd_training_pattern(link, pattern);
+
+	dpcd_pattern.v1_4.SCRAMBLING_DISABLE =
+		dc_dp_initialize_scrambling_data_symbols(link, pattern);
 
 	dpcd_lt_buffer[DP_TRAINING_PATTERN_SET - DP_TRAINING_PATTERN_SET]
 		= dpcd_pattern.raw;
@@ -1012,7 +1038,7 @@ static enum link_training_result perform_clock_recovery_sequence(
 		/* 3. wait receiver to lock-on*/
 		wait_time_microsec = lt_settings->cr_pattern_time;
 
-		if (!link->is_lttpr_mode_transparent)
+		if (link->lttpr_non_transparent_mode)
 			wait_time_microsec = TRAINING_AUX_RD_INTERVAL;
 
 		wait_for_training_aux_rd_interval(
@@ -1242,7 +1268,7 @@ static void configure_lttpr_mode(struct dc_link *link)
 		link->dpcd_caps.lttpr_caps.mode = repeater_mode;
 	}
 
-	if (!link->is_lttpr_mode_transparent) {
+	if (link->lttpr_non_transparent_mode) {
 
 		DC_LOG_HW_LINK_TRAINING("%s\n Set LTTPR to Non Transparent Mode\n", __func__);
 
@@ -1447,7 +1473,7 @@ enum link_training_result dc_link_dp_perform_link_training(
 			&lt_settings);
 
 	/* Configure lttpr mode */
-	if (!link->is_lttpr_mode_transparent)
+	if (link->lttpr_non_transparent_mode)
 		configure_lttpr_mode(link);
 
 	if (link->ctx->dc->work_arounds.lt_early_cr_pattern)
@@ -1463,7 +1489,7 @@ enum link_training_result dc_link_dp_perform_link_training(
 
 	dp_set_fec_ready(link, fec_enable);
 
-	if (!link->is_lttpr_mode_transparent) {
+	if (link->lttpr_non_transparent_mode) {
 
 		/* 2. perform link training (set link training done
 		 *  to false is done as well)
@@ -1710,19 +1736,10 @@ bool dc_link_dp_sync_lt_end(struct dc_link *link, bool link_down)
 
 static struct dc_link_settings get_max_link_cap(struct dc_link *link)
 {
-	/* Set Default link settings */
-	struct dc_link_settings max_link_cap = {LANE_COUNT_FOUR, LINK_RATE_HIGH,
-			LINK_SPREAD_05_DOWNSPREAD_30KHZ, false, 0};
+	struct dc_link_settings max_link_cap = {0};
 
-	/* Higher link settings based on feature supported */
-	if (link->link_enc->features.flags.bits.IS_HBR2_CAPABLE)
-		max_link_cap.link_rate = LINK_RATE_HIGH2;
-
-	if (link->link_enc->features.flags.bits.IS_HBR3_CAPABLE)
-		max_link_cap.link_rate = LINK_RATE_HIGH3;
-
-	if (link->link_enc->funcs->get_max_link_cap)
-		link->link_enc->funcs->get_max_link_cap(link->link_enc, &max_link_cap);
+	/* get max link encoder capability */
+	link->link_enc->funcs->get_max_link_cap(link->link_enc, &max_link_cap);
 
 	/* Lower link settings based on sink's link cap */
 	if (link->reported_link_cap.lane_count < max_link_cap.lane_count)
@@ -1739,7 +1756,7 @@ static struct dc_link_settings get_max_link_cap(struct dc_link *link)
 	 * account for lttpr repeaters cap
 	 * notes: repeaters do not snoop in the DPRX Capabilities addresses (3.6.3).
 	 */
-	if (!link->is_lttpr_mode_transparent) {
+	if (link->lttpr_non_transparent_mode) {
 		if (link->dpcd_caps.lttpr_caps.max_lane_count < max_link_cap.lane_count)
 			max_link_cap.lane_count = link->dpcd_caps.lttpr_caps.max_lane_count;
 
@@ -1897,7 +1914,7 @@ bool dp_verify_link_cap(
 	max_link_cap = get_max_link_cap(link);
 
 	/* Grant extended timeout request */
-	if (!link->is_lttpr_mode_transparent && link->dpcd_caps.lttpr_caps.max_ext_timeout > 0) {
+	if (link->lttpr_non_transparent_mode && link->dpcd_caps.lttpr_caps.max_ext_timeout > 0) {
 		uint8_t grant = link->dpcd_caps.lttpr_caps.max_ext_timeout & 0x80;
 
 		core_link_write_dpcd(link, DP_PHY_REPEATER_EXTENDED_WAIT_TIMEOUT, &grant, sizeof(grant));
@@ -2426,7 +2443,7 @@ static bool handle_hpd_irq_psr_sink(struct dc_link *link)
 {
 	union dpcd_psr_configuration psr_configuration;
 
-	if (!link->psr_feature_enabled)
+	if (!link->psr_settings.psr_feature_enabled)
 		return false;
 
 	dm_helpers_dp_read_dpcd(
@@ -2530,7 +2547,7 @@ static void dp_test_send_phy_test_pattern(struct dc_link *link)
 	/* get phy test pattern and pattern parameters from DP receiver */
 	core_link_read_dpcd(
 			link,
-			DP_TEST_PHY_PATTERN,
+			DP_PHY_TEST_PATTERN,
 			&dpcd_test_pattern.raw,
 			sizeof(dpcd_test_pattern));
 	core_link_read_dpcd(
@@ -3238,17 +3255,7 @@ static bool retrieve_link_cap(struct dc_link *link)
 	uint32_t read_dpcd_retry_cnt = 3;
 	int i;
 	struct dp_sink_hw_fw_revision dp_hw_fw_revision;
-
-	/* Set default timeout to 3.2ms and read LTTPR capabilities */
-	bool ext_timeout_support = link->dc->caps.extended_aux_timeout_support &&
-			!link->dc->config.disable_extended_timeout_support;
-
-	link->is_lttpr_mode_transparent = true;
-
-	if (ext_timeout_support) {
-		dc_link_aux_configure_timeout(link->ddc,
-					LINK_AUX_DEFAULT_EXTENDED_TIMEOUT_PERIOD);
-	}
+	bool is_lttpr_present = false;
 
 	memset(dpcd_data, '\0', sizeof(dpcd_data));
 	memset(lttpr_dpcd_data, '\0', sizeof(lttpr_dpcd_data));
@@ -3256,6 +3263,13 @@ static bool retrieve_link_cap(struct dc_link *link)
 		'\0', sizeof(union down_stream_port_count));
 	memset(&edp_config_cap, '\0',
 		sizeof(union edp_configuration_cap));
+
+	/* if extended timeout is supported in hardware,
+	 * default to LTTPR timeout (3.2ms) first as a W/A for DP link layer
+	 * CTS 4.2.1.1 regression introduced by CTS specs requirement update.
+	 */
+	dc_link_aux_try_to_configure_timeout(link->ddc,
+			LINK_AUX_DEFAULT_LTTPR_TIMEOUT_PERIOD);
 
 	status = core_link_read_dpcd(link, DP_SET_POWER,
 				&dpcd_power_state, sizeof(dpcd_power_state));
@@ -3283,8 +3297,9 @@ static bool retrieve_link_cap(struct dc_link *link)
 		return false;
 	}
 
-	if (ext_timeout_support) {
-
+	if (link->dc->caps.extended_aux_timeout_support) {
+		/* By reading LTTPR capability, RX assumes that we will enable LTTPR extended aux timeout if LTTPR is present.
+		 * Therefore, only query LTTPR capability when LTTPR extended aux timeout is supported by hardware */
 		status = core_link_read_dpcd(
 				link,
 				DP_LT_TUNABLE_PHY_REPEATER_FIELD_DATA_STRUCTURE_REV,
@@ -3315,19 +3330,20 @@ static bool retrieve_link_cap(struct dc_link *link)
 				lttpr_dpcd_data[DP_PHY_REPEATER_EXTENDED_WAIT_TIMEOUT -
 								DP_LT_TUNABLE_PHY_REPEATER_FIELD_DATA_STRUCTURE_REV];
 
-		if (link->dpcd_caps.lttpr_caps.phy_repeater_cnt > 0 &&
+		is_lttpr_present = (link->dpcd_caps.lttpr_caps.phy_repeater_cnt > 0 &&
 				link->dpcd_caps.lttpr_caps.max_lane_count > 0 &&
 				link->dpcd_caps.lttpr_caps.max_lane_count <= 4 &&
-				link->dpcd_caps.lttpr_caps.revision.raw >= 0x14) {
-			link->is_lttpr_mode_transparent = false;
-		} else {
-			/*No lttpr reset timeout to its default value*/
-			link->is_lttpr_mode_transparent = true;
-			dc_link_aux_configure_timeout(link->ddc, LINK_AUX_DEFAULT_TIMEOUT_PERIOD);
-		}
-
-		CONN_DATA_DETECT(link, lttpr_dpcd_data, sizeof(lttpr_dpcd_data), "LTTPR Caps: ");
+				link->dpcd_caps.lttpr_caps.revision.raw >= 0x14);
+		if (is_lttpr_present)
+			CONN_DATA_DETECT(link, lttpr_dpcd_data, sizeof(lttpr_dpcd_data), "LTTPR Caps: ");
 	}
+
+	/* decide lttpr non transparent mode */
+	link->lttpr_non_transparent_mode = is_lttpr_present && link->dc->config.allow_lttpr_non_transparent_mode;
+
+	if (!is_lttpr_present)
+		dc_link_aux_try_to_configure_timeout(link->ddc, LINK_AUX_DEFAULT_TIMEOUT_PERIOD);
+
 
 	{
 		union training_aux_rd_interval aux_rd_interval;
@@ -4240,7 +4256,7 @@ void dpcd_set_source_specific_data(struct dc_link *link)
 {
 	const uint32_t post_oui_delay = 30; // 30ms
 	uint8_t dspc = 0;
-	enum dc_status ret = DC_ERROR_UNEXPECTED;
+	enum dc_status ret;
 
 	ret = core_link_read_dpcd(link, DP_DOWN_STREAM_PORT_COUNT, &dspc,
 				  sizeof(dspc));
