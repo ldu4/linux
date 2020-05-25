@@ -1854,15 +1854,6 @@ static int __init init_default_flow_dissectors(void)
 	skb_flow_dissector_init(&flow_keys_basic_dissector,
 				flow_keys_basic_dissector_keys,
 				ARRAY_SIZE(flow_keys_basic_dissector_keys));
-<<<<<<< HEAD
-=======
-
-	err = register_pernet_subsys(&flow_dissector_pernet_ops);
-
-	WARN_ON(err);
-	return err;
-}
->>>>>>> linux-next/akpm-base
 
 	return register_pernet_subsys(&flow_dissector_pernet_ops);
 }
