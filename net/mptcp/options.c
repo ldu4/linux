@@ -551,11 +551,7 @@ static u64 add_addr_generate_hmac(u64 key1, u64 key2, u8 addr_id,
 
 	mptcp_crypto_hmac_sha(key1, key2, msg, 7, hmac);
 
-<<<<<<< HEAD
 	return get_unaligned_be64(&hmac[SHA256_DIGEST_SIZE - sizeof(u64)]);
-=======
-	return get_unaligned_be64(&hmac[MPTCP_ADDR_HMAC_LEN - sizeof(u64)]);
->>>>>>> linux-next/akpm-base
 }
 
 #if IS_ENABLED(CONFIG_MPTCP_IPV6)
@@ -572,11 +568,7 @@ static u64 add_addr6_generate_hmac(u64 key1, u64 key2, u8 addr_id,
 
 	mptcp_crypto_hmac_sha(key1, key2, msg, 19, hmac);
 
-<<<<<<< HEAD
 	return get_unaligned_be64(&hmac[SHA256_DIGEST_SIZE - sizeof(u64)]);
-=======
-	return get_unaligned_be64(&hmac[MPTCP_ADDR_HMAC_LEN - sizeof(u64)]);
->>>>>>> linux-next/akpm-base
 }
 #endif
 

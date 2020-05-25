@@ -1315,24 +1315,6 @@ static int vsc8584_config_init(struct phy_device *phydev)
 
 	mutex_lock(&phydev->mdio.bus->mdio_lock);
 
-<<<<<<< HEAD
-	__mdiobus_write(phydev->mdio.bus, phydev->mdio.addr,
-			MSCC_EXT_PAGE_ACCESS, MSCC_PHY_PAGE_EXTENDED);
-	addr = __mdiobus_read(phydev->mdio.bus, phydev->mdio.addr,
-			      MSCC_PHY_EXT_PHY_CNTL_4);
-	addr >>= PHY_CNTL_4_ADDR_POS;
-
-	val = __mdiobus_read(phydev->mdio.bus, phydev->mdio.addr,
-			     MSCC_PHY_ACTIPHY_CNTL);
-	if (val & PHY_ADDR_REVERSED)
-		vsc8531->base_addr = phydev->mdio.addr + addr;
-	else
-		vsc8531->base_addr = phydev->mdio.addr - addr;
-
-	vsc8531->addr = addr;
-
-=======
->>>>>>> linux-next/akpm-base
 	/* Some parts of the init sequence are identical for every PHY in the
 	 * package. Some parts are modifying the GPIO register bank which is a
 	 * set of registers that are affecting all PHYs, a few resetting the
@@ -1745,23 +1727,6 @@ static int vsc8514_config_init(struct phy_device *phydev)
 
 	mutex_lock(&phydev->mdio.bus->mdio_lock);
 
-<<<<<<< HEAD
-	__phy_write(phydev, MSCC_EXT_PAGE_ACCESS, MSCC_PHY_PAGE_EXTENDED);
-
-	addr = __phy_read(phydev, MSCC_PHY_EXT_PHY_CNTL_4);
-	addr >>= PHY_CNTL_4_ADDR_POS;
-
-	val = __phy_read(phydev, MSCC_PHY_ACTIPHY_CNTL);
-
-	if (val & PHY_ADDR_REVERSED)
-		vsc8531->base_addr = phydev->mdio.addr + addr;
-	else
-		vsc8531->base_addr = phydev->mdio.addr - addr;
-
-	vsc8531->addr = addr;
-
-=======
->>>>>>> linux-next/akpm-base
 	/* Some parts of the init sequence are identical for every PHY in the
 	 * package. Some parts are modifying the GPIO register bank which is a
 	 * set of registers that are affecting all PHYs, a few resetting the
