@@ -75,6 +75,7 @@ static inline double dml_floor(double a, double granularity)
 }
 
 static inline double dml_round(double a)
+<<<<<<< HEAD
 {
 	double round_pt = 0.5;
 	double ceil = dml_ceil(a, 1);
@@ -87,8 +88,22 @@ static inline double dml_round(double a)
 }
 
 static inline int dml_log2(double x)
+=======
+>>>>>>> linux-next/akpm-base
 {
-	return dml_round((double)dcn_bw_log(x, 2));
+	double round_pt = 0.5;
+	double ceil = dml_ceil(a, 1);
+	double floor = dml_floor(a, 1);
+
+	if (a - floor >= round_pt)
+		return ceil;
+	else
+		return floor;
+}
+
+static inline double dml_log2(double x)
+{
+	return (double) dcn_bw_log(x, 2);
 }
 
 static inline double dml_pow(double a, int exp)

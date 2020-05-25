@@ -70,7 +70,7 @@ static inline bool bio_has_data(struct bio *bio)
 	return false;
 }
 
-static inline bool bio_no_advance_iter(struct bio *bio)
+static inline bool bio_no_advance_iter(const struct bio *bio)
 {
 	return bio_op(bio) == REQ_OP_DISCARD ||
 	       bio_op(bio) == REQ_OP_SECURE_ERASE ||
@@ -138,8 +138,8 @@ static inline bool bio_next_segment(const struct bio *bio,
 #define bio_for_each_segment_all(bvl, bio, iter) \
 	for (bvl = bvec_init_iter_all(&iter); bio_next_segment((bio), &iter); )
 
-static inline void bio_advance_iter(struct bio *bio, struct bvec_iter *iter,
-				    unsigned bytes)
+static inline void bio_advance_iter(const struct bio *bio,
+				    struct bvec_iter *iter, unsigned int bytes)
 {
 	iter->bi_sector += bytes >> 9;
 
@@ -168,6 +168,14 @@ static inline void bio_advance_iter(struct bio *bio, struct bvec_iter *iter,
 /* iterate over multi-page bvec */
 #define bio_for_each_bvec(bvl, bio, iter)			\
 	__bio_for_each_bvec(bvl, bio, iter, (bio)->bi_iter)
+
+/*
+ * Iterate over all multi-page bvecs. Drivers shouldn't use this version for the
+ * same reasons as bio_for_each_segment_all().
+ */
+#define bio_for_each_bvec_all(bvl, bio, i)		\
+	for (i = 0, bvl = bio_first_bvec_all(bio);	\
+	     i < (bio)->bi_vcnt; i++, bvl++)		\
 
 #define bio_iter_last(bvec, iter) ((iter).bi_size == (bvec).bv_len)
 
