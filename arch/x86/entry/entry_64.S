@@ -348,7 +348,7 @@ SYM_CODE_START(ret_from_fork)
 	/* kernel thread */
 	UNWIND_HINT_EMPTY
 	movq	%r12, %rdi
-	CALL_NOSPEC %rbx
+	CALL_NOSPEC rbx
 	/*
 	 * A kernel thread is allowed to return here after successfully
 	 * calling do_execve().  Exit to userspace to complete the execve()
@@ -798,7 +798,6 @@ _ASM_NOKPROBE(common_interrupt)
 SYM_CODE_START(\sym)
 	UNWIND_HINT_IRET_REGS
 	pushq	$~(\num)
-.Lcommon_\sym:
 	call	interrupt_entry
 	UNWIND_HINT_REGS indirect=1
 	call	\do_sym	/* rdi points to pt_regs */
@@ -1202,10 +1201,6 @@ idtentry xendebug		do_debug		has_error_code=0
 idtentry general_protection	do_general_protection	has_error_code=1
 idtentry page_fault		do_page_fault		has_error_code=1	read_cr2=1
 
-#ifdef CONFIG_KVM_GUEST
-idtentry async_page_fault	do_async_page_fault	has_error_code=1	read_cr2=1
-#endif
-
 #ifdef CONFIG_X86_MCE
 idtentry machine_check		do_mce			has_error_code=0	paranoid=1
 #endif
@@ -1339,7 +1334,6 @@ SYM_CODE_START_LOCAL(error_entry)
 	 */
 	SWAPGS
 	FENCE_SWAPGS_USER_ENTRY
-	SWITCH_TO_KERNEL_CR3 scratch_reg=%rax
 	jmp .Lerror_entry_done
 
 .Lbstep_iret:

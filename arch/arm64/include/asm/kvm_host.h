@@ -46,6 +46,9 @@
 #define KVM_REQ_RECORD_STEAL	KVM_ARCH_REQ(3)
 #define KVM_REQ_RELOAD_GICv4	KVM_ARCH_REQ(4)
 
+#define KVM_DIRTY_LOG_MANUAL_CAPS   (KVM_DIRTY_LOG_MANUAL_PROTECT_ENABLE | \
+				     KVM_DIRTY_LOG_INITIALLY_SET)
+
 DECLARE_STATIC_KEY_FALSE(userspace_irqchip_in_use);
 
 extern unsigned int kvm_sve_max_vl;
@@ -415,6 +418,8 @@ struct kvm_vm_stat {
 struct kvm_vcpu_stat {
 	u64 halt_successful_poll;
 	u64 halt_attempted_poll;
+	u64 halt_poll_success_ns;
+	u64 halt_poll_fail_ns;
 	u64 halt_poll_invalid;
 	u64 halt_wakeup;
 	u64 hvc_exit_stat;
@@ -571,10 +576,6 @@ static inline bool kvm_arch_requires_vhe(void)
 	 * relies on this when SVE is present:
 	 */
 	if (system_supports_sve())
-		return true;
-
-	/* Some implementations have defects that confine them to VHE */
-	if (cpus_have_cap(ARM64_WORKAROUND_SPECULATIVE_AT_VHE))
 		return true;
 
 	return false;

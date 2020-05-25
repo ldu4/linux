@@ -353,9 +353,12 @@ struct vsc8531_private {
 	const struct vsc85xx_hw_stat *hw_stats;
 	u64 *stats;
 	int nstats;
+<<<<<<< HEAD
 	bool pkg_init;
 	/* PHY address within the package. */
 	u8 addr;
+=======
+>>>>>>> linux-next/akpm-base
 	/* For multiple port PHYs; the MDIO address of the base PHY in the
 	 * package.
 	 */
