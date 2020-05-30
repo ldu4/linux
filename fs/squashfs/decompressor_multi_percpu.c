@@ -8,6 +8,7 @@
 #include <linux/slab.h>
 #include <linux/percpu.h>
 #include <linux/buffer_head.h>
+#include <linux/local_lock.h>
 
 #include "squashfs_fs.h"
 #include "squashfs_fs_sb.h"
@@ -20,7 +21,8 @@
  */
 
 struct squashfs_stream {
-	void		*stream;
+	void			*stream;
+	local_lock_t	lock;
 };
 
 void *squashfs_decompressor_create(struct squashfs_sb_info *msblk,
@@ -41,6 +43,7 @@ void *squashfs_decompressor_create(struct squashfs_sb_info *msblk,
 			err = PTR_ERR(stream->stream);
 			goto out;
 		}
+		local_lock_init(&stream->lock);
 	}
 
 	kfree(comp_opts);

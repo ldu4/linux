@@ -25,6 +25,7 @@
 #include <linux/sched.h>
 #include <linux/sched/mm.h>
 #include <linux/sched/task.h>
+#include <linux/mmu_context.h>
 #include <linux/slab.h>
 #include <linux/amd-iommu.h>
 #include <linux/notifier.h>
@@ -76,21 +77,109 @@ struct kfd_procfs_tree {
 
 static struct kfd_procfs_tree procfs;
 
+/*
+ * Structure for SDMA activity tracking
+ */
+struct kfd_sdma_activity_handler_workarea {
+	struct work_struct sdma_activity_work;
+	struct kfd_process_device *pdd;
+	uint64_t sdma_activity_counter;
+};
+
+static void kfd_sdma_activity_worker(struct work_struct *work)
+{
+	struct kfd_sdma_activity_handler_workarea *workarea;
+	struct kfd_process_device *pdd;
+	uint64_t val;
+	struct mm_struct *mm;
+	struct queue *q;
+	struct qcm_process_device *qpd;
+	struct device_queue_manager *dqm;
+	int ret = 0;
+
+	workarea = container_of(work, struct kfd_sdma_activity_handler_workarea,
+				sdma_activity_work);
+	if (!workarea)
+		return;
+
+	pdd = workarea->pdd;
+	dqm = pdd->dev->dqm;
+	qpd = &pdd->qpd;
+
+	if (!pdd || !dqm || !qpd)
+		return;
+
+	mm = get_task_mm(pdd->process->lead_thread);
+	if (!mm) {
+		return;
+	}
+
+	use_mm(mm);
+
+	dqm_lock(dqm);
+
+	/*
+	 * Total SDMA activity is current SDMA activity + past SDMA activity
+	 */
+	workarea->sdma_activity_counter = pdd->sdma_past_activity_counter;
+
+	/*
+	 * Get the current activity counters for all active SDMA queues
+	 */
+	list_for_each_entry(q, &qpd->queues_list, list) {
+		if ((q->properties.type == KFD_QUEUE_TYPE_SDMA) ||
+		    (q->properties.type == KFD_QUEUE_TYPE_SDMA_XGMI)) {
+			val = 0;
+			ret = read_sdma_queue_counter(q, &val);
+			if (ret)
+				pr_debug("Failed to read SDMA queue active "
+					 "counter for queue id: %d",
+					 q->properties.queue_id);
+			else
+				workarea->sdma_activity_counter += val;
+		}
+	}
+
+	dqm_unlock(dqm);
+	unuse_mm(mm);
+	mmput(mm);
+}
+
 static ssize_t kfd_procfs_show(struct kobject *kobj, struct attribute *attr,
 			       char *buffer)
 {
-	int val = 0;
-
 	if (strcmp(attr->name, "pasid") == 0) {
 		struct kfd_process *p = container_of(attr, struct kfd_process,
 						     attr_pasid);
-		val = p->pasid;
+
+		return snprintf(buffer, PAGE_SIZE, "%d\n", p->pasid);
+	} else if (strncmp(attr->name, "vram_", 5) == 0) {
+		struct kfd_process_device *pdd = container_of(attr, struct kfd_process_device,
+							      attr_vram);
+		return snprintf(buffer, PAGE_SIZE, "%llu\n", READ_ONCE(pdd->vram_usage));
+	} else if (strncmp(attr->name, "sdma_", 5) == 0) {
+		struct kfd_process_device *pdd = container_of(attr, struct kfd_process_device,
+							      attr_sdma);
+		struct kfd_sdma_activity_handler_workarea sdma_activity_work_handler;
+
+		INIT_WORK(&sdma_activity_work_handler.sdma_activity_work,
+					kfd_sdma_activity_worker);
+
+		sdma_activity_work_handler.pdd = pdd;
+
+		schedule_work(&sdma_activity_work_handler.sdma_activity_work);
+
+		flush_work(&sdma_activity_work_handler.sdma_activity_work);
+
+		return snprintf(buffer, PAGE_SIZE, "%llu\n",
+				(sdma_activity_work_handler.sdma_activity_counter)/
+				 SDMA_ACTIVITY_DIVISOR);
 	} else {
 		pr_err("Invalid attribute");
 		return -EINVAL;
 	}
 
-	return snprintf(buffer, PAGE_SIZE, "%d\n", val);
+	return 0;
 }
 
 static void kfd_procfs_kobj_release(struct kobject *kobj)
@@ -206,6 +295,59 @@ int kfd_procfs_add_queue(struct queue *q)
 	return 0;
 }
 
+static int kfd_sysfs_create_file(struct kfd_process *p, struct attribute *attr,
+				 char *name)
+{
+	int ret = 0;
+
+	if (!p || !attr || !name)
+		return -EINVAL;
+
+	attr->name = name;
+	attr->mode = KFD_SYSFS_FILE_MODE;
+	sysfs_attr_init(attr);
+
+	ret = sysfs_create_file(p->kobj, attr);
+
+	return ret;
+}
+
+int kfd_procfs_add_sysfs_files(struct kfd_process *p)
+{
+	int ret = 0;
+	struct kfd_process_device *pdd;
+
+	if (!p)
+		return -EINVAL;
+
+	if (!p->kobj)
+		return -EFAULT;
+
+	/*
+	 * Create sysfs files for each GPU:
+	 * - proc/<pid>/vram_<gpuid>
+	 * - proc/<pid>/sdma_<gpuid>
+	 */
+	list_for_each_entry(pdd, &p->per_device_data, per_device_list) {
+		snprintf(pdd->vram_filename, MAX_SYSFS_FILENAME_LEN, "vram_%u",
+			 pdd->dev->id);
+		ret = kfd_sysfs_create_file(p, &pdd->attr_vram, pdd->vram_filename);
+		if (ret)
+			pr_warn("Creating vram usage for gpu id %d failed",
+				(int)pdd->dev->id);
+
+		snprintf(pdd->sdma_filename, MAX_SYSFS_FILENAME_LEN, "sdma_%u",
+			 pdd->dev->id);
+		ret = kfd_sysfs_create_file(p, &pdd->attr_sdma, pdd->sdma_filename);
+		if (ret)
+			pr_warn("Creating sdma usage for gpu id %d failed",
+				(int)pdd->dev->id);
+	}
+
+	return ret;
+}
+
+
 void kfd_procfs_del_queue(struct queue *q)
 {
 	if (!q)
@@ -248,7 +390,7 @@ static void kfd_process_free_gpuvm(struct kgd_mem *mem,
 	struct kfd_dev *dev = pdd->dev;
 
 	amdgpu_amdkfd_gpuvm_unmap_memory_from_gpu(dev->kgd, mem, pdd->vm);
-	amdgpu_amdkfd_gpuvm_free_memory_of_gpu(dev->kgd, mem);
+	amdgpu_amdkfd_gpuvm_free_memory_of_gpu(dev->kgd, mem, NULL);
 }
 
 /* kfd_process_alloc_gpuvm - Allocate GPU VM for the KFD process
@@ -312,7 +454,7 @@ sync_memory_failed:
 	return err;
 
 err_map_mem:
-	amdgpu_amdkfd_gpuvm_free_memory_of_gpu(kdev->kgd, mem);
+	amdgpu_amdkfd_gpuvm_free_memory_of_gpu(kdev->kgd, mem, NULL);
 err_alloc_mem:
 	*kptr = NULL;
 	return err;
@@ -411,6 +553,11 @@ struct kfd_process *kfd_create_process(struct file *filep)
 							process->kobj);
 		if (!process->kobj_queues)
 			pr_warn("Creating KFD proc/queues folder failed");
+
+		ret = kfd_procfs_add_sysfs_files(process);
+		if (ret)
+			pr_warn("Creating sysfs usage file for pid %d failed",
+				(int)process->lead_thread->pid);
 	}
 out:
 	if (!IS_ERR(process))
@@ -488,7 +635,7 @@ static void kfd_process_device_free_bos(struct kfd_process_device *pdd)
 				peer_pdd->dev->kgd, mem, peer_pdd->vm);
 		}
 
-		amdgpu_amdkfd_gpuvm_free_memory_of_gpu(pdd->dev->kgd, mem);
+		amdgpu_amdkfd_gpuvm_free_memory_of_gpu(pdd->dev->kgd, mem, NULL);
 		kfd_process_device_remove_obj_handle(pdd, id);
 	}
 }
@@ -551,6 +698,7 @@ static void kfd_process_wq_release(struct work_struct *work)
 {
 	struct kfd_process *p = container_of(work, struct kfd_process,
 					     release_work);
+	struct kfd_process_device *pdd;
 
 	/* Remove the procfs files */
 	if (p->kobj) {
@@ -558,6 +706,12 @@ static void kfd_process_wq_release(struct work_struct *work)
 		kobject_del(p->kobj_queues);
 		kobject_put(p->kobj_queues);
 		p->kobj_queues = NULL;
+
+		list_for_each_entry(pdd, &p->per_device_data, per_device_list) {
+			sysfs_remove_file(p->kobj, &pdd->attr_vram);
+			sysfs_remove_file(p->kobj, &pdd->attr_sdma);
+		}
+
 		kobject_del(p->kobj);
 		kobject_put(p->kobj);
 		p->kobj = NULL;
@@ -858,10 +1012,13 @@ struct kfd_process_device *kfd_create_process_device_data(struct kfd_dev *dev,
 	pdd->qpd.dqm = dev->dqm;
 	pdd->qpd.pqm = &p->pqm;
 	pdd->qpd.evicted = 0;
+	pdd->qpd.mapped_gws_queue = false;
 	pdd->process = p;
 	pdd->bound = PDD_UNBOUND;
 	pdd->already_dequeued = false;
 	pdd->runtime_inuse = false;
+	pdd->vram_usage = 0;
+	pdd->sdma_past_activity_counter = 0;
 	list_add(&pdd->per_device_list, &p->per_device_data);
 
 	/* Init idr used for memory handle translation */
@@ -1078,7 +1235,7 @@ struct kfd_process *kfd_lookup_process_by_mm(const struct mm_struct *mm)
 	return p;
 }
 
-/* process_evict_queues - Evict all user queues of a process
+/* kfd_process_evict_queues - Evict all user queues of a process
  *
  * Eviction is reference-counted per process-device. This means multiple
  * evictions from different sources can be nested safely.
@@ -1118,7 +1275,7 @@ fail:
 	return r;
 }
 
-/* process_restore_queues - Restore all user queues of a process */
+/* kfd_process_restore_queues - Restore all user queues of a process */
 int kfd_process_restore_queues(struct kfd_process *p)
 {
 	struct kfd_process_device *pdd;
