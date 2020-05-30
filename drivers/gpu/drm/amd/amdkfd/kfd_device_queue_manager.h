@@ -182,6 +182,7 @@ struct device_queue_manager {
 	unsigned int		processes_count;
 	unsigned int		active_queue_count;
 	unsigned int		active_cp_queue_count;
+	unsigned int		gws_queue_count;
 	unsigned int		total_queue_count;
 	unsigned int		next_pipe_to_allocate;
 	unsigned int		*allocated_queues;
@@ -249,5 +250,7 @@ static inline void dqm_unlock(struct device_queue_manager *dqm)
 	memalloc_nofs_restore(dqm->saved_flags);
 	mutex_unlock(&dqm->lock_hidden);
 }
+
+int read_sdma_queue_counter(struct queue *q, uint64_t *val);
 
 #endif /* KFD_DEVICE_QUEUE_MANAGER_H_ */
