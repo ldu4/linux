@@ -78,15 +78,14 @@ void squashfs_decompressor_destroy(struct squashfs_sb_info *msblk)
 int squashfs_decompress(struct squashfs_sb_info *msblk, struct bio *bio,
 	int offset, int length, struct squashfs_page_actor *output)
 {
-	struct squashfs_stream __percpu *percpu;
 	struct squashfs_stream *stream;
 	int res;
 
-	percpu = (struct squashfs_stream __percpu *)msblk->stream;
-	stream = get_cpu_ptr(percpu);
+	local_lock(&msblk->stream->lock);
+	stream = this_cpu_ptr(msblk->stream);
 	res = msblk->decompressor->decompress(msblk, stream->stream, bio,
 					      offset, length, output);
-	put_cpu_ptr(stream);
+	local_unlock(&msblk->stream->lock);
 
 	if (res < 0)
 		ERROR("%s decompression failed, data probably corrupt\n",
