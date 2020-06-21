@@ -2624,17 +2624,9 @@ tgl_dkl_phy_ddi_vswing_sequence(struct intel_encoder *encoder, int link_clock,
 	int rate = 0;
 
 	if (type == INTEL_OUTPUT_HDMI) {
-<<<<<<< HEAD
-		n_entries = ARRAY_SIZE(tgl_dkl_phy_hdmi_ddi_trans);
-		ddi_translations = tgl_dkl_phy_hdmi_ddi_trans;
-	} else {
-		n_entries = ARRAY_SIZE(tgl_dkl_phy_dp_ddi_trans);
-		ddi_translations = tgl_dkl_phy_dp_ddi_trans;
-=======
 		struct intel_dp *intel_dp = enc_to_intel_dp(encoder);
 
 		rate = intel_dp->link_rate;
->>>>>>> linux-next/akpm-base
 	}
 
 	ddi_translations = tgl_get_dkl_buf_trans(dev_priv, encoder->type, rate,
