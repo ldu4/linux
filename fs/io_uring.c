@@ -2930,13 +2930,7 @@ copy_iov:
 			return -EAGAIN;
 		}
 	}
-<<<<<<< HEAD
-out_free:
-	if (!(req->flags & REQ_F_NEED_CLEANUP))
-		kfree(iovec);
-=======
 out:
->>>>>>> linux-next/akpm-base
 	return ret;
 }
 
@@ -4526,28 +4520,6 @@ static void io_async_queue_proc(struct file *file, struct wait_queue_head *head,
 	struct io_poll_table *pt = container_of(p, struct io_poll_table, pt);
 
 	__io_queue_proc(&pt->req->apoll->poll, pt, head);
-}
-
-static void io_sq_thread_drop_mm(struct io_ring_ctx *ctx)
-{
-	struct mm_struct *mm = current->mm;
-
-	if (mm) {
-		kthread_unuse_mm(mm);
-		mmput(mm);
-	}
-}
-
-static int io_sq_thread_acquire_mm(struct io_ring_ctx *ctx,
-				   struct io_kiocb *req)
-{
-	if (io_op_defs[req->opcode].needs_mm && !current->mm) {
-		if (unlikely(!mmget_not_zero(ctx->sqo_mm)))
-			return -EFAULT;
-		kthread_use_mm(ctx->sqo_mm);
-	}
-
-	return 0;
 }
 
 static void io_async_task_func(struct callback_head *cb)

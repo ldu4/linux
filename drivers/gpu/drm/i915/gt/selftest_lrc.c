@@ -1036,35 +1036,17 @@ static int live_timeslice_preempt(void *arg)
 	if (err)
 		goto err_pin;
 
-<<<<<<< HEAD
-	for_each_prime_number_from(count, 1, 16) {
-		struct intel_engine_cs *engine;
-		enum intel_engine_id id;
-
-		for_each_engine(engine, gt, id) {
-			if (!intel_engine_has_preemption(engine))
-				continue;
-=======
 	for_each_engine(engine, gt, id) {
 		if (!intel_engine_has_preemption(engine))
 			continue;
->>>>>>> linux-next/akpm-base
 
 		memset(vaddr, 0, PAGE_SIZE);
 
-<<<<<<< HEAD
-			engine_heartbeat_disable(engine);
-			err = slice_semaphore_queue(engine, vma, count);
-			engine_heartbeat_enable(engine);
-			if (err)
-				goto err_pin;
-=======
 		engine_heartbeat_disable(engine);
 		err = slice_semaphore_queue(engine, vma, 5);
 		engine_heartbeat_enable(engine);
 		if (err)
 			goto err_pin;
->>>>>>> linux-next/akpm-base
 
 		if (igt_flush_test(gt->i915)) {
 			err = -EIO;
@@ -1506,11 +1488,7 @@ static int live_timeslice_nopreempt(void *arg)
 
 		ce = intel_context_create(engine);
 		if (IS_ERR(ce)) {
-<<<<<<< HEAD
-			err = PTR_ERR(rq);
-=======
 			err = PTR_ERR(ce);
->>>>>>> linux-next/akpm-base
 			goto out_spin;
 		}
 
@@ -1540,11 +1518,7 @@ static int live_timeslice_nopreempt(void *arg)
 		 * allow the maximum priority barrier through. Wait long
 		 * enough to see if it is timesliced in by mistake.
 		 */
-<<<<<<< HEAD
-		if (i915_request_wait(rq, 0, timeslice_threshold(engine)) >= 0) {
-=======
 		if (i915_request_wait(rq, 0, slice_timeout(engine)) >= 0) {
->>>>>>> linux-next/akpm-base
 			pr_err("%s: I915_PRIORITY_BARRIER request completed, bypassing no-preempt request\n",
 			       engine->name);
 			err = -EINVAL;
