@@ -22,6 +22,7 @@
 #include <linux/acpi.h>
 #include <linux/cdrom.h>
 #include <linux/sched.h>
+#include <linux/async.h>
 
 /*
  * Define if arch has non-standard setup.  This is a _PCI_ standard
@@ -609,7 +610,7 @@ struct ata_host {
 	struct task_struct	*eh_owner;
 
 	struct ata_port		*simplex_claimed;	/* channel owning the DMA */
-	struct ata_port		*ports[0];
+	struct ata_port		*ports[];
 };
 
 struct ata_queued_cmd {
@@ -871,6 +872,8 @@ struct ata_port {
 
 	struct timer_list	fastdrain_timer;
 	unsigned long		fastdrain_cnt;
+
+	async_cookie_t		cookie;
 
 	int			em_message_type;
 	void			*private_data;
