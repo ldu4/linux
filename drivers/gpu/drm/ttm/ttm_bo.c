@@ -518,7 +518,7 @@ static bool ttm_bo_delayed_delete(struct ttm_bo_device *bdev, bool remove_all)
 	INIT_LIST_HEAD(&removed);
 
 	spin_lock(&glob->lru_lock);
-	while (!list_empty(&bdev->ddestroy)) {
+	while (!list_empty(&bdev->ddestroy) && !need_resched()) {
 		struct ttm_buffer_object *bo;
 
 		bo = list_first_entry(&bdev->ddestroy, struct ttm_buffer_object,
@@ -883,8 +883,10 @@ static int ttm_bo_add_move_fence(struct ttm_buffer_object *bo,
 	if (!fence)
 		return 0;
 
-	if (no_wait_gpu)
+	if (no_wait_gpu) {
+		dma_fence_put(fence);
 		return -EBUSY;
+	}
 
 	dma_resv_add_shared_fence(bo->base.resv, fence);
 
