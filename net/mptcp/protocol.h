@@ -249,6 +249,7 @@ struct mptcp_subflow_request_sock {
 	u64	thmac;
 	u32	local_nonce;
 	u32	remote_nonce;
+	struct mptcp_sock	*msk;
 };
 
 static inline struct mptcp_subflow_request_sock *
@@ -353,11 +354,6 @@ static inline void mptcp_subflow_tcp_fallback(struct sock *sk,
 
 	inet_csk(sk)->icsk_af_ops = ctx->icsk_af_ops;
 }
-
-extern const struct inet_connection_sock_af_ops ipv4_specific;
-#if IS_ENABLED(CONFIG_MPTCP_IPV6)
-extern const struct inet_connection_sock_af_ops ipv6_specific;
-#endif
 
 void mptcp_proto_init(void);
 #if IS_ENABLED(CONFIG_MPTCP_IPV6)
