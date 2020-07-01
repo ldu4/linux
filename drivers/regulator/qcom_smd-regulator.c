@@ -474,15 +474,6 @@ static const struct regulator_desc pmi8994_bby = {
 	.ops = &rpm_bob_ops,
 };
 
-static const struct regulator_desc pmi8994_boost = {
-	.linear_ranges = (struct linear_range[]) {
-		REGULATOR_LINEAR_RANGE(4000000, 0, 30, 50000),
-	},
-	.n_linear_ranges = 1,
-	.n_voltages = 31,
-	.ops = &rpm_smps_ldo_ops,
-};
-
 static const struct regulator_desc pm8998_ftsmps = {
 	.linear_ranges = (struct linear_range[]) {
 		REGULATOR_LINEAR_RANGE(320000, 0, 258, 4000),
@@ -821,7 +812,7 @@ static const struct rpm_regulator_data rpm_pm8994_regulators[] = {
 static const struct rpm_regulator_data rpm_pmi8994_regulators[] = {
 	{ "s1", QCOM_SMD_RPM_SMPB, 1, &pmi8994_ftsmps, "vdd_s1" },
 	{ "s2", QCOM_SMD_RPM_SMPB, 2, &pmi8994_hfsmps, "vdd_s2" },
-	{ "s2", QCOM_SMD_RPM_SMPB, 3, &pmi8994_hfsmps, "vdd_s3" },
+	{ "s3", QCOM_SMD_RPM_SMPB, 3, &pmi8994_hfsmps, "vdd_s3" },
 	{ "boost-bypass", QCOM_SMD_RPM_BBYB, 1, &pmi8994_bby, "vdd_bst_byp" },
 	{}
 };
