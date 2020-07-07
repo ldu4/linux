@@ -1364,7 +1364,7 @@ static int dev_get_regmap_match(struct device *dev, void *res, void *data)
 
 	/* If the user didn't specify a name match any */
 	if (data)
-		return (*r)->name == data;
+		return !strcmp((*r)->name, data);
 	else
 		return 1;
 }
@@ -2024,7 +2024,7 @@ EXPORT_SYMBOL_GPL(regmap_field_update_bits_base);
  * A value of zero will be returned on success, a negative errno will
  * be returned in error cases.
  */
-int regmap_fields_update_bits_base(struct regmap_field *field,  unsigned int id,
+int regmap_fields_update_bits_base(struct regmap_field *field, unsigned int id,
 				   unsigned int mask, unsigned int val,
 				   bool *change, bool async, bool force)
 {
