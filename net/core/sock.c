@@ -695,15 +695,6 @@ out:
 	return ret;
 }
 
-static inline void sock_valbool_flag(struct sock *sk, enum sock_flags bit,
-				     int valbool)
-{
-	if (valbool)
-		sock_set_flag(sk, bit);
-	else
-		sock_reset_flag(sk, bit);
-}
-
 bool sk_mc_loop(struct sock *sk)
 {
 	if (dev_recursion_level())
@@ -1926,7 +1917,7 @@ struct sock *sk_clone_lock(const struct sock *sk, const gfp_t priority)
 		/* sk->sk_memcg will be populated at accept() time */
 		newsk->sk_memcg = NULL;
 
-		cgroup_sk_alloc(&newsk->sk_cgrp_data);
+		cgroup_sk_clone(&newsk->sk_cgrp_data);
 
 		rcu_read_lock();
 		filter = rcu_dereference(sk->sk_filter);
@@ -1973,7 +1964,7 @@ struct sock *sk_clone_lock(const struct sock *sk, const gfp_t priority)
 
 		/*
 		 * Before updating sk_refcnt, we must commit prior changes to memory
-		 * (Documentation/RCU/rculist_nulls.txt for details)
+		 * (Documentation/RCU/rculist_nulls.rst for details)
 		 */
 		smp_wmb();
 		refcount_set(&newsk->sk_refcnt, 2);
@@ -3035,7 +3026,7 @@ void sock_init_data(struct socket *sock, struct sock *sk)
 	sk_rx_queue_clear(sk);
 	/*
 	 * Before updating sk_refcnt, we must commit prior changes to memory
-	 * (Documentation/RCU/rculist_nulls.txt for details)
+	 * (Documentation/RCU/rculist_nulls.rst for details)
 	 */
 	smp_wmb();
 	refcount_set(&sk->sk_refcnt, 1);

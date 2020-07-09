@@ -638,7 +638,7 @@ int __intel_gt_reset(struct intel_gt *gt, intel_engine_mask_t engine_mask)
 
 bool intel_has_gpu_reset(const struct intel_gt *gt)
 {
-	if (!i915_modparams.reset)
+	if (!gt->i915->params.reset)
 		return NULL;
 
 	return intel_get_gpu_reset(gt);
@@ -646,7 +646,7 @@ bool intel_has_gpu_reset(const struct intel_gt *gt)
 
 bool intel_has_reset_engine(const struct intel_gt *gt)
 {
-	if (i915_modparams.reset < 2)
+	if (gt->i915->params.reset < 2)
 		return false;
 
 	return INTEL_INFO(gt->i915)->has_reset_engine;
@@ -880,7 +880,7 @@ static bool __intel_gt_unset_wedged(struct intel_gt *gt)
 		return true;
 
 	/* Never fully initialised, recovery impossible */
-	if (test_bit(I915_WEDGED_ON_INIT, &gt->reset.flags))
+	if (intel_gt_has_unrecoverable_error(gt))
 		return false;
 
 	GT_TRACE(gt, "start\n");
@@ -930,7 +930,7 @@ static bool __intel_gt_unset_wedged(struct intel_gt *gt)
 		 * Warn CI about the unrecoverable wedged condition.
 		 * Time for a reboot.
 		 */
-		add_taint_for_CI(TAINT_WARN);
+		add_taint_for_CI(gt->i915, TAINT_WARN);
 		return false;
 	}
 
@@ -1038,7 +1038,7 @@ void intel_gt_reset(struct intel_gt *gt,
 	awake = reset_prepare(gt);
 
 	if (!intel_has_gpu_reset(gt)) {
-		if (i915_modparams.reset)
+		if (gt->i915->params.reset)
 			drm_err(&gt->i915->drm, "GPU reset not supported\n");
 		else
 			drm_dbg(&gt->i915->drm, "GPU reset disabled\n");
@@ -1097,7 +1097,7 @@ taint:
 	 * rather than continue on into oblivion. For everyone else,
 	 * the system should still plod along, but they have been warned!
 	 */
-	add_taint_for_CI(TAINT_WARN);
+	add_taint_for_CI(gt->i915, TAINT_WARN);
 error:
 	__intel_gt_set_wedged(gt);
 	goto finish;
@@ -1342,7 +1342,7 @@ int intel_gt_terminally_wedged(struct intel_gt *gt)
 	if (!intel_gt_is_wedged(gt))
 		return 0;
 
-	if (intel_gt_has_init_error(gt))
+	if (intel_gt_has_unrecoverable_error(gt))
 		return -EIO;
 
 	/* Reset still in progress? Maybe we will recover? */
@@ -1360,6 +1360,15 @@ void intel_gt_set_wedged_on_init(struct intel_gt *gt)
 		     I915_WEDGED_ON_INIT);
 	intel_gt_set_wedged(gt);
 	set_bit(I915_WEDGED_ON_INIT, &gt->reset.flags);
+
+	/* Wedged on init is non-recoverable */
+	add_taint_for_CI(gt->i915, TAINT_WARN);
+}
+
+void intel_gt_set_wedged_on_fini(struct intel_gt *gt)
+{
+	intel_gt_set_wedged(gt);
+	set_bit(I915_WEDGED_ON_FINI, &gt->reset.flags);
 }
 
 void intel_gt_init_reset(struct intel_gt *gt)

@@ -142,7 +142,7 @@ fw_domain_wait_ack_clear(const struct intel_uncore_forcewake_domain *d)
 	if (wait_ack_clear(d, FORCEWAKE_KERNEL)) {
 		DRM_ERROR("%s: timed out waiting for forcewake ack to clear.\n",
 			  intel_uncore_forcewake_domain_to_str(d->id));
-		add_taint_for_CI(TAINT_WARN); /* CI now unreliable */
+		add_taint_for_CI(d->uncore->i915, TAINT_WARN); /* CI now unreliable */
 	}
 }
 
@@ -219,7 +219,7 @@ fw_domain_wait_ack_set(const struct intel_uncore_forcewake_domain *d)
 	if (wait_ack_set(d, FORCEWAKE_KERNEL)) {
 		DRM_ERROR("%s: timed out waiting for forcewake ack request.\n",
 			  intel_uncore_forcewake_domain_to_str(d->id));
-		add_taint_for_CI(TAINT_WARN); /* CI now unreliable */
+		add_taint_for_CI(d->uncore->i915, TAINT_WARN); /* CI now unreliable */
 	}
 }
 
@@ -709,7 +709,7 @@ static void __intel_uncore_forcewake_put(struct intel_uncore *uncore,
 			continue;
 		}
 
-		fw_domain_arm_timer(domain);
+		uncore->funcs.force_wake_put(uncore, domain->mask);
 	}
 }
 
@@ -1185,7 +1185,7 @@ __unclaimed_reg_debug(struct intel_uncore *uncore,
 		     read ? "read from" : "write to",
 		     i915_mmio_reg_offset(reg)))
 		/* Only report the first N failures */
-		i915_modparams.mmio_debug--;
+		uncore->i915->params.mmio_debug--;
 }
 
 static inline void
@@ -1194,7 +1194,7 @@ unclaimed_reg_debug(struct intel_uncore *uncore,
 		    const bool read,
 		    const bool before)
 {
-	if (likely(!i915_modparams.mmio_debug))
+	if (likely(!uncore->i915->params.mmio_debug))
 		return;
 
 	/* interrupts are disabled and re-enabled around uncore->lock usage */
@@ -1991,7 +1991,7 @@ int __intel_wait_for_register_fw(struct intel_uncore *uncore,
 				 unsigned int slow_timeout_ms,
 				 u32 *out_value)
 {
-	u32 uninitialized_var(reg_value);
+	u32 reg_value;
 #define done (((reg_value = intel_uncore_read_fw(uncore, reg)) & mask) == value)
 	int ret;
 
@@ -2093,12 +2093,12 @@ intel_uncore_arm_unclaimed_mmio_detection(struct intel_uncore *uncore)
 		goto out;
 
 	if (unlikely(check_for_unclaimed_mmio(uncore))) {
-		if (!i915_modparams.mmio_debug) {
+		if (!uncore->i915->params.mmio_debug) {
 			drm_dbg(&uncore->i915->drm,
 				"Unclaimed register detected, "
 				"enabling oneshot unclaimed register reporting. "
 				"Please use i915.mmio_debug=N for more information.\n");
-			i915_modparams.mmio_debug++;
+			uncore->i915->params.mmio_debug++;
 		}
 		uncore->debug->unclaimed_mmio_check--;
 		ret = true;
