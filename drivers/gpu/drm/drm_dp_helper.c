@@ -57,6 +57,7 @@ static u8 dp_get_lane_status(const u8 link_status[DP_LINK_STATUS_SIZE],
 	int i = DP_LANE0_1_STATUS + (lane >> 1);
 	int s = (lane & 1) * 4;
 	u8 l = dp_link_status(link_status, i);
+
 	return (l >> s) & 0xf;
 }
 
@@ -1365,7 +1366,7 @@ EXPORT_SYMBOL(drm_dp_get_edid_quirks);
 /**
  * drm_dp_read_desc - read sink/branch descriptor from DPCD
  * @aux: DisplayPort AUX channel
- * @desc: Device decriptor to fill from DPCD
+ * @desc: Device descriptor to fill from DPCD
  * @is_branch: true for branch devices, false for sink devices
  *
  * Read DPCD 0x400 (sink) or 0x500 (branch) into @desc. Also debug log the
@@ -1591,6 +1592,7 @@ EXPORT_SYMBOL(drm_dp_get_phy_test_pattern);
  * drm_dp_set_phy_test_pattern() - set the pattern to the sink.
  * @aux: DisplayPort AUX channel
  * @data: DP phy compliance test parameters.
+ * @dp_rev: DP revision to use for compliance testing
  *
  * Returns 0 on success or a negative error code on failure.
  */

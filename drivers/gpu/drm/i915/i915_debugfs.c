@@ -64,7 +64,7 @@ static int i915_capabilities(struct seq_file *m, void *data)
 	intel_driver_caps_print(&i915->caps, &p);
 
 	kernel_param_lock(THIS_MODULE);
-	i915_params_dump(&i915_modparams, &p);
+	i915_params_dump(&i915->params, &p);
 	kernel_param_unlock(THIS_MODULE);
 
 	return 0;
@@ -230,7 +230,7 @@ static int per_file_stats(int id, void *ptr, void *data)
 	struct file_stats *stats = data;
 	struct i915_vma *vma;
 
-	if (!kref_get_unless_zero(&obj->base.refcount))
+	if (IS_ERR_OR_NULL(obj) || !kref_get_unless_zero(&obj->base.refcount))
 		return 0;
 
 	stats->count++;
@@ -1138,12 +1138,19 @@ static int i915_swizzle_info(struct seq_file *m, void *data)
 	struct intel_uncore *uncore = &dev_priv->uncore;
 	intel_wakeref_t wakeref;
 
-	wakeref = intel_runtime_pm_get(&dev_priv->runtime_pm);
-
 	seq_printf(m, "bit6 swizzle for X-tiling = %s\n",
 		   swizzle_string(dev_priv->ggtt.bit_6_swizzle_x));
 	seq_printf(m, "bit6 swizzle for Y-tiling = %s\n",
 		   swizzle_string(dev_priv->ggtt.bit_6_swizzle_y));
+
+	if (dev_priv->quirks & QUIRK_PIN_SWIZZLED_PAGES)
+		seq_puts(m, "L-shaped memory detected\n");
+
+	/* On BDW+, swizzling is not used. See detect_bit_6_swizzle() */
+	if (INTEL_GEN(dev_priv) >= 8 || IS_VALLEYVIEW(dev_priv))
+		return 0;
+
+	wakeref = intel_runtime_pm_get(&dev_priv->runtime_pm);
 
 	if (IS_GEN_RANGE(dev_priv, 3, 4)) {
 		seq_printf(m, "DDC = 0x%08x\n",
@@ -1172,9 +1179,6 @@ static int i915_swizzle_info(struct seq_file *m, void *data)
 		seq_printf(m, "DISP_ARB_CTL = 0x%08x\n",
 			   intel_uncore_read(uncore, DISP_ARB_CTL));
 	}
-
-	if (dev_priv->quirks & QUIRK_PIN_SWIZZLED_PAGES)
-		seq_puts(m, "L-shaped memory detected\n");
 
 	intel_runtime_pm_put(&dev_priv->runtime_pm, wakeref);
 
