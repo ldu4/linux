@@ -126,8 +126,10 @@ alternative_else_nop_endif
 	add	\dst, \dst, #(\sym - .entry.tramp.text)
 	.endm
 
-	// This macro corrupts x0-x3. It is the caller's duty
-	// to save/restore them if required.
+	/*
+	 * This macro corrupts x0-x3. It is the caller's duty  to save/restore
+	 * them if required.
+	 */
 	.macro	apply_ssbd, state, tmp1, tmp2
 #ifdef CONFIG_ARM64_SSBD
 alternative_cb	arm64_enable_wa2_handling
@@ -143,6 +145,32 @@ alternative_cb	arm64_update_smccc_conduit
 	nop					// Patched to SMC/HVC #0
 alternative_cb_end
 .L__asm_ssbd_skip\@:
+#endif
+	.endm
+
+	/* Check for MTE asynchronous tag check faults */
+	.macro check_mte_async_tcf, flgs, tmp
+#ifdef CONFIG_ARM64_MTE
+alternative_if_not ARM64_MTE
+	b	1f
+alternative_else_nop_endif
+	mrs_s	\tmp, SYS_TFSRE0_EL1
+	tbz	\tmp, #SYS_TFSR_EL1_TF0_SHIFT, 1f
+	/* Asynchronous TCF occurred for TTBR0 access, set the TI flag */
+	orr	\flgs, \flgs, #_TIF_MTE_ASYNC_FAULT
+	str	\flgs, [tsk, #TSK_TI_FLAGS]
+	msr_s	SYS_TFSRE0_EL1, xzr
+1:
+#endif
+	.endm
+
+	/* Clear the MTE asynchronous tag check faults */
+	.macro clear_mte_async_tcf
+#ifdef CONFIG_ARM64_MTE
+alternative_if ARM64_MTE
+	dsb	ish
+	msr_s	SYS_TFSRE0_EL1, xzr
+alternative_else_nop_endif
 #endif
 	.endm
 
@@ -167,16 +195,33 @@ alternative_cb_end
 	stp	x28, x29, [sp, #16 * 14]
 
 	.if	\el == 0
+	.if	\regsize == 32
+	/*
+	 * If we're returning from a 32-bit task on a system affected by
+	 * 1418040 then re-enable userspace access to the virtual counter.
+	 */
+#ifdef CONFIG_ARM64_ERRATUM_1418040
+alternative_if ARM64_WORKAROUND_1418040
+	mrs	x0, cntkctl_el1
+	orr	x0, x0, #2	// ARCH_TIMER_USR_VCT_ACCESS_EN
+	msr	cntkctl_el1, x0
+alternative_else_nop_endif
+#endif
+	.endif
 	clear_gp_regs
 	mrs	x21, sp_el0
 	ldr_this_cpu	tsk, __entry_task, x20
 	msr	sp_el0, tsk
 
-	// Ensure MDSCR_EL1.SS is clear, since we can unmask debug exceptions
-	// when scheduling.
+	/*
+	 * Ensure MDSCR_EL1.SS is clear, since we can unmask debug exceptions
+	 * when scheduling.
+	 */
 	ldr	x19, [tsk, #TSK_TI_FLAGS]
 	disable_step_tsk x19, x20
 
+	/* Check for asynchronous tag check faults in user space */
+	check_mte_async_tcf x19, x22
 	apply_ssbd 1, x22, x23
 
 	ptrauth_keys_install_kernel tsk, x20, x22, x23
@@ -246,6 +291,13 @@ alternative_if ARM64_HAS_IRQ_PRIO_MASKING
 	mrs_s	x20, SYS_ICC_PMR_EL1
 	str	x20, [sp, #S_PMR_SAVE]
 alternative_else_nop_endif
+
+	/* Re-enable tag checking (TCO set on exception entry) */
+#ifdef CONFIG_ARM64_MTE
+alternative_if ARM64_MTE
+	SET_PSTATE_TCO(0)
+alternative_else_nop_endif
+#endif
 
 	/*
 	 * Registers that may be useful after this macro is invoked:
@@ -320,6 +372,14 @@ alternative_else_nop_endif
 	tst	x22, #PSR_MODE32_BIT		// native task?
 	b.eq	3f
 
+#ifdef CONFIG_ARM64_ERRATUM_1418040
+alternative_if ARM64_WORKAROUND_1418040
+	mrs	x0, cntkctl_el1
+	bic	x0, x0, #2			// ARCH_TIMER_USR_VCT_ACCESS_EN
+	msr	cntkctl_el1, x0
+alternative_else_nop_endif
+#endif
+
 #ifdef CONFIG_ARM64_ERRATUM_845719
 alternative_if ARM64_WORKAROUND_845719
 #ifdef CONFIG_PID_IN_CONTEXTIDR
@@ -331,21 +391,6 @@ alternative_if ARM64_WORKAROUND_845719
 alternative_else_nop_endif
 #endif
 3:
-#ifdef CONFIG_ARM64_ERRATUM_1418040
-alternative_if_not ARM64_WORKAROUND_1418040
-	b	4f
-alternative_else_nop_endif
-	/*
-	 * if (x22.mode32 == cntkctl_el1.el0vcten)
-	 *     cntkctl_el1.el0vcten = ~cntkctl_el1.el0vcten
-	 */
-	mrs	x1, cntkctl_el1
-	eon	x0, x1, x22, lsr #3
-	tbz	x0, #1, 4f
-	eor	x1, x1, #2	// ARCH_TIMER_USR_VCT_ACCESS_EN
-	msr	cntkctl_el1, x1
-4:
-#endif
 	scs_save tsk, x0
 
 	/* No kernel C function calls after this as user keys are set. */
@@ -377,11 +422,11 @@ alternative_else_nop_endif
 	.if	\el == 0
 alternative_insn eret, nop, ARM64_UNMAP_KERNEL_AT_EL0
 #ifdef CONFIG_UNMAP_KERNEL_AT_EL0
-	bne	5f
+	bne	4f
 	msr	far_el1, x30
 	tramp_alias	x30, tramp_exit_native
 	br	x30
-5:
+4:
 	tramp_alias	x30, tramp_exit_compat
 	br	x30
 #endif
@@ -755,6 +800,8 @@ SYM_CODE_START_LOCAL(ret_to_user)
 	and	x2, x1, #_TIF_WORK_MASK
 	cbnz	x2, work_pending
 finish_ret_to_user:
+	/* Ignore asynchronous tag check faults in the uaccess routines */
+	clear_mte_async_tcf
 	enable_step_tsk x1, x2
 #ifdef CONFIG_GCC_PLUGIN_STACKLEAK
 	bl	stackleak_erase

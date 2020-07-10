@@ -209,7 +209,7 @@ static const struct file_operations debugfs_cram_fops = {
 static const struct file_operations debugfs_stats_fops = {
 	.owner		= THIS_MODULE,
 	.open		= rsxx_attr_stats_open,
-	.read		= seq_read,
+	.read_iter		= seq_read_iter,
 	.llseek		= seq_lseek,
 	.release	= single_release,
 };
@@ -217,7 +217,7 @@ static const struct file_operations debugfs_stats_fops = {
 static const struct file_operations debugfs_pci_regs_fops = {
 	.owner		= THIS_MODULE,
 	.open		= rsxx_attr_pci_regs_open,
-	.read		= seq_read,
+	.read_iter		= seq_read_iter,
 	.llseek		= seq_lseek,
 	.release	= single_release,
 };
@@ -625,7 +625,7 @@ static int rsxx_eeh_fifo_flush_poll(struct rsxx_cardinfo *card)
 }
 
 static pci_ers_result_t rsxx_error_detected(struct pci_dev *dev,
-					    enum pci_channel_state error)
+					    pci_channel_state_t error)
 {
 	int st;
 

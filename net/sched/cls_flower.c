@@ -313,7 +313,7 @@ static int fl_classify(struct sk_buff *skb, const struct tcf_proto *tp,
 		/* skb_flow_dissect() does not set n_proto in case an unknown
 		 * protocol, so do it rather here.
 		 */
-		skb_key.basic.n_proto = skb->protocol;
+		skb_key.basic.n_proto = skb_protocol(skb, false);
 		skb_flow_dissect_tunnel_info(skb, &mask->dissector, &skb_key);
 		skb_flow_dissect_ct(skb, &mask->dissector, &skb_key,
 				    fl_ct_info_to_flower_map,
@@ -491,6 +491,7 @@ static void fl_hw_update_stats(struct tcf_proto *tp, struct cls_fl_filter *f,
 
 	tcf_exts_stats_update(&f->exts, cls_flower.stats.bytes,
 			      cls_flower.stats.pkts,
+			      cls_flower.stats.drops,
 			      cls_flower.stats.lastused,
 			      cls_flower.stats.used_hw_stats,
 			      cls_flower.stats.used_hw_stats_valid);

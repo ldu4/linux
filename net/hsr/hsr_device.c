@@ -210,7 +210,7 @@ static netdev_features_t hsr_fix_features(struct net_device *dev,
 	return hsr_features_recompute(hsr, features);
 }
 
-static int hsr_dev_xmit(struct sk_buff *skb, struct net_device *dev)
+static netdev_tx_t hsr_dev_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	struct hsr_priv *hsr = netdev_priv(dev);
 	struct hsr_port *master;
@@ -415,6 +415,7 @@ int hsr_dev_finalize(struct net_device *hsr_dev, struct net_device *slave[2],
 		     unsigned char multicast_spec, u8 protocol_version,
 		     struct netlink_ext_ack *extack)
 {
+	bool unregister = false;
 	struct hsr_priv *hsr;
 	int res;
 
@@ -466,25 +467,27 @@ int hsr_dev_finalize(struct net_device *hsr_dev, struct net_device *slave[2],
 	if (res)
 		goto err_unregister;
 
+	unregister = true;
+
 	res = hsr_add_port(hsr, slave[0], HSR_PT_SLAVE_A, extack);
 	if (res)
-		goto err_add_slaves;
+		goto err_unregister;
 
 	res = hsr_add_port(hsr, slave[1], HSR_PT_SLAVE_B, extack);
 	if (res)
-		goto err_add_slaves;
+		goto err_unregister;
 
 	hsr_debugfs_init(hsr, hsr_dev);
 	mod_timer(&hsr->prune_timer, jiffies + msecs_to_jiffies(PRUNE_PERIOD));
 
 	return 0;
 
-err_add_slaves:
-	unregister_netdevice(hsr_dev);
 err_unregister:
 	hsr_del_ports(hsr);
 err_add_master:
 	hsr_del_self_node(hsr);
 
+	if (unregister)
+		unregister_netdevice(hsr_dev);
 	return res;
 }
