@@ -781,40 +781,44 @@ static int gfs2_fsync(struct file *file, loff_t start, loff_t end,
 	return ret ? ret : ret1;
 }
 
-static ssize_t gfs2_file_direct_read(struct kiocb *iocb, struct iov_iter *to)
+static ssize_t gfs2_file_direct_read(struct kiocb *iocb, struct iov_iter *to,
+				     struct gfs2_holder *gh)
 {
 	struct file *file = iocb->ki_filp;
 	struct gfs2_inode *ip = GFS2_I(file->f_mapping->host);
 	size_t count = iov_iter_count(to);
-	struct gfs2_holder gh;
 	ssize_t ret;
+	unsigned int flags = 0;
 
 	if (!count)
 		return 0; /* skip atime */
 
-	gfs2_holder_init(ip->i_gl, LM_ST_DEFERRED, 0, &gh);
-	ret = gfs2_glock_nq(&gh);
+	gfs2_holder_init(ip->i_gl, LM_ST_DEFERRED, 0, gh);
+	ret = gfs2_glock_nq(gh);
 	if (ret)
 		goto out_uninit;
 
-	ret = iomap_dio_rw(iocb, to, &gfs2_iomap_ops, NULL,
-			   is_sync_kiocb(iocb));
+	if (is_sync_kiocb(iocb))
+		flags |= IOMAP_DIO_RWF_SYNCIO;
 
-	gfs2_glock_dq(&gh);
+	ret = iomap_dio_rw(iocb, to, &gfs2_iomap_ops, NULL, flags);
+
+	gfs2_glock_dq(gh);
 out_uninit:
-	gfs2_holder_uninit(&gh);
+	gfs2_holder_uninit(gh);
 	return ret;
 }
 
-static ssize_t gfs2_file_direct_write(struct kiocb *iocb, struct iov_iter *from)
+static ssize_t gfs2_file_direct_write(struct kiocb *iocb, struct iov_iter *from,
+				      struct gfs2_holder *gh)
 {
 	struct file *file = iocb->ki_filp;
 	struct inode *inode = file->f_mapping->host;
 	struct gfs2_inode *ip = GFS2_I(inode);
 	size_t len = iov_iter_count(from);
 	loff_t offset = iocb->ki_pos;
-	struct gfs2_holder gh;
 	ssize_t ret;
+	unsigned int flags = 0;
 
 	/*
 	 * Deferred lock, even if its a write, since we do no allocation on
@@ -824,8 +828,8 @@ static ssize_t gfs2_file_direct_write(struct kiocb *iocb, struct iov_iter *from)
 	 * unfortunately, have the option of only flushing a range like the
 	 * VFS does.
 	 */
-	gfs2_holder_init(ip->i_gl, LM_ST_DEFERRED, 0, &gh);
-	ret = gfs2_glock_nq(&gh);
+	gfs2_holder_init(ip->i_gl, LM_ST_DEFERRED, 0, gh);
+	ret = gfs2_glock_nq(gh);
 	if (ret)
 		goto out_uninit;
 
@@ -833,13 +837,15 @@ static ssize_t gfs2_file_direct_write(struct kiocb *iocb, struct iov_iter *from)
 	if (offset + len > i_size_read(&ip->i_inode))
 		goto out;
 
-	ret = iomap_dio_rw(iocb, from, &gfs2_iomap_ops, NULL,
-			   is_sync_kiocb(iocb));
+	if (is_sync_kiocb(iocb))
+		flags |= IOMAP_DIO_RWF_SYNCIO;
+
+	ret = iomap_dio_rw(iocb, from, &gfs2_iomap_ops, NULL, flags);
 
 out:
-	gfs2_glock_dq(&gh);
+	gfs2_glock_dq(gh);
 out_uninit:
-	gfs2_holder_uninit(&gh);
+	gfs2_holder_uninit(gh);
 	return ret;
 }
 
@@ -851,7 +857,7 @@ static ssize_t gfs2_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
 	ssize_t ret;
 
 	if (iocb->ki_flags & IOCB_DIRECT) {
-		ret = gfs2_file_direct_read(iocb, to);
+		ret = gfs2_file_direct_read(iocb, to, &gh);
 		if (likely(ret != -ENOTBLK))
 			return ret;
 		iocb->ki_flags &= ~IOCB_DIRECT;
@@ -900,13 +906,12 @@ static ssize_t gfs2_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
 	struct file *file = iocb->ki_filp;
 	struct inode *inode = file_inode(file);
 	struct gfs2_inode *ip = GFS2_I(inode);
+	struct gfs2_holder gh;
 	ssize_t ret;
 
 	gfs2_size_hint(file, iocb->ki_pos, iov_iter_count(from));
 
 	if (iocb->ki_flags & IOCB_APPEND) {
-		struct gfs2_holder gh;
-
 		ret = gfs2_glock_nq_init(ip->i_gl, LM_ST_SHARED, 0, &gh);
 		if (ret)
 			return ret;
@@ -930,7 +935,7 @@ static ssize_t gfs2_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
 		struct address_space *mapping = file->f_mapping;
 		ssize_t buffered, ret2;
 
-		ret = gfs2_file_direct_write(iocb, from);
+		ret = gfs2_file_direct_write(iocb, from, &gh);
 		if (ret < 0 || !iov_iter_count(from))
 			goto out_unlock;
 
@@ -1371,7 +1376,6 @@ const struct file_operations gfs2_file_fops = {
 	.fsync		= gfs2_fsync,
 	.lock		= gfs2_lock,
 	.flock		= gfs2_flock,
-	.splice_read	= generic_file_splice_read,
 	.splice_write	= gfs2_file_splice_write,
 	.setlease	= simple_nosetlease,
 	.fallocate	= gfs2_fallocate,
@@ -1402,7 +1406,6 @@ const struct file_operations gfs2_file_fops_nolock = {
 	.open		= gfs2_open,
 	.release	= gfs2_release,
 	.fsync		= gfs2_fsync,
-	.splice_read	= generic_file_splice_read,
 	.splice_write	= gfs2_file_splice_write,
 	.setlease	= generic_setlease,
 	.fallocate	= gfs2_fallocate,

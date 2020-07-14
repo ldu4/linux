@@ -911,8 +911,7 @@ int amdgpu_dpm_get_sclk(struct amdgpu_device *adev, bool low)
 	if (is_support_sw_smu(adev)) {
 		ret = smu_get_dpm_freq_range(&adev->smu, SMU_GFXCLK,
 					     low ? &clk_freq : NULL,
-					     !low ? &clk_freq : NULL,
-					     true);
+					     !low ? &clk_freq : NULL);
 		if (ret)
 			return 0;
 		return clk_freq * 100;
@@ -929,8 +928,7 @@ int amdgpu_dpm_get_mclk(struct amdgpu_device *adev, bool low)
 	if (is_support_sw_smu(adev)) {
 		ret = smu_get_dpm_freq_range(&adev->smu, SMU_UCLK,
 					     low ? &clk_freq : NULL,
-					     !low ? &clk_freq : NULL,
-					     true);
+					     !low ? &clk_freq : NULL);
 		if (ret)
 			return 0;
 		return clk_freq * 100;
@@ -1162,7 +1160,7 @@ int amdgpu_dpm_set_xgmi_pstate(struct amdgpu_device *adev,
 {
 	int ret = 0;
 
-	if (is_support_sw_smu_xgmi(adev))
+	if (is_support_sw_smu(adev))
 		ret = smu_set_xgmi_pstate(&adev->smu, pstate);
 	else if (adev->powerplay.pp_funcs &&
 		 adev->powerplay.pp_funcs->set_xgmi_pstate)
