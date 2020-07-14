@@ -676,13 +676,7 @@ static int usba_ep_disable(struct usb_ep *_ep)
 
 	if (!ep->ep.desc) {
 		spin_unlock_irqrestore(&udc->lock, flags);
-		/* REVISIT because this driver disables endpoints in
-		 * reset_all_endpoints() before calling disconnect(),
-		 * most gadget drivers would trigger this non-error ...
-		 */
-		if (udc->gadget.speed != USB_SPEED_UNKNOWN)
-			DBG(DBG_ERR, "ep_disable: %s not enabled\n",
-					ep->ep.name);
+		DBG(DBG_ERR, "ep_disable: %s not enabled\n", ep->ep.name);
 		return -EINVAL;
 	}
 	ep->ep.desc = NULL;
@@ -871,7 +865,7 @@ static int usba_ep_dequeue(struct usb_ep *_ep, struct usb_request *_req)
 	u32 status;
 
 	DBG(DBG_GADGET | DBG_QUEUE, "ep_dequeue: %s, req %p\n",
-			ep->ep.name, req);
+			ep->ep.name, _req);
 
 	spin_lock_irqsave(&udc->lock, flags);
 
@@ -2103,7 +2097,6 @@ static struct usba_ep * atmel_udc_of_init(struct platform_device *pdev,
 {
 	struct device_node *np = pdev->dev.of_node;
 	const struct of_device_id *match;
-	struct device_node *pp;
 	int i, ret;
 	struct usba_ep *eps, *ep;
 	const struct usba_udc_config *udc_config;
@@ -2128,7 +2121,6 @@ static struct usba_ep * atmel_udc_of_init(struct platform_device *pdev,
 						GPIOD_IN);
 
 	if (fifo_mode == 0) {
-		pp = NULL;
 		udc->num_ep = udc_config->num_ep;
 		udc->configured_ep = 1;
 	} else {
@@ -2144,7 +2136,6 @@ static struct usba_ep * atmel_udc_of_init(struct platform_device *pdev,
 
 	INIT_LIST_HEAD(&eps[0].ep.ep_list);
 
-	pp = NULL;
 	i = 0;
 	while (i < udc->num_ep) {
 		const struct usba_ep_config *ep_cfg = &udc_config->config[i];

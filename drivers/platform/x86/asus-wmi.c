@@ -441,6 +441,7 @@ static int asus_wmi_battery_add(struct power_supply *battery)
 	 * battery is named BATT.
 	 */
 	if (strcmp(battery->desc->name, "BAT0") != 0 &&
+	    strcmp(battery->desc->name, "BAT1") != 0 &&
 	    strcmp(battery->desc->name, "BATT") != 0)
 		return -ENODEV;
 
@@ -2502,7 +2503,7 @@ static int asus_wmi_debugfs_open(struct inode *inode, struct file *file)
 static const struct file_operations asus_wmi_debugfs_io_ops = {
 	.owner = THIS_MODULE,
 	.open = asus_wmi_debugfs_open,
-	.read = seq_read,
+	.read_iter = seq_read_iter,
 	.llseek = seq_lseek,
 	.release = single_release,
 };
