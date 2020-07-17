@@ -304,14 +304,6 @@ static int idxd_config_bus_remove(struct device *dev)
 
 		idxd_unregister_dma_device(idxd);
 		rc = idxd_device_disable(idxd);
-<<<<<<< HEAD
-		for (i = 0; i < idxd->max_wqs; i++) {
-			struct idxd_wq *wq = &idxd->wqs[i];
-
-			idxd_wq_disable_cleanup(wq);
-		}
-		spin_unlock_irqrestore(&idxd->dev_lock, flags);
-=======
 
 		for (i = 0; i < idxd->max_wqs; i++) {
 			struct idxd_wq *wq = &idxd->wqs[i];
@@ -321,7 +313,6 @@ static int idxd_config_bus_remove(struct device *dev)
 			mutex_unlock(&wq->wq_lock);
 		}
 
->>>>>>> linux-next/akpm-base
 		module_put(THIS_MODULE);
 		if (rc < 0)
 			dev_warn(dev, "Device disable failed\n");
