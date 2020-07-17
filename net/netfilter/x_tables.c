@@ -1410,7 +1410,8 @@ xt_replace_table(struct xt_table *table,
 
 	audit_log_nfcfg(table->name, table->af, private->number,
 			!private->number ? AUDIT_XT_OP_REGISTER :
-					   AUDIT_XT_OP_REPLACE);
+					   AUDIT_XT_OP_REPLACE,
+			GFP_KERNEL);
 	return private;
 }
 EXPORT_SYMBOL_GPL(xt_replace_table);
@@ -1473,7 +1474,7 @@ void *xt_unregister_table(struct xt_table *table)
 	list_del(&table->list);
 	mutex_unlock(&xt[table->af].mutex);
 	audit_log_nfcfg(table->name, table->af, private->number,
-			AUDIT_XT_OP_UNREGISTER);
+			AUDIT_XT_OP_UNREGISTER, GFP_KERNEL);
 	kfree(table);
 
 	return private;
@@ -1571,7 +1572,7 @@ static void *xt_mttg_seq_next(struct seq_file *seq, void *v, loff_t *ppos,
 		trav->curr = trav->curr->next;
 		if (trav->curr != trav->head)
 			break;
-		/* fall through */
+		fallthrough;
 	default:
 		return NULL;
 	}

@@ -1047,7 +1047,7 @@ static int do_replace_finish(struct net *net, struct ebt_replace *repl,
 	vfree(counterstmp);
 
 	audit_log_nfcfg(repl->name, AF_BRIDGE, repl->nentries,
-			AUDIT_XT_OP_REPLACE);
+			AUDIT_XT_OP_REPLACE, GFP_KERNEL);
 	return ret;
 
 free_unlock:
@@ -1123,7 +1123,7 @@ static void __ebt_unregister_table(struct net *net, struct ebt_table *table)
 	list_del(&table->list);
 	mutex_unlock(&ebt_mutex);
 	audit_log_nfcfg(table->name, AF_BRIDGE, table->private->nentries,
-			AUDIT_XT_OP_UNREGISTER);
+			AUDIT_XT_OP_UNREGISTER, GFP_KERNEL);
 	EBT_ENTRY_ITERATE(table->private->entries, table->private->entries_size,
 			  ebt_cleanup_entry, net, NULL);
 	if (table->private->nentries)
@@ -1218,7 +1218,7 @@ int ebt_register_table(struct net *net, const struct ebt_table *input_table,
 	}
 
 	audit_log_nfcfg(repl->name, AF_BRIDGE, repl->nentries,
-			AUDIT_XT_OP_REGISTER);
+			AUDIT_XT_OP_REGISTER, GFP_KERNEL);
 	return ret;
 free_unlock:
 	mutex_unlock(&ebt_mutex);
@@ -1935,7 +1935,7 @@ static int compat_mtw_from_user(const struct compat_ebt_entry_mwt *mwt,
 			size_kern = match_size;
 		module_put(match->me);
 		break;
-	case EBT_COMPAT_WATCHER: /* fallthrough */
+	case EBT_COMPAT_WATCHER:
 	case EBT_COMPAT_TARGET:
 		wt = xt_request_find_target(NFPROTO_BRIDGE, name,
 					    mwt->u.revision);
