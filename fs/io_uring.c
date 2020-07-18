@@ -4190,28 +4190,12 @@ static int io_recvmsg(struct io_kiocb *req, bool force_nonblock,
 	else if (force_nonblock)
 		flags |= MSG_DONTWAIT;
 
-<<<<<<< HEAD
-		ret = __sys_recvmsg_sock(sock, &kmsg->msg, req->sr_msg.msg,
-						kmsg->uaddr, flags);
-		if (force_nonblock && ret == -EAGAIN) {
-			ret = io_setup_async_msg(req, kmsg);
-			if (ret != -EAGAIN)
-				kfree(kbuf);
-			return ret;
-		}
-		if (ret == -ERESTARTSYS)
-			ret = -EINTR;
-		if (kbuf)
-			kfree(kbuf);
-	}
-=======
 	ret = __sys_recvmsg_sock(sock, &kmsg->msg, req->sr_msg.umsg,
 					kmsg->uaddr, flags);
 	if (force_nonblock && ret == -EAGAIN)
 		return io_setup_async_msg(req, kmsg);
 	if (ret == -ERESTARTSYS)
 		ret = -EINTR;
->>>>>>> linux-next/akpm-base
 
 	if (req->flags & REQ_F_BUFFER_SELECTED)
 		cflags = io_put_recv_kbuf(req);
