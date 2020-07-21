@@ -670,6 +670,7 @@ static ssize_t zonefs_file_dio_write(struct kiocb *iocb, struct iov_iter *from)
 	bool append = false;
 	size_t count;
 	ssize_t ret;
+	int flags = 0;
 
 	/*
 	 * For async direct IOs to sequential zone files, refuse IOCB_NOWAIT
@@ -711,11 +712,15 @@ static ssize_t zonefs_file_dio_write(struct kiocb *iocb, struct iov_iter *from)
 		append = sync;
 	}
 
-	if (append)
+	if (append) {
 		ret = zonefs_file_dio_append(iocb, from);
-	else
+	} else {
+		if (is_sync_kiocb(iocb))
+			flags |= IOMAP_DIO_RWF_SYNCIO;
+
 		ret = iomap_dio_rw(iocb, from, &zonefs_iomap_ops,
-				   &zonefs_write_dio_ops, sync);
+				&zonefs_write_dio_ops, flags);
+	}
 	if (zi->i_ztype == ZONEFS_ZTYPE_SEQ &&
 	    (ret > 0 || ret == -EIOCBQUEUED)) {
 		if (ret > 0)
@@ -814,6 +819,7 @@ static ssize_t zonefs_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
 	struct super_block *sb = inode->i_sb;
 	loff_t isize;
 	ssize_t ret;
+	int flags = 0;
 
 	/* Offline zones cannot be read */
 	if (unlikely(IS_IMMUTABLE(inode) && !(inode->i_mode & 0777)))
@@ -848,8 +854,10 @@ static ssize_t zonefs_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
 			goto inode_unlock;
 		}
 		file_accessed(iocb->ki_filp);
+		if (is_sync_kiocb(iocb))
+			flags |= IOMAP_DIO_RWF_SYNCIO;
 		ret = iomap_dio_rw(iocb, to, &zonefs_iomap_ops,
-				   &zonefs_read_dio_ops, is_sync_kiocb(iocb));
+				   &zonefs_read_dio_ops, flags);
 	} else {
 		ret = generic_file_read_iter(iocb, to);
 		if (ret == -EIO)
@@ -869,7 +877,6 @@ static const struct file_operations zonefs_file_operations = {
 	.llseek		= zonefs_file_llseek,
 	.read_iter	= zonefs_file_read_iter,
 	.write_iter	= zonefs_file_write_iter,
-	.splice_read	= generic_file_splice_read,
 	.splice_write	= iter_file_splice_write,
 	.iopoll		= iomap_dio_iopoll,
 };

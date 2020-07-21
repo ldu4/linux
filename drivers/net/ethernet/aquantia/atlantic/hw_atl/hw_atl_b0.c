@@ -93,6 +93,25 @@ const struct aq_hw_caps_s hw_atl_b0_caps_aqc109 = {
 			  AQ_NIC_RATE_100M,
 };
 
+const struct aq_hw_caps_s hw_atl_b0_caps_aqc111 = {
+	DEFAULT_B0_BOARD_BASIC_CAPABILITIES,
+	.media_type = AQ_HW_MEDIA_TYPE_TP,
+	.link_speed_msk = AQ_NIC_RATE_5G |
+			  AQ_NIC_RATE_2G5 |
+			  AQ_NIC_RATE_1G |
+			  AQ_NIC_RATE_100M,
+	.quirks = AQ_NIC_QUIRK_BAD_PTP,
+};
+
+const struct aq_hw_caps_s hw_atl_b0_caps_aqc112 = {
+	DEFAULT_B0_BOARD_BASIC_CAPABILITIES,
+	.media_type = AQ_HW_MEDIA_TYPE_TP,
+	.link_speed_msk = AQ_NIC_RATE_2G5 |
+			  AQ_NIC_RATE_1G  |
+			  AQ_NIC_RATE_100M,
+	.quirks = AQ_NIC_QUIRK_BAD_PTP,
+};
+
 static int hw_atl_b0_hw_reset(struct aq_hw_s *self)
 {
 	int err = 0;
@@ -108,7 +127,7 @@ static int hw_atl_b0_hw_reset(struct aq_hw_s *self)
 	return err;
 }
 
-static int hw_atl_b0_set_fc(struct aq_hw_s *self, u32 fc, u32 tc)
+int hw_atl_b0_set_fc(struct aq_hw_s *self, u32 fc, u32 tc)
 {
 	hw_atl_rpb_rx_xoff_en_per_tc_set(self, !!(fc & AQ_NIC_FC_RX), tc);
 
@@ -1556,7 +1575,7 @@ static int hw_atl_b0_hw_vlan_ctrl(struct aq_hw_s *self, bool enable)
 	return aq_hw_err_from_flags(self);
 }
 
-static int hw_atl_b0_set_loopback(struct aq_hw_s *self, u32 mode, bool enable)
+int hw_atl_b0_set_loopback(struct aq_hw_s *self, u32 mode, bool enable)
 {
 	switch (mode) {
 	case AQ_HW_LOOPBACK_DMA_SYS:

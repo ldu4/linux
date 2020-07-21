@@ -204,108 +204,20 @@
 	.byte \mod | (\opd1 & 7) | ((\opd2 & 7) << 3)
 	.endm
 
-	.macro PSHUFB_XMM xmm1 xmm2
-	XMM_NUM pshufb_opd1 \xmm1
-	XMM_NUM pshufb_opd2 \xmm2
-	PFX_OPD_SIZE
-	PFX_REX pshufb_opd1 pshufb_opd2
-	.byte 0x0f, 0x38, 0x00
-	MODRM 0xc0 pshufb_opd1 pshufb_opd2
-	.endm
-
-	.macro PCLMULQDQ imm8 xmm1 xmm2
-	XMM_NUM clmul_opd1 \xmm1
-	XMM_NUM clmul_opd2 \xmm2
-	PFX_OPD_SIZE
-	PFX_REX clmul_opd1 clmul_opd2
-	.byte 0x0f, 0x3a, 0x44
-	MODRM 0xc0 clmul_opd1 clmul_opd2
-	.byte \imm8
-	.endm
-
-	.macro PEXTRD imm8 xmm gpr
-	R32_NUM extrd_opd1 \gpr
-	XMM_NUM extrd_opd2 \xmm
-	PFX_OPD_SIZE
-	PFX_REX extrd_opd1 extrd_opd2
-	.byte 0x0f, 0x3a, 0x16
-	MODRM 0xc0 extrd_opd1 extrd_opd2
-	.byte \imm8
-	.endm
-
-	.macro AESKEYGENASSIST rcon xmm1 xmm2
-	XMM_NUM aeskeygen_opd1 \xmm1
-	XMM_NUM aeskeygen_opd2 \xmm2
-	PFX_OPD_SIZE
-	PFX_REX aeskeygen_opd1 aeskeygen_opd2
-	.byte 0x0f, 0x3a, 0xdf
-	MODRM 0xc0 aeskeygen_opd1 aeskeygen_opd2
-	.byte \rcon
-	.endm
-
-	.macro AESIMC xmm1 xmm2
-	XMM_NUM aesimc_opd1 \xmm1
-	XMM_NUM aesimc_opd2 \xmm2
-	PFX_OPD_SIZE
-	PFX_REX aesimc_opd1 aesimc_opd2
-	.byte 0x0f, 0x38, 0xdb
-	MODRM 0xc0 aesimc_opd1 aesimc_opd2
-	.endm
-
-	.macro AESENC xmm1 xmm2
-	XMM_NUM aesenc_opd1 \xmm1
-	XMM_NUM aesenc_opd2 \xmm2
-	PFX_OPD_SIZE
-	PFX_REX aesenc_opd1 aesenc_opd2
-	.byte 0x0f, 0x38, 0xdc
-	MODRM 0xc0 aesenc_opd1 aesenc_opd2
-	.endm
-
-	.macro AESENCLAST xmm1 xmm2
-	XMM_NUM aesenclast_opd1 \xmm1
-	XMM_NUM aesenclast_opd2 \xmm2
-	PFX_OPD_SIZE
-	PFX_REX aesenclast_opd1 aesenclast_opd2
-	.byte 0x0f, 0x38, 0xdd
-	MODRM 0xc0 aesenclast_opd1 aesenclast_opd2
-	.endm
-
-	.macro AESDEC xmm1 xmm2
-	XMM_NUM aesdec_opd1 \xmm1
-	XMM_NUM aesdec_opd2 \xmm2
-	PFX_OPD_SIZE
-	PFX_REX aesdec_opd1 aesdec_opd2
-	.byte 0x0f, 0x38, 0xde
-	MODRM 0xc0 aesdec_opd1 aesdec_opd2
-	.endm
-
-	.macro AESDECLAST xmm1 xmm2
-	XMM_NUM aesdeclast_opd1 \xmm1
-	XMM_NUM aesdeclast_opd2 \xmm2
-	PFX_OPD_SIZE
-	PFX_REX aesdeclast_opd1 aesdeclast_opd2
-	.byte 0x0f, 0x38, 0xdf
-	MODRM 0xc0 aesdeclast_opd1 aesdeclast_opd2
-	.endm
-
-	.macro MOVQ_R64_XMM opd1 opd2
-	REG_TYPE movq_r64_xmm_opd1_type \opd1
-	.if movq_r64_xmm_opd1_type == REG_TYPE_XMM
-	XMM_NUM movq_r64_xmm_opd1 \opd1
-	R64_NUM movq_r64_xmm_opd2 \opd2
+.macro RDPID opd
+	REG_TYPE rdpid_opd_type \opd
+	.if rdpid_opd_type == REG_TYPE_R64
+	R64_NUM rdpid_opd \opd
 	.else
-	R64_NUM movq_r64_xmm_opd1 \opd1
-	XMM_NUM movq_r64_xmm_opd2 \opd2
+	R32_NUM rdpid_opd \opd
 	.endif
-	PFX_OPD_SIZE
-	PFX_REX movq_r64_xmm_opd1 movq_r64_xmm_opd2 1
-	.if movq_r64_xmm_opd1_type == REG_TYPE_XMM
-	.byte 0x0f, 0x7e
-	.else
-	.byte 0x0f, 0x6e
+	.byte 0xf3
+	.if rdpid_opd > 7
+	PFX_REX rdpid_opd 0
 	.endif
-	MODRM 0xc0 movq_r64_xmm_opd1 movq_r64_xmm_opd2
-	.endm
+	.byte 0x0f, 0xc7
+	MODRM 0xc0 rdpid_opd 0x7
+.endm
 #endif
 
 #endif

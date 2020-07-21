@@ -695,15 +695,6 @@ out:
 	return ret;
 }
 
-static inline void sock_valbool_flag(struct sock *sk, enum sock_flags bit,
-				     int valbool)
-{
-	if (valbool)
-		sock_set_flag(sk, bit);
-	else
-		sock_reset_flag(sk, bit);
-}
-
 bool sk_mc_loop(struct sock *sk)
 {
 	if (dev_recursion_level())
@@ -827,6 +818,14 @@ void sock_set_rcvbuf(struct sock *sk, int val)
 	release_sock(sk);
 }
 EXPORT_SYMBOL(sock_set_rcvbuf);
+
+void sock_set_mark(struct sock *sk, u32 val)
+{
+	lock_sock(sk);
+	sk->sk_mark = val;
+	release_sock(sk);
+}
+EXPORT_SYMBOL(sock_set_mark);
 
 /*
  *	This is meant for all protocols to use and covers goings on
@@ -1973,7 +1972,7 @@ struct sock *sk_clone_lock(const struct sock *sk, const gfp_t priority)
 
 		/*
 		 * Before updating sk_refcnt, we must commit prior changes to memory
-		 * (Documentation/RCU/rculist_nulls.txt for details)
+		 * (Documentation/RCU/rculist_nulls.rst for details)
 		 */
 		smp_wmb();
 		refcount_set(&newsk->sk_refcnt, 2);
@@ -2842,6 +2841,27 @@ int sock_no_mmap(struct file *file, struct socket *sock, struct vm_area_struct *
 }
 EXPORT_SYMBOL(sock_no_mmap);
 
+/*
+ * When a file is received (via SCM_RIGHTS, etc), we must bump the
+ * various sock-based usage counts.
+ */
+void __receive_sock(struct file *file)
+{
+	struct socket *sock;
+	int error;
+
+	/*
+	 * The resulting value of "error" is ignored here since we only
+	 * need to take action when the file is a socket and testing
+	 * "sock" for NULL is sufficient.
+	 */
+	sock = sock_from_file(file, &error);
+	if (sock) {
+		sock_update_netprioidx(&sock->sk->sk_cgrp_data);
+		sock_update_classid(&sock->sk->sk_cgrp_data);
+	}
+}
+
 ssize_t sock_no_sendpage(struct socket *sock, struct page *page, int offset, size_t size, int flags)
 {
 	ssize_t res;
@@ -3035,7 +3055,7 @@ void sock_init_data(struct socket *sock, struct sock *sk)
 	sk_rx_queue_clear(sk);
 	/*
 	 * Before updating sk_refcnt, we must commit prior changes to memory
-	 * (Documentation/RCU/rculist_nulls.txt for details)
+	 * (Documentation/RCU/rculist_nulls.rst for details)
 	 */
 	smp_wmb();
 	refcount_set(&sk->sk_refcnt, 1);
@@ -3575,6 +3595,7 @@ int sock_load_diag_module(int family, int protocol)
 #ifdef CONFIG_INET
 	if (family == AF_INET &&
 	    protocol != IPPROTO_RAW &&
+	    protocol < MAX_INET_PROTOS &&
 	    !rcu_access_pointer(inet_protos[protocol]))
 		return -ENOENT;
 #endif
