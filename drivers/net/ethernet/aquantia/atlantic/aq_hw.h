@@ -1,7 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
-/*
- * aQuantia Corporation Network Driver
- * Copyright (C) 2014-2019 aQuantia Corporation. All rights reserved
+/* Atlantic Network Driver
+ *
+ * Copyright (C) 2014-2019 aQuantia Corporation
+ * Copyright (C) 2019-2020 Marvell International Ltd.
  */
 
 /* File aq_hw.h: Declaration of abstract interface for NIC hardware specific
@@ -64,11 +65,15 @@ struct aq_hw_caps_s {
 	u8 rx_rings;
 	bool flow_control;
 	bool is_64_dma;
+	u32 quirks;
 	u32 priv_data_len;
 };
 
 struct aq_hw_link_status_s {
 	unsigned int mbps;
+	bool full_duplex;
+	u32 lp_link_speed_msk;
+	u32 lp_flow_control;
 };
 
 struct aq_stats_s {
