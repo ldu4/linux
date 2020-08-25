@@ -3271,6 +3271,9 @@ static int selinux_inode_removexattr(struct dentry *dentry, const char *name)
 		return dentry_has_perm(current_cred(), dentry, FILE__SETATTR);
 	}
 
+	if (!selinux_initialized(&selinux_state))
+		return 0;
+
 	/* No one is allowed to remove a SELinux security label.
 	   You can change the label, but all data must be labeled. */
 	return -EACCES;
@@ -3606,26 +3609,20 @@ static int selinux_file_ioctl(struct file *file, unsigned int cmd,
 
 	switch (cmd) {
 	case FIONREAD:
-	/* fall through */
 	case FIBMAP:
-	/* fall through */
 	case FIGETBSZ:
-	/* fall through */
 	case FS_IOC_GETFLAGS:
-	/* fall through */
 	case FS_IOC_GETVERSION:
 		error = file_has_perm(cred, file, FILE__GETATTR);
 		break;
 
 	case FS_IOC_SETFLAGS:
-	/* fall through */
 	case FS_IOC_SETVERSION:
 		error = file_has_perm(cred, file, FILE__SETATTR);
 		break;
 
 	/* sys_ioctl() checks */
 	case FIONBIO:
-	/* fall through */
 	case FIOASYNC:
 		error = file_has_perm(cred, file, 0);
 		break;
@@ -3783,7 +3780,7 @@ static int selinux_file_fcntl(struct file *file, unsigned int cmd,
 			err = file_has_perm(cred, file, FILE__WRITE);
 			break;
 		}
-		/* fall through */
+		fallthrough;
 	case F_SETOWN:
 	case F_SETSIG:
 	case F_GETFL:

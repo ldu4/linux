@@ -494,7 +494,7 @@ static int init_chipset_sis5513(struct pci_dev *dev)
 		pci_read_config_byte(dev, 0x09, &reg);
 		if ((reg & 0x0f) != 0x00)
 			pci_write_config_byte(dev, 0x09, reg&0xf0);
-		/* fall through */
+		fallthrough;
 	case ATA_16:
 		/* force per drive recovery and active timings
 		   needed on ATA_33 and below chips */
@@ -615,8 +615,7 @@ static struct pci_driver sis5513_pci_driver = {
 	.id_table	= sis5513_pci_tbl,
 	.probe		= sis5513_init_one,
 	.remove		= sis5513_remove,
-	.suspend	= ide_pci_suspend,
-	.resume		= ide_pci_resume,
+	.driver.pm	= &ide_pci_pm_ops,
 };
 
 static int __init sis5513_ide_init(void)
