@@ -593,8 +593,6 @@ static void btrfs_rm_dev_replace_unblocked(struct btrfs_fs_info *fs_info)
 	wake_up(&fs_info->dev_replace.replace_wait);
 }
 
-<<<<<<< HEAD
-=======
 static void btrfs_dev_replace_update_device_in_mapping_tree(
 						struct btrfs_fs_info *fs_info,
 						struct btrfs_device *srcdev,
@@ -621,7 +619,6 @@ static void btrfs_dev_replace_update_device_in_mapping_tree(
 	write_unlock(&em_tree->lock);
 }
 
->>>>>>> linux-next/akpm-base
 /*
  * When finishing the device replace, before swapping the source device with the
  * target device we must update the chunk allocation state in the target device,
@@ -818,23 +815,6 @@ error:
 	mutex_unlock(&dev_replace->lock_finishing_cancel_unmount);
 
 	btrfs_rm_dev_replace_free_srcdev(src_device);
-<<<<<<< HEAD
-
-	return 0;
-}
-
-static void btrfs_dev_replace_update_device_in_mapping_tree(
-						struct btrfs_fs_info *fs_info,
-						struct btrfs_device *srcdev,
-						struct btrfs_device *tgtdev)
-{
-	struct extent_map_tree *em_tree = &fs_info->mapping_tree;
-	struct extent_map *em;
-	struct map_lookup *map;
-	u64 start = 0;
-	int i;
-=======
->>>>>>> linux-next/akpm-base
 
 	return 0;
 }
