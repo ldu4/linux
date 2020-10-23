@@ -2290,8 +2290,8 @@ redo:
 		stat(s, FREE_SLAB);
 	}
 
-	c->page = NULL;
 	c->freelist = NULL;
+	WRITE_ONCE(c->page, NULL);
 }
 
 /*
