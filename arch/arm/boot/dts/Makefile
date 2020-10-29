@@ -1201,6 +1201,7 @@ dtb-$(CONFIG_MACH_SUN8I) += \
 	sun8i-h3-orangepi-plus2e.dtb \
 	sun8i-h3-orangepi-zero-plus2.dtb \
 	sun8i-h3-rervision-dvk.dtb \
+	sun8i-h3-zeropi.dtb \
 	sun8i-h3-emlid-neutis-n5h3-devboard.dtb \
 	sun8i-r16-bananapi-m2m.dtb \
 	sun8i-r16-nintendo-nes-classic.dtb \
@@ -1340,6 +1341,12 @@ dtb-$(CONFIG_MACH_ARMADA_39X) += \
 	armada-398-db.dtb
 dtb-$(CONFIG_MACH_ARMADA_XP) += \
 	armada-xp-axpwifiap.dtb \
+	armada-xp-crs305-1g-4s.dtb \
+	armada-xp-crs305-1g-4s-bit.dtb \
+	armada-xp-crs326-24g-2s.dtb \
+	armada-xp-crs326-24g-2s-bit.dtb \
+	armada-xp-crs328-4c-20s-4s.dtb \
+	armada-xp-crs328-4c-20s-4s-bit.dtb \
 	armada-xp-db.dtb \
 	armada-xp-db-dxbc2.dtb \
 	armada-xp-db-xc3-24g4xg.dtb \
