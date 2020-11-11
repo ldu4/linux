@@ -1192,6 +1192,7 @@ dtb-$(CONFIG_MACH_SUN8I) += \
 	sun8i-h3-nanopi-m1-plus.dtb \
 	sun8i-h3-nanopi-neo.dtb \
 	sun8i-h3-nanopi-neo-air.dtb \
+	sun8i-h3-nanopi-r1.dtb \
 	sun8i-h3-orangepi-2.dtb \
 	sun8i-h3-orangepi-lite.dtb \
 	sun8i-h3-orangepi-one.dtb \
@@ -1201,12 +1202,14 @@ dtb-$(CONFIG_MACH_SUN8I) += \
 	sun8i-h3-orangepi-plus2e.dtb \
 	sun8i-h3-orangepi-zero-plus2.dtb \
 	sun8i-h3-rervision-dvk.dtb \
+	sun8i-h3-zeropi.dtb \
 	sun8i-h3-emlid-neutis-n5h3-devboard.dtb \
 	sun8i-r16-bananapi-m2m.dtb \
 	sun8i-r16-nintendo-nes-classic.dtb \
 	sun8i-r16-nintendo-super-nes-classic.dtb \
 	sun8i-r16-parrot.dtb \
 	sun8i-r40-bananapi-m2-ultra.dtb \
+	sun8i-s3-elimo-initium.dtb \
 	sun8i-s3-lichee-zero-plus.dtb \
 	sun8i-s3-pinecube.dtb \
 	sun8i-t3-cqa3t-bv3.dtb \
@@ -1340,6 +1343,12 @@ dtb-$(CONFIG_MACH_ARMADA_39X) += \
 	armada-398-db.dtb
 dtb-$(CONFIG_MACH_ARMADA_XP) += \
 	armada-xp-axpwifiap.dtb \
+	armada-xp-crs305-1g-4s.dtb \
+	armada-xp-crs305-1g-4s-bit.dtb \
+	armada-xp-crs326-24g-2s.dtb \
+	armada-xp-crs326-24g-2s-bit.dtb \
+	armada-xp-crs328-4c-20s-4s.dtb \
+	armada-xp-crs328-4c-20s-4s-bit.dtb \
 	armada-xp-db.dtb \
 	armada-xp-db-dxbc2.dtb \
 	armada-xp-db-xc3-24g4xg.dtb \
@@ -1381,6 +1390,7 @@ dtb-$(CONFIG_ARCH_ASPEED) += \
 	aspeed-bmc-amd-ethanolx.dtb \
 	aspeed-bmc-arm-centriq2400-rep.dtb \
 	aspeed-bmc-arm-stardragon4800-rep2.dtb \
+	aspeed-bmc-bytedance-g220a.dtb \
 	aspeed-bmc-facebook-cmm.dtb \
 	aspeed-bmc-facebook-minipack.dtb \
 	aspeed-bmc-facebook-tiogapass.dtb \
