@@ -3702,8 +3702,7 @@ asmlinkage __visible void schedule_tail(struct task_struct *prev)
 	 * finish_task_switch() for details.
 	 *
 	 * finish_task_switch() will drop rq->lock() and lower preempt_count
-	 * and the preempt_enable() will end up enabling preemption (on
-	 * PREEMPT_COUNT kernels).
+	 * and the preempt_enable() will end up enabling preemption.
 	 */
 
 	rq = finish_task_switch(prev);
@@ -6094,12 +6093,8 @@ static void do_sched_yield(void)
 	schedstat_inc(rq->yld_count);
 	current->sched_class->yield_task(rq);
 
-	/*
-	 * Since we are going to call schedule() anyway, there's
-	 * no need to preempt or enable interrupts:
-	 */
 	preempt_disable();
-	rq_unlock(rq, &rf);
+	rq_unlock_irq(rq, &rf);
 	sched_preempt_enable_no_resched();
 
 	schedule();
@@ -7305,9 +7300,6 @@ void __cant_sleep(const char *file, int line, int preempt_offset)
 	static unsigned long prev_jiffy;
 
 	if (irqs_disabled())
-		return;
-
-	if (!IS_ENABLED(CONFIG_PREEMPT_COUNT))
 		return;
 
 	if (preempt_count() > preempt_offset)
