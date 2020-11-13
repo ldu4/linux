@@ -178,7 +178,7 @@ static int mcde_modeset_init(struct drm_device *drm)
 
 DEFINE_DRM_GEM_CMA_FOPS(drm_fops);
 
-static struct drm_driver mcde_drm_driver = {
+static const struct drm_driver mcde_drm_driver = {
 	.driver_features =
 		DRIVER_MODESET | DRIVER_GEM | DRIVER_ATOMIC,
 	.lastclose = drm_fb_helper_lastclose,
@@ -331,8 +331,8 @@ static int mcde_probe(struct platform_device *pdev)
 	}
 
 	irq = platform_get_irq(pdev, 0);
-	if (!irq) {
-		ret = -EINVAL;
+	if (irq < 0) {
+		ret = irq;
 		goto clk_disable;
 	}
 
@@ -413,7 +413,13 @@ static int mcde_probe(struct platform_device *pdev)
 					      match);
 	if (ret) {
 		dev_err(dev, "failed to add component master\n");
-		goto clk_disable;
+		/*
+		 * The EPOD regulator is already disabled at this point so some
+		 * special errorpath code is needed
+		 */
+		clk_disable_unprepare(mcde->mcde_clk);
+		regulator_disable(mcde->vana);
+		return ret;
 	}
 
 	return 0;

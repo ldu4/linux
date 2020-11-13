@@ -80,6 +80,7 @@ MODULE_FIRMWARE("amdgpu/renoir_gpu_info.bin");
 MODULE_FIRMWARE("amdgpu/navi10_gpu_info.bin");
 MODULE_FIRMWARE("amdgpu/navi14_gpu_info.bin");
 MODULE_FIRMWARE("amdgpu/navi12_gpu_info.bin");
+MODULE_FIRMWARE("amdgpu/vangogh_gpu_info.bin");
 MODULE_FIRMWARE("amdgpu/green_sardine_gpu_info.bin");
 
 #define AMDGPU_RESUME_MS		2000
@@ -115,6 +116,8 @@ const char *amdgpu_asic_name[] = {
 	"NAVI12",
 	"SIENNA_CICHLID",
 	"NAVY_FLOUNDER",
+	"VANGOGH",
+	"DIMGREY_CAVEFISH",
 	"LAST",
 };
 
@@ -582,6 +585,7 @@ void amdgpu_mm_wdoorbell64(struct amdgpu_device *adev, u32 index, u64 v)
  * @adev: amdgpu_device pointer
  * @pcie_index: mmio register offset
  * @pcie_data: mmio register offset
+ * @reg_addr: indirect register address to read from
  *
  * Returns the value of indirect register @reg_addr
  */
@@ -612,6 +616,7 @@ u32 amdgpu_device_indirect_rreg(struct amdgpu_device *adev,
  * @adev: amdgpu_device pointer
  * @pcie_index: mmio register offset
  * @pcie_data: mmio register offset
+ * @reg_addr: indirect register address to read from
  *
  * Returns the value of indirect register @reg_addr
  */
@@ -1373,13 +1378,6 @@ static int amdgpu_device_check_arguments(struct amdgpu_device *adev)
 
 	amdgpu_gmc_tmz_set(adev);
 
-	if (amdgpu_num_kcq == -1) {
-		amdgpu_num_kcq = 8;
-	} else if (amdgpu_num_kcq > 8 || amdgpu_num_kcq < 0) {
-		amdgpu_num_kcq = 8;
-		dev_warn(adev->dev, "set kernel compute queue number to 8 due to invalid parameter provided by user\n");
-	}
-
 	amdgpu_gmc_noretry_set(adev);
 
 	return 0;
@@ -1786,6 +1784,7 @@ static int amdgpu_device_parse_gpu_info_fw(struct amdgpu_device *adev)
 	case CHIP_VEGA20:
 	case CHIP_SIENNA_CICHLID:
 	case CHIP_NAVY_FLOUNDER:
+	case CHIP_DIMGREY_CAVEFISH:
 	default:
 		return 0;
 	case CHIP_VEGA10:
@@ -1819,6 +1818,9 @@ static int amdgpu_device_parse_gpu_info_fw(struct amdgpu_device *adev)
 		break;
 	case CHIP_NAVI12:
 		chip_name = "navi12";
+		break;
+	case CHIP_VANGOGH:
+		chip_name = "vangogh";
 		break;
 	}
 
@@ -1994,7 +1996,12 @@ static int amdgpu_device_ip_early_init(struct amdgpu_device *adev)
 	case  CHIP_NAVI12:
 	case  CHIP_SIENNA_CICHLID:
 	case  CHIP_NAVY_FLOUNDER:
-		adev->family = AMDGPU_FAMILY_NV;
+	case  CHIP_DIMGREY_CAVEFISH:
+	case CHIP_VANGOGH:
+		if (adev->asic_type == CHIP_VANGOGH)
+			adev->family = AMDGPU_FAMILY_VGH;
+		else
+			adev->family = AMDGPU_FAMILY_NV;
 
 		r = nv_set_ip_blocks(adev);
 		if (r)
@@ -2999,10 +3006,10 @@ bool amdgpu_device_asic_has_dc_support(enum amd_asic_type asic_type)
 	case CHIP_NAVI14:
 	case CHIP_NAVI12:
 	case CHIP_RENOIR:
-#endif
-#if defined(CONFIG_DRM_AMD_DC_DCN3_0)
 	case CHIP_SIENNA_CICHLID:
 	case CHIP_NAVY_FLOUNDER:
+	case CHIP_DIMGREY_CAVEFISH:
+	case CHIP_VANGOGH:
 #endif
 		return amdgpu_dc != 0;
 #endif
@@ -4173,6 +4180,7 @@ bool amdgpu_device_should_recover_gpu(struct amdgpu_device *adev)
 		case CHIP_NAVI14:
 		case CHIP_NAVI12:
 		case CHIP_SIENNA_CICHLID:
+		case CHIP_VANGOGH:
 			break;
 		default:
 			goto disabled;
