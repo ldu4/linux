@@ -500,9 +500,14 @@ static void dpp3_power_on_blnd_lut(
 {
 	struct dcn3_dpp *dpp = TO_DCN30_DPP(dpp_base);
 
-	REG_SET(CM_MEM_PWR_CTRL, 0,
-			BLNDGAM_MEM_PWR_FORCE, power_on == true ? 0:1);
-
+	if (dpp_base->ctx->dc->debug.enable_mem_low_power.bits.cm) {
+		REG_UPDATE(CM_MEM_PWR_CTRL, BLNDGAM_MEM_PWR_FORCE, power_on ? 0 : 3);
+		if (power_on)
+			REG_WAIT(CM_MEM_PWR_STATUS, BLNDGAM_MEM_PWR_STATE, 0, 1, 5);
+	} else {
+		REG_SET(CM_MEM_PWR_CTRL, 0,
+				BLNDGAM_MEM_PWR_FORCE, power_on == true ? 0 : 1);
+	}
 }
 
 static void dpp3_configure_blnd_lut(
@@ -675,6 +680,8 @@ bool dpp3_program_blnd_lut(
 
 	if (params == NULL) {
 		REG_SET(CM_BLNDGAM_CONTROL, 0, CM_BLNDGAM_MODE, 0);
+		if (dpp_base->ctx->dc->debug.enable_mem_low_power.bits.cm)
+			dpp3_power_on_blnd_lut(dpp_base, false);
 		return false;
 	}
 
@@ -1358,16 +1365,9 @@ static struct dpp_funcs dcn30_dpp_funcs = {
 	.dpp_program_degamma_pwl	= NULL,
 	.dpp_program_cm_dealpha = dpp3_program_cm_dealpha,
 	.dpp_program_cm_bias = dpp3_program_cm_bias,
-#if defined(CONFIG_DRM_AMD_DC_DCN3_0)
 	.dpp_program_blnd_lut = dpp3_program_blnd_lut,
 	.dpp_program_shaper_lut = dpp3_program_shaper,
 	.dpp_program_3dlut = dpp3_program_3dlut,
-#else
-	.dpp_program_blnd_lut		= NULL,
-	.dpp_program_shaper_lut		= NULL,
-	.dpp_program_3dlut		= NULL,
-#endif
-
 	.dpp_program_bias_and_scale	= NULL,
 	.dpp_cnv_set_alpha_keyer	= dpp2_cnv_set_alpha_keyer,
 	.set_cursor_attributes		= dpp3_set_cursor_attributes,

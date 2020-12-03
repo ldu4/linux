@@ -136,6 +136,9 @@ static void navi10_ih_enable_interrupts(struct amdgpu_device *adev)
 		}
 		adev->irq.ih2.enabled = true;
 	}
+
+	if (adev->irq.ih_soft.ring_size)
+		adev->irq.ih_soft.enabled = true;
 }
 
 /**
@@ -314,6 +317,8 @@ static int navi10_ih_irq_init(struct amdgpu_device *adev)
 			switch (adev->asic_type) {
 			case CHIP_SIENNA_CICHLID:
 			case CHIP_NAVY_FLOUNDER:
+			case CHIP_VANGOGH:
+			case CHIP_DIMGREY_CAVEFISH:
 				ih_chicken = RREG32_SOC15(OSSSYS, 0, mmIH_CHICKEN_Sienna_Cichlid);
 				ih_chicken = REG_SET_FIELD(ih_chicken,
 						IH_CHICKEN, MC_SPACE_GPA_ENABLE, 1);
@@ -660,8 +665,11 @@ static int navi10_ih_sw_init(void *handle)
 	/* use gpu virtual address for ih ring
 	 * until ih_checken is programmed to allow
 	 * use bus address for ih ring by psp bl */
-	use_bus_addr =
-		(adev->firmware.load_type == AMDGPU_FW_LOAD_PSP) ? false : true;
+	if ((adev->flags & AMD_IS_APU) ||
+	    (adev->firmware.load_type == AMDGPU_FW_LOAD_PSP))
+		use_bus_addr = false;
+	else
+		use_bus_addr = true;
 	r = amdgpu_ih_ring_init(adev, &adev->irq.ih, 256 * 1024, use_bus_addr);
 	if (r)
 		return r;
@@ -689,6 +697,10 @@ static int navi10_ih_sw_init(void *handle)
 		adev->irq.ih2.doorbell_index =
 					(adev->doorbell_index.ih + 2) << 1;
 	}
+
+	r = amdgpu_ih_ring_init(adev, &adev->irq.ih_soft, PAGE_SIZE, true);
+	if (r)
+		return r;
 
 	r = amdgpu_irq_init(adev);
 
