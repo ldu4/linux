@@ -897,7 +897,7 @@ static int faulting_process(int signal_test)
 				count_verify[nr]);
 	        }
 		/*
-		 * Trigger write protection if there is by writting
+		 * Trigger write protection if there is by writing
 		 * the same value back.
 		 */
 		*area_count(area_dst, nr) = count;
@@ -925,7 +925,7 @@ static int faulting_process(int signal_test)
 				count_verify[nr]); exit(1);
 		}
 		/*
-		 * Trigger write protection if there is by writting
+		 * Trigger write protection if there is by writing
 		 * the same value back.
 		 */
 		*area_count(area_dst, nr) = count;
