@@ -95,7 +95,7 @@ static void blk_mq_hctx_clear_pending(struct blk_mq_hw_ctx *hctx,
 }
 
 struct mq_inflight {
-	struct hd_struct *part;
+	struct block_device *part;
 	unsigned int inflight[2];
 };
 
@@ -105,13 +105,15 @@ static bool blk_mq_check_inflight(struct blk_mq_hw_ctx *hctx,
 {
 	struct mq_inflight *mi = priv;
 
-	if (rq->part == mi->part && blk_mq_rq_state(rq) == MQ_RQ_IN_FLIGHT)
+	if ((!mi->part->bd_partno || rq->part == mi->part) &&
+	    blk_mq_rq_state(rq) == MQ_RQ_IN_FLIGHT)
 		mi->inflight[rq_data_dir(rq)]++;
 
 	return true;
 }
 
-unsigned int blk_mq_in_flight(struct request_queue *q, struct hd_struct *part)
+unsigned int blk_mq_in_flight(struct request_queue *q,
+		struct block_device *part)
 {
 	struct mq_inflight mi = { .part = part };
 
@@ -120,8 +122,8 @@ unsigned int blk_mq_in_flight(struct request_queue *q, struct hd_struct *part)
 	return mi.inflight[0] + mi.inflight[1];
 }
 
-void blk_mq_in_flight_rw(struct request_queue *q, struct hd_struct *part,
-			 unsigned int inflight[2])
+void blk_mq_in_flight_rw(struct request_queue *q, struct block_device *part,
+		unsigned int inflight[2])
 {
 	struct mq_inflight mi = { .part = part };
 
@@ -671,9 +673,7 @@ bool blk_mq_complete_request_remote(struct request *rq)
 		return false;
 
 	if (blk_mq_complete_need_ipi(rq)) {
-		rq->csd.func = __blk_mq_complete_request_remote;
-		rq->csd.info = rq;
-		rq->csd.flags = 0;
+		INIT_CSD(&rq->csd, __blk_mq_complete_request_remote, rq);
 		smp_call_function_single_async(rq->mq_ctx->cpu, &rq->csd);
 	} else {
 		if (rq->q->nr_hw_queues > 1)
@@ -1404,7 +1404,7 @@ bool blk_mq_dispatch_rq_list(struct blk_mq_hw_ctx *hctx, struct list_head *list,
 			break;
 		default:
 			errors++;
-			blk_mq_end_request(rq, BLK_STS_IOERR);
+			blk_mq_end_request(rq, ret);
 		}
 	} while (!list_empty(list));
 out:
