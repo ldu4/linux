@@ -750,11 +750,6 @@ static int gfs2_create_inode(struct inode *dir, struct dentry *dentry,
 	init_dinode(dip, ip, symname);
 	gfs2_trans_end(sdp);
 
-<<<<<<< HEAD
-	BUG_ON(test_and_set_bit(GLF_INODE_CREATING, &io_gl->gl_flags));
-
-=======
->>>>>>> linux-next/akpm-base
 	error = gfs2_glock_nq_init(io_gl, LM_ST_SHARED, GL_EXACT, &ip->i_iopen_gh);
 	if (error)
 		goto fail_gunlock2;
@@ -808,10 +803,6 @@ fail_gunlock3:
 	glock_clear_object(io_gl, ip);
 	gfs2_glock_dq_uninit(&ip->i_iopen_gh);
 fail_gunlock2:
-<<<<<<< HEAD
-	clear_bit(GLF_INODE_CREATING, &io_gl->gl_flags);
-=======
->>>>>>> linux-next/akpm-base
 	glock_clear_object(io_gl, ip);
 	gfs2_glock_put(io_gl);
 fail_free_inode:
@@ -2145,11 +2136,7 @@ static int gfs2_update_time(struct inode *inode, struct timespec64 *time,
 	return generic_update_time(inode, time, flags);
 }
 
-<<<<<<< HEAD
-const struct inode_operations gfs2_file_iops = {
-=======
 static const struct inode_operations gfs2_file_iops = {
->>>>>>> linux-next/akpm-base
 	.permission = gfs2_permission,
 	.setattr = gfs2_setattr,
 	.getattr = gfs2_getattr,
