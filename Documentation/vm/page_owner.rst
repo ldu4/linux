@@ -41,12 +41,12 @@ size change due to this facility.
 - Without page owner::
 
    text    data     bss     dec     hex filename
-  48392    2333     644   51369    c8a9 mm/page_alloc.o
+   48392   2333     644   51369    c8a9 mm/page_alloc.o
 
 - With page owner::
 
    text    data     bss     dec     hex filename
-  48800    2445     644   51889    cab1 mm/page_alloc.o
+   48800   2445     644   51889    cab1 mm/page_alloc.o
    6574     108      29    6711    1a37 mm/page_owner.o
    1025       8       8    1041     411 mm/page_ext.o
 
