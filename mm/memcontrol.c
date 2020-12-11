@@ -872,6 +872,7 @@ void __mod_lruvec_page_state(struct page *page, enum node_stat_item idx,
 	lruvec = mem_cgroup_lruvec(head->mem_cgroup, pgdat);
 	__mod_lruvec_state(lruvec, idx, val);
 }
+EXPORT_SYMBOL(__mod_lruvec_page_state);
 
 void __mod_lruvec_kmem_state(void *p, enum node_stat_item idx, int val)
 {
