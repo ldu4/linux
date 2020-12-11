@@ -4548,6 +4548,7 @@ sub process {
 			my $printk = $1;
 			my $modifier = $2;
 			my $orig = $3;
+			$modifier = "" if (!defined($modifier));
 			my $level = lc($orig);
 			$level = "warn" if ($level eq "warning");
 			my $level2 = $level;
