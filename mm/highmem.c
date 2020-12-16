@@ -359,6 +359,7 @@ void kunmap_high(struct page *page)
 		wake_up(pkmap_map_wait);
 }
 EXPORT_SYMBOL(kunmap_high);
+<<<<<<< HEAD
 
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
 void zero_user_segments(struct page *page, unsigned start1, unsigned end1,
@@ -411,6 +412,8 @@ void zero_user_segments(struct page *page, unsigned start1, unsigned end1,
 }
 EXPORT_SYMBOL(zero_user_segments);
 #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+=======
+>>>>>>> linux-next/akpm-base
 #endif /* CONFIG_HIGHMEM */
 
 #ifdef CONFIG_KMAP_LOCAL

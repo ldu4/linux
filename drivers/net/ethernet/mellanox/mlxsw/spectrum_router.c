@@ -477,12 +477,15 @@ struct mlxsw_sp_vr {
 	refcount_t ul_rif_refcnt;
 };
 
+<<<<<<< HEAD
 static int mlxsw_sp_router_ll_basic_init(struct mlxsw_sp *mlxsw_sp, u16 vr_id,
 					 enum mlxsw_sp_l3proto proto)
 {
 	return 0;
 }
 
+=======
+>>>>>>> linux-next/akpm-base
 static int mlxsw_sp_router_ll_basic_ralta_write(struct mlxsw_sp *mlxsw_sp, char *xralta_pl)
 {
 	return mlxsw_reg_write(mlxsw_sp->core, MLXSW_REG(ralta),
@@ -4305,6 +4308,7 @@ mlxsw_sp_nexthop_obj_group_validate(struct mlxsw_sp *mlxsw_sp,
 static int mlxsw_sp_nexthop_obj_validate(struct mlxsw_sp *mlxsw_sp,
 					 unsigned long event,
 					 struct nh_notifier_info *info)
+<<<<<<< HEAD
 {
 	if (event != NEXTHOP_EVENT_REPLACE)
 		return 0;
@@ -4704,6 +4708,442 @@ mlxsw_sp_nexthop4_group_info_init(struct mlxsw_sp *mlxsw_sp,
 				  struct mlxsw_sp_nexthop_group *nh_grp)
 {
 	unsigned int nhs = fib_info_num_path(nh_grp->ipv4.fi);
+=======
+{
+	if (event != NEXTHOP_EVENT_REPLACE)
+		return 0;
+
+	if (!info->is_grp)
+		return mlxsw_sp_nexthop_obj_single_validate(mlxsw_sp, info->nh,
+							    info->extack);
+	return mlxsw_sp_nexthop_obj_group_validate(mlxsw_sp, info->nh_grp,
+						   info->extack);
+}
+
+static bool mlxsw_sp_nexthop_obj_is_gateway(struct mlxsw_sp *mlxsw_sp,
+					    const struct nh_notifier_info *info)
+{
+	const struct net_device *dev;
+
+	if (info->is_grp)
+		/* Already validated earlier. */
+		return true;
+
+	dev = info->nh->dev;
+	return info->nh->gw_family || info->nh->is_reject ||
+	       mlxsw_sp_netdev_ipip_type(mlxsw_sp, dev, NULL);
+}
+
+static void mlxsw_sp_nexthop_obj_blackhole_init(struct mlxsw_sp *mlxsw_sp,
+						struct mlxsw_sp_nexthop *nh)
+{
+	u16 lb_rif_index = mlxsw_sp->router->lb_rif_index;
+
+	nh->discard = 1;
+	nh->should_offload = 1;
+	/* While nexthops that discard packets do not forward packets
+	 * via an egress RIF, they still need to be programmed using a
+	 * valid RIF, so use the loopback RIF created during init.
+	 */
+	nh->rif = mlxsw_sp->router->rifs[lb_rif_index];
+}
+
+static void mlxsw_sp_nexthop_obj_blackhole_fini(struct mlxsw_sp *mlxsw_sp,
+						struct mlxsw_sp_nexthop *nh)
+{
+	nh->rif = NULL;
+	nh->should_offload = 0;
+}
+
+static int
+mlxsw_sp_nexthop_obj_init(struct mlxsw_sp *mlxsw_sp,
+			  struct mlxsw_sp_nexthop_group *nh_grp,
+			  struct mlxsw_sp_nexthop *nh,
+			  struct nh_notifier_single_info *nh_obj, int weight)
+{
+	struct net_device *dev = nh_obj->dev;
+	int err;
+
+	nh->nhgi = nh_grp->nhgi;
+	nh->nh_weight = weight;
+
+	switch (nh_obj->gw_family) {
+	case AF_INET:
+		memcpy(&nh->gw_addr, &nh_obj->ipv4, sizeof(nh_obj->ipv4));
+		nh->neigh_tbl = &arp_tbl;
+		break;
+	case AF_INET6:
+		memcpy(&nh->gw_addr, &nh_obj->ipv6, sizeof(nh_obj->ipv6));
+#if IS_ENABLED(CONFIG_IPV6)
+		nh->neigh_tbl = &nd_tbl;
+#endif
+		break;
+	}
+
+	mlxsw_sp_nexthop_counter_alloc(mlxsw_sp, nh);
+	list_add_tail(&nh->router_list_node, &mlxsw_sp->router->nexthop_list);
+	nh->ifindex = dev->ifindex;
+
+	err = mlxsw_sp_nexthop_type_init(mlxsw_sp, nh, dev);
+	if (err)
+		goto err_type_init;
+
+	if (nh_obj->is_reject)
+		mlxsw_sp_nexthop_obj_blackhole_init(mlxsw_sp, nh);
+
+	return 0;
+
+err_type_init:
+	list_del(&nh->router_list_node);
+	mlxsw_sp_nexthop_counter_free(mlxsw_sp, nh);
+	return err;
+}
+
+static void mlxsw_sp_nexthop_obj_fini(struct mlxsw_sp *mlxsw_sp,
+				      struct mlxsw_sp_nexthop *nh)
+{
+	if (nh->discard)
+		mlxsw_sp_nexthop_obj_blackhole_fini(mlxsw_sp, nh);
+	mlxsw_sp_nexthop_type_fini(mlxsw_sp, nh);
+	list_del(&nh->router_list_node);
+	mlxsw_sp_nexthop_counter_free(mlxsw_sp, nh);
+}
+
+static int
+mlxsw_sp_nexthop_obj_group_info_init(struct mlxsw_sp *mlxsw_sp,
+				     struct mlxsw_sp_nexthop_group *nh_grp,
+				     struct nh_notifier_info *info)
+{
+	unsigned int nhs = info->is_grp ? info->nh_grp->num_nh : 1;
+>>>>>>> linux-next/akpm-base
+	struct mlxsw_sp_nexthop_group_info *nhgi;
+	struct mlxsw_sp_nexthop *nh;
+	int err, i;
+
+	nhgi = kzalloc(struct_size(nhgi, nexthops, nhs), GFP_KERNEL);
+	if (!nhgi)
+		return -ENOMEM;
+	nh_grp->nhgi = nhgi;
+	nhgi->nh_grp = nh_grp;
+<<<<<<< HEAD
+	nhgi->gateway = mlxsw_sp_fi_is_gateway(mlxsw_sp, nh_grp->ipv4.fi);
+	nhgi->count = nhs;
+	for (i = 0; i < nhgi->count; i++) {
+		struct fib_nh *fib_nh;
+
+		nh = &nhgi->nexthops[i];
+		fib_nh = fib_info_nh(nh_grp->ipv4.fi, i);
+		err = mlxsw_sp_nexthop4_init(mlxsw_sp, nh_grp, nh, fib_nh);
+		if (err)
+			goto err_nexthop4_init;
+	}
+	err = mlxsw_sp_nexthop_group_refresh(mlxsw_sp, nh_grp);
+	if (err)
+		goto err_group_refresh;
+=======
+	nhgi->gateway = mlxsw_sp_nexthop_obj_is_gateway(mlxsw_sp, info);
+	nhgi->count = nhs;
+	for (i = 0; i < nhgi->count; i++) {
+		struct nh_notifier_single_info *nh_obj;
+		int weight;
+
+		nh = &nhgi->nexthops[i];
+		if (info->is_grp) {
+			nh_obj = &info->nh_grp->nh_entries[i].nh;
+			weight = info->nh_grp->nh_entries[i].weight;
+		} else {
+			nh_obj = info->nh;
+			weight = 1;
+		}
+		err = mlxsw_sp_nexthop_obj_init(mlxsw_sp, nh_grp, nh, nh_obj,
+						weight);
+		if (err)
+			goto err_nexthop_obj_init;
+	}
+	err = mlxsw_sp_nexthop_group_refresh(mlxsw_sp, nh_grp);
+	if (err) {
+		NL_SET_ERR_MSG_MOD(info->extack, "Failed to write adjacency entries to the device");
+		goto err_group_refresh;
+	}
+>>>>>>> linux-next/akpm-base
+
+	return 0;
+
+err_group_refresh:
+	i = nhgi->count;
+<<<<<<< HEAD
+err_nexthop4_init:
+	for (i--; i >= 0; i--) {
+		nh = &nhgi->nexthops[i];
+		mlxsw_sp_nexthop4_fini(mlxsw_sp, nh);
+=======
+err_nexthop_obj_init:
+	for (i--; i >= 0; i--) {
+		nh = &nhgi->nexthops[i];
+		mlxsw_sp_nexthop_obj_fini(mlxsw_sp, nh);
+>>>>>>> linux-next/akpm-base
+	}
+	kfree(nhgi);
+	return err;
+}
+
+static void
+<<<<<<< HEAD
+mlxsw_sp_nexthop4_group_info_fini(struct mlxsw_sp *mlxsw_sp,
+				  struct mlxsw_sp_nexthop_group *nh_grp)
+=======
+mlxsw_sp_nexthop_obj_group_info_fini(struct mlxsw_sp *mlxsw_sp,
+				     struct mlxsw_sp_nexthop_group *nh_grp)
+>>>>>>> linux-next/akpm-base
+{
+	struct mlxsw_sp_nexthop_group_info *nhgi = nh_grp->nhgi;
+	int i;
+
+	for (i = nhgi->count - 1; i >= 0; i--) {
+		struct mlxsw_sp_nexthop *nh = &nhgi->nexthops[i];
+
+<<<<<<< HEAD
+		mlxsw_sp_nexthop4_fini(mlxsw_sp, nh);
+=======
+		mlxsw_sp_nexthop_obj_fini(mlxsw_sp, nh);
+>>>>>>> linux-next/akpm-base
+	}
+	mlxsw_sp_nexthop_group_refresh(mlxsw_sp, nh_grp);
+	WARN_ON_ONCE(nhgi->adj_index_valid);
+	kfree(nhgi);
+}
+
+static struct mlxsw_sp_nexthop_group *
+<<<<<<< HEAD
+=======
+mlxsw_sp_nexthop_obj_group_create(struct mlxsw_sp *mlxsw_sp,
+				  struct nh_notifier_info *info)
+{
+	struct mlxsw_sp_nexthop_group *nh_grp;
+	int err;
+
+	nh_grp = kzalloc(sizeof(*nh_grp), GFP_KERNEL);
+	if (!nh_grp)
+		return ERR_PTR(-ENOMEM);
+	INIT_LIST_HEAD(&nh_grp->vr_list);
+	err = rhashtable_init(&nh_grp->vr_ht,
+			      &mlxsw_sp_nexthop_group_vr_ht_params);
+	if (err)
+		goto err_nexthop_group_vr_ht_init;
+	INIT_LIST_HEAD(&nh_grp->fib_list);
+	nh_grp->type = MLXSW_SP_NEXTHOP_GROUP_TYPE_OBJ;
+	nh_grp->obj.id = info->id;
+
+	err = mlxsw_sp_nexthop_obj_group_info_init(mlxsw_sp, nh_grp, info);
+	if (err)
+		goto err_nexthop_group_info_init;
+
+	nh_grp->can_destroy = false;
+
+	return nh_grp;
+
+err_nexthop_group_info_init:
+	rhashtable_destroy(&nh_grp->vr_ht);
+err_nexthop_group_vr_ht_init:
+	kfree(nh_grp);
+	return ERR_PTR(err);
+}
+
+static void
+mlxsw_sp_nexthop_obj_group_destroy(struct mlxsw_sp *mlxsw_sp,
+				   struct mlxsw_sp_nexthop_group *nh_grp)
+{
+	if (!nh_grp->can_destroy)
+		return;
+	mlxsw_sp_nexthop_obj_group_info_fini(mlxsw_sp, nh_grp);
+	WARN_ON_ONCE(!list_empty(&nh_grp->fib_list));
+	WARN_ON_ONCE(!list_empty(&nh_grp->vr_list));
+	rhashtable_destroy(&nh_grp->vr_ht);
+	kfree(nh_grp);
+}
+
+static struct mlxsw_sp_nexthop_group *
+mlxsw_sp_nexthop_obj_group_lookup(struct mlxsw_sp *mlxsw_sp, u32 id)
+{
+	struct mlxsw_sp_nexthop_group_cmp_arg cmp_arg;
+
+	cmp_arg.type = MLXSW_SP_NEXTHOP_GROUP_TYPE_OBJ;
+	cmp_arg.id = id;
+	return rhashtable_lookup_fast(&mlxsw_sp->router->nexthop_group_ht,
+				      &cmp_arg,
+				      mlxsw_sp_nexthop_group_ht_params);
+}
+
+static int mlxsw_sp_nexthop_obj_group_add(struct mlxsw_sp *mlxsw_sp,
+					  struct mlxsw_sp_nexthop_group *nh_grp)
+{
+	return mlxsw_sp_nexthop_group_insert(mlxsw_sp, nh_grp);
+}
+
+static int
+mlxsw_sp_nexthop_obj_group_replace(struct mlxsw_sp *mlxsw_sp,
+				   struct mlxsw_sp_nexthop_group *nh_grp,
+				   struct mlxsw_sp_nexthop_group *old_nh_grp,
+				   struct netlink_ext_ack *extack)
+{
+	struct mlxsw_sp_nexthop_group_info *old_nhgi = old_nh_grp->nhgi;
+	struct mlxsw_sp_nexthop_group_info *new_nhgi = nh_grp->nhgi;
+	int err;
+
+	old_nh_grp->nhgi = new_nhgi;
+	new_nhgi->nh_grp = old_nh_grp;
+	nh_grp->nhgi = old_nhgi;
+	old_nhgi->nh_grp = nh_grp;
+
+	if (old_nhgi->adj_index_valid && new_nhgi->adj_index_valid) {
+		/* Both the old adjacency index and the new one are valid.
+		 * Routes are currently using the old one. Tell the device to
+		 * replace the old adjacency index with the new one.
+		 */
+		err = mlxsw_sp_adj_index_mass_update(mlxsw_sp, old_nh_grp,
+						     old_nhgi->adj_index,
+						     old_nhgi->ecmp_size);
+		if (err) {
+			NL_SET_ERR_MSG_MOD(extack, "Failed to replace old adjacency index with new one");
+			goto err_out;
+		}
+	} else if (old_nhgi->adj_index_valid && !new_nhgi->adj_index_valid) {
+		/* The old adjacency index is valid, while the new one is not.
+		 * Iterate over all the routes using the group and change them
+		 * to trap packets to the CPU.
+		 */
+		err = mlxsw_sp_nexthop_fib_entries_update(mlxsw_sp, old_nh_grp);
+		if (err) {
+			NL_SET_ERR_MSG_MOD(extack, "Failed to update routes to trap packets");
+			goto err_out;
+		}
+	} else if (!old_nhgi->adj_index_valid && new_nhgi->adj_index_valid) {
+		/* The old adjacency index is invalid, while the new one is.
+		 * Iterate over all the routes using the group and change them
+		 * to forward packets using the new valid index.
+		 */
+		err = mlxsw_sp_nexthop_fib_entries_update(mlxsw_sp, old_nh_grp);
+		if (err) {
+			NL_SET_ERR_MSG_MOD(extack, "Failed to update routes to forward packets");
+			goto err_out;
+		}
+	}
+
+	/* Make sure the flags are set / cleared based on the new nexthop group
+	 * information.
+	 */
+	mlxsw_sp_nexthop_obj_group_offload_refresh(mlxsw_sp, old_nh_grp);
+
+	/* At this point 'nh_grp' is just a shell that is not used by anyone
+	 * and its nexthop group info is the old info that was just replaced
+	 * with the new one. Remove it.
+	 */
+	nh_grp->can_destroy = true;
+	mlxsw_sp_nexthop_obj_group_destroy(mlxsw_sp, nh_grp);
+
+	return 0;
+
+err_out:
+	old_nhgi->nh_grp = old_nh_grp;
+	nh_grp->nhgi = new_nhgi;
+	new_nhgi->nh_grp = nh_grp;
+	old_nh_grp->nhgi = old_nhgi;
+	return err;
+}
+
+static int mlxsw_sp_nexthop_obj_new(struct mlxsw_sp *mlxsw_sp,
+				    struct nh_notifier_info *info)
+{
+	struct mlxsw_sp_nexthop_group *nh_grp, *old_nh_grp;
+	struct netlink_ext_ack *extack = info->extack;
+	int err;
+
+	nh_grp = mlxsw_sp_nexthop_obj_group_create(mlxsw_sp, info);
+	if (IS_ERR(nh_grp))
+		return PTR_ERR(nh_grp);
+
+	old_nh_grp = mlxsw_sp_nexthop_obj_group_lookup(mlxsw_sp, info->id);
+	if (!old_nh_grp)
+		err = mlxsw_sp_nexthop_obj_group_add(mlxsw_sp, nh_grp);
+	else
+		err = mlxsw_sp_nexthop_obj_group_replace(mlxsw_sp, nh_grp,
+							 old_nh_grp, extack);
+
+	if (err) {
+		nh_grp->can_destroy = true;
+		mlxsw_sp_nexthop_obj_group_destroy(mlxsw_sp, nh_grp);
+	}
+
+	return err;
+}
+
+static void mlxsw_sp_nexthop_obj_del(struct mlxsw_sp *mlxsw_sp,
+				     struct nh_notifier_info *info)
+{
+	struct mlxsw_sp_nexthop_group *nh_grp;
+
+	nh_grp = mlxsw_sp_nexthop_obj_group_lookup(mlxsw_sp, info->id);
+	if (!nh_grp)
+		return;
+
+	nh_grp->can_destroy = true;
+	mlxsw_sp_nexthop_group_remove(mlxsw_sp, nh_grp);
+
+	/* If the group still has routes using it, then defer the delete
+	 * operation until the last route using it is deleted.
+	 */
+	if (!list_empty(&nh_grp->fib_list))
+		return;
+	mlxsw_sp_nexthop_obj_group_destroy(mlxsw_sp, nh_grp);
+}
+
+static int mlxsw_sp_nexthop_obj_event(struct notifier_block *nb,
+				      unsigned long event, void *ptr)
+{
+	struct nh_notifier_info *info = ptr;
+	struct mlxsw_sp_router *router;
+	int err = 0;
+
+	router = container_of(nb, struct mlxsw_sp_router, nexthop_nb);
+	err = mlxsw_sp_nexthop_obj_validate(router->mlxsw_sp, event, info);
+	if (err)
+		goto out;
+
+	mutex_lock(&router->lock);
+
+	ASSERT_RTNL();
+
+	switch (event) {
+	case NEXTHOP_EVENT_REPLACE:
+		err = mlxsw_sp_nexthop_obj_new(router->mlxsw_sp, info);
+		break;
+	case NEXTHOP_EVENT_DEL:
+		mlxsw_sp_nexthop_obj_del(router->mlxsw_sp, info);
+		break;
+	default:
+		break;
+	}
+
+	mutex_unlock(&router->lock);
+
+out:
+	return notifier_from_errno(err);
+}
+
+static bool mlxsw_sp_fi_is_gateway(const struct mlxsw_sp *mlxsw_sp,
+				   struct fib_info *fi)
+{
+	const struct fib_nh *nh = fib_info_nh(fi, 0);
+
+	return nh->fib_nh_scope == RT_SCOPE_LINK ||
+	       mlxsw_sp_nexthop4_ipip_type(mlxsw_sp, nh, NULL);
+}
+
+static int
+mlxsw_sp_nexthop4_group_info_init(struct mlxsw_sp *mlxsw_sp,
+				  struct mlxsw_sp_nexthop_group *nh_grp)
+{
+	unsigned int nhs = fib_info_num_path(nh_grp->ipv4.fi);
 	struct mlxsw_sp_nexthop_group_info *nhgi;
 	struct mlxsw_sp_nexthop *nh;
 	int err, i;
@@ -4759,6 +5199,7 @@ mlxsw_sp_nexthop4_group_info_fini(struct mlxsw_sp *mlxsw_sp,
 }
 
 static struct mlxsw_sp_nexthop_group *
+>>>>>>> linux-next/akpm-base
 mlxsw_sp_nexthop4_group_create(struct mlxsw_sp *mlxsw_sp, struct fib_info *fi)
 {
 	struct mlxsw_sp_nexthop_group *nh_grp;
@@ -7098,7 +7539,10 @@ static void mlxsw_sp_router_fib_event_work(struct work_struct *work)
 		op_ctx->bulk_ok = !list_is_last(&fib_event->list, &fib_event_queue) &&
 				  fib_event->family == next_fib_event->family &&
 				  fib_event->event == next_fib_event->event;
+<<<<<<< HEAD
 		op_ctx->event = fib_event->event;
+=======
+>>>>>>> linux-next/akpm-base
 
 		/* In case family of this and the previous entry are different, context
 		 * reinitialization is going to be needed now, indicate that.
@@ -9133,7 +9577,10 @@ static void __mlxsw_sp_router_fini(struct mlxsw_sp *mlxsw_sp)
 }
 
 static const struct mlxsw_sp_router_ll_ops mlxsw_sp_router_ll_basic_ops = {
+<<<<<<< HEAD
 	.init = mlxsw_sp_router_ll_basic_init,
+=======
+>>>>>>> linux-next/akpm-base
 	.ralta_write = mlxsw_sp_router_ll_basic_ralta_write,
 	.ralst_write = mlxsw_sp_router_ll_basic_ralst_write,
 	.raltb_write = mlxsw_sp_router_ll_basic_raltb_write,
@@ -9209,6 +9656,7 @@ int mlxsw_sp_router_init(struct mlxsw_sp *mlxsw_sp,
 	mlxsw_sp->router = router;
 	router->mlxsw_sp = mlxsw_sp;
 
+<<<<<<< HEAD
 	err = mlxsw_sp_router_xm_init(mlxsw_sp);
 	if (err)
 		goto err_xm_init;
@@ -9216,6 +9664,9 @@ int mlxsw_sp_router_init(struct mlxsw_sp *mlxsw_sp,
 	router->proto_ll_ops[MLXSW_SP_L3_PROTO_IPV4] = mlxsw_sp_router_xm_ipv4_is_supported(mlxsw_sp) ?
 						       &mlxsw_sp_router_ll_xm_ops :
 						       &mlxsw_sp_router_ll_basic_ops;
+=======
+	router->proto_ll_ops[MLXSW_SP_L3_PROTO_IPV4] = &mlxsw_sp_router_ll_basic_ops;
+>>>>>>> linux-next/akpm-base
 	router->proto_ll_ops[MLXSW_SP_L3_PROTO_IPV6] = &mlxsw_sp_router_ll_basic_ops;
 
 	err = mlxsw_sp_router_ll_op_ctx_init(router);
@@ -9347,8 +9798,11 @@ err_rifs_init:
 err_router_init:
 	mlxsw_sp_router_ll_op_ctx_fini(router);
 err_ll_op_ctx_init:
+<<<<<<< HEAD
 	mlxsw_sp_router_xm_fini(mlxsw_sp);
 err_xm_init:
+=======
+>>>>>>> linux-next/akpm-base
 	mutex_destroy(&mlxsw_sp->router->lock);
 	kfree(mlxsw_sp->router);
 	return err;
@@ -9376,7 +9830,10 @@ void mlxsw_sp_router_fini(struct mlxsw_sp *mlxsw_sp)
 	mlxsw_sp_rifs_fini(mlxsw_sp);
 	__mlxsw_sp_router_fini(mlxsw_sp);
 	mlxsw_sp_router_ll_op_ctx_fini(mlxsw_sp->router);
+<<<<<<< HEAD
 	mlxsw_sp_router_xm_fini(mlxsw_sp);
+=======
+>>>>>>> linux-next/akpm-base
 	mutex_destroy(&mlxsw_sp->router->lock);
 	kfree(mlxsw_sp->router);
 }

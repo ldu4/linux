@@ -435,6 +435,30 @@ void __init bootmem_init(void)
 	sparse_init();
 	zone_sizes_init(min, max);
 
+<<<<<<< HEAD
+=======
+	/*
+	 * request_standard_resources() depends on crashkernel's memory being
+	 * reserved, so do it here.
+	 */
+	reserve_crashkernel();
+
+	memblock_dump_all();
+}
+
+#ifndef CONFIG_SPARSEMEM_VMEMMAP
+static inline void free_memmap(unsigned long start_pfn, unsigned long end_pfn)
+{
+	struct page *start_pg, *end_pg;
+	unsigned long pg, pgend;
+
+	/*
+	 * Convert start_pfn/end_pfn to a struct page pointer.
+	 */
+	start_pg = pfn_to_page(start_pfn - 1) + 1;
+	end_pg = pfn_to_page(end_pfn - 1) + 1;
+
+>>>>>>> linux-next/akpm-base
 	/*
 	 * request_standard_resources() depends on crashkernel's memory being
 	 * reserved, so do it here.

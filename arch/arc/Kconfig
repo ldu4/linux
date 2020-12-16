@@ -19,7 +19,6 @@ config ARC
 	select COMMON_CLK
 	select DMA_DIRECT_REMAP
 	select GENERIC_ATOMIC64 if !ISA_ARCV2 || !(ARC_HAS_LL64 && ARC_HAS_LLSC)
-	select GENERIC_CLOCKEVENTS
 	select GENERIC_FIND_FIRST_BIT
 	# for now, we don't need GENERIC_IRQ_PROBE, CONFIG_GENERIC_IRQ_CHIP
 	select GENERIC_IRQ_SHOW
@@ -507,7 +506,11 @@ config LINUX_RAM_BASE
 
 config HIGHMEM
 	bool "High Memory Support"
+<<<<<<< HEAD
 	select HAVE_ARCH_PFN_VALID
+=======
+	select ARCH_DISCONTIGMEM_ENABLE
+>>>>>>> linux-next/akpm-base
 	select KMAP_LOCAL
 	help
 	  With ARC 2G:2G address split, only upper 2G is directly addressable by

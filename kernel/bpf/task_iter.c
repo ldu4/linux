@@ -130,7 +130,6 @@ struct bpf_iter_seq_task_file_info {
 	 */
 	struct bpf_iter_seq_task_common common;
 	struct task_struct *task;
-	struct files_struct *files;
 	u32 tid;
 	u32 fd;
 };
@@ -139,24 +138,27 @@ static struct file *
 task_file_seq_get_next(struct bpf_iter_seq_task_file_info *info)
 {
 	struct pid_namespace *ns = info->common.ns;
-	u32 curr_tid = info->tid, max_fds;
-	struct files_struct *curr_files;
+	u32 curr_tid = info->tid;
 	struct task_struct *curr_task;
-	int curr_fd = info->fd;
+	unsigned int curr_fd = info->fd;
 
 	/* If this function returns a non-NULL file object,
-	 * it held a reference to the task/files_struct/file.
+	 * it held a reference to the task/file.
 	 * Otherwise, it does not hold any reference.
 	 */
 again:
 	if (info->task) {
 		curr_task = info->task;
+<<<<<<< HEAD
 		curr_files = info->files;
+=======
+>>>>>>> linux-next/akpm-base
 		curr_fd = info->fd;
 	} else {
 		curr_task = task_seq_get_next(ns, &curr_tid, true);
 		if (!curr_task) {
 			info->task = NULL;
+<<<<<<< HEAD
 			info->files = NULL;
 			return NULL;
 		}
@@ -170,6 +172,12 @@ again:
 		}
 
 		info->files = curr_files;
+=======
+			return NULL;
+		}
+
+		/* set *task and info->tid */
+>>>>>>> linux-next/akpm-base
 		info->task = curr_task;
 		if (curr_tid == info->tid) {
 			curr_fd = info->fd;
@@ -180,13 +188,11 @@ again:
 	}
 
 	rcu_read_lock();
-	max_fds = files_fdtable(curr_files)->max_fds;
-	for (; curr_fd < max_fds; curr_fd++) {
+	for (;; curr_fd++) {
 		struct file *f;
-
-		f = fcheck_files(curr_files, curr_fd);
+		f = task_lookup_next_fd_rcu(curr_task, &curr_fd);
 		if (!f)
-			continue;
+			break;
 		if (!get_file_rcu(f))
 			continue;
 
@@ -198,10 +204,12 @@ again:
 
 	/* the current task is done, go to the next task */
 	rcu_read_unlock();
-	put_files_struct(curr_files);
 	put_task_struct(curr_task);
 	info->task = NULL;
+<<<<<<< HEAD
 	info->files = NULL;
+=======
+>>>>>>> linux-next/akpm-base
 	info->fd = 0;
 	curr_tid = ++(info->tid);
 	goto again;
@@ -213,7 +221,10 @@ static void *task_file_seq_start(struct seq_file *seq, loff_t *pos)
 	struct file *file;
 
 	info->task = NULL;
+<<<<<<< HEAD
 	info->files = NULL;
+=======
+>>>>>>> linux-next/akpm-base
 	file = task_file_seq_get_next(info);
 	if (file && *pos == 0)
 		++*pos;
@@ -275,9 +286,7 @@ static void task_file_seq_stop(struct seq_file *seq, void *v)
 		(void)__task_file_seq_show(seq, v, true);
 	} else {
 		fput((struct file *)v);
-		put_files_struct(info->files);
 		put_task_struct(info->task);
-		info->files = NULL;
 		info->task = NULL;
 	}
 }

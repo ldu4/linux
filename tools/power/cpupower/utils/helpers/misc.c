@@ -11,6 +11,12 @@
 
 #include "cpupower_intern.h"
 
+#if defined(__i386__) || defined(__x86_64__)
+
+#include "helpers/sysfs.h"
+
+#include "cpupower_intern.h"
+
 #define MSR_AMD_HWCR	0xc0010015
 
 int cpufreq_has_boost_support(unsigned int cpu, int *support, int *active,

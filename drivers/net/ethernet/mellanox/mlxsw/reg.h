@@ -8469,6 +8469,7 @@ mlxsw_reg_rmft2_ipv6_pack(char *payload, bool v, u16 offset, u16 virtual_router,
 	mlxsw_reg_rmft2_sip6_mask_memcpy_to(payload, (void *)&sip6_mask);
 }
 
+<<<<<<< HEAD
 /* RXLTE - Router XLT Enable Register
  * ----------------------------------
  * The RXLTE enables XLT (eXtended Lookup Table) LPM lookups if a capable
@@ -9046,6 +9047,13 @@ static inline void mlxsw_reg_xrmt_pack(char *payload, u32 index, u8 l0_val)
 	mlxsw_reg_xrmt_l0_val_set(payload, l0_val);
 }
 
+=======
+/* Note that XRALXX register position violates the rule of ordering register
+ * definition by the ID. However, XRALXX pack helpers are using RALXX pack
+ * helpers, RALXX registers have higher IDs.
+ */
+
+>>>>>>> linux-next/akpm-base
 /* XRALTA - XM Router Algorithmic LPM Tree Allocation Register
  * -----------------------------------------------------------
  * The XRALTA is used to allocate the XLT LPM trees.
@@ -12059,6 +12067,7 @@ static const struct mlxsw_reg_info *mlxsw_reg_infos[] = {
 	MLXSW_REG(rigr2),
 	MLXSW_REG(recr2),
 	MLXSW_REG(rmft2),
+<<<<<<< HEAD
 	MLXSW_REG(rxlte),
 	MLXSW_REG(rxltm),
 	MLXSW_REG(rlcmld),
@@ -12066,6 +12075,8 @@ static const struct mlxsw_reg_info *mlxsw_reg_infos[] = {
 	MLXSW_REG(xltq),
 	MLXSW_REG(xmdr),
 	MLXSW_REG(xrmt),
+=======
+>>>>>>> linux-next/akpm-base
 	MLXSW_REG(xralta),
 	MLXSW_REG(xralst),
 	MLXSW_REG(xraltb),

@@ -22,6 +22,7 @@
 #define CTL_CSR_INT_CTL_OFFSET		0x508
 
 struct m_can_pci_priv {
+<<<<<<< HEAD
 	struct m_can_classdev cdev;
 
 	void __iomem *base;
@@ -35,20 +36,36 @@ static inline struct m_can_pci_priv *cdev_to_priv(struct m_can_classdev *cdev)
 static u32 iomap_read_reg(struct m_can_classdev *cdev, int reg)
 {
 	struct m_can_pci_priv *priv = cdev_to_priv(cdev);
+=======
+	void __iomem *base;
+};
+
+static u32 iomap_read_reg(struct m_can_classdev *cdev, int reg)
+{
+	struct m_can_pci_priv *priv = cdev->device_data;
+>>>>>>> linux-next/akpm-base
 
 	return readl(priv->base + reg);
 }
 
 static u32 iomap_read_fifo(struct m_can_classdev *cdev, int offset)
 {
+<<<<<<< HEAD
 	struct m_can_pci_priv *priv = cdev_to_priv(cdev);
+=======
+	struct m_can_pci_priv *priv = cdev->device_data;
+>>>>>>> linux-next/akpm-base
 
 	return readl(priv->base + offset);
 }
 
 static int iomap_write_reg(struct m_can_classdev *cdev, int reg, int val)
 {
+<<<<<<< HEAD
 	struct m_can_pci_priv *priv = cdev_to_priv(cdev);
+=======
+	struct m_can_pci_priv *priv = cdev->device_data;
+>>>>>>> linux-next/akpm-base
 
 	writel(val, priv->base + reg);
 
@@ -57,7 +74,11 @@ static int iomap_write_reg(struct m_can_classdev *cdev, int reg, int val)
 
 static int iomap_write_fifo(struct m_can_classdev *cdev, int offset, int val)
 {
+<<<<<<< HEAD
 	struct m_can_pci_priv *priv = cdev_to_priv(cdev);
+=======
+	struct m_can_pci_priv *priv = cdev->device_data;
+>>>>>>> linux-next/akpm-base
 
 	writel(val, priv->base + offset);
 
@@ -96,12 +117,22 @@ static int m_can_pci_probe(struct pci_dev *pci, const struct pci_device_id *id)
 		return -ENOMEM;
 	}
 
+<<<<<<< HEAD
 	mcan_class = m_can_class_allocate_dev(&pci->dev,
 					      sizeof(struct m_can_pci_priv));
 	if (!mcan_class)
 		return -ENOMEM;
 
 	priv = cdev_to_priv(mcan_class);
+=======
+	priv = devm_kzalloc(&pci->dev, sizeof(*priv), GFP_KERNEL);
+	if (!priv)
+		return -ENOMEM;
+
+	mcan_class = m_can_class_allocate_dev(&pci->dev);
+	if (!mcan_class)
+		return -ENOMEM;
+>>>>>>> linux-next/akpm-base
 
 	priv->base = base;
 
@@ -109,13 +140,21 @@ static int m_can_pci_probe(struct pci_dev *pci, const struct pci_device_id *id)
 	if (ret < 0)
 		return ret;
 
+<<<<<<< HEAD
+=======
+	mcan_class->device_data = priv;
+>>>>>>> linux-next/akpm-base
 	mcan_class->dev = &pci->dev;
 	mcan_class->net->irq = pci_irq_vector(pci, 0);
 	mcan_class->pm_clock_support = 1;
 	mcan_class->can.clock.freq = id->driver_data;
 	mcan_class->ops = &m_can_pci_ops;
 
+<<<<<<< HEAD
 	pci_set_drvdata(pci, mcan_class);
+=======
+	pci_set_drvdata(pci, mcan_class->net);
+>>>>>>> linux-next/akpm-base
 
 	ret = m_can_class_register(mcan_class);
 	if (ret)
@@ -138,8 +177,14 @@ err:
 
 static void m_can_pci_remove(struct pci_dev *pci)
 {
+<<<<<<< HEAD
 	struct m_can_classdev *mcan_class = pci_get_drvdata(pci);
 	struct m_can_pci_priv *priv = cdev_to_priv(mcan_class);
+=======
+	struct net_device *dev = pci_get_drvdata(pci);
+	struct m_can_classdev *mcan_class = netdev_priv(dev);
+	struct m_can_pci_priv *priv = mcan_class->device_data;
+>>>>>>> linux-next/akpm-base
 
 	pm_runtime_forbid(&pci->dev);
 	pm_runtime_get_noresume(&pci->dev);

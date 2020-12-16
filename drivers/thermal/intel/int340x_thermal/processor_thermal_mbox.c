@@ -87,7 +87,11 @@ static const char * const workload_types[] = {
 	"none",
 	"idle",
 	"semi_active",
+<<<<<<< HEAD
 	"bursty",
+=======
+	"burusty",
+>>>>>>> linux-next/akpm-base
 	"sustained",
 	"battery_life",
 	NULL

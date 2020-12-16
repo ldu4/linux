@@ -988,6 +988,7 @@ static struct ocelot_pgid *ocelot_pgid_alloc(struct ocelot *ocelot, int index,
 	list_add_tail(&pgid->list, &ocelot->pgids);
 
 	return pgid;
+<<<<<<< HEAD
 }
 
 static void ocelot_pgid_free(struct ocelot *ocelot, struct ocelot_pgid *pgid)
@@ -1002,6 +1003,22 @@ static void ocelot_pgid_free(struct ocelot *ocelot, struct ocelot_pgid *pgid)
 static struct ocelot_pgid *ocelot_mdb_get_pgid(struct ocelot *ocelot,
 					       const struct ocelot_multicast *mc)
 {
+=======
+}
+
+static void ocelot_pgid_free(struct ocelot *ocelot, struct ocelot_pgid *pgid)
+{
+	if (!refcount_dec_and_test(&pgid->refcount))
+		return;
+
+	list_del(&pgid->list);
+	kfree(pgid);
+}
+
+static struct ocelot_pgid *ocelot_mdb_get_pgid(struct ocelot *ocelot,
+					       const struct ocelot_multicast *mc)
+{
+>>>>>>> linux-next/akpm-base
 	struct ocelot_pgid *pgid;
 	int index;
 

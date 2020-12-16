@@ -484,11 +484,15 @@ static int ocelot_mc_unsync(struct net_device *dev, const unsigned char *addr)
 	struct ocelot *ocelot = ocelot_port->ocelot;
 	struct ocelot_mact_work_ctx w;
 
+<<<<<<< HEAD
 	ether_addr_copy(w.forget.addr, addr);
 	w.forget.vid = ocelot_port->pvid_vlan.vid;
 	w.type = OCELOT_MACT_FORGET;
 
 	return ocelot_enqueue_mact_action(ocelot, &w);
+=======
+	return ocelot_mact_forget(ocelot, addr, ocelot_port->pvid_vlan.vid);
+>>>>>>> linux-next/akpm-base
 }
 
 static int ocelot_mc_sync(struct net_device *dev, const unsigned char *addr)
@@ -504,7 +508,12 @@ static int ocelot_mc_sync(struct net_device *dev, const unsigned char *addr)
 	w.learn.entry_type = ENTRYTYPE_LOCKED;
 	w.type = OCELOT_MACT_LEARN;
 
+<<<<<<< HEAD
 	return ocelot_enqueue_mact_action(ocelot, &w);
+=======
+	return ocelot_mact_learn(ocelot, PGID_CPU, addr,
+				 ocelot_port->pvid_vlan.vid, ENTRYTYPE_LOCKED);
+>>>>>>> linux-next/akpm-base
 }
 
 static void ocelot_set_rx_mode(struct net_device *dev)

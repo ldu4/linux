@@ -2432,14 +2432,18 @@ static int bnxt_flash_firmware_from_file(struct net_device *dev,
 	return rc;
 }
 
+<<<<<<< HEAD
 #define BNXT_PKG_DMA_SIZE	0x40000
 #define BNXT_NVM_MORE_FLAG	(cpu_to_le16(NVM_MODIFY_REQ_FLAGS_BATCH_MODE))
 #define BNXT_NVM_LAST_FLAG	(cpu_to_le16(NVM_MODIFY_REQ_FLAGS_BATCH_LAST))
 
+=======
+>>>>>>> linux-next/akpm-base
 int bnxt_flash_package_from_fw_obj(struct net_device *dev, const struct firmware *fw,
 				   u32 install_type)
 {
 	struct hwrm_nvm_install_update_input install = {0};
+<<<<<<< HEAD
 	struct hwrm_nvm_install_update_output resp = {0};
 	struct hwrm_nvm_modify_input modify = {0};
 	struct bnxt *bp = netdev_priv(dev);
@@ -2447,6 +2451,8 @@ int bnxt_flash_package_from_fw_obj(struct net_device *dev, const struct firmware
 	dma_addr_t dma_handle;
 	u8 *kmem = NULL;
 	u32 modify_len;
+=======
+>>>>>>> linux-next/akpm-base
 	u32 item_len;
 	int rc = 0;
 	u16 index;
@@ -2455,6 +2461,7 @@ int bnxt_flash_package_from_fw_obj(struct net_device *dev, const struct firmware
 
 	bnxt_hwrm_cmd_hdr_init(bp, &modify, HWRM_NVM_MODIFY, -1, -1);
 
+<<<<<<< HEAD
 	/* Try allocating a large DMA buffer first.  Older fw will
 	 * cause excessive NVRAM erases when using small blocks.
 	 */
@@ -2472,6 +2479,16 @@ int bnxt_flash_package_from_fw_obj(struct net_device *dev, const struct firmware
 		return -ENOMEM;
 
 	modify.host_src_addr = cpu_to_le64(dma_handle);
+=======
+	if (fw->size > item_len) {
+		netdev_err(dev, "PKG insufficient update area in nvram: %lu\n",
+			   (unsigned long)fw->size);
+		rc = -EFBIG;
+	} else {
+		dma_addr_t dma_handle;
+		u8 *kmem;
+		struct hwrm_nvm_modify_input modify = {0};
+>>>>>>> linux-next/akpm-base
 
 	bnxt_hwrm_cmd_hdr_init(bp, &install, HWRM_NVM_INSTALL_UPDATE, -1, -1);
 	if ((install_type & 0xffff) == 0)
@@ -2517,10 +2534,21 @@ int bnxt_flash_package_from_fw_obj(struct net_device *dev, const struct firmware
 				goto pkg_abort;
 			copied += len;
 		}
+<<<<<<< HEAD
 		mutex_lock(&bp->hwrm_cmd_lock);
 		rc = _hwrm_send_message_silent(bp, &install, sizeof(install),
 					       INSTALL_PACKAGE_TIMEOUT);
 		memcpy(&resp, bp->hwrm_cmd_resp_addr, sizeof(resp));
+=======
+	}
+	if (rc)
+		goto err_exit;
+
+	if ((install_type & 0xffff) == 0)
+		install_type >>= 16;
+	bnxt_hwrm_cmd_hdr_init(bp, &install, HWRM_NVM_INSTALL_UPDATE, -1, -1);
+	install.install_type = cpu_to_le32(install_type);
+>>>>>>> linux-next/akpm-base
 
 		if (defrag_attempted) {
 			/* We have tried to defragment already in the previous

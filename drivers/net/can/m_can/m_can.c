@@ -1815,8 +1815,13 @@ int m_can_class_register(struct m_can_classdev *cdev)
 {
 	int ret;
 
+<<<<<<< HEAD
 	if (cdev->pm_clock_support) {
 		ret = m_can_clk_start(cdev);
+=======
+	if (m_can_dev->pm_clock_support) {
+		ret = m_can_clk_start(m_can_dev);
+>>>>>>> linux-next/akpm-base
 		if (ret)
 			return ret;
 	}
@@ -1843,17 +1848,29 @@ int m_can_class_register(struct m_can_classdev *cdev)
 	 * Stop clocks. They will be reactivated once the M_CAN device is opened
 	 */
 clk_disable:
+<<<<<<< HEAD
 	m_can_clk_stop(cdev);
+=======
+	m_can_clk_stop(m_can_dev);
+>>>>>>> linux-next/akpm-base
 
 	return ret;
 }
 EXPORT_SYMBOL_GPL(m_can_class_register);
 
+<<<<<<< HEAD
 void m_can_class_unregister(struct m_can_classdev *cdev)
 {
 	unregister_candev(cdev->net);
 
 	m_can_clk_stop(cdev);
+=======
+void m_can_class_unregister(struct m_can_classdev *m_can_dev)
+{
+	unregister_candev(m_can_dev->net);
+
+	m_can_clk_stop(m_can_dev);
+>>>>>>> linux-next/akpm-base
 }
 EXPORT_SYMBOL_GPL(m_can_class_unregister);
 

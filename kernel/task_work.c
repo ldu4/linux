@@ -76,7 +76,11 @@ int task_work_add(struct task_struct *task, struct callback_head *work,
 		set_notify_resume(task);
 		break;
 	case TWA_SIGNAL:
+<<<<<<< HEAD
 		task_work_notify_signal(task);
+=======
+		set_notify_signal(task);
+>>>>>>> linux-next/akpm-base
 		break;
 	default:
 		WARN_ON_ONCE(1);

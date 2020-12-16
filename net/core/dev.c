@@ -6493,6 +6493,7 @@ static void __busy_poll_stop(struct napi_struct *napi, bool skip_schedule)
 		__napi_schedule(napi);
 		return;
 	}
+<<<<<<< HEAD
 
 	if (napi->gro_bitmask) {
 		/* flush too old packets
@@ -6505,6 +6506,20 @@ static void __busy_poll_stop(struct napi_struct *napi, bool skip_schedule)
 	clear_bit(NAPI_STATE_SCHED, &napi->state);
 }
 
+=======
+
+	if (napi->gro_bitmask) {
+		/* flush too old packets
+		 * If HZ < 1000, flush all packets.
+		 */
+		napi_gro_flush(napi, HZ >= 1000);
+	}
+
+	gro_normal_list(napi);
+	clear_bit(NAPI_STATE_SCHED, &napi->state);
+}
+
+>>>>>>> linux-next/akpm-base
 static void busy_poll_stop(struct napi_struct *napi, void *have_poll_lock, bool prefer_busy_poll,
 			   u16 budget)
 {

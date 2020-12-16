@@ -24,7 +24,10 @@ struct mlxsw_sp_fib_entry_op_ctx {
 			   * the context priv is initialized.
 			   */
 	struct list_head fib_entry_priv_list;
+<<<<<<< HEAD
 	unsigned long event;
+=======
+>>>>>>> linux-next/akpm-base
 	unsigned long ll_priv[];
 };
 
@@ -77,7 +80,10 @@ struct mlxsw_sp_router {
 	const struct mlxsw_sp_router_ll_ops *proto_ll_ops[MLXSW_SP_L3_PROTO_MAX];
 	struct mlxsw_sp_fib_entry_op_ctx *ll_op_ctx;
 	u16 lb_rif_index;
+<<<<<<< HEAD
 	struct mlxsw_sp_router_xm *xm;
+=======
+>>>>>>> linux-next/akpm-base
 };
 
 struct mlxsw_sp_fib_entry_priv {
@@ -96,8 +102,11 @@ enum mlxsw_sp_fib_entry_op {
  * register sets to work with ordinary and XM trees and FIB entries.
  */
 struct mlxsw_sp_router_ll_ops {
+<<<<<<< HEAD
 	int (*init)(struct mlxsw_sp *mlxsw_sp, u16 vr_id,
 		    enum mlxsw_sp_l3proto proto);
+=======
+>>>>>>> linux-next/akpm-base
 	int (*ralta_write)(struct mlxsw_sp *mlxsw_sp, char *xralta_pl);
 	int (*ralst_write)(struct mlxsw_sp *mlxsw_sp, char *xralst_pl);
 	int (*raltb_write)(struct mlxsw_sp *mlxsw_sp, char *xraltb_pl);

@@ -6986,6 +6986,10 @@ void mem_cgroup_migrate(struct page *oldpage, struct page *newpage)
 	if (page_memcg(newpage))
 		return;
 
+<<<<<<< HEAD
+=======
+	/* Swapcache readahead pages can get replaced before being charged */
+>>>>>>> linux-next/akpm-base
 	memcg = page_memcg(oldpage);
 	if (!memcg)
 		return;
