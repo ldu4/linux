@@ -54,12 +54,12 @@ static inline bool is_mergeable_vm_userfaultfd_ctx(struct vm_area_struct *vma,
 
 static inline bool userfaultfd_missing(struct vm_area_struct *vma)
 {
-	return vma->vm_flags & VM_UFFD_MISSING;
+	return READ_ONCE(vma->vm_flags) & VM_UFFD_MISSING;
 }
 
 static inline bool userfaultfd_wp(struct vm_area_struct *vma)
 {
-	return vma->vm_flags & VM_UFFD_WP;
+	return READ_ONCE(vma->vm_flags) & VM_UFFD_WP;
 }
 
 static inline bool userfaultfd_pte_wp(struct vm_area_struct *vma,
@@ -76,7 +76,7 @@ static inline bool userfaultfd_huge_pmd_wp(struct vm_area_struct *vma,
 
 static inline bool userfaultfd_armed(struct vm_area_struct *vma)
 {
-	return vma->vm_flags & (VM_UFFD_MISSING | VM_UFFD_WP);
+	return READ_ONCE(vma->vm_flags) & (VM_UFFD_MISSING | VM_UFFD_WP);
 }
 
 extern int dup_userfaultfd(struct vm_area_struct *, struct list_head *);
