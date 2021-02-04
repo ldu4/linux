@@ -4911,6 +4911,15 @@ vm_fault_t __handle_speculative_fault(struct mm_struct *mm,
 		goto out_put;
 	}
 
+	if (!arch_vma_access_permitted(vma,
+				       flags & FAULT_FLAG_WRITE,
+				       flags & FAULT_FLAG_INSTRUCTION,
+				       flags & FAULT_FLAG_REMOTE)) {
+			trace_spf_vma_access(_RET_IP_, vma, address);
+			ret = VM_FAULT_SIGSEGV;
+			goto out_put;
+	}
+
 	/* This is one is required to check that the VMA has write access set */
 	if (flags & FAULT_FLAG_WRITE) {
 		if (unlikely(!(vmf.vma_flags & VM_WRITE))) {
