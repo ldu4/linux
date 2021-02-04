@@ -4843,6 +4843,9 @@ vm_fault_t __handle_speculative_fault(struct mm_struct *mm,
 	struct mempolicy *pol;
 #endif
 
+	/* do counter updates before entering really critical section. */
+	check_sync_rss_stat(current);
+
 	/* Clear flags that may lead to release the mmap_sem to retry */
 	flags &= ~(FAULT_FLAG_ALLOW_RETRY|FAULT_FLAG_KILLABLE);
 	flags |= FAULT_FLAG_SPECULATIVE;
@@ -5029,9 +5032,6 @@ vm_fault_t __handle_speculative_fault(struct mm_struct *mm,
 
 	put_vma(vma);
 
-	if (ret != VM_FAULT_RETRY)
-		count_vm_event(SPECULATIVE_PGFAULT);
-
 	/*
 	 * The task may have entered a memcg OOM situation but
 	 * if the allocation error was handled gracefully (no
@@ -5041,15 +5041,20 @@ vm_fault_t __handle_speculative_fault(struct mm_struct *mm,
 	if (task_in_memcg_oom(current) && !(ret & VM_FAULT_OOM))
 		mem_cgroup_oom_synchronize(false);
 
-	mm_account_fault(regs, address, flags, ret);
-
-	return ret;
+	goto out;
 
 out_walk:
 	trace_spf_vma_notsup(_RET_IP_, vma, address);
 	local_irq_enable();
 out_put:
 	put_vma(vma);
+out:
+	mm_account_fault(regs, address, flags, ret);
+	if (ret != VM_FAULT_RETRY) {
+		count_vm_event(PGFAULT);
+		count_vm_event(SPECULATIVE_PGFAULT);
+		count_memcg_event_mm(vma->vm_mm, PGFAULT);
+	}
 	return ret;
 }
 #endif /* CONFIG_SPECULATIVE_PAGE_FAULT */
