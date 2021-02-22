@@ -2370,9 +2370,9 @@ static inline unsigned long detach_range(struct mm_struct *mm,
  *
  *
  */
-int do_mas_align_munmap(struct ma_state *mas, struct vm_area_struct *vma,
-			struct mm_struct *mm, unsigned long start,
-			unsigned long end, struct list_head *uf, bool downgrade)
+static int do_mas_align_munmap(struct ma_state *mas, struct vm_area_struct *vma,
+	       struct mm_struct *mm, unsigned long start, unsigned long end,
+	       struct list_head *uf, bool downgrade)
 {
 	struct vm_area_struct *prev, *last;
 	struct maple_tree mt_detach;
