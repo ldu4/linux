@@ -608,6 +608,82 @@ struct vm_operations_struct {
 					  unsigned long addr);
 };
 
+#ifdef CONFIG_PER_VMA_LOCK
+static inline void vma_init_lock(struct vm_area_struct *vma)
+{
+	init_rwsem(&vma->lock);
+	vma->lock_seq = -1;
+}
+
+static inline void vma_mark_locked(struct vm_area_struct *vma)
+{
+	mmap_assert_write_locked(vma->vm_mm);
+	down_write(&vma->lock);
+	vma->lock_seq = READ_ONCE(vma->vm_mm->lock_seq);
+	up_write(&vma->lock);
+}
+
+static inline bool vma_mark_locked_killable(struct vm_area_struct *vma)
+{
+	mmap_assert_write_locked(vma->vm_mm);
+
+	if (unlikely(down_write_killable(&vma->lock)))
+		return false;
+
+	vma->lock_seq = READ_ONCE(vma->vm_mm->lock_seq);
+	up_write(&vma->lock);
+	return true;
+}
+
+static inline void vma_wait_for_readers(struct vm_area_struct *vma)
+{
+	down_write(&vma->lock);
+	up_write(&vma->lock);
+}
+
+static inline bool vma_read_trylock(struct vm_area_struct *vma)
+{
+	if (unlikely(down_read_trylock(&vma->lock) == 0))
+		return false;
+
+	/*
+         * Overflow might produce false locked result but it's not critical.
+         * False unlocked result is critical but is impossible because we
+         * modify and check vma->lock_seq under vma->lock protection and
+         * mm->lock_seq modification invalidates all existing locks.
+         */
+	if (vma->lock_seq == READ_ONCE(vma->vm_mm->lock_seq)) {
+		up_read(&vma->lock);
+		return false;
+	}
+	return true;
+}
+
+static inline void vma_read_unlock(struct vm_area_struct *vma)
+{
+	up_read(&vma->lock);
+}
+
+static inline void vma_assert_locked(struct vm_area_struct *vma)
+{
+	lockdep_assert_held(&vma->lock);
+	VM_BUG_ON_VMA(!rwsem_is_locked(&vma->lock), vma);
+}
+
+#else /* CONFIG_PER_VMA_LOCK */
+static inline void vma_init_lock(struct vm_area_struct *vma) {}
+static inline void vma_mark_locked(struct vm_area_struct *vma) {}
+static inline bool vma_mark_locked_killable(struct vm_area_struct *vma)
+		{ return true; }
+static inline void vma_mark_unlocked(struct vm_area_struct *vma, bool) {}
+static inline void vma_wait_for_readers(struct vm_area_struct *vma) {}
+static inline bool vma_read_trylock(struct vm_area_struct *vma)
+		{ return false; }
+static inline void vma_read_unlock(struct vm_area_struct *vma) {}
+static inline void vma_assert_locked(struct vm_area_struct *vma) {}
+
+#endif /* CONFIG_PER_VMA_LOCK */
+
 static inline void vma_init(struct vm_area_struct *vma, struct mm_struct *mm)
 {
 	static const struct vm_operations_struct dummy_vm_ops = {};
@@ -616,6 +692,7 @@ static inline void vma_init(struct vm_area_struct *vma, struct mm_struct *mm)
 	vma->vm_mm = mm;
 	vma->vm_ops = &dummy_vm_ops;
 	INIT_LIST_HEAD(&vma->anon_vma_chain);
+	vma_init_lock(vma);
 }
 
 static inline void vma_set_anonymous(struct vm_area_struct *vma)
