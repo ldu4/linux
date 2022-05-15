@@ -493,6 +493,11 @@ static void __vm_area_free(struct rcu_head *head)
 
 void vm_area_free(struct vm_area_struct *vma)
 {
+	/*
+	 * Wait for page fault handlers which might have locked the vma,
+	 * exited the rcu read section and are handling the page fault.
+	 */
+	vma_wait_for_readers(vma);
 	free_anon_vma_name(vma);
 #ifdef CONFIG_PER_VMA_LOCK
 	call_rcu(&vma->vm_rcu, __vm_area_free);
@@ -709,8 +714,10 @@ static __latent_entropy int dup_mmap(struct mm_struct *mm,
 		rb_parent = &tmp->vm_rb;
 
 		mm->map_count++;
-		if (!(tmp->vm_flags & VM_WIPEONFORK))
+		if (!(tmp->vm_flags & VM_WIPEONFORK)) {
+			vma_mark_locked(mpnt);
 			retval = copy_page_range(tmp, mpnt);
+		}
 
 		if (tmp->vm_ops && tmp->vm_ops->open)
 			tmp->vm_ops->open(tmp);

@@ -628,6 +628,8 @@ static unsigned long move_vma(struct vm_area_struct *vma,
 			vm_unacct_memory(to_account >> PAGE_SHIFT);
 		return -ENOMEM;
 	}
+	if (vma != new_vma)
+		vma_mark_locked(vma);
 
 	moved_len = move_page_tables(vma, old_addr, new_vma, new_addr, old_len,
 				     need_rmap_locks);
