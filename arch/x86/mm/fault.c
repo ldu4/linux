@@ -1351,6 +1351,7 @@ void do_user_addr_fault(struct pt_regs *regs,
 		goto lock_mmap;
 	}
 	if (unlikely(access_error(error_code, vma))) {
+		vma_read_unlock(vma);
 		goto lock_mmap;
 	}
 	fault = handle_mm_fault(vma, address, flags | FAULT_FLAG_VMA_LOCK, regs);
