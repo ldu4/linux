@@ -676,7 +676,7 @@ static inline void vma_init_lock(struct vm_area_struct *vma) {}
 static inline void vma_mark_locked(struct vm_area_struct *vma) {}
 static inline bool vma_mark_locked_killable(struct vm_area_struct *vma)
 		{ return true; }
-static inline void vma_mark_unlocked(struct vm_area_struct *vma, bool) {}
+//static inline void vma_mark_unlocked(struct vm_area_struct *vma, bool b) {}
 static inline void vma_wait_for_readers(struct vm_area_struct *vma) {}
 static inline bool vma_read_trylock(struct vm_area_struct *vma)
 		{ return false; }
